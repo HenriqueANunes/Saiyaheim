@@ -56,6 +56,7 @@ namespace Saiyaheim
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
 
             CommandManager.Instance.AddConsoleCommand(new DumpPrefabsCommand());
+            CommandManager.Instance.AddConsoleCommand(new DumpEmotesCommand());
             CommandManager.Instance.AddConsoleCommand(new KiCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} carregado.");

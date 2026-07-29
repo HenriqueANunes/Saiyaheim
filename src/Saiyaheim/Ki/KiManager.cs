@@ -36,9 +36,12 @@ namespace Saiyaheim.Ki
 
             if (player == null)
             {
+                // Morte ou saída do mundo: os efeitos morrem junto com o jogador (são filhos do
+                // transform dele), mas o estado interno precisa acompanhar.
                 _trackedPlayer = null;
                 _state = null;
                 IsCharging = false;
+                KiChargeEffects.Reset();
                 return;
             }
 
@@ -66,9 +69,11 @@ namespace Saiyaheim.Ki
 
         private static void HandleInput(Player player)
         {
+            // Abrir inventário no meio do carregamento não pode deixar efeito preso na tela.
             if (!AcceptsInput())
             {
                 IsCharging = false;
+                KiChargeEffects.Update(player, charging: false);
                 return;
             }
 
@@ -82,6 +87,8 @@ namespace Saiyaheim.Ki
             IsCharging = _state.Enabled
                          && SaiyaheimConfig.ChargeKiKey.Value.IsPressed()
                          && CanCharge(player);
+
+            KiChargeEffects.Update(player, IsCharging);
         }
 
         private static bool CanCharge(Player player)

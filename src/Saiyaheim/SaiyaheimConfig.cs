@@ -23,6 +23,7 @@ namespace Saiyaheim
         private const string SecFlight = "5 - Voo";
         private const string SecPower = "6 - Power Level";
         private const string SecHud = "7 - HUD";
+        private const string SecEffects = "8 - Efeitos";
         private const string SecDebug = "9 - Debug";
 
         // ---------- 1 - Geral ----------
@@ -113,6 +114,17 @@ namespace Saiyaheim
 
         /// <summary>Multiplicador aplicado depois da compressão, só para o número exibido ficar legível.</summary>
         public static ConfigEntry<float> PowerDisplayScale { get; private set; }
+
+        // ---------- 8 - Efeitos ----------
+
+        /// <summary>Emote em loop tocado enquanto carrega. Vazio desliga.</summary>
+        public static ConfigEntry<string> ChargeEmote { get; private set; }
+
+        public static ConfigEntry<string> ChargeEffectPrefab { get; private set; }
+        public static ConfigEntry<string> ChargeSoundPrefab { get; private set; }
+        public static ConfigEntry<string> ChargeEffectColor { get; private set; }
+        public static ConfigEntry<float> ChargeEffectScale { get; private set; }
+        public static ConfigEntry<bool> ChargeEffectForceLoop { get; private set; }
 
         // ---------- 9 - Debug ----------
 
@@ -280,6 +292,48 @@ namespace Saiyaheim
             PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 100f,
                 new ConfigDescription("Multiplicador aplicado depois da compressao, so para leitura.",
                     new AcceptableValueRange<float>(1f, 10000f), AdminOnly(50)));
+
+            // --- Efeitos ---
+            // Nomes de prefab e de emote ficam aqui, e nao no codigo, porque qual pose e qual
+            // efeito "le" como carregar ki e julgamento visual — e quem ve a tela e o Henrique.
+            // Trocar deve custar editar este arquivo, nao uma recompilacao.
+            ChargeEmote = config.Bind(SecEffects, "ChargeEmote", "challenge",
+                new ConfigDescription(
+                    "Emote tocado em loop enquanto carrega ki. Vazio desliga a animacao. " +
+                    "Rode saiya_dumpemotes no console (F5) para ver a lista valida — " +
+                    "os do tipo Bool sao os que ficam em loop.",
+                    null, ClientSide(100)));
+
+            ChargeEffectPrefab = config.Bind(SecEffects, "ChargeEffectPrefab", "fx_DvergerMage_Support_start",
+                new ConfigDescription(
+                    "Prefab de efeito visual preso ao jogador enquanto carrega. Vazio desliga. " +
+                    "Rode saiya_dumpprefabs para a lista completa; ha candidatos como " +
+                    "fx_ShieldCharge_1 ate _5 (intensidade crescente) e fx_chainlightning_spread.",
+                    null, ClientSide(90)));
+
+            ChargeSoundPrefab = config.Bind(SecEffects, "ChargeSoundPrefab", "sfx_charred_mage_attack_charge",
+                new ConfigDescription(
+                    "Prefab de som tocado em loop enquanto carrega. Vazio desliga. " +
+                    "Alternativas: sfx_StaffLightning_charge, sfx_staff_lightning_charge.",
+                    null, ClientSide(80)));
+
+            ChargeEffectColor = config.Bind(SecEffects, "ChargeEffectColor", "#4FC3F7",
+                new ConfigDescription(
+                    "Cor do efeito de carregamento, formato #RRGGBB. Vazio mantem a cor original " +
+                    "do prefab. Aplica no proximo carregamento — nao precisa reiniciar. " +
+                    "O fade original das particulas e preservado; so a cor base muda.",
+                    null, ClientSide(85)));
+
+            ChargeEffectScale = config.Bind(SecEffects, "ChargeEffectScale", 1f,
+                new ConfigDescription("Escala do efeito visual. Efeitos de boss costumam precisar encolher.",
+                    new AcceptableValueRange<float>(0.1f, 5f), ClientSide(70)));
+
+            ChargeEffectForceLoop = config.Bind(SecEffects, "ChargeEffectForceLoop", true,
+                new ConfigDescription(
+                    "Forca particulas e audio do efeito a repetir. Prefabs do jogo sao feitos para " +
+                    "um estouro rapido; sem isso o efeito some sozinho depois de um segundo. " +
+                    "Desligue se algum prefab ficar estranho repetindo.",
+                    null, ClientSide(60)));
 
             // --- Debug ---
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
