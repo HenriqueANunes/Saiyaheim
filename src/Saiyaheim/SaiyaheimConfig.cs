@@ -155,8 +155,11 @@ namespace Saiyaheim
                 new ConfigDescription("Ki maximo do jogador.",
                     new AcceptableValueRange<float>(10f, 10000f), AdminOnly(100)));
 
-            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 2f,
-                new ConfigDescription("Ki regenerado por segundo em repouso.",
+            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 0.5f,
+                new ConfigDescription(
+                    "Ki regenerado por segundo em repouso. Baixo de proposito: a regeneracao " +
+                    "passiva e a rede de seguranca, nao a forma normal de recuperar ki. " +
+                    "Quem quer ki carrega. (Calibrado no playtest de 2026-07-28.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(90)));
 
             KiTickInterval = config.Bind(SecKi, "KiTickInterval", 0.25f,
@@ -165,8 +168,11 @@ namespace Saiyaheim
                     "Valor menor da leitura mais suave e custa mais CPU.",
                     new AcceptableValueRange<float>(0.05f, 1f), AdminOnly(80)));
 
-            KiRegenDelay = config.Bind(SecKi, "KiRegenDelay", 1f,
-                new ConfigDescription("Segundos sem regenerar depois de gastar ki.",
+            KiRegenDelay = config.Bind(SecKi, "KiRegenDelay", 5f,
+                new ConfigDescription(
+                    "Segundos sem regenerar depois de gastar ki. Longo de proposito, junto com " +
+                    "KiRegenPerSecond baixo: gastar ki deve doer, e recuperar deve ser uma acao. " +
+                    "(Calibrado no playtest de 2026-07-28.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
 
             ChargeKiPerSecond = config.Bind(SecKi, "ChargeKiPerSecond", 15f,
@@ -177,10 +183,11 @@ namespace Saiyaheim
                     "Ignora o KiRegenDelay de proposito.",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(60)));
 
-            ChargeRequiresStandingStill = config.Bind(SecKi, "ChargeRequiresStandingStill", false,
+            ChargeRequiresStandingStill = config.Bind(SecKi, "ChargeRequiresStandingStill", true,
                 new ConfigDescription(
                     "Se true, andar interrompe o carregamento. Carregar parado e o gesto classico " +
-                    "de Dragon Ball, mas atrapalha em combate — vale testar os dois.",
+                    "de Dragon Ball e cria uma escolha real: parar para carregar te deixa exposto. " +
+                    "(Testados os dois no playtest de 2026-07-28; parado ganhou.)",
                     null, AdminOnly(50)));
 
             // --- HUD ---
@@ -193,7 +200,7 @@ namespace Saiyaheim
                     "Aplica ao vivo: edite o arquivo com o jogo aberto e a barra se move.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(90)));
 
-            KiBarOffsetY = config.Bind(SecHud, "KiBarOffsetY", -34f,
+            KiBarOffsetY = config.Bind(SecHud, "KiBarOffsetY", -30f,
                 new ConfigDescription(
                     "Deslocamento vertical da barra de ki, em pixels, relativo a posicao das barras " +
                     "nativas. Negativo desce. Aplica ao vivo.",
@@ -297,7 +304,8 @@ namespace Saiyaheim
             // Nomes de prefab e de emote ficam aqui, e nao no codigo, porque qual pose e qual
             // efeito "le" como carregar ki e julgamento visual — e quem ve a tela e o Henrique.
             // Trocar deve custar editar este arquivo, nao uma recompilacao.
-            ChargeEmote = config.Bind(SecEffects, "ChargeEmote", "challenge",
+            // "roar" foi o emote escolhido no playtest: é o que lê como power up.
+            ChargeEmote = config.Bind(SecEffects, "ChargeEmote", "roar",
                 new ConfigDescription(
                     "Emote tocado em loop enquanto carrega ki. Vazio desliga a animacao. " +
                     "Rode saiya_dumpemotes no console (F5) para ver a lista valida — " +
@@ -324,8 +332,10 @@ namespace Saiyaheim
                     "O fade original das particulas e preservado; so a cor base muda.",
                     null, ClientSide(85)));
 
-            ChargeEffectScale = config.Bind(SecEffects, "ChargeEffectScale", 1f,
-                new ConfigDescription("Escala do efeito visual. Efeitos de boss costumam precisar encolher.",
+            ChargeEffectScale = config.Bind(SecEffects, "ChargeEffectScale", 2f,
+                new ConfigDescription(
+                    "Escala do efeito visual. O efeito de suporte do Dvergr nasce pequeno demais " +
+                    "na escala do jogador e precisa dobrar. (Calibrado no playtest de 2026-07-28.)",
                     new AcceptableValueRange<float>(0.1f, 5f), ClientSide(70)));
 
             ChargeEffectForceLoop = config.Bind(SecEffects, "ChargeEffectForceLoop", true,
