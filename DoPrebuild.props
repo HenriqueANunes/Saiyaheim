@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Liga a tarefa de prebuild do Jotunn, que gera as assemblies publicizadas em
+  $(VALHEIM_INSTALL)/valheim_Data/Managed/publicized_assemblies/.
+  Precisa rodar pelo menos uma vez, e de novo sempre que o jogo atualizar.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ExecutePrebuild>true</ExecutePrebuild>
+  </PropertyGroup>
+</Project>

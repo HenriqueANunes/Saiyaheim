@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Unity Mono do Valheim: net462. Não mexer. -->
+    <TargetFramework>net462</TargetFramework>
+    <AssemblyName>Saiyaheim</AssemblyName>
+    <RootNamespace>Saiyaheim</RootNamespace>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Description>Mod de Dragon Ball para Valheim</Description>
+
+    <!-- As assemblies do jogo não têm docs XML nem versionamento estrito. -->
+    <NoWarn>$(NoWarn);CS0436;CS0618;MSB3277</NoWarn>
+
+    <!-- O Jotunn.dll é entregue pelo mod Jotunn no perfil do r2modman; não pode ir junto no bin.
+         (As facades netstandard que sobram no bin são necessárias para compilar net462 e são
+         ignoradas pelo deploy, que copia só Saiyaheim.dll.) -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Traz Jotunn + todas as referências do jogo (via Environment.props) + o publicizer. -->
+    <PackageReference Include="JotunnLib" Version="2.29.2" />
+    <!-- Necessário para compilar net462 fora do Windows. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- O Jotunn referencia essa assembly, mas o build atual do Valheim não a distribui.
+         Sem o Remove o build fica com um MSB3245 permanente. -->
+    <Reference Remove="UnityEngine.ProfilerModule" />
+  </ItemGroup>
+
+  <!-- Sem isto o build falha com uma cascata de CS0246 sem explicação. -->
+  <Target Name="CheckPaths" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(VALHEIM_INSTALL)')"
+           Text="Valheim não encontrado em '$(VALHEIM_INSTALL)'. Ajuste VALHEIM_INSTALL em Environment.props (ver Environment.props.example)." />
+    <Error Condition="!Exists('$(BEPINEX_PATH)/core/BepInEx.dll')"
+           Text="BepInEx não encontrado em '$(BEPINEX_PATH)'. Instale o BepInExPack Valheim e o Jotunn no perfil do r2modman, ou ajuste BEPINEX_PATH em Environment.props." />
+  </Target>
+
+  <!-- Sem isso o bin/ recebe cópia de todas as assemblies do jogo e do BepInEx.
+       Só Saiyaheim.dll deve ir para BepInEx/plugins — DLL duplicada lá quebra o carregamento. -->
+  <Target Name="DontCopyGameAssemblies" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Update="@(Reference)" Private="false" />
+    </ItemGroup>
+  </Target>
+
+</Project>
