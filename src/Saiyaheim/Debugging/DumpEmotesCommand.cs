@@ -24,21 +24,21 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_dumpemotes";
 
         public override string Help =>
-            "Lista os emotes disponíveis no Animator do jogador. Use o nome em ChargeEmote na config.";
+            "Lists the emotes available in the player's Animator. Use the name in ChargeEmote in the config.";
 
         public override void Run(string[] args)
         {
             Player player = Player.m_localPlayer;
             if (player == null)
             {
-                Print("Sem jogador. Entre em um mundo primeiro.");
+                Print("No player. Join a world first.");
                 return;
             }
 
             Animator animator = GameAccess.GetAnimator(player);
             if (animator == null)
             {
-                Print("Animator do jogador não encontrado.");
+                Print("Player Animator not found.");
                 return;
             }
 
@@ -53,13 +53,13 @@ namespace Saiyaheim.Debugging
 
             if (emotes.Count == 0)
             {
-                Print("Nenhum parâmetro 'emote_' no Animator.");
+                Print("No 'emote_' parameter in the Animator.");
                 return;
             }
 
             // Bool = emote que fica em loop, que é o que serve para carregar ki.
             // Trigger = emote de disparo único, acaba sozinho.
-            Print($"{emotes.Count} emotes. Os do tipo Bool ficam em loop e servem para carregar:");
+            Print($"{emotes.Count} emotes. The ones of type Bool loop and work for charging:");
             foreach (string emote in emotes)
             {
                 Print("  " + emote);
@@ -75,7 +75,7 @@ namespace Saiyaheim.Debugging
             }
             catch (Exception ex)
             {
-                SaiyaheimPlugin.Log.LogError($"Falha ao escrever emotes.txt: {ex.Message}");
+                SaiyaheimPlugin.Log.LogError($"Failed to write emotes.txt: {ex.Message}");
             }
         }
 

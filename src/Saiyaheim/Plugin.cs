@@ -5,6 +5,7 @@ using Jotunn.Managers;
 using Jotunn.Utils;
 using Saiyaheim.Debugging;
 using Saiyaheim.Ki;
+using Saiyaheim.Power;
 using UnityEngine;
 
 namespace Saiyaheim
@@ -27,6 +28,18 @@ namespace Saiyaheim
         /// <summary>Logger do mod. Aparece no console do BepInEx prefixado com [Saiyaheim].</summary>
         internal static ManualLogSource Log { get; private set; }
 
+        /// <summary>
+        /// Log só quando <c>VerboseLogging</c> está ligado. Serve para eventos que acontecem muito
+        /// (aplicar efeito, ganhar XP) e que poluiriam o console em uso normal.
+        /// </summary>
+        internal static void LogVerbose(string message)
+        {
+            if (SaiyaheimConfig.VerboseLogging != null && SaiyaheimConfig.VerboseLogging.Value)
+            {
+                Log.LogInfo(message);
+            }
+        }
+
         private Harmony _harmony;
 
         /// <summary>
@@ -46,20 +59,23 @@ namespace Saiyaheim
             _configWatcher = new ConfigFileWatcher(Config);
             _configWatcher.OnConfigFileReloaded += () =>
             {
-                Log.LogInfo("Config recarregada do disco.");
+                Log.LogInfo("Config reloaded from disk.");
                 KiHud.OnConfigReloaded();
             };
 
-            // Ainda sem patches. O PatchAll fica aqui desde já para que adicionar a
-            // primeira classe [HarmonyPatch] não exija tocar no bootstrap.
+            PowerSkill.Register();
+
+            // Um patch só, em Character.ApplyDamage, e só para contabilizar XP — ver DamageXpPatch
+            // para os motivos de não haver caminho nativo. Dano e armadura saem de StatusEffect.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
 
             CommandManager.Instance.AddConsoleCommand(new DumpPrefabsCommand());
             CommandManager.Instance.AddConsoleCommand(new DumpEmotesCommand());
             CommandManager.Instance.AddConsoleCommand(new KiCommand());
+            CommandManager.Instance.AddConsoleCommand(new PowerCommand());
 
-            Log.LogInfo($"{PluginName} v{PluginVersion} carregado.");
+            Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
 
         /// <summary>
@@ -70,6 +86,7 @@ namespace Saiyaheim
         {
             float dt = Time.deltaTime;
             KiManager.Update(dt);
+            KiBodyManager.Update(Player.m_localPlayer);
             KiHud.Update();
         }
 

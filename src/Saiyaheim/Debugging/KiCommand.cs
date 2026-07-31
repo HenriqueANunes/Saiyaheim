@@ -25,7 +25,7 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_ki";
 
         public override string Help =>
-            "Testa o ki. Uso: saiya_ki [set <n> | drain <n> | full | empty | toggle]";
+            "Tests ki. Usage: saiya_ki [set <n> | drain <n> | full | empty | toggle]";
 
         public override List<string> CommandOptionList() =>
             new List<string> { "set", "drain", "full", "empty", "toggle" };
@@ -34,7 +34,7 @@ namespace Saiyaheim.Debugging
         {
             if (KiManager.State == null)
             {
-                Print("Sem jogador. Entre em um mundo primeiro.");
+                Print("No player. Join a world first.");
                 return;
             }
 
@@ -49,7 +49,7 @@ namespace Saiyaheim.Debugging
                 case "drain":
                     if (!TryParseAmount(args, out float amount))
                     {
-                        Print($"Uso: saiya_ki {action} <numero>");
+                        Print($"Usage: saiya_ki {action} <number>");
                         return;
                     }
 
@@ -76,13 +76,13 @@ namespace Saiyaheim.Debugging
                     break;
 
                 default:
-                    Print($"Ação desconhecida: '{action}'. {Help}");
+                    Print($"Unknown action: '{action}'. {Help}");
                     return;
             }
 
             Print($"Ki: {KiManager.State.Current:0.#}/{KiManager.Max:0.#} " +
-                  $"({(KiManager.State.Enabled ? "ligado" : "desligado")}" +
-                  $"{(KiManager.IsCharging ? ", carregando" : "")})");
+                  $"({(KiManager.State.Enabled ? "on" : "off")}" +
+                  $"{(KiManager.IsCharging ? ", charging" : "")})");
         }
 
         private static bool TryParseAmount(string[] args, out float amount)

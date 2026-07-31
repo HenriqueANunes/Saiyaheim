@@ -33,9 +33,17 @@ namespace Saiyaheim.Ki
 
         public static KiState Load(Player player)
         {
+            // O teto cresce com a skill Battle Power, então não dá para usar o valor de
+            // config direto: um personagem de nível alto nasceria com a barra pela metade.
+            //
+            // Depende de as skills já estarem carregadas. Game.SpawnPlayer chama SetLocalPlayer()
+            // ANTES de LoadPlayerData(), mas as duas na mesma chamada — o Update do plugin não cai
+            // no meio. É a mesma janela de que a leitura de m_customData abaixo já depende.
+            float max = KiManager.MaxFor(player);
+
             var state = new KiState
             {
-                Current = SaiyaheimConfig.MaxKi.Value,
+                Current = max,
                 Enabled = SaiyaheimConfig.KiEnabledByDefault.Value
             };
 
@@ -47,7 +55,7 @@ namespace Saiyaheim.Ki
             if (player.m_customData.TryGetValue(KeyCurrent, out string rawCurrent) &&
                 float.TryParse(rawCurrent, NumberStyles.Float, CultureInfo.InvariantCulture, out float current))
             {
-                state.Current = Mathf.Clamp(current, 0f, SaiyaheimConfig.MaxKi.Value);
+                state.Current = Mathf.Clamp(current, 0f, max);
             }
 
             if (player.m_customData.TryGetValue(KeyEnabled, out string rawEnabled))

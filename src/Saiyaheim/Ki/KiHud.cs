@@ -72,7 +72,7 @@ namespace Saiyaheim.Ki
             catch (Exception ex)
             {
                 _disabled = true;
-                SaiyaheimPlugin.Log.LogError($"Barra de ki desligada após erro: {ex}");
+                SaiyaheimPlugin.Log.LogError($"Ki bar disabled after an error: {ex}");
             }
         }
 
@@ -130,7 +130,7 @@ namespace Saiyaheim.Ki
             ApplyColor();
 
             SaiyaheimPlugin.Log.LogInfo(
-                $"Barra de ki criada (GuiBar: {bars.Length}, texto: {_text != null}, animator: {_animator != null}).");
+                $"Ki bar created (GuiBar: {bars.Length}, text: {_text != null}, animator: {_animator != null}).");
 
             // Se o clone não trouxe as barras, a estrutura do prefab mudou. Listar os filhos é
             // o que permite consertar sem precisar de outra rodada de teste na tela.
@@ -138,7 +138,7 @@ namespace Saiyaheim.Ki
             {
                 string children = string.Join(", ",
                     _root.GetComponentsInChildren<Transform>(true).Select(t => t.name).ToArray());
-                SaiyaheimPlugin.Log.LogWarning($"Barra de ki com {bars.Length} GuiBar. Filhos: {children}");
+                SaiyaheimPlugin.Log.LogWarning($"Ki bar has {bars.Length} GuiBar. Children: {children}");
             }
 
             return true;
@@ -149,7 +149,7 @@ namespace Saiyaheim.Ki
             if (!ColorUtility.TryParseHtmlString(SaiyaheimConfig.KiBarColor.Value, out Color color))
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"KiBarColor '{SaiyaheimConfig.KiBarColor.Value}' não é uma cor válida. Use formato #RRGGBB.");
+                    $"KiBarColor '{SaiyaheimConfig.KiBarColor.Value}' is not a valid color. Use the #RRGGBB format.");
                 return;
             }
 
