@@ -51,7 +51,7 @@ namespace Saiyaheim.Ki
             {
                 _disabled = true;
                 Cleanup();
-                SaiyaheimPlugin.Log.LogError($"Efeitos de carregamento desligados após erro: {ex}");
+                SaiyaheimPlugin.Log.LogError($"Charging effects disabled after an error: {ex}");
             }
         }
 
@@ -116,7 +116,7 @@ namespace Saiyaheim.Ki
             if (prefab == null)
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"Prefab '{prefabName}' não existe. Use saiya_dumpprefabs para ver os nomes válidos.");
+                    $"Prefab '{prefabName}' does not exist. Run saiya_dumpprefabs to see the valid names.");
                 return null;
             }
 
@@ -170,7 +170,7 @@ namespace Saiyaheim.Ki
             if (!ColorUtility.TryParseHtmlString(raw, out Color color))
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"ChargeEffectColor '{raw}' não é uma cor válida. Use formato #RRGGBB.");
+                    $"ChargeEffectColor '{raw}' is not a valid color. Use the #RRGGBB format.");
                 return;
             }
 

@@ -40,7 +40,7 @@ namespace Saiyaheim.Util
             }
             catch (Exception ex)
             {
-                SaiyaheimPlugin.Log.LogWarning($"Falha ao ler m_staminaBarBorderBuffer: {ex.Message}");
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_staminaBarBorderBuffer: {ex.Message}");
                 return StaminaBarBorderBufferFallback;
             }
         }
@@ -62,7 +62,7 @@ namespace Saiyaheim.Util
             }
             catch (Exception ex)
             {
-                SaiyaheimPlugin.Log.LogWarning($"Falha ao ler m_animator: {ex.Message}");
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_animator: {ex.Message}");
                 return null;
             }
         }
@@ -88,7 +88,7 @@ namespace Saiyaheim.Util
             }
             catch (Exception ex)
             {
-                SaiyaheimPlugin.Log.LogWarning($"Falha ao parar o emote: {ex.Message}");
+                SaiyaheimPlugin.Log.LogWarning($"Failed to stop the emote: {ex.Message}");
             }
         }
 
@@ -105,8 +105,8 @@ namespace Saiyaheim.Util
             catch (Exception ex)
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"Campo '{typeof(TObject).Name}.{fieldName}' não encontrado ({ex.GetType().Name}). " +
-                    "O jogo pode ter atualizado.");
+                    $"Field '{typeof(TObject).Name}.{fieldName}' not found ({ex.GetType().Name}). " +
+                    "The game may have been updated.");
                 return null;
             }
         }

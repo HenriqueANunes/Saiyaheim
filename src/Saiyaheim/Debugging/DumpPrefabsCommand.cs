@@ -24,21 +24,21 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_dumpprefabs";
 
         public override string Help =>
-            "Dumpa os nomes dos prefabs do ZNetScene em arquivos de texto na pasta de config do BepInEx. " +
-            "Argumento opcional: filtro por substring.";
+            "Dumps the ZNetScene prefab names to text files in the BepInEx config folder. " +
+            "Optional argument: substring filter.";
 
         public override void Run(string[] args)
         {
             if (ZNetScene.instance == null)
             {
-                Print("ZNetScene ainda não existe. Entre em um mundo antes de rodar isso.");
+                Print("ZNetScene does not exist yet. Join a world before running this.");
                 return;
             }
 
             List<GameObject> prefabs = ZNetScene.instance.m_prefabs;
             if (prefabs == null || prefabs.Count == 0)
             {
-                Print("ZNetScene sem prefabs carregados.");
+                Print("ZNetScene has no prefabs loaded.");
                 return;
             }
 
@@ -71,12 +71,12 @@ namespace Saiyaheim.Debugging
 
                     string fxPath = Path.Combine(dir, "prefabs_effects.txt");
                     File.WriteAllLines(fxPath, effects);
-                    Print($"{effects.Count} efeitos (fx_/vfx_/sfx_) → {fxPath}");
+                    Print($"{effects.Count} effects (fx_/vfx_/sfx_) → {fxPath}");
                 }
             }
             catch (Exception ex)
             {
-                Print($"Falha ao escrever o dump: {ex.Message}");
+                Print($"Failed to write the dump: {ex.Message}");
                 SaiyaheimPlugin.Log.LogError(ex);
             }
         }

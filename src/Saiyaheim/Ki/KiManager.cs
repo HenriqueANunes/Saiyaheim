@@ -1,3 +1,4 @@
+using Saiyaheim.Power;
 using UnityEngine;
 
 namespace Saiyaheim.Ki
@@ -26,7 +27,19 @@ namespace Saiyaheim.Ki
         /// <summary>Ki atual, ou 0 se não há jogador. Ki desligado lê como zero — é a regra do toggle.</summary>
         internal static float Current => _state == null || !_state.Enabled ? 0f : _state.Current;
 
-        internal static float Max => SaiyaheimConfig.MaxKi.Value;
+        /// <summary>
+        /// Teto de ki. Cresce com o nível de Battle Power: com um teto fixo a barra teria o
+        /// mesmo tamanho do primeiro ao último boss e a progressão não apareceria em lugar nenhum
+        /// da HUD.
+        /// </summary>
+        internal static float Max => MaxFor(Player.m_localPlayer);
+
+        /// <inheritdoc cref="Max"/>
+        internal static float MaxFor(Player player)
+        {
+            return SaiyaheimConfig.MaxKi.Value
+                   + SaiyaheimConfig.MaxKiPerPowerLevel.Value * PowerSkill.GetLevel(player);
+        }
 
         internal static bool IsEnabled => _state != null && _state.Enabled;
 
@@ -52,7 +65,7 @@ namespace Saiyaheim.Ki
                 _state = KiState.Load(player);
                 _tickAccumulator = 0f;
                 SaiyaheimPlugin.Log.LogInfo(
-                    $"Ki carregado: {_state.Current:0.#}/{Max:0.#}, {(_state.Enabled ? "ligado" : "desligado")}.");
+                    $"Ki loaded: {_state.Current:0.#}/{Max:0.#}, {(_state.Enabled ? "on" : "off")}.");
             }
 
             HandleInput(player);
@@ -81,7 +94,7 @@ namespace Saiyaheim.Ki
             {
                 _state.Enabled = !_state.Enabled;
                 _state.Save(player);
-                SaiyaheimPlugin.Log.LogInfo($"Ki {(_state.Enabled ? "ligado" : "desligado")}.");
+                SaiyaheimPlugin.Log.LogInfo($"Ki {(_state.Enabled ? "on" : "off")}.");
             }
 
             IsCharging = _state.Enabled
