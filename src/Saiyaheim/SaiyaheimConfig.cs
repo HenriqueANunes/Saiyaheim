@@ -192,11 +192,12 @@ namespace Saiyaheim
                     null, ClientSide(95)));
 
             // --- Ki ---
-            MaxKi = config.Bind(SecKi, "MaxKi", 100f,
+            MaxKi = config.Bind(SecKi, "MaxKi", 50f,
                 new ConfigDescription(
                     "Maximum ki at level 0 of the Battle Power skill. The cap grows from here — " +
                     "see MaxKiPerPowerLevel. With a fixed cap the bar would be the same size from " +
-                    "the first boss to the last and progression would never show up on the HUD.",
+                    "the first boss to the last and progression would never show up on the HUD. " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(10f, 10000f), AdminOnly(100)));
 
             MaxKiPerPowerLevel = config.Bind(SecKi, "MaxKiPerPowerLevel", 3f,
@@ -225,12 +226,13 @@ namespace Saiyaheim
                     "should be an action. (Calibrated in the 2026-07-28 playtest.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
 
-            ChargeKiPerSecond = config.Bind(SecKi, "ChargeKiPerSecond", 15f,
+            ChargeKiPerSecond = config.Bind(SecKi, "ChargeKiPerSecond", 5f,
                 new ConfigDescription(
                     "Ki per second while the charge key is held. " +
                     "Should be much higher than KiRegenPerSecond — the point is that charging is a " +
                     "deliberate action worth taking, not just waiting faster. " +
-                    "Deliberately ignores KiRegenDelay.",
+                    "Deliberately ignores KiRegenDelay. " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(60)));
 
             ChargeRequiresStandingStill = config.Bind(SecKi, "ChargeRequiresStandingStill", true,
@@ -243,26 +245,29 @@ namespace Saiyaheim
             // --- Combate ---
             // O numero mais arriscado da etapa 3: alto demais e o combate vira gerenciamento
             // de barra em vez de porrada.
-            PunchKiCost = config.Bind(SecCombat, "PunchKiCost", 2f,
+            PunchKiCost = config.Bind(SecCombat, "PunchKiCost", 5f,
                 new ConfigDescription(
                     "Ki consumed per unarmed hit while ki is on. Insufficient ki does NOT cancel " +
                     "the hit — the punch lands with raw vanilla damage, without the power level " +
                     "bonus. Set to zero to disable the cost. Missing costs nothing (the charge " +
-                    "happens on the hit, not on the swing).",
+                    "happens on the hit, not on the swing). " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
-            PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.5f,
+            PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.15f,
                 new ConfigDescription(
                     "Fraction of the power level ADDED to punch damage. Additive, not multiplicative: " +
                     "enemy HP grows roughly linearly across biomes, and an additive stat scales " +
-                    "predictably against that.",
+                    "predictably against that. " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
-            ArmorBase = config.Bind(SecCombat, "ArmorBase", 2f,
+            ArmorBase = config.Bind(SecCombat, "ArmorBase", 1f,
                 new ConfigDescription(
                     "Armor guaranteed while ki is on, before the share that comes from power. " +
                     "It exists so the player does not end up MORE fragile by turning ki on early " +
-                    "in the game, when the skill is still at a low level.",
+                    "in the game, when the skill is still at a low level. " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 200f), AdminOnly(80)));
 
             ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.15f,
@@ -282,10 +287,14 @@ namespace Saiyaheim
                     "Applies live: edit the file with the game running and the bar moves.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(90)));
 
-            KiBarOffsetY = config.Bind(SecHud, "KiBarOffsetY", -30f,
+            // -50 nao e gosto pessoal: com -30 a barra de ki cai em cima da barra de stamina.
+            // Qualquer valor acima disso precisa ser conferido na tela antes de virar default.
+            KiBarOffsetY = config.Bind(SecHud, "KiBarOffsetY", -50f,
                 new ConfigDescription(
                     "Vertical offset of the ki bar, in pixels, relative to the position of the " +
-                    "native bars. Negative moves down. Applies live.",
+                    "native bars. Negative moves down. Applies live. " +
+                    "Do not raise this much: at -30 the ki bar lands on top of the stamina bar. " +
+                    "(Playtest value, 2026-07-31.)",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(80)));
 
             KiBarColor = config.Bind(SecHud, "KiBarColor", "#4FC3F7",
@@ -399,10 +408,11 @@ namespace Saiyaheim
             // --- Battle Power ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
-            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.02f,
+            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.05f,
                 new ConfigDescription(
                     "XP per point of damage dealt, CAPPED at the target's remaining HP. That cap is " +
-                    "what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts as 10.",
+                    "what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts as 10. " +
+                    "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(100)));
 
             SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.05f,
