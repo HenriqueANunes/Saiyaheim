@@ -82,8 +82,8 @@ namespace Saiyaheim
 
         // ---------- 2.1 - Combat ----------
 
-        /// <summary>Ki consumido por golpe desarmado. Ki insuficiente não cancela o golpe, só tira o bônus.</summary>
-        public static ConfigEntry<float> PunchKiCost { get; private set; }
+        /// <summary>Ki gasto por ponto de dano que o poder somou ao soco. Ki insuficiente não cancela o golpe, só tira o bônus.</summary>
+        public static ConfigEntry<float> PunchKiCostPerDamage { get; private set; }
 
         /// <summary>Fração do power level somada ao dano do soco.</summary>
         public static ConfigEntry<float> PunchDamageFromPower { get; private set; }
@@ -424,13 +424,28 @@ namespace Saiyaheim
             // --- Combate ---
             // O numero mais arriscado da etapa 3: alto demais e o combate vira gerenciamento
             // de barra em vez de porrada.
-            PunchKiCost = config.Bind(SecCombat, "PunchKiCost", 6f,
+            //
+            // Fracao e nao valor fixo pelo mesmo motivo do ArmorFractionWithoutKi: um custo fixo
+            // envelhece mal. A 6 por soco o golpe ficava progressivamente mais BARATO em relacao
+            // ao que entregava — o bonus de dano cresce com o poder e o custo nao crescia junto,
+            // entao o dano por ki so subia. Cobrando sobre o bonus, a razao custo/beneficio fica
+            // constante do primeiro bioma ao ultimo sem recalibrar nada.
+            //
+            // Substituiu a chave `PunchKiCost` (fixa, 6) em 2026-08-01. Renomeada de proposito:
+            // o valor antigo num .cfg existente significaria 6 de ki por PONTO de dano bonus,
+            // dezenas de ki por soco. O nome novo forca o default novo. Apagar a linha orfa.
+            PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 1f,
                 new ConfigDescription(
-                    "Ki consumed per unarmed hit while ki is on. Insufficient ki does NOT cancel " +
-                    "the hit — the punch lands with raw vanilla damage, without the power level " +
-                    "bonus. Set to zero to disable the cost. Missing costs nothing (the charge " +
-                    "happens on the hit, not on the swing). " +
-                    "(Playtest value, 2026-08-01. Was 5 on 2026-07-31.)",
+                    "Ki consumed per point of damage the power level ADDED to the punch — the " +
+                    "mirror of DamageTakenKiCost, which charges per point the ki armor absorbed. " +
+                    "Both measure the service ki rendered, so the cost scales with the payoff " +
+                    "instead of aging into irrelevance. The cost is therefore " +
+                    "PunchDamageFromPower * power level * this, and the vanilla unarmed base " +
+                    "damage is free — ki did not provide it. Insufficient ki does NOT cancel the " +
+                    "hit: the punch lands with raw vanilla damage, without the bonus. Missing " +
+                    "costs nothing (the charge happens on the hit, not on the swing). Set to zero " +
+                    "to disable the cost. " +
+                    "(Starts at 1 to match DamageTakenKiCost — first playtest is 2026-08-01.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,

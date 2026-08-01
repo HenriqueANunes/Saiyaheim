@@ -41,8 +41,11 @@ namespace Saiyaheim.Power
         /// </summary>
         private int _chargedFrame = -1;
 
-        /// <summary>Resultado da cobrança do frame, reusado pelos alvos seguintes do mesmo golpe.</summary>
-        private bool _bonusActive;
+        /// <summary>
+        /// Bônus já pago neste frame, reusado pelos alvos seguintes do mesmo golpe. Zero significa
+        /// golpe sem bônus — ki insuficiente, ki desligado ou poder zerado.
+        /// </summary>
+        private float _damageBonusThisFrame;
 
         internal static SE_KiBody CreateTemplate()
         {
@@ -63,16 +66,45 @@ namespace Saiyaheim.Power
 
         public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
         {
-            if (skill == Skills.SkillType.Unarmed && ResolveBonusForThisFrame())
+            if (IsPunch(skill))
             {
                 // Contusão pura: é o soco base. Cada forma vai misturar uma fração de outro tipo
                 // de dano (raio, fogo) na etapa 5 — é onde o sabor por forma sai quase de graça.
-                hitData.m_damage.m_blunt += PowerLevel.GetPunchDamageBonus(m_character as Player);
+                hitData.m_damage.m_blunt += ResolveBonusForThisFrame();
             }
 
             // Base por último: o SE_Stats multiplica, e queremos (base + poder) * mult,
             // não base * mult + poder.
             base.ModifyAttack(skill, ref hitData);
+        }
+
+        /// <summary>
+        /// Se este golpe é um soco — o que <b>não</b> é a mesma pergunta que "o parâmetro
+        /// <paramref name="skill"/> vale <c>Unarmed</c>".
+        ///
+        /// ⚠️ <c>Attack.DoMeleeAttack</c> troca a skill do golpe por <c>m_specialHitSkill</c>
+        /// quando o alvo casa com <c>m_specialHitType</c> — é o mecanismo que faz machado virar
+        /// Woodcutting em árvore, e ele escreve tanto no parâmetro quanto no <c>hitData.m_skill</c>.
+        /// Nos golpes em que isso acontece, o parâmetro mente sobre o que o jogador está fazendo.
+        ///
+        /// A arma equipada não mente: <c>GetCurrentWeapon()</c> nunca devolve null — sem nada
+        /// equipado ele entrega o <c>m_unarmedWeapon</c>, cujo <c>m_skillType</c> é <c>Unarmed</c>.
+        /// Vale para o ataque primário, o secundário e o combo, porque os três saem do mesmo item
+        /// (<c>Humanoid.StartAttack</c> só escolhe entre <c>m_attack</c> e <c>m_secondaryAttack</c>
+        /// do <b>mesmo</b> <c>m_shared</c>).
+        ///
+        /// Cobre também o clone das Flesh Rippers da etapa 5, que é `Unarmed` igual.
+        /// </summary>
+        private bool IsPunch(Skills.SkillType skill)
+        {
+            if (skill == Skills.SkillType.Unarmed)
+            {
+                return true;
+            }
+
+            ItemDrop.ItemData weapon = (m_character as Player)?.GetCurrentWeapon();
+
+            return weapon != null && weapon.m_shared.m_skillType == Skills.SkillType.Unarmed;
         }
 
         public override void ModifyArmorMods(ref float armor)
@@ -179,32 +211,60 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// Cobra o ki do golpe uma única vez por frame e devolve se o bônus se aplica.
+        /// Cobra o ki do golpe uma única vez por frame e devolve o bônus de dano que ele comprou.
+        ///
+        /// <b>O custo é proporcional ao bônus</b>, espelhando o <c>OnDamaged</c>: lá se cobra pelo
+        /// dano que a armadura de ki barrou, aqui pelo dano que o poder somou. Os dois medem o
+        /// serviço que o ki prestou, e por isso envelhecem bem — um custo fixo faria o soco ficar
+        /// cada vez mais barato em relação ao que entrega, já que o bônus cresce com o poder.
+        ///
+        /// <b>O dano desarmado vanilla sai de graça</b>, e é a leitura certa: o ki não o produziu.
+        /// É também o único número disponível aqui — quanto dano o golpe de fato aplica só se sabe
+        /// depois da armadura e das resistências do alvo, do outro lado do <c>RPC_Damage</c> e
+        /// possivelmente noutra máquina.
         ///
         /// Ki insuficiente <b>não cancela o golpe</b> — o soco sai com o dano vanilla cru. Cancelar
         /// seria o pior padrão de UX possível (botão de atacar que não responde) e nem é possível
-        /// aqui: quando <c>ModifyAttack</c> roda, o golpe já saiu.
+        /// aqui: quando <c>ModifyAttack</c> roda, o golpe já saiu. Por isso <c>TryConsume</c> e não
+        /// <c>Drain</c>: é tudo ou nada, meia barra não compra meio bônus.
         ///
         /// Golpe que erra não cobra nada, porque este método só é alcançado quando há alvo.
         /// </summary>
-        private bool ResolveBonusForThisFrame()
+        private float ResolveBonusForThisFrame()
         {
-            if (!KiManager.IsEnabled)
-            {
-                return false;
-            }
-
             if (_chargedFrame == Time.frameCount)
             {
-                return _bonusActive;
+                return _damageBonusThisFrame;
             }
 
             _chargedFrame = Time.frameCount;
+            _damageBonusThisFrame = 0f;
 
-            float cost = SaiyaheimConfig.PunchKiCost.Value;
-            _bonusActive = cost <= 0f || KiManager.TryConsume(cost);
+            if (!KiManager.IsEnabled || !(m_character is Player player))
+            {
+                return 0f;
+            }
 
-            return _bonusActive;
+            float bonus = PowerLevel.GetPunchDamageBonus(player);
+            if (bonus <= 0f)
+            {
+                return 0f;
+            }
+
+            float cost = bonus * SaiyaheimConfig.PunchKiCostPerDamage.Value;
+            if (cost > 0f && !KiManager.TryConsume(cost))
+            {
+                return 0f;
+            }
+
+            _damageBonusThisFrame = bonus;
+
+            // Simétrico ao log do OnDamaged, e pelo mesmo motivo: sem ele a calibração do
+            // PunchKiCostPerDamage é às cegas — na tela só se vê a barra andar.
+            SaiyaheimPlugin.LogVerbose(
+                $"Punch bonus {bonus:0.#} blunt → {cost:0.#} ki ({KiManager.Current:0.#} left).");
+
+            return bonus;
         }
     }
 }
