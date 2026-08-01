@@ -44,6 +44,40 @@ namespace Saiyaheim.Ki
 
         internal static bool IsEnabled => _state != null && _state.Enabled;
 
+        /// <summary>
+        /// Regeneração passiva por segundo, já escalada pelo poder.
+        ///
+        /// Escala porque o teto não é fixo: <see cref="MaxFor"/> cresce com o nível de Battle
+        /// Power, e uma torneira plena enchendo um reservatório cada vez maior significa que
+        /// ficar forte deixa o jogador proporcionalmente <b>mais lento</b> para recuperar ki —
+        /// o contrário do que o mod quer dizer.
+        ///
+        /// Aditiva, como todo o resto do mod. Lê o power level derivado, a mesma base do
+        /// <c>FlightSpeedFromPower</c>: se comer melhor faz voar mais rápido, faz recarregar
+        /// mais rápido também.
+        /// </summary>
+        internal static float RegenPerSecondFor(Player player)
+        {
+            return SaiyaheimConfig.KiRegenPerSecond.Value
+                   + SaiyaheimConfig.KiRegenFromPower.Value * PowerLevel.GetRaw(player);
+        }
+
+        /// <summary>Carregamento ativo por segundo, já escalado pelo poder. Ver <see cref="RegenPerSecondFor"/>.</summary>
+        internal static float ChargePerSecondFor(Player player)
+        {
+            return SaiyaheimConfig.ChargeKiPerSecond.Value
+                   + SaiyaheimConfig.ChargeKiFromPower.Value * PowerLevel.GetRaw(player);
+        }
+
+        /// <summary>
+        /// Segundos para encher a barra do zero. <b>É este o número a calibrar</b>, não o ki por
+        /// segundo: o absoluto sozinho não diz nada, porque o teto também se move.
+        /// </summary>
+        internal static float SecondsToFill(float perSecond)
+        {
+            return perSecond <= 0f ? float.PositiveInfinity : MaxFor(Player.m_localPlayer) / perSecond;
+        }
+
         internal static void Update(float dt)
         {
             Player player = Player.m_localPlayer;
@@ -143,11 +177,11 @@ namespace Saiyaheim.Ki
             {
                 // Carregar ignora o delay pós-gasto de propósito: é uma ação deliberada,
                 // não a regeneração de fundo.
-                Add(SaiyaheimConfig.ChargeKiPerSecond.Value * dt);
+                Add(ChargePerSecondFor(player) * dt);
             }
             else if (Time.time >= _state.RegenBlockedUntil)
             {
-                Add(SaiyaheimConfig.KiRegenPerSecond.Value * dt);
+                Add(RegenPerSecondFor(player) * dt);
             }
 
             _state.Save(player);

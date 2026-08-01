@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Jotunn.Entities;
 using Saiyaheim.Ki;
+using Saiyaheim.Power;
 
 namespace Saiyaheim.Debugging
 {
@@ -83,6 +84,25 @@ namespace Saiyaheim.Debugging
             Print($"Ki: {KiManager.State.Current:0.#}/{KiManager.Max:0.#} " +
                   $"({(KiManager.State.Enabled ? "on" : "off")}" +
                   $"{(KiManager.IsCharging ? ", charging" : "")})");
+
+            Player player = Player.m_localPlayer;
+            float regen = KiManager.RegenPerSecondFor(player);
+            float charge = KiManager.ChargePerSecondFor(player);
+
+            Print($"Power level: {PowerLevel.GetRaw(player):0.#} raw");
+            Print($"Regen: {regen:0.##}/s  ({SecondsToFill(regen)} to fill)");
+            Print($"Charge: {charge:0.##}/s  ({SecondsToFill(charge)} to fill)");
+        }
+
+        /// <summary>
+        /// Segundos para encher, formatado. <b>É este o número que a calibração da recarga
+        /// persegue</b> — o ki por segundo sozinho engana, porque o teto cresce junto com ele.
+        /// Compare o mesmo valor em nível de skill baixo e alto (<c>saiya_power skill 100</c>).
+        /// </summary>
+        private static string SecondsToFill(float perSecond)
+        {
+            float seconds = KiManager.SecondsToFill(perSecond);
+            return float.IsInfinity(seconds) ? "never" : $"{seconds:0} s";
         }
 
         private static bool TryParseAmount(string[] args, out float amount)

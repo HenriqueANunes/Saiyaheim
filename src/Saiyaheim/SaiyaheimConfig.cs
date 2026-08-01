@@ -62,6 +62,9 @@ namespace Saiyaheim
 
         public static ConfigEntry<float> KiRegenPerSecond { get; private set; }
 
+        /// <summary>Regeneração passiva somada por ponto de power level. Mantém a torneira crescendo junto com a barra.</summary>
+        public static ConfigEntry<float> KiRegenFromPower { get; private set; }
+
         /// <summary>Intervalo do tick de ki. Regeneração é por tick fixo, nunca por frame.</summary>
         public static ConfigEntry<float> KiTickInterval { get; private set; }
 
@@ -70,6 +73,9 @@ namespace Saiyaheim
 
         /// <summary>Ki por segundo enquanto a tecla de carregar está segurada.</summary>
         public static ConfigEntry<float> ChargeKiPerSecond { get; private set; }
+
+        /// <summary>Carregamento ativo somado por ponto de power level.</summary>
+        public static ConfigEntry<float> ChargeKiFromPower { get; private set; }
 
         /// <summary>Se true, andar interrompe o carregamento.</summary>
         public static ConfigEntry<bool> ChargeRequiresStandingStill { get; private set; }
@@ -84,6 +90,12 @@ namespace Saiyaheim
 
         /// <summary>Armadura garantida com o ki ligado, antes da parcela vinda do poder.</summary>
         public static ConfigEntry<float> ArmorBase { get; private set; }
+
+        /// <summary>Fração da armadura de ki que sobra com a barra zerada. Degrau, não degradê.</summary>
+        public static ConfigEntry<float> ArmorFractionWithoutKi { get; private set; }
+
+        /// <summary>Ki gasto por ponto de dano que a armadura de ki absorveu.</summary>
+        public static ConfigEntry<float> DamageTakenKiCost { get; private set; }
 
         /// <summary>Fração do power level convertida em armadura.</summary>
         public static ConfigEntry<float> ArmorFromPower { get; private set; }
@@ -344,12 +356,29 @@ namespace Saiyaheim
                     "quadruples the bar (100 base + 300).",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(95)));
 
-            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 0.5f,
+            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 1f,
                 new ConfigDescription(
                     "Ki regenerated per second while idle. Deliberately low: passive regeneration " +
                     "is the safety net, not the normal way to get ki back. " +
-                    "If you want ki, you charge for it. (Calibrated in the 2026-07-28 playtest.)",
+                    "If you want ki, you charge for it. " +
+                    "(Calibrated in the 2026-07-28 playtest at 0.5; raised to 1 on 2026-08-01, " +
+                    "when taking damage started costing ki and the safety net had to hold more.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(90)));
+
+            // Escala pelo power level DERIVADO, nao pelo nivel da skill: e a mesma base do
+            // FlightSpeedFromPower, entao comer melhor recarrega mais rapido do mesmo jeito que ja
+            // faz voar mais rapido. Trocar para PowerSkill.GetLevel e uma linha, se o playtest
+            // disser que a volatilidade da comida incomoda.
+            KiRegenFromPower = config.Bind(SecKi, "KiRegenFromPower", 0.0075f,
+                new ConfigDescription(
+                    "Ki per second ADDED to the passive regeneration for each point of raw power " +
+                    "level. Exists because the bar grows with power (MaxKiPerPowerLevel) and a " +
+                    "flat tap does not: without this, the stronger the character the SLOWER he " +
+                    "fills his own bar, which is the opposite of the intent. The default keeps " +
+                    "seconds-to-fill roughly flat across the whole game instead of making the " +
+                    "strong player faster — the conservative half of the fix. " +
+                    "Check it with saiya_ki, which prints seconds to fill.",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(85)));
 
             KiTickInterval = config.Bind(SecKi, "KiTickInterval", 0.25f,
                 new ConfigDescription(
@@ -373,6 +402,18 @@ namespace Saiyaheim
                     "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(60)));
 
+            // Dez vezes o KiRegenFromPower, que e a mesma proporcao entre ChargeKiPerSecond e
+            // KiRegenPerSecond. Mantem a relacao entre carregar e esperar constante ao longo do
+            // jogo, em vez de fazer uma das duas formas dominar so por causa do nivel.
+            ChargeKiFromPower = config.Bind(SecKi, "ChargeKiFromPower", 0.075f,
+                new ConfigDescription(
+                    "Ki per second ADDED to active charging for each point of raw power level. " +
+                    "Same reason as KiRegenFromPower: with a flat 5/s, filling the bar goes from " +
+                    "10 seconds early on to over a minute late, because only the cap grows. " +
+                    "The number that matters when tuning this is NOT ki per second, it is " +
+                    "seconds-to-fill — read it off saiya_ki at a low and a high skill level.",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(55)));
+
             ChargeRequiresStandingStill = config.Bind(SecKi, "ChargeRequiresStandingStill", true,
                 new ConfigDescription(
                     "If true, moving interrupts charging. Charging while standing still is the " +
@@ -383,21 +424,22 @@ namespace Saiyaheim
             // --- Combate ---
             // O numero mais arriscado da etapa 3: alto demais e o combate vira gerenciamento
             // de barra em vez de porrada.
-            PunchKiCost = config.Bind(SecCombat, "PunchKiCost", 5f,
+            PunchKiCost = config.Bind(SecCombat, "PunchKiCost", 6f,
                 new ConfigDescription(
                     "Ki consumed per unarmed hit while ki is on. Insufficient ki does NOT cancel " +
                     "the hit — the punch lands with raw vanilla damage, without the power level " +
                     "bonus. Set to zero to disable the cost. Missing costs nothing (the charge " +
                     "happens on the hit, not on the swing). " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "(Playtest value, 2026-08-01. Was 5 on 2026-07-31.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
-            PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.15f,
+            PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
                     "Fraction of the power level ADDED to punch damage. Additive, not multiplicative: " +
                     "enemy HP grows roughly linearly across biomes, and an additive stat scales " +
                     "predictably against that. " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "(Playtest value, 2026-08-01. Cut to a third of the 0.15 used on 2026-07-31 — " +
+                    "the punch was outscaling the biomes.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
             ArmorBase = config.Bind(SecCombat, "ArmorBase", 1f,
@@ -414,6 +456,37 @@ namespace Saiyaheim
                     "REPLACES equipment armor — worn pieces stop counting. Turning ki off gives " +
                     "vanilla armor back immediately.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
+
+            // Fracao e nao valor fixo de propósito: um piso fixo envelhece mal, como o ArmorBase
+            // ja mostrou — 1 de armadura significa alguma coisa no nivel 0 e nada nenhum no 100.
+            // A fracao acompanha a progressao sem precisar ser recalibrada por bioma.
+            ArmorFractionWithoutKi = config.Bind(SecCombat, "ArmorFractionWithoutKi", 0f,
+                new ConfigDescription(
+                    "Fraction of the ki armor that survives when the ki bar hits ZERO (the toggle " +
+                    "is still on, the bar is just empty). At 0 an empty bar means no armor at all, " +
+                    "since ki armor replaces equipment armor. Raise it if running out of ki mid " +
+                    "fight turns into an unrecoverable death. " +
+                    "It is a cliff, not a fade: armor is at full value down to the last point of " +
+                    "ki and only drops at zero. Deliberate — ki swings hard during a fight " +
+                    "(punches, flight), and losing armor for ATTACKING would punish the player " +
+                    "for something that has nothing to do with being hit.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(65)));
+
+            // Cobra sobre o ABSORVIDO, nao sobre o dano bruto nem sobre o aplicado. Duas razoes:
+            // o custo mede o servico que a armadura de ki prestou, e o filtro de fontes de dano
+            // sai de graça — veneno, queda e afogamento nao passam pela armadura no vanilla,
+            // entao absorvem zero e custam zero sem precisar de lista de excecoes.
+            DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 1f,
+                new ConfigDescription(
+                    "Ki consumed per point of damage the ki armor ABSORBED. Taking a hit costs ki " +
+                    "the same way landing one does — the ki armor is sustained, not free. " +
+                    "Damage that armor does not touch (poison, fall, drowning) absorbs nothing and " +
+                    "therefore costs nothing. Set to zero to disable. " +
+                    "Note the cost per hit is naturally capped near your armor value: armor can " +
+                    "never absorb more than it is worth, so a huge hit does not drain the bar. " +
+                    "(Playtest value, 2026-08-01. The conservative 0.15 it shipped with the same " +
+                    "day was barely noticeable; at 1 a blocked point of damage costs a point of ki.)",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // --- HUD ---
             ShowKiBar = config.Bind(SecHud, "ShowKiBar", true,

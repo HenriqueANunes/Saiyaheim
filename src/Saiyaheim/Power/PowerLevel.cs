@@ -96,6 +96,12 @@ namespace Saiyaheim.Power
         /// dá 2, não 2,37), e o número aparece na tela do jogador. Casa decimal aqui só denuncia
         /// que o valor é calculado, sem trazer precisão que importe — a diferença é menor que a
         /// variação de um único ponto de skill.
+        ///
+        /// <b>A barra vazia é um degrau, não um degradê.</b> A armadura vale cheia do ki máximo
+        /// até o último ponto, e só cai — para <c>ArmorFractionWithoutKi</c> — quando zera. Um
+        /// degradê proporcional à fração de ki seria mais dramático, mas o ki oscila muito durante
+        /// a luta por motivos <b>ofensivos</b> (socar, voar), e perder armadura por atacar puniria
+        /// o jogador por algo que não tem relação nenhuma com apanhar.
         /// </summary>
         internal static float GetArmor(Player player)
         {
@@ -109,6 +115,11 @@ namespace Saiyaheim.Power
             // de um invariante que uma troca de toggle no meio do frame quebra.
             float armor = SaiyaheimConfig.ArmorBase.Value
                           + GetKiRaw(player) * SaiyaheimConfig.ArmorFromPower.Value;
+
+            if (KiManager.Current <= 0f)
+            {
+                armor *= SaiyaheimConfig.ArmorFractionWithoutKi.Value;
+            }
 
             return Mathf.Round(armor);
         }
