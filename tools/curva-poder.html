@@ -1,0 +1,766 @@
+<title>Saiyaheim — curva de poder</title>
+<style>
+  /* Reset minimo. Ao publicar como Artifact ele ja vem do wrapper e isto vira no-op; existe
+     para o arquivo tambem funcionar aberto direto do disco (file://), onde nao ha wrapper. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body, h1, h3, p, table, figure { margin: 0; }
+  button, input { font: inherit; color: inherit; }
+
+  :root {
+    --ground: #E4E1D9;
+    --panel: #EFEDE6;
+    --panel-2: #DAD7CD;
+    --line: #C3BFB2;
+    --line-soft: #D2CFC4;
+    --ink: #211C16;
+    --ink-2: #4E4739;
+    --ink-3: #766D5B;
+    --ki: #0481b3;
+    --today: #ae6700;
+    --ki-wash: rgba(4, 129, 179, 0.12);
+    --warn: #A33A24;
+    --shadow: 0 1px 2px rgba(33, 28, 22, .08), 0 8px 24px rgba(33, 28, 22, .06);
+
+    --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --f-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --f-mono: ui-monospace, "SF Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
+      --line: #3A342B; --line-soft: #2F2A22;
+      --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
+      --ki: #06a0dd; --today: #d37e01;
+      --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
+    --line: #3A342B; --line-soft: #2F2A22;
+    --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
+    --ki: #06a0dd; --today: #d37e01;
+    --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+  }
+
+  :root[data-theme="light"] {
+    --ground: #E4E1D9; --panel: #EFEDE6; --panel-2: #DAD7CD;
+    --line: #C3BFB2; --line-soft: #D2CFC4;
+    --ink: #211C16; --ink-2: #4E4739; --ink-3: #766D5B;
+    --ki: #0481b3; --today: #ae6700;
+    --ki-wash: rgba(4, 129, 179, 0.12); --warn: #A33A24;
+    --shadow: 0 1px 2px rgba(33, 28, 22, .08), 0 8px 24px rgba(33, 28, 22, .06);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 32px; }
+
+  .masthead { display: flex; flex-direction: column; gap: 10px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { font-family: var(--f-display); font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+  .standfirst { max-width: 64ch; color: var(--ink-2); font-size: 16px; }
+
+  .formula {
+    font-family: var(--f-mono); font-size: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--ki);
+    border-radius: 3px; padding: 14px 18px; overflow-x: auto; color: var(--ink-2);
+  }
+  .formula b { color: var(--ki); font-weight: 400; }
+  .formula .note { display: block; margin-top: 6px; font-family: var(--f-body); font-size: 12.5px; color: var(--ink-3); }
+
+  .readout {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 3px; overflow: hidden;
+  }
+  .stat { background: var(--panel); padding: 16px 18px; display: flex; flex-direction: column; gap: 3px; }
+  .stat .k { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); }
+  .stat .v { font-family: var(--f-display); font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .n { font-size: 12.5px; color: var(--ink-2); }
+  .stat .v.accent { color: var(--ki); }
+  .stat .v.warn { color: var(--warn); }
+
+  .verdict { border-left: 2px solid var(--ki); padding: 2px 0 2px 16px; max-width: 76ch; color: var(--ink-2); font-size: 15px; }
+  .verdict strong { color: var(--ink); font-weight: 600; }
+  .verdict.is-warn { border-left-color: var(--warn); }
+
+  .cols { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+  .rail { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 20px; }
+  @media (max-width: 900px) { .rail { position: static; } }
+  .main { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; box-shadow: var(--shadow); }
+  .group { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .group > h3 {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-3); padding-bottom: 9px; border-bottom: 1px solid var(--line-soft);
+  }
+
+  .ctl { display: flex; flex-direction: column; gap: 5px; }
+  .ctl .row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .ctl label { font-size: 12.5px; color: var(--ink-2); }
+  .ctl output { font-family: var(--f-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .ctl.is-hero label { color: var(--ink); font-weight: 600; }
+  .ctl.is-hero output { color: var(--ki); font-size: 15px; font-weight: 700; }
+  .hint { font-size: 11.5px; color: var(--ink-3); }
+
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; cursor: pointer; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 3px; background: var(--panel-2); border-radius: 2px; }
+  input[type="range"]::-moz-range-track { height: 3px; background: var(--panel-2); border-radius: 2px; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 50%;
+    background: var(--ki); border: 2px solid var(--panel); margin-top: -5px;
+  }
+  input[type="range"]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--panel); background: var(--ki); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--ki); outline-offset: 3px; border-radius: 3px; }
+
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .04em; color: var(--ink-2);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 2px; padding: 5px 9px; cursor: pointer;
+  }
+  button:hover { color: var(--ink); border-color: var(--ink-3); }
+  button:focus-visible { outline: 2px solid var(--ki); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: var(--ki); border-color: var(--ki); color: #fff; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; border-left: 1px solid var(--line); }
+  .seg button:first-child { border-left: 0; }
+
+  .check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  .check input { accent-color: var(--ki); width: 14px; height: 14px; cursor: pointer; }
+
+  .plot-head { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: flex-end; padding: 16px 18px 0; }
+  .plot-title { font-family: var(--f-display); font-size: 19px; }
+  .plot-sub { font-size: 12.5px; color: var(--ink-3); max-width: 56ch; }
+  .controls-inline { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 18px 0; }
+  .legend .item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .legend .swatch { width: 16px; height: 3px; border-radius: 2px; flex: none; }
+
+  .plot { position: relative; padding: 8px 18px 18px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .grid-line { stroke: var(--line-soft); stroke-width: 1; }
+  .axis-line { stroke: var(--line); stroke-width: 1; }
+  .tick { fill: var(--ink-3); font-family: var(--f-mono); font-size: 10px; }
+  .axis-name { fill: var(--ink-3); font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+  .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .end-label { font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+    border-radius: 3px; padding: 8px 10px; font-size: 12px; min-width: 138px; transition: opacity .1s;
+  }
+  .tip .th { font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+  .tip .tr { display: flex; align-items: center; gap: 7px; justify-content: space-between; }
+  .tip .tr .lbl { display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .tip .tr .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+  .tip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  caption { text-align: left; padding: 16px 18px 12px; font-family: var(--f-display); font-size: 19px; color: var(--ink); }
+  th, td { padding: 7px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line-soft); }
+  th:first-child, td:first-child { text-align: left; padding-left: 18px; }
+  td:last-child, th:last-child { padding-right: 18px; }
+  thead th {
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 400; border-bottom: 1px solid var(--line);
+  }
+  tbody td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.milestone td { background: var(--ki-wash); }
+  .delta { font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+  .delta.up { color: var(--ki); }
+  .delta.down { color: var(--warn); }
+
+  .cfg { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .cfg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  pre {
+    font-family: var(--f-mono); font-size: 12px; line-height: 1.7;
+    background: var(--ground); border: 1px solid var(--line-soft); border-radius: 2px;
+    padding: 12px 14px; overflow-x: auto; color: var(--ink-2);
+  }
+  pre .sec { color: var(--ink-3); }
+  pre .val { color: var(--ki); }
+
+  footer { color: var(--ink-3); font-size: 12.5px; max-width: 74ch; }
+  code { font-family: var(--f-mono); font-size: .92em; color: var(--ink-2); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Saiyaheim · calibragem de progressão</div>
+    <h1>Ganho por nível que cresce junto com o custo do nível</h1>
+    <p class="standfirst">
+      Subir do 99 para o 100 custa <strong>1000×</strong> o que custa subir do 0 para o 1 — a curva
+      de XP do Valheim é <code>(nível+1)^1.5</code>. Mas o poder hoje sobe sempre <code>k4</code> por
+      nível, então o nível caro rende igual ao barato. O conserto é um segundo termo, que só acorda
+      no fim.
+    </p>
+  </header>
+
+  <p class="formula" id="formula"></p>
+
+  <div class="readout" id="readout"></div>
+
+  <p class="verdict" id="verdict"></p>
+
+  <div class="cols">
+
+    <aside class="rail">
+      <section class="card group">
+        <h3>Termo de fim de jogo</h3>
+        <div class="ctl is-hero">
+          <div class="row"><label for="k5">K5 — ganho no nível 100</label><output id="k5-out"></output></div>
+          <input type="range" id="k5" min="0" max="20" step="0.5" value="3">
+        </div>
+        <p class="hint">Quanto de poder o termo entrega no topo. Em 0 a fórmula volta a ser exatamente a de hoje.</p>
+        <div class="ctl is-hero">
+          <div class="row"><label for="p">Expoente — quão tarde acorda</label><output id="p-out"></output></div>
+          <input type="range" id="p" min="1" max="10" step="0.1" value="5">
+        </div>
+        <p class="hint">Normalizado no 100: mexer aqui nunca muda o valor do topo, só quanto dele chega antes.</p>
+        <div class="presets" id="presets">
+          <button type="button" data-k5="0" data-p="5">desligado</button>
+          <button type="button" data-k5="3" data-p="5">implementado</button>
+          <button type="button" data-k5="9" data-p="5">topo 4×</button>
+        </div>
+      </section>
+
+      <section class="card group">
+        <h3>Power level</h3>
+        <div class="ctl"><div class="row"><label for="hp">HP acima da base (25)</label><output id="hp-out"></output></div>
+          <input type="range" id="hp" min="0" max="200" step="5" value="60"></div>
+        <div class="ctl"><div class="row"><label for="k1">K1_Health</label><output id="k1-out"></output></div>
+          <input type="range" id="k1" min="0" max="3" step="0.05" value="1"></div>
+        <div class="ctl"><div class="row"><label for="k4">K4_PowerSkill (termo linear)</label><output id="k4-out"></output></div>
+          <input type="range" id="k4" min="0" max="12" step="0.1" value="3"></div>
+      </section>
+
+      <section class="card group">
+        <h3>Combate</h3>
+        <div class="ctl"><div class="row"><label for="hit">Golpe do inimigo (teste)</label><output id="hit-out"></output></div>
+          <input type="range" id="hit" min="10" max="250" step="5" value="90"></div>
+        <p class="hint">Fuling Berserker bate ~90; Seeker Soldier, ~110. Serve para ler o dano recebido depois da armadura.</p>
+        <div class="ctl"><div class="row"><label for="dmg">PunchDamageFromPower</label><output id="dmg-out"></output></div>
+          <input type="range" id="dmg" min="0" max="0.3" step="0.005" value="0.05"></div>
+        <div class="ctl"><div class="row"><label for="armb">ArmorBase</label><output id="armb-out"></output></div>
+          <input type="range" id="armb" min="0" max="40" step="1" value="1"></div>
+        <div class="ctl"><div class="row"><label for="armp">ArmorFromPower</label><output id="armp-out"></output></div>
+          <input type="range" id="armp" min="0" max="0.5" step="0.005" value="0.15"></div>
+        <div class="ctl"><div class="row"><label for="blkb">BlockPowerBase</label><output id="blkb-out"></output></div>
+          <input type="range" id="blkb" min="0" max="40" step="1" value="2"></div>
+        <div class="ctl"><div class="row"><label for="blkp">BlockPowerFromPower</label><output id="blkp-out"></output></div>
+          <input type="range" id="blkp" min="0" max="0.6" step="0.005" value="0.22"></div>
+      </section>
+
+      <section class="card group">
+        <h3>Voo</h3>
+        <p class="hint">A velocidade lê só a parte linear — o termo de fim de jogo não a toca. O que ele barateia é o custo.</p>
+        <div class="ctl"><div class="row"><label for="fkp">KiPowerReduction <b>novo</b></label><output id="fkp-out"></output></div>
+          <input type="range" id="fkp" min="0" max="0.02" step="0.0001" value="0.0033"></div>
+        <div class="ctl"><div class="row"><label for="fki">KiPerSecond</label><output id="fki-out"></output></div>
+          <input type="range" id="fki" min="0" max="60" step="0.5" value="15"></div>
+        <div class="ctl"><div class="row"><label for="fkr">KiSkillReduction</label><output id="fkr-out"></output></div>
+          <input type="range" id="fkr" min="0" max="0.95" step="0.05" value="0.5"></div>
+        <div class="ctl"><div class="row"><label for="fb">BaseSpeed</label><output id="fb-out"></output></div>
+          <input type="range" id="fb" min="1" max="20" step="0.5" value="2"></div>
+        <div class="ctl"><div class="row"><label for="fp">SpeedFromPower</label><output id="fp-out"></output></div>
+          <input type="range" id="fp" min="0" max="0.1" step="0.001" value="0.015"></div>
+        <div class="ctl"><div class="row"><label for="fs">SpeedSkillBonus</label><output id="fs-out"></output></div>
+          <input type="range" id="fs" min="0" max="3" step="0.05" value="0.5"></div>
+        <div class="ctl"><div class="row"><label for="fm">MaxSpeed (teto de engine)</label><output id="fm-out"></output></div>
+          <input type="range" id="fm" min="5" max="100" step="1" value="30"></div>
+        <label class="check">
+          <input type="checkbox" id="fl-track" checked>
+          skill Flight acompanha o nível da linha
+        </label>
+      </section>
+
+      <section class="card group">
+        <h3>Ki</h3>
+        <div class="ctl"><div class="row"><label for="kmax">MaxKi</label><output id="kmax-out"></output></div>
+          <input type="range" id="kmax" min="10" max="400" step="5" value="50"></div>
+        <div class="ctl"><div class="row"><label for="kper">MaxKiPerPowerLevel</label><output id="kper-out"></output></div>
+          <input type="range" id="kper" min="0" max="20" step="0.5" value="3"></div>
+        <div class="ctl"><div class="row"><label for="creg">ChargeKiPerSecond</label><output id="creg-out"></output></div>
+          <input type="range" id="creg" min="0" max="40" step="0.5" value="5"></div>
+        <div class="ctl"><div class="row"><label for="cfp">ChargeKiFromPower</label><output id="cfp-out"></output></div>
+          <input type="range" id="cfp" min="0" max="0.5" step="0.005" value="0.075"></div>
+      </section>
+
+      <button type="button" id="reset">Voltar aos defaults do mod</button>
+    </aside>
+
+    <div class="main">
+
+      <section class="card">
+        <div class="plot-head">
+          <div>
+            <div class="plot-title" id="plot-title"></div>
+            <div class="plot-sub" id="plot-sub"></div>
+          </div>
+          <div class="controls-inline">
+            <div class="seg" id="stat-seg" role="group" aria-label="Stat exibido">
+              <button type="button" data-stat="gain">ganho por nível</button>
+              <button type="button" data-stat="eff">ganho ÷ custo</button>
+              <button type="button" data-stat="power">poder</button>
+              <button type="button" data-stat="armor">armadura</button>
+              <button type="button" data-stat="taken">dano recebido</button>
+              <button type="button" data-stat="punch">dano do soco</button>
+              <button type="button" data-stat="block">block</button>
+              <button type="button" data-stat="flycost">custo de voo</button>
+              <button type="button" data-stat="range">autonomia de voo</button>
+              <button type="button" data-stat="fly">velocidade</button>
+              <button type="button" data-stat="kimax">teto de ki</button>
+            </div>
+            <div class="seg" id="axis-seg" role="group" aria-label="Eixo horizontal">
+              <button type="button" data-axis="level">por nível</button>
+              <button type="button" data-axis="xp">por XP gasto</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="item"><span class="swatch" style="background: var(--today)"></span>hoje (só o termo linear)</span>
+          <span class="item"><span class="swatch" style="background: var(--ki)"></span><span id="legend-cur"></span></span>
+        </div>
+
+        <div class="plot">
+          <svg id="chart" viewBox="0 0 760 360" role="img" aria-labelledby="plot-title"></svg>
+          <div class="tip" id="tip"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="table-wrap">
+          <table>
+            <caption>Cada stat que lê o power level, nível a nível</caption>
+            <thead>
+              <tr>
+                <th scope="col">Nível</th>
+                <th scope="col">% do XP</th>
+                <th scope="col">Poder</th>
+                <th scope="col">Ganho/nível</th>
+                <th scope="col">Armadura</th>
+                <th scope="col">Dano recebido</th>
+                <th scope="col">Dano soco</th>
+                <th scope="col">Block</th>
+                <th scope="col">Voo ki/s</th>
+                <th scope="col">Autonomia</th>
+                <th scope="col">Voo m/s</th>
+                <th scope="col">Teto ki</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card cfg">
+        <div class="cfg-head">
+          <div class="eyebrow">com.hman.saiyaheim.cfg</div>
+          <button type="button" id="copy">Copiar</button>
+        </div>
+        <pre id="snippet"></pre>
+      </section>
+
+    </div>
+  </div>
+
+  <footer>
+    <strong>Implementado</strong> — <code>K5_LateGameBonus</code>, <code>LateGameExponent</code> e
+    <code>Flight.KiPowerReduction</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores
+    de partida desta página são os defaults que foram para o código. O dano recebido usa a fórmula
+    real do Valheim
+    (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de
+    metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede
+    a armadura acelerada de virar invulnerabilidade. O peso do inventário é zero em toda a tabela.
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const MAXLVL = 100;
+
+  // Custo de XP do Valheim: Skills.Skill.GetNextLevelRequirement()
+  // = floor(nivel+1)^1.5 * 0.5 + 0.5. xpCost[L] = custo para sair de L-1 e chegar em L.
+  const xpCost = [0], xpTo = [0];
+  for (let L = 1; L <= MAXLVL; L++) {
+    xpCost[L] = Math.pow(L, 1.5) * 0.5 + 0.5;
+    xpTo[L] = xpTo[L - 1] + xpCost[L];
+  }
+  const XP_TOTAL = xpTo[MAXLVL];
+  const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
+
+  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "armb", "armp", "blkb", "blkp",
+               "fkp", "fki", "fkr", "fb", "fp", "fs", "fm", "kmax", "kper", "creg", "cfp"];
+  const el = {};
+  ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
+  const flTrack = document.getElementById("fl-track");
+  const DEFAULTS = Object.fromEntries(ids.map(i => [i, el[i].value]));
+
+  let stat = "gain";
+  let axis = "level";
+
+  const v = id => parseFloat(el[id].value);
+  const fmt = (n, d = 1) => {
+    if (!isFinite(n)) return "∞";
+    return n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  };
+
+  // ── o modelo ──────────────────────────────────────────────────────────────
+  // Espelha PowerLevel.cs. Sao DOIS numeros de poder, e cada consumidor le um deles:
+  //   linear  -> velocidade de voo, teto de ki, regen/carga  (GetRaw)
+  //   combate -> soco, armadura, block, numero exibido       (GetCombatRaw)
+  const lateBonus = (L, k5) => k5 * MAXLVL * Math.pow(L / MAXLVL, v("p"));
+  const linearPower = L => v("k1") * v("hp") + v("k4") * L;
+  const combatPower = (L, k5) => linearPower(L) + lateBonus(L, k5);
+
+  // HitData.ApplyArmor, copiada do assembly_valheim.
+  function applyArmor(dmg, ac) {
+    if (ac <= 0) return dmg;
+    if (ac < dmg / 2) return dmg - ac;
+    return Math.min(1, Math.max(0, dmg / (ac * 4))) * dmg;
+  }
+
+  function model(L, k5) {
+    const lin = linearPower(L);
+    const power = combatPower(L, k5);
+    const flyLvl = flTrack.checked ? L : 50;
+
+    // Velocidade e teto de ki leem o LINEAR: o termo de fim de jogo nao os toca.
+    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL);
+    const kiMax = v("kmax") + v("kper") * L;
+    const charge = v("creg") + v("cfp") * lin;
+
+    // Custo de voo: reducao linear da skill, depois a hiperbolica do termo de fim de jogo.
+    const skillCut = 1 - v("fkr") * flyLvl / MAXLVL;
+    const powerCut = 1 / (1 + v("fkp") * lateBonus(L, k5));
+    const flycost = Math.max(0, v("fki") * skillCut * powerCut);
+
+    const armor = Math.round(v("armb") + power * v("armp"));
+    const nxt = Math.min(L + 1, MAXLVL);
+    const gain = combatPower(nxt, k5) - combatPower(L, k5);
+
+    return {
+      power,
+      gain,
+      eff: gain / xpCost[Math.max(nxt, 1)],
+      armor,
+      taken: applyArmor(v("hit"), armor),
+      punch: power * v("dmg"),
+      block: v("blkb") + power * v("blkp"),
+      flycost,
+      range: flycost > 0 ? kiMax / flycost : Infinity,
+      fly: Math.min(Math.max(flyRaw, 1), v("fm")),
+      kimax: kiMax,
+      fill: charge > 0 ? kiMax / charge : Infinity,
+    };
+  }
+
+  const STATS = {
+    gain: { label: "Ganho de poder do próximo nível", sub: "é esta a linha que você quer subindo: cada nível vale mais que o anterior", dec: 1, unit: "" },
+    eff: { label: "Ganho ÷ custo de XP do nível", sub: "poder comprado por unidade de esforço. Plana = cada hora de jogo vale o mesmo", dec: 3, unit: "" },
+    power: { label: "Power level de combate", sub: "k1 × HP + k4 × nível + o termo de fim de jogo", dec: 0, unit: "" },
+    armor: { label: "Armadura", sub: "ArmorBase + poder de combate × ArmorFromPower, arredondada", dec: 0, unit: "" },
+    taken: { label: "Dano recebido por golpe", sub: "fórmula real do Valheim, depois da armadura. Cai por 1/armadura — nunca chega a zero", dec: 1, unit: "" },
+    punch: { label: "Dano do soco", sub: "bônus somado ao soco desarmado", dec: 1, unit: "" },
+    block: { label: "Block power", sub: "escudo de madeira é 18,5; serpentscale, 94", dec: 1, unit: "" },
+    flycost: { label: "Custo de voo", sub: "ki por segundo, modo lento. É aqui que o termo de fim de jogo entra no voo", dec: 2, unit: " ki/s" },
+    range: { label: "Autonomia de voo", sub: "segundos no ar com a barra cheia — a recompensa real do fim de jogo", dec: 0, unit: " s" },
+    fly: { label: "Velocidade de voo", sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito", dec: 1, unit: " m/s" },
+    kimax: { label: "Teto de ki", sub: "lê o nível cru — o termo de fim de jogo não infla a barra", dec: 0, unit: "" },
+  };
+
+  // ── gráfico ───────────────────────────────────────────────────────────────
+  const W = 760, H = 360, M = { t: 14, r: 62, b: 40, l: 60 };
+  const PW = W - M.l - M.r, PH = H - M.t - M.b;
+  const svg = document.getElementById("chart");
+  const tip = document.getElementById("tip");
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (t, a) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
+  let hot = null;
+
+  function niceMax(m) {
+    if (m <= 0) return 1;
+    const mag = Math.pow(10, Math.floor(Math.log10(m)));
+    return Math.ceil(m / (mag / 2)) * (mag / 2);
+  }
+
+  function draw(k5) {
+    svg.textContent = "";
+    const spec = STATS[stat];
+    const cur = [], base = [];
+    for (let L = 0; L <= MAXLVL; L++) { cur.push(model(L, k5)[stat]); base.push(model(L, 0)[stat]); }
+
+    const yMax = niceMax(Math.max(...cur, ...base));
+    const xOf = L => M.l + (axis === "level" ? L / MAXLVL : xpTo[L] / XP_TOTAL) * PW;
+    const yOf = val => M.t + PH - (val / yMax) * PH;
+
+    for (let i = 0; i <= 5; i++) {
+      const val = yMax * i / 5, y = yOf(val);
+      svg.appendChild(mk("line", { class: "grid-line", x1: M.l, x2: M.l + PW, y1: y, y2: y }));
+      const t = mk("text", { class: "tick", x: M.l - 9, y: y + 3.5, "text-anchor": "end" });
+      t.textContent = val >= 1000 ? fmt(val / 1000, 1) + "k" : fmt(val, spec.dec > 1 ? 2 : 0);
+      svg.appendChild(t);
+    }
+
+    svg.appendChild(mk("line", { class: "axis-line", x1: M.l, x2: M.l + PW, y1: M.t + PH, y2: M.t + PH }));
+    for (let i = 0; i <= 4; i++) {
+      const frac = i / 4, x = M.l + frac * PW;
+      const t = mk("text", { class: "tick", x, y: M.t + PH + 17, "text-anchor": "middle" });
+      t.textContent = axis === "level" ? Math.round(frac * MAXLVL) : Math.round(frac * 100) + "%";
+      svg.appendChild(t);
+    }
+    const ax = mk("text", { class: "axis-name", x: M.l + PW / 2, y: M.t + PH + 34, "text-anchor": "middle" });
+    ax.textContent = axis === "level" ? "nível de battle power" : "xp acumulado gasto";
+    svg.appendChild(ax);
+
+    const path = arr => arr.map((val, L) => (L ? "L" : "M") + xOf(L).toFixed(2) + " " + yOf(val).toFixed(2)).join(" ");
+    svg.appendChild(mk("path", { class: "series", d: path(base), stroke: "var(--today)", "stroke-dasharray": "5 4" }));
+    svg.appendChild(mk("path", { class: "series", d: path(cur), stroke: "var(--ki)" }));
+
+    const endLabel = (val, color, dy) => {
+      const t = mk("text", { class: "end-label", x: M.l + PW + 8, y: yOf(val) + dy, fill: color });
+      t.textContent = fmt(val, spec.dec) + spec.unit;
+      svg.appendChild(t);
+    };
+    const a = cur[MAXLVL], b = base[MAXLVL];
+    if (Math.abs(a - b) < Math.max(yMax * 0.02, 0.05)) {
+      endLabel(a, "var(--ink-2)", 3.5);
+    } else {
+      endLabel(b, "var(--today)", a > b ? 12 : -5);
+      endLabel(a, "var(--ki)", a > b ? -5 : 12);
+    }
+
+    const cross = mk("line", { class: "axis-line", y1: M.t, y2: M.t + PH, opacity: 0 });
+    const dotA = mk("circle", { r: 4.5, fill: "var(--today)", stroke: "var(--panel)", "stroke-width": 2, opacity: 0 });
+    const dotB = mk("circle", { r: 4.5, fill: "var(--ki)", stroke: "var(--panel)", "stroke-width": 2, opacity: 0 });
+    svg.append(cross, dotA, dotB);
+    const hit = mk("rect", { x: M.l, y: M.t, width: PW, height: PH, fill: "transparent", style: "cursor: crosshair" });
+    svg.appendChild(hit);
+
+    hot = { cur, base, xOf, yOf, spec, cross, dotA, dotB };
+    hit.addEventListener("pointermove", onMove);
+    hit.addEventListener("pointerleave", onLeave);
+  }
+
+  function onMove(ev) {
+    if (!hot) return;
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) / r.width * W;
+    let bestL = 0, bestD = Infinity;
+    for (let L = 0; L <= MAXLVL; L++) {
+      const d = Math.abs(hot.xOf(L) - sx);
+      if (d < bestD) { bestD = d; bestL = L; }
+    }
+    const x = hot.xOf(bestL);
+    hot.cross.setAttribute("x1", x); hot.cross.setAttribute("x2", x); hot.cross.setAttribute("opacity", 1);
+    hot.dotA.setAttribute("cx", x); hot.dotA.setAttribute("cy", hot.yOf(hot.base[bestL])); hot.dotA.setAttribute("opacity", 1);
+    hot.dotB.setAttribute("cx", x); hot.dotB.setAttribute("cy", hot.yOf(hot.cur[bestL])); hot.dotB.setAttribute("opacity", 1);
+
+    const d = hot.spec.dec, u = hot.spec.unit;
+    tip.innerHTML =
+      `<div class="th">nível ${bestL} · ${fmt(xpTo[bestL] / XP_TOTAL * 100, 1)}% do xp</div>` +
+      `<div class="tr"><span class="lbl"><span class="dot" style="background: var(--ki)"></span>com o termo</span><span class="num">${fmt(hot.cur[bestL], d)}${u}</span></div>` +
+      `<div class="tr"><span class="lbl"><span class="dot" style="background: var(--today)"></span>hoje</span><span class="num">${fmt(hot.base[bestL], d)}${u}</span></div>`;
+    tip.style.opacity = 1;
+
+    const plot = tip.parentElement.getBoundingClientRect();
+    const px = ev.clientX - plot.left, py = ev.clientY - plot.top;
+    tip.style.left = Math.min(Math.max(px + 14, 4), plot.width - tip.offsetWidth - 4) + "px";
+    tip.style.top = Math.max(py - tip.offsetHeight - 12, 4) + "px";
+  }
+
+  function onLeave() {
+    if (!hot) return;
+    tip.style.opacity = 0;
+    [hot.cross, hot.dotA, hot.dotB].forEach(n => n.setAttribute("opacity", 0));
+  }
+
+  // ── tabela ────────────────────────────────────────────────────────────────
+  function drawTable(k5) {
+    const flat = k5 === 0;
+    const rows = [];
+    for (let L = 0; L <= MAXLVL; L += 10) {
+      const m = model(L, k5), b = model(L, 0);
+      const cell = (a, bb, d, suffix = "") => {
+        const val = fmt(a, d) + (isFinite(a) ? suffix : "");
+        if (flat || !isFinite(a) || !isFinite(bb)) return `<td>${val}</td>`;
+        const diff = a - bb;
+        if (Math.abs(diff) < (d === 0 ? 0.5 : Math.pow(10, -d) / 2)) return `<td>${val}</td>`;
+        return `<td>${val}<span class="delta ${diff > 0 ? "up" : "down"}">${diff > 0 ? "+" : "−"}${fmt(Math.abs(diff), d)}</span></td>`;
+      };
+      rows.push(
+        `<tr${L === 100 ? ' class="milestone"' : ""}>` +
+        `<td>${L}</td><td>${fmt(xpTo[L] / XP_TOTAL * 100, 1)}%</td>` +
+        cell(m.power, b.power, 0) + cell(m.gain, b.gain, 1) +
+        cell(m.armor, b.armor, 0) + cell(m.taken, b.taken, 1) +
+        cell(m.punch, b.punch, 1) + cell(m.block, b.block, 1) +
+        cell(m.flycost, b.flycost, 2) + cell(m.range, b.range, 0, " s") +
+        cell(m.fly, b.fly, 1) + cell(m.kimax, b.kimax, 0) + `</tr>`
+      );
+    }
+    document.getElementById("tbody").innerHTML = rows.join("");
+  }
+
+  // ── leitura de topo + veredito ────────────────────────────────────────────
+  function drawReadout(k5) {
+    const top = model(99, k5), low = model(0, k5);
+    const gainRatio = low.gain > 0 ? top.gain / low.gain : Infinity;
+    const m100 = model(100, k5), b100 = model(100, 0);
+    const powerMult = b100.power > 0 ? m100.power / b100.power : 1;
+    const takenMult = m100.taken > 0 ? b100.taken / m100.taken : 1;
+
+    // Quanto do encarecimento de 1000x o ganho consegue acompanhar, em escala log.
+    const tracking = Math.min(1, Math.log(Math.max(gainRatio, 1)) / Math.log(COST_RATIO)) * 100;
+
+    const rangeMult = b100.range > 0 ? m100.range / b100.range : 1;
+    const cards = [
+      { k: "último nível rende", v: fmt(gainRatio, 1) + "×", n: "o que o primeiro rende", accent: true },
+      { k: "poder no nível 100", v: fmt(m100.power, 0), n: `hoje é ${fmt(b100.power, 0)} — ${fmt(powerMult, 2)}×` },
+      { k: "dano recebido no 100", v: fmt(m100.taken, 1), n: `hoje é ${fmt(b100.taken, 1)} — leva ${fmt(takenMult, 1)}× menos`,
+        warn: m100.taken < v("hit") * 0.06 },
+      { k: "autonomia de voo no 100", v: fmt(m100.range, 0) + " s", n: `hoje são ${fmt(b100.range, 0)} s — ${fmt(rangeMult, 2)}× mais longe` },
+    ];
+    document.getElementById("readout").innerHTML = cards.map(c =>
+      `<div class="stat"><div class="k">${c.k}</div><div class="v${c.accent ? " accent" : c.warn ? " warn" : ""}">${c.v}</div><div class="n">${c.n}</div></div>`
+    ).join("");
+
+    const verdict = document.getElementById("verdict");
+    let txt;
+    if (k5 === 0) {
+      txt = `<strong>Esta é a fórmula de hoje.</strong> O ganho por nível é constante em ${fmt(v("k4"), 1)}, do primeiro ao centésimo — mas o centésimo custa ${fmt(COST_RATIO, 0)}× mais XP. Suba o ganho extra para inverter isso.`;
+    } else if (gainRatio < 3) {
+      txt = `<strong>O termo mal acordou.</strong> O último nível rende só ${fmt(gainRatio, 1)}× o primeiro; o termo linear ainda domina a fórmula inteira. Suba o ganho extra ou o expoente.`;
+    } else if (tracking < 55) {
+      txt = `<strong>Vai na direção certa.</strong> Cada nível passa a valer mais que o anterior, e o topo entrega ${fmt(gainRatio, 1)}× o começo — ainda longe dos ${fmt(COST_RATIO, 0)}× de encarecimento, mas o suficiente para o fim de jogo deixar de ser um platô.`;
+    } else {
+      txt = `<strong>Progressão explosiva.</strong> O último nível vale ${fmt(gainRatio, 1)}× o primeiro e o poder no topo é ${fmt(powerMult, 2)}× o de hoje — é o arco de fim de saga, com o número disparando justamente onde o grind aperta.`;
+    }
+
+    const armorHeavy = m100.taken < v("hit") * 0.06;
+    if (armorHeavy) {
+      txt += ` <strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.`;
+      verdict.classList.add("is-warn");
+    } else {
+      verdict.classList.remove("is-warn");
+    }
+    verdict.innerHTML = txt;
+
+    document.getElementById("formula").innerHTML =
+      `poder = k1 × HP + <span style="color: var(--today)">k4 × nível</span> + <b>k5 × 100 × (nível / 100)<sup>p</sup></b>` +
+      `<span class="note">O termo dourado é o mod de hoje e continua intacto; o azul é novo e só pesa no fim. ` +
+      `<strong>O azul alimenta soco, armadura, block e o número exibido — e o custo de voo.</strong> ` +
+      `Velocidade de voo, teto de ki e regeneração leem só o dourado.</span>`;
+  }
+
+  // ── snippet .cfg ──────────────────────────────────────────────────────────
+  function drawSnippet() {
+    const L = (sec, lines) => `<span class="sec">[${sec}]</span>\n` + lines.join("\n");
+    const kv = (k, val) => `${k} = <span class="val">${val}</span>`;
+    const n = (id, d) => fmt(v(id), d).replace(".", "").replace(",", ".");
+    document.getElementById("snippet").innerHTML = [
+      L("6 - Power Level", [
+        kv("K1_Health", n("k1", 2)),
+        kv("K4_PowerSkill", n("k4", 1)),
+        kv("K5_LateGameBonus", n("k5", 1)),
+        kv("LateGameExponent", n("p", 1)),
+      ]),
+      L("2.1 - Combat", [
+        kv("PunchDamageFromPower", n("dmg", 3)),
+        kv("ArmorBase", n("armb", 0)),
+        kv("ArmorFromPower", n("armp", 3)),
+        kv("BlockPowerBase", n("blkb", 0)),
+        kv("BlockPowerFromPower", n("blkp", 3)),
+      ]),
+      L("5 - Flight", [
+        kv("KiPowerReduction", n("fkp", 4)),
+        kv("KiPerSecond", n("fki", 1)),
+        kv("KiSkillReduction", n("fkr", 2)),
+        kv("BaseSpeed", n("fb", 1)),
+        kv("SpeedFromPower", n("fp", 3)),
+        kv("SpeedSkillBonus", n("fs", 2)),
+        kv("MaxSpeed", n("fm", 0)),
+      ]),
+      L("2 - Ki", [
+        kv("MaxKi", n("kmax", 0)),
+        kv("MaxKiPerPowerLevel", n("kper", 1)),
+        kv("ChargeKiPerSecond", n("creg", 1)),
+        kv("ChargeKiFromPower", n("cfp", 3)),
+      ]),
+    ].join("\n\n");
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, armb: 0, armp: 3, blkb: 0,
+                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fb: 1, fp: 3, fs: 2, fm: 0,
+                    kmax: 0, kper: 1, creg: 1, cfp: 3 };
+
+  function render() {
+    const k5 = v("k5");
+    ids.forEach(i => { el[i + "_out"].textContent = fmt(v(i), OUT_DEC[i]); });
+
+    document.getElementById("plot-title").textContent = STATS[stat].label;
+    document.getElementById("plot-sub").textContent = STATS[stat].sub;
+    document.getElementById("legend-cur").textContent =
+      k5 === 0 ? "com o termo novo (desligado em k5 = 0)" : `com o termo novo (k5 = ${fmt(k5, 1)}, p = ${fmt(v("p"), 1)})`;
+
+    document.querySelectorAll("#stat-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.stat === stat)));
+    document.querySelectorAll("#axis-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.axis === axis)));
+    document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed",
+      String(Math.abs(parseFloat(b.dataset.k5) - k5) < 0.01 && Math.abs(parseFloat(b.dataset.p) - v("p")) < 0.01)));
+
+    drawReadout(k5);
+    draw(k5);
+    drawTable(k5);
+    drawSnippet();
+  }
+
+  ids.forEach(i => el[i].addEventListener("input", render));
+  flTrack.addEventListener("change", render);
+
+  document.getElementById("presets").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    el.k5.value = b.dataset.k5; el.p.value = b.dataset.p; render();
+  });
+  document.getElementById("stat-seg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return; stat = b.dataset.stat; render();
+  });
+  document.getElementById("axis-seg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return; axis = b.dataset.axis; render();
+  });
+  document.getElementById("reset").addEventListener("click", () => {
+    ids.forEach(i => el[i].value = DEFAULTS[i]);
+    flTrack.checked = true; render();
+  });
+  document.getElementById("copy").addEventListener("click", async e => {
+    try { await navigator.clipboard.writeText(document.getElementById("snippet").textContent); e.target.textContent = "Copiado"; }
+    catch { e.target.textContent = "Selecione e copie"; }
+    setTimeout(() => { e.target.textContent = "Copiar"; }, 1600);
+  });
+
+  render();
+})();
+</script>
