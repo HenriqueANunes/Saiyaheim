@@ -42,6 +42,15 @@ namespace Saiyaheim
         /// <summary>Tecla segurada para carregar ki ativamente.</summary>
         public static ConfigEntry<KeyboardShortcut> ChargeKiKey { get; private set; }
 
+        /// <summary>Tecla que decola e pousa. Client-side, como as outras.</summary>
+        public static ConfigEntry<KeyboardShortcut> ToggleFlightKey { get; private set; }
+
+        /// <summary>Bater duas vezes no botão de pulo decola.</summary>
+        public static ConfigEntry<bool> FlightTakeOffOnDoubleJump { get; private set; }
+
+        /// <summary>Segundos entre os dois toques para contar como toque duplo.</summary>
+        public static ConfigEntry<float> FlightDoubleJumpWindow { get; private set; }
+
         // ---------- 2 - Ki ----------
 
         /// <summary>Ki máximo no nível 0 da skill de poder. O teto cresce a partir daqui.</summary>
@@ -108,13 +117,38 @@ namespace Saiyaheim
         // ---------- 5 - Flight ----------
 
         public static ConfigEntry<float> FlightKiPerSecond { get; private set; }
+
+        /// <summary>Multiplicador do custo de ki com o botão de correr segurado.</summary>
+        public static ConfigEntry<float> FlightFastKiMultiplier { get; private set; }
+
         public static ConfigEntry<float> FlightBaseSpeed { get; private set; }
+
+        /// <summary>Velocidade somada por ponto de power level bruto.</summary>
+        public static ConfigEntry<float> FlightSpeedFromPower { get; private set; }
+
+        /// <summary>Multiplicador da velocidade com o botão de correr segurado.</summary>
+        public static ConfigEntry<float> FlightFastSpeedMultiplier { get; private set; }
+
+        /// <summary>Componente vertical do movimento, como fração da velocidade horizontal.</summary>
+        public static ConfigEntry<float> FlightVerticalSpeedFactor { get; private set; }
+
+        /// <summary>Velocidade de giro no ar. Vai direto para <c>Character.m_flyTurnSpeed</c>.</summary>
+        public static ConfigEntry<float> FlightTurnSpeed { get; private set; }
 
         /// <summary>Bônus de velocidade no nível 100 da skill de voo. 0.5 = +50%.</summary>
         public static ConfigEntry<float> FlightSpeedSkillBonus { get; private set; }
 
+        /// <summary>Fração do custo de ki removida no nível 100 da skill de voo.</summary>
+        public static ConfigEntry<float> FlightKiSkillReduction { get; private set; }
+
+        /// <summary>XP da skill de voo por segundo voando.</summary>
+        public static ConfigEntry<float> FlightXpPerSecond { get; private set; }
+
         /// <summary>Fração da velocidade perdida com o inventário no peso máximo.</summary>
         public static ConfigEntry<float> FlightWeightPenalty { get; private set; }
+
+        /// <summary>Nível mínimo de Battle Power para decolar. 0 desliga a trava.</summary>
+        public static ConfigEntry<float> FlightMinBattlePower { get; private set; }
 
         /// <summary>
         /// Teto duro de velocidade. Não é balanceamento: acima de certa velocidade o
@@ -122,6 +156,16 @@ namespace Saiyaheim
         /// (ou o jogador cai pelo chão). Limite do motor, não do mod.
         /// </summary>
         public static ConfigEntry<float> FlightMaxSpeed { get; private set; }
+
+        /// <summary>Pousar encosta no chão desliga o voo sozinho.</summary>
+        public static ConfigEntry<bool> FlightAutoLandOnGround { get; private set; }
+
+        /// <summary>
+        /// Força a pose em pé no animator enquanto voa. Confirmado no playtest de 2026-07-31:
+        /// funciona. Fica em config para desligar sem recompilar se alguma animação futura
+        /// conflitar. Ver <c>FlightPosePatch</c>.
+        /// </summary>
+        public static ConfigEntry<bool> FlightForceIdlePose { get; private set; }
 
         // ---------- 6 - Power Level ----------
 
@@ -190,6 +234,27 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Key HELD DOWN to actively charge ki, far faster than passive regeneration.",
                     null, ClientSide(95)));
+
+            ToggleFlightKey = config.Bind(SecGeral, "ToggleFlightKey",
+                new KeyboardShortcut(KeyCode.V),
+                new ConfigDescription(
+                    "Key that takes off and lands. Once airborne, movement is the usual one: " +
+                    "the game's Jump button climbs, Crouch descends and Run flies fast.",
+                    null, ClientSide(85)));
+
+            FlightTakeOffOnDoubleJump = config.Bind(SecGeral, "TakeOffOnDoubleJump", true,
+                new ConfigDescription(
+                    "Tapping the Jump button twice quickly takes off, on the ground or mid-air. " +
+                    "It only takes OFF, never lands: Jump is what climbs while flying, so a " +
+                    "double tap up there would fight the control you are already using. " +
+                    "ToggleFlightKey and touching the ground are what land you.",
+                    null, ClientSide(80)));
+
+            FlightDoubleJumpWindow = config.Bind(SecGeral, "DoubleJumpWindow", 0.35f,
+                new ConfigDescription(
+                    "Maximum seconds between the two taps. Too high and normal jump spamming " +
+                    "launches you by accident; too low and the double tap stops registering.",
+                    new AcceptableValueRange<float>(0.05f, 1f), ClientSide(75)));
 
             // --- Ki ---
             MaxKi = config.Bind(SecKi, "MaxKi", 50f,
@@ -335,32 +400,122 @@ namespace Saiyaheim
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
             // --- Voo ---
-            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 4f,
+            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 15f,
                 new ConfigDescription(
                     "Ki per second while flying. Deliberately high: flight should be a tool, " +
                     "not the default way to get around — otherwise the game's hostile terrain " +
-                    "turns into scenery.",
+                    "turns into scenery. Running out of ki in the air drops you. " +
+                    "(Playtest value, 2026-07-31. Raised from 4: at that cost flight was cheap " +
+                    "enough to become the default way to travel.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
-            FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 15f,
-                new ConfigDescription("Flight speed at skill level 0, carrying nothing.",
+            FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2.5f,
+                new ConfigDescription(
+                    "Ki cost multiplier while the Run button is held. Higher than the speed " +
+                    "multiplier on purpose: fast flight should cost more per travelled metre, " +
+                    "not just more per second.",
+                    new AcceptableValueRange<float>(1f, 10f), AdminOnly(95)));
+
+            // 15 era o valor da primeira versão e fazia o modo rápido bater o MaxSpeed (15 x 2 = 30)
+            // ainda no nível 0 — nenhuma progressão aparecia com o shift pressionado. Ao mexer
+            // aqui, conferir se BaseSpeed * FastSpeedMultiplier ainda sobra bem abaixo do MaxSpeed.
+            //
+            // 2 e um piso deliberadamente miseravel: e velocidade de caminhada no Valheim (correr
+            // e ~5). Voar cedo no jogo e mais lento que andar, e quem paga a velocidade e o
+            // SpeedFromPower. Voo virou privilegio de quem ja e forte, nao meio de transporte.
+            FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 2f,
+                new ConfigDescription(
+                    "Flight speed floor: skill 0, power level 0, carrying nothing. " +
+                    "Everything else is added or multiplied on top of this. " +
+                    "CAREFUL: the flight skill bonus MULTIPLIES this floor, so lowering it also " +
+                    "shrinks what levelling the skill is worth — at 2, a hundred levels of Flight " +
+                    "buy +1 m/s on a fresh character. That is intended here: almost all of the " +
+                    "speed is meant to come from SpeedFromPower. " +
+                    "(Playtest value, 2026-07-31. Started at 15, went to 10, landed on 2.)",
                     new AcceptableValueRange<float>(1f, 100f), AdminOnly(90)));
+
+            FlightSpeedFromPower = config.Bind(SecFlight, "SpeedFromPower", 0.015f,
+                new ConfigDescription(
+                    "Speed ADDED per point of raw power level. With ki on, power is " +
+                    "k1*HP + k4*BattlePower — so eating better and fighting more both make you " +
+                    "fly faster, which is the Dragon Ball reading of getting stronger. " +
+                    "Additive, like punch damage: enemy scaling is roughly linear across biomes " +
+                    "and an additive stat tracks that predictably. " +
+                    "Run saiya_fly to see how much this is contributing right now.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(88)));
+
+            FlightFastSpeedMultiplier = config.Bind(SecFlight, "FastSpeedMultiplier", 1.8f,
+                new ConfigDescription(
+                    "Speed multiplier while the Run button is held. Vanilla already reads that " +
+                    "button inside its own flight code, so fast flight costs no extra keybind.",
+                    new AcceptableValueRange<float>(1f, 10f), AdminOnly(85)));
+
+            FlightVerticalSpeedFactor = config.Bind(SecFlight, "VerticalSpeedFactor", 0.5f,
+                new ConfigDescription(
+                    "Climb and dive speed, as a fraction of the horizontal speed. " +
+                    "1.0 goes up as fast as forward, which makes altitude nearly free. " +
+                    "(Lowered from 0.75 after the 2026-07-31 playtest: climbing felt too quick.)",
+                    new AcceptableValueRange<float>(0f, 2f), AdminOnly(80)));
+
+            FlightTurnSpeed = config.Bind(SecFlight, "TurnSpeed", 12f,
+                new ConfigDescription(
+                    "Turn speed in the air. The vanilla value is 12; lower feels heavier and " +
+                    "makes high speed harder to steer.",
+                    new AcceptableValueRange<float>(1f, 50f), AdminOnly(75)));
 
             FlightSpeedSkillBonus = config.Bind(SecFlight, "SpeedSkillBonus", 0.5f,
                 new ConfigDescription("Speed bonus at level 100 of the flight skill. 0.5 = +50%.",
-                    new AcceptableValueRange<float>(0f, 3f), AdminOnly(80)));
+                    new AcceptableValueRange<float>(0f, 3f), AdminOnly(70)));
+
+            FlightKiSkillReduction = config.Bind(SecFlight, "KiSkillReduction", 0.5f,
+                new ConfigDescription(
+                    "Fraction of the ki cost removed at level 100 of the flight skill. " +
+                    "0.5 = at max level flying costs half. Together with SpeedSkillBonus this is " +
+                    "the whole progression of the skill: farther per point of ki.",
+                    new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(65)));
+
+            FlightXpPerSecond = config.Bind(SecFlight, "XpPerSecond", 0.3f,
+                new ConfigDescription(
+                    "Flight skill XP per second airborne. Flying is its own training — there is " +
+                    "no other way to raise it. Valheim's own diminishing curve up to 100 applies. " +
+                    "(Playtest value, 2026-07-31. Lowered from 1: the skill is what makes flight " +
+                    "cheap, and reaching that quickly would undo the cost of KiPerSecond.)",
+                    new AcceptableValueRange<float>(0f, 20f), AdminOnly(60)));
 
             FlightWeightPenalty = config.Bind(SecFlight, "WeightPenalty", 0.5f,
                 new ConfigDescription(
                     "Fraction of the speed lost with the inventory at maximum weight. " +
                     "0.5 = flying fully loaded you go at half speed.",
-                    new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(70)));
+                    new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(55)));
+
+            FlightMinBattlePower = config.Bind(SecFlight, "MinBattlePower", 0f,
+                new ConfigDescription(
+                    "Minimum Battle Power level required to take off. 0 disables the gate. " +
+                    "A placeholder for the boss gating of step 7 — until that decision is made, " +
+                    "this is the only lock available on flight.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(50)));
 
             FlightMaxSpeed = config.Bind(SecFlight, "MaxSpeed", 30f,
                 new ConfigDescription(
-                    "Hard speed cap. An engine limit, not balance: above a certain speed zone " +
-                    "streaming cannot keep up and the world loads in chunks.",
-                    new AcceptableValueRange<float>(5f, 100f), AdminOnly(60)));
+                    "Hard speed cap, applied after every multiplier. An engine limit, not balance: " +
+                    "above a certain speed zone streaming cannot keep up and the world loads in " +
+                    "chunks.",
+                    new AcceptableValueRange<float>(5f, 100f), AdminOnly(45)));
+
+            FlightAutoLandOnGround = config.Bind(SecFlight, "AutoLandOnGround", true,
+                new ConfigDescription(
+                    "Touching the ground ends the flight by itself, so you do not walk around " +
+                    "still burning ki. Only after you have actually left the ground once — " +
+                    "otherwise taking off would land you on the same frame.",
+                    null, AdminOnly(42)));
+
+            FlightForceIdlePose = config.Bind(SecFlight, "ForceIdlePose", true,
+                new ConfigDescription(
+                    "Forces the standing idle pose while flying, which is the Dragon Ball look. " +
+                    "The vanilla player animator has no flight state, so without this you fly in " +
+                    "the free-fall pose. Purely visual — turn it off if it breaks some animation. " +
+                    "(Confirmed working in the 2026-07-31 playtest.)",
+                    null, ClientSide(40)));
 
             // --- Power Level ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:

@@ -4,6 +4,7 @@ using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
 using Saiyaheim.Debugging;
+using Saiyaheim.Flight;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
 using UnityEngine;
@@ -64,9 +65,12 @@ namespace Saiyaheim
             };
 
             PowerSkill.Register();
+            FlightSkill.Register();
 
-            // Um patch só, em Character.ApplyDamage, e só para contabilizar XP — ver DamageXpPatch
-            // para os motivos de não haver caminho nativo. Dano e armadura saem de StatusEffect.
+            // Dois patches, ambos mínimos e nenhum em física: Character.ApplyDamage para
+            // contabilizar XP (ver DamageXpPatch) e Character.CustomFixedUpdate para forçar a pose
+            // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch).
+            // Dano, armadura e o voo em si saem de StatusEffect.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
 
@@ -74,6 +78,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new DumpEmotesCommand());
             CommandManager.Instance.AddConsoleCommand(new KiCommand());
             CommandManager.Instance.AddConsoleCommand(new PowerCommand());
+            CommandManager.Instance.AddConsoleCommand(new FlightCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -87,6 +92,7 @@ namespace Saiyaheim
             float dt = Time.deltaTime;
             KiManager.Update(dt);
             KiBodyManager.Update(Player.m_localPlayer);
+            FlightManager.Update(Player.m_localPlayer);
             KiHud.Update();
         }
 

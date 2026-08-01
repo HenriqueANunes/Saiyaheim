@@ -128,9 +128,23 @@ namespace Saiyaheim.Ki
             _animator = _root.GetComponentInChildren<Animator>(true);
 
             ApplyColor();
+            ApplyDrainBehaviour();
 
             SaiyaheimPlugin.Log.LogInfo(
                 $"Ki bar created (GuiBar: {bars.Length}, text: {_text != null}, animator: {_animator != null}).");
+
+            // Os valores herdados do prefab do eitr não saem por decompilação, só do asset. Ficam
+            // no log porque foram o que explicou o bug da barra travada no voo — se ela voltar a
+            // travar, é a primeira linha a olhar.
+            foreach (GuiBar bar in new[] { _barSlow, _barFast })
+            {
+                if (bar != null)
+                {
+                    SaiyaheimPlugin.Log.LogInfo(
+                        $"  {bar.name}: smoothDrain={bar.m_smoothDrain}, smoothFill={bar.m_smoothFill}, " +
+                        $"smoothSpeed={bar.m_smoothSpeed}, changeDelay forced to 0.");
+                }
+            }
 
             // Se o clone não trouxe as barras, a estrutura do prefab mudou. Listar os filhos é
             // o que permite consertar sem precisar de outra rodada de teste na tela.
@@ -142,6 +156,35 @@ namespace Saiyaheim.Ki
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Conserta o clone para um recurso que <b>drena continuamente</b> — que é o que o eitr
+        /// original nunca faz e o ki faz o tempo todo desde o voo.
+        ///
+        /// O <c>GuiBar</c> só redesenha no <c>LateUpdate</c> quando <c>m_delayTimer &lt;= 0</c>, e o
+        /// <c>SetValue</c> rearma esse timer com <c>m_changeDelay</c> <b>a cada queda de valor</b>.
+        /// Voando, o ki cai todo passo de física (~50×/s): o timer é rearmado antes de conseguir
+        /// expirar e a barra <b>nunca</b> é redesenhada. O número na HUD continuava andando porque
+        /// é escrito direto no <c>TMP_Text</c>, o que fazia o bug parecer coisa nossa.
+        ///
+        /// O atraso existe para o rastro das barras nativas: stamina cai de golpe, aparece a marca
+        /// do que foi gasto, e ela escorre depois. O ki não tem esse formato — ele sangra.
+        ///
+        /// Zerar o <c>m_changeDelay</c> devolve o controle ao <c>m_smoothDrain</c>, que interpola
+        /// por segundo em vez de esperar um timer. As duas barras herdadas do eitr recebem o mesmo
+        /// tratamento porque estão pintadas da mesma cor: a de rastro congelada no valor antigo
+        /// mascarava a da frente por inteiro.
+        /// </summary>
+        private static void ApplyDrainBehaviour()
+        {
+            foreach (GuiBar bar in new[] { _barSlow, _barFast })
+            {
+                if (bar != null)
+                {
+                    bar.m_changeDelay = 0f;
+                }
+            }
         }
 
         private static void ApplyColor()

@@ -68,6 +68,33 @@ namespace Saiyaheim.Util
         }
 
         /// <summary>
+        /// <c>Character.m_run</c> é protected. <c>IsRunning()</c> não serve como substituto:
+        /// ele lê <c>m_running</c>, que só é escrito dentro do <c>UpdateWalking</c> — voando esse
+        /// caminho nunca roda e o valor fica preso em false. O <c>UpdateFlying</c> vanilla lê
+        /// justamente <c>m_run</c> para escolher entre velocidade lenta e rápida.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Character, bool> RunRef =
+            CreateFieldRef<Character, bool>("m_run");
+
+        internal static bool IsRunPressed(Character character)
+        {
+            if (RunRef == null || character == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return RunRef(character);
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_run: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// <c>Character.StopEmote()</c> é protected. Poderia ser substituído por
         /// <c>StartEmote("")</c>, mas esse caminho passa antes por checagens de
         /// <c>CanMove()</c>/<c>InAttack()</c> e falharia justamente quando mais precisamos parar.

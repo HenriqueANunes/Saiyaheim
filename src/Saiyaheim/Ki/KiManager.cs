@@ -1,4 +1,5 @@
 using Saiyaheim.Power;
+using Saiyaheim.Util;
 using UnityEngine;
 
 namespace Saiyaheim.Ki
@@ -208,13 +209,6 @@ namespace Saiyaheim.Ki
         /// Ignora input quando o jogador está digitando ou com uma janela aberta —
         /// senão apertar a tecla no chat carrega ki sem querer.
         /// </summary>
-        private static bool AcceptsInput()
-        {
-            return !Console.IsVisible()
-                   && !TextInput.IsVisible()
-                   && !Menu.IsVisible()
-                   && !InventoryGui.IsVisible()
-                   && (Chat.instance == null || !Chat.instance.HasFocus());
-        }
+        private static bool AcceptsInput() => InputGuard.AcceptsInput();
     }
 }
