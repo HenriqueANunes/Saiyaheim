@@ -95,6 +95,35 @@ namespace Saiyaheim.Util
         }
 
         /// <summary>
+        /// <c>CharacterAnimEvent.m_character</c> é private. É o caminho do postfix de
+        /// <c>CustomLateUpdate</c> de volta para o dono do esqueleto.
+        ///
+        /// <c>GetComponentInParent&lt;Character&gt;()</c> resolveria sem reflexão, mas roda em todo
+        /// personagem carregado a cada frame — o delegate cacheado é mais barato que a busca na
+        /// hierarquia.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<CharacterAnimEvent, Character> AnimEventCharacterRef =
+            CreateFieldRef<CharacterAnimEvent, Character>("m_character");
+
+        internal static Character GetAnimEventCharacter(CharacterAnimEvent animEvent)
+        {
+            if (AnimEventCharacterRef == null || animEvent == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return AnimEventCharacterRef(animEvent);
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_character: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
         /// <c>Character.StopEmote()</c> é protected. Poderia ser substituído por
         /// <c>StartEmote("")</c>, mas esse caminho passa antes por checagens de
         /// <c>CanMove()</c>/<c>InAttack()</c> e falharia justamente quando mais precisamos parar.

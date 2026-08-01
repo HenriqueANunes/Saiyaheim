@@ -42,7 +42,18 @@ namespace Saiyaheim.Flight
         private static readonly int ForwardSpeedHash = ZSyncAnimation.GetHash("forward_speed");
         private static readonly int SidewaySpeedHash = ZSyncAnimation.GetHash("sideway_speed");
 
-        private static void Postfix(Character __instance)
+        /// <summary>
+        /// Guarda a guinada de antes do <c>UpdateFlying</c>, para o <see cref="LevelBody"/> poder
+        /// devolvê-la quando o jogo a tiver destruído. <c>NaN</c> quer dizer "não estava voando".
+        /// </summary>
+        private static void Prefix(Character __instance, out float __state)
+        {
+            __state = __instance != null && __instance.IsFlying()
+                ? __instance.transform.eulerAngles.y
+                : float.NaN;
+        }
+
+        private static void Postfix(Character __instance, float __state)
         {
             // m_flying primeiro: é um campo bool, e para todo mundo que não está voando o postfix
             // custa isso e mais nada.
@@ -51,14 +62,16 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            if (!SaiyaheimConfig.FlightForceIdlePose.Value)
+            // Voo de debug do jogo (tecla Z com cheats) não passa por aqui: quem não voa pelo mod
+            // continua com a animação vanilla.
+            if (!FlightManager.IsFlying(player))
             {
                 return;
             }
 
-            // Voo de debug do jogo (tecla Z com cheats) não passa por aqui: quem não voa pelo mod
-            // continua com a animação vanilla.
-            if (!FlightManager.IsFlying(player))
+            LevelBody(player, __state);
+
+            if (!SaiyaheimConfig.FlightForceIdlePose.Value)
             {
                 return;
             }
@@ -94,6 +107,64 @@ namespace Saiyaheim.Flight
                 animator.SetFloat(ForwardSpeedHash, 0f);
                 animator.SetFloat(SidewaySpeedHash, 0f);
             }
+        }
+
+        /// <summary>
+        /// Tira a inclinação vertical do corpo, deixando só a guinada.
+        ///
+        /// <b>De onde vinha.</b> O <c>UpdateFlying</c> mira a rotação em
+        /// <c>Quaternion.LookRotation(m_moveDir)</c> — e o <c>m_moveDir</c> carrega o componente Y
+        /// que o <see cref="SE_Flight"/> escreve para subir e descer. Resultado: apertar para subir
+        /// empinava o personagem de barriga para cima, e descer o punha de barriga para baixo.
+        /// Não é bug do jogo; é o alvo de rotação sendo tridimensional enquanto o design pede que
+        /// o corpo só gire na horizontal.
+        ///
+        /// <b>Por que aqui e não na pose.</b> Isto é a rotação do <c>transform</c>, que a física e
+        /// o alvo de mira usam. Zerar em <c>LateUpdate</c> consertaria só o desenho e deixaria o
+        /// personagem mirando para um lado e sendo desenhado para outro. O postfix de
+        /// <c>CustomFixedUpdate</c> roda depois do <c>UpdateFlying</c> ter escrito a rotação, que é
+        /// o momento certo.
+        ///
+        /// A inclinação que o design <i>quer</i> — barriga para baixo em velocidade — é puramente
+        /// visual e mora em <see cref="FlightPose"/>, sobre o <c>bodyRotation</c>. Separar as duas
+        /// é o que permite o corpo parecer deitado sem que a mira e a colisão deitem junto.
+        /// </summary>
+        private static void LevelBody(Player player, float previousYaw)
+        {
+            if (!SaiyaheimConfig.FlightLevelBody.Value)
+            {
+                return;
+            }
+
+            Vector3 moveDir = player.GetMoveDir();
+            moveDir.y = 0f;
+
+            // Subindo ou descendo sem nenhuma intenção horizontal, o alvo de rotação do jogo é
+            // lixo: LookRotation de um vetor puramente vertical tem guinada **indefinida**, e a
+            // Unity devolve zero — o norte do mapa. Achatar isso preservaria o norte, que foi
+            // exatamente o que o playtest de 2026-07-31 viu.
+            //
+            // O limiar é o mesmo 0.1 que o UpdateFlying usa para decidir se rotaciona, de propósito:
+            // abaixo dele o jogo não deveria ter mirado em nada.
+            if (moveDir.sqrMagnitude < 0.01f)
+            {
+                if (!float.IsNaN(previousYaw))
+                {
+                    player.transform.rotation = Quaternion.Euler(0f, previousYaw, 0f);
+                }
+
+                return;
+            }
+
+            Vector3 forward = player.transform.forward;
+            forward.y = 0f;
+
+            if (forward.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            player.transform.rotation = Quaternion.LookRotation(forward.normalized, Vector3.up);
         }
     }
 }
