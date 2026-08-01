@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Globalization;
-using Jotunn.Entities;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
 
@@ -20,8 +17,11 @@ namespace Saiyaheim.Debugging
     /// saiya_ki empty        zera
     /// saiya_ki toggle       liga/desliga o ki
     /// </code>
+    ///
+    /// Como no <see cref="PowerCommand"/>: ler o estado é livre, mas tudo que escreve no ki é
+    /// trapaça e exige <c>devcommands</c>. Ver <see cref="SaiyaheimCommand"/>.
     /// </summary>
-    internal class KiCommand : ConsoleCommand
+    internal class KiCommand : SaiyaheimCommand
     {
         public override string Name => "saiya_ki";
 
@@ -31,7 +31,7 @@ namespace Saiyaheim.Debugging
         public override List<string> CommandOptionList() =>
             new List<string> { "set", "drain", "full", "empty", "toggle" };
 
-        public override void Run(string[] args)
+        protected override void Execute(string[] args)
         {
             if (KiManager.State == null)
             {
@@ -39,7 +39,24 @@ namespace Saiyaheim.Debugging
                 return;
             }
 
-            string action = args != null && args.Length > 0 ? args[0].ToLowerInvariant() : null;
+            string action = args.Length > 0 ? args[0].ToLowerInvariant() : null;
+
+            // Sem argumento é leitura pura; todo subcomando daqui escreve no ki, então todos passam
+            // pelo porteiro. O typo é rejeitado antes, senão "isso é cheat" sai para quem só errou
+            // de digitar.
+            if (action != null)
+            {
+                if (!CommandOptionList().Contains(action))
+                {
+                    Print($"Unknown action: '{action}'. {Help}");
+                    return;
+                }
+
+                if (!RequireCheats(action))
+                {
+                    return;
+                }
+            }
 
             switch (action)
             {
@@ -75,10 +92,6 @@ namespace Saiyaheim.Debugging
                 case "toggle":
                     KiManager.State.Enabled = !KiManager.State.Enabled;
                     break;
-
-                default:
-                    Print($"Unknown action: '{action}'. {Help}");
-                    return;
             }
 
             Print($"Ki: {KiManager.State.Current:0.#}/{KiManager.Max:0.#} " +
@@ -103,22 +116,6 @@ namespace Saiyaheim.Debugging
         {
             float seconds = KiManager.SecondsToFill(perSecond);
             return float.IsInfinity(seconds) ? "never" : $"{seconds:0} s";
-        }
-
-        private static bool TryParseAmount(string[] args, out float amount)
-        {
-            amount = 0f;
-            return args.Length > 1 &&
-                   float.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out amount);
-        }
-
-        private static void Print(string message)
-        {
-            SaiyaheimPlugin.Log.LogInfo(message);
-            if (Console.instance != null)
-            {
-                Console.instance.Print($"[Saiyaheim] {message}");
-            }
         }
     }
 }

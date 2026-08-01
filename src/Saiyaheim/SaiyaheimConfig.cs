@@ -955,15 +955,14 @@ namespace Saiyaheim
             ChargeEmote = config.Bind(SecEffects, "ChargeEmote", "roar",
                 new ConfigDescription(
                     "Emote looped while charging ki. Empty disables the animation. " +
-                    "Run saiya_dumpemotes in the console (F5) to see the valid list — " +
-                    "the ones of type Bool are the ones that loop.",
+                    "Only emotes the player Animator knows work, and only the Bool ones loop.",
                     null, ClientSide(100)));
 
             ChargeEffectPrefab = config.Bind(SecEffects, "ChargeEffectPrefab", "fx_DvergerMage_Support_start",
                 new ConfigDescription(
                     "Visual effect prefab attached to the player while charging. Empty disables it. " +
-                    "Run saiya_dumpprefabs for the full list; candidates include " +
-                    "fx_ShieldCharge_1 through _5 (increasing intensity) and fx_chainlightning_spread.",
+                    "Candidates include fx_ShieldCharge_1 through _5 (increasing intensity) " +
+                    "and fx_chainlightning_spread.",
                     null, ClientSide(90)));
 
             ChargeSoundPrefab = config.Bind(SecEffects, "ChargeSoundPrefab", "sfx_charred_mage_attack_charge",

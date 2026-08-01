@@ -74,8 +74,6 @@ namespace Saiyaheim
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
 
-            CommandManager.Instance.AddConsoleCommand(new DumpPrefabsCommand());
-            CommandManager.Instance.AddConsoleCommand(new DumpEmotesCommand());
             CommandManager.Instance.AddConsoleCommand(new KiCommand());
             CommandManager.Instance.AddConsoleCommand(new PowerCommand());
             CommandManager.Instance.AddConsoleCommand(new FlightCommand());
