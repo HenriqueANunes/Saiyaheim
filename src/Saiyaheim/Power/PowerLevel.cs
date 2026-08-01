@@ -125,6 +125,62 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
+        /// Block power derivado do poder, que <b>substitui</b> o do item enquanto o ki está ligado
+        /// — mesma regra da armadura, e pelo mesmo motivo: quem usa ki abre mão da build vanilla
+        /// inteira. Segurar um escudo bom não muda nada; desligar o toggle devolve o escudo na hora.
+        ///
+        /// <b>Por que isto existe.</b> O block power do punho é <b>2</b>, fixo: o
+        /// <c>m_blockPowerPerLevel</c> do <c>PlayerUnarmed</c> é zero, a qualidade é 1, e a skill
+        /// Blocking nativa no máximo soma +50%. O pior escudo do jogo (madeira, primeiros dez
+        /// minutos) está em 18,5 e o melhor em 155,8. Sem escalar, o bloqueio desarmado não é fraco
+        /// — é uma armadilha, porque o <c>BlockAttack</c> manda o <b>resíduo</b> para o
+        /// <c>AddStaggerDamage</c>: bloqueio pequeno deixa resíduo grande, o resíduo staggera, e um
+        /// bloqueio que falha por stagger não reduz nada. O jogador para de andar e de atacar para
+        /// tomar o mesmo dano e ainda ficar preso na animação.
+        ///
+        /// <b>Calibrado abaixo dos escudos de propósito</b> (decisão de 2026-08-01): começa mais
+        /// fraco que o escudo de madeira e termina perto do serpentscale, sem chegar no flametal.
+        /// O punho ganha em não quebrar, não ocupar a mão e escalar sozinho; não precisa ganhar
+        /// também no número. Rodar <c>saiya_block shields</c> para a tabela.
+        ///
+        /// Sem arredondar, ao contrário do <see cref="GetArmor"/>: block power não aparece na tela
+        /// do jogador, então não há motivo para esconder a casa decimal.
+        ///
+        /// ⚠️ <b>Nunca pode devolver zero, e não é preciosismo.</b> O <c>Humanoid.BlockAttack</c>
+        /// divide pelo block power sem checar:
+        /// <code>Mathf.Clamp01(bloqueado / blockPower)</code>
+        /// Com block power 0 o <c>ApplyArmor(0)</c> é no-op, então <c>bloqueado</c> também é 0, e
+        /// <c>0f / 0f</c> é <b>NaN</b>. O NaN vira o custo de stamina, e aí o jogo escolhe o pior
+        /// caminho possível: <c>if (custo &gt; 0f)</c> é <c>false</c> para NaN, então em vez do
+        /// <c>UseStamina</c> — que <b>tem</b> guard de NaN — ele chama o <c>AddStamina</c>, que
+        /// <b>não tem</b>. A stamina do jogador vira NaN e nunca mais regenera, porque
+        /// <c>NaN + regen</c> continua NaN. Só sair e voltar para o mundo conserta.
+        ///
+        /// Foi bug de verdade, encontrado no primeiro playtest em 2026-08-01: bloquear até a barra
+        /// de ki zerar quebrava a stamina permanentemente.
+        /// </summary>
+        internal static float GetBlockPower(Player player)
+        {
+            if (player == null)
+            {
+                return 0f;
+            }
+
+            float fromPower = GetKiRaw(player) * SaiyaheimConfig.BlockPowerFromPower.Value;
+
+            // Mesmo degrau da armadura, e de propósito o mesmo config — mas só sobre a parcela que
+            // vem do poder. A base sobrevive, e é essa a diferença em relação ao GetArmor: armadura
+            // zero é um valor legítimo (o jogador está pelado), block power zero é uma divisão por
+            // zero. Com a barra vazia você bloqueia como uma pessoa pelada, não como alguém sem mãos.
+            if (KiManager.Current <= 0f)
+            {
+                fromPower *= SaiyaheimConfig.ArmorFractionWithoutKi.Value;
+            }
+
+            return SaiyaheimConfig.BlockPowerBase.Value + fromPower;
+        }
+
+        /// <summary>
         /// Número para exibir. Comprimido para não virar um valor gigante e vazio cedo demais.
         ///
         /// ⚠️ Só exibição. Se a compressão entrasse no cálculo, dobrar o poder deixaria de dobrar

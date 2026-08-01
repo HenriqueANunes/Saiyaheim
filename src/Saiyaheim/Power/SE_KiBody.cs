@@ -181,9 +181,18 @@ namespace Saiyaheim.Power
         /// <c>ApplyResistance</c> com os modificadores do jogador e o <c>HitData.ApplyArmor</c>
         /// estático.
         ///
-        /// A cópia diverge do real num caso só: golpe <b>bloqueado</b>, que o jogo reduz depois
-        /// deste ponto. O erro é para cima e o custo é subestimar o bloqueio — cobra-se um pouco a
-        /// mais de ki de quem bloqueou. Aceitável enquanto a build do modo ki for punho nu.
+        /// ⚠️ <b>O bloqueio precisa entrar na conta, e por isso entra.</b> Até 2026-08-01 esta
+        /// estimativa ignorava o bloqueio de propósito: o erro era para cima, mas o bloqueio valia
+        /// 2 de block power e portanto era desprezível. Com o <see cref="BlockPowerPatch"/> o
+        /// bloqueio passou a barrar a <b>maior parte</b> do golpe, e ignorá-lo cobraria ki por dano
+        /// que nunca chegou perto do jogador — além de cobrar duas vezes pelo mesmo ponto, já que o
+        /// bloqueio agora tem o custo dele.
+        ///
+        /// A parte do bloqueio continua sendo <b>estimativa</b>, e aqui não há como não ser: quando
+        /// o <c>OnDamaged</c> roda, o <c>BlockAttack</c> ainda não aconteceu, então não se sabe se
+        /// o bloqueio vai segurar ou falhar por stagger. Assumimos que segura. O erro passa a ser
+        /// para <b>baixo</b> no caso raro do bloqueio falhar — cobra-se de menos, que é o lado certo
+        /// para errar.
         /// </summary>
         private static float EstimateArmorAbsorption(HitData hit, Player player)
         {
@@ -196,6 +205,14 @@ namespace Saiyaheim.Power
             // Clone antes de qualquer coisa: ApplyResistance e ApplyArmor escrevem no HitData, e
             // este é o golpe de verdade, ainda a caminho da vida do jogador.
             HitData copy = hit.Clone();
+
+            // Na ordem do RPC_Damage: BlockAttack primeiro, resistência e armadura depois. O que a
+            // armadura absorve é o que sobrou do bloqueio, não o golpe inteiro.
+            if (WillBlock(hit, player))
+            {
+                copy.m_damage.ApplyArmor(PowerLevel.GetBlockPower(player));
+            }
+
             copy.ApplyResistance(player.GetDamageModifiers(), out _);
 
             // Medir a diferença em vez de recalcular a fórmula: qual dano a armadura reduz é
@@ -208,6 +225,23 @@ namespace Saiyaheim.Power
             copy.ApplyArmor(armor);
 
             return Mathf.Max(0f, before - copy.GetTotalDamage());
+        }
+
+        /// <summary>
+        /// Se este golpe vai passar pelo <c>Humanoid.BlockAttack</c>. É a condição do
+        /// <c>Character.RPC_Damage</c> (<c>m_blockable</c> e <c>IsBlocking()</c>) mais o filtro de
+        /// ângulo que está dentro do próprio <c>BlockAttack</c> — o bloqueio só pega o que vem de
+        /// frente.
+        ///
+        /// Diz se o bloqueio <b>acontece</b>, não se ele <b>segura</b>: as duas condições de
+        /// sucesso (stamina e não levar stagger) dependem de contas que só existem lá dentro,
+        /// depois deste ponto.
+        /// </summary>
+        private static bool WillBlock(HitData hit, Player player)
+        {
+            return hit.m_blockable
+                   && player.IsBlocking()
+                   && Vector3.Dot(hit.m_dir, player.transform.forward) <= 0f;
         }
 
         /// <summary>

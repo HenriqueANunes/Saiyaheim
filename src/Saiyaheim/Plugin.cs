@@ -67,9 +67,11 @@ namespace Saiyaheim
             PowerSkill.Register();
             FlightSkill.Register();
 
-            // Dois patches, ambos mínimos e nenhum em física: Character.ApplyDamage para
-            // contabilizar XP (ver DamageXpPatch) e Character.CustomFixedUpdate para forçar a pose
-            // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch).
+            // Quatro patches, todos mínimos e nenhum em física: Character.ApplyDamage para
+            // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
+            // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch), e o par
+            // Humanoid.BlockAttack + ItemData.GetBlockPower para o bloqueio escalar com o poder
+            // (ver BlockPowerPatch — é o único stat sem hook nativo de StatusEffect).
             // Dano, armadura e o voo em si saem de StatusEffect.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
@@ -77,6 +79,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new KiCommand());
             CommandManager.Instance.AddConsoleCommand(new PowerCommand());
             CommandManager.Instance.AddConsoleCommand(new FlightCommand());
+            CommandManager.Instance.AddConsoleCommand(new BlockCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }

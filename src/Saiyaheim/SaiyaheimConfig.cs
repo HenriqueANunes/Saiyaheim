@@ -100,6 +100,15 @@ namespace Saiyaheim
         /// <summary>Fração do power level convertida em armadura.</summary>
         public static ConfigEntry<float> ArmorFromPower { get; private set; }
 
+        /// <summary>Block power garantido com o ki ligado, antes da parcela vinda do poder.</summary>
+        public static ConfigEntry<float> BlockPowerBase { get; private set; }
+
+        /// <summary>Fração do power level convertida em block power. Substitui o do item equipado.</summary>
+        public static ConfigEntry<float> BlockPowerFromPower { get; private set; }
+
+        /// <summary>Ki gasto por ponto de dano que o bloqueio de ki barrou.</summary>
+        public static ConfigEntry<float> BlockKiCost { get; private set; }
+
         // ---------- 7 - HUD ----------
 
         public static ConfigEntry<bool> ShowKiBar { get; private set; }
@@ -502,6 +511,58 @@ namespace Saiyaheim
                     "(Playtest value, 2026-08-01. The conservative 0.15 it shipped with the same " +
                     "day was barely noticeable; at 1 a blocked point of damage costs a point of ki.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
+
+            // O bloqueio desarmado era 2 de block power contra escudos de 18 a 156 — nao fraco,
+            // ARMADILHA: o BlockAttack manda o residuo para o AddStaggerDamage, entao bloqueio
+            // pequeno staggera, e bloqueio que falha por stagger nao reduz nada.
+            BlockPowerBase = config.Bind(SecCombat, "BlockPowerBase", 2f,
+                new ConfigDescription(
+                    "Block power guaranteed while ki is on, before the share that comes from power. " +
+                    "The 2 is the vanilla unarmed value, kept as a floor so turning ki on at power " +
+                    "level zero never makes blocking WORSE than vanilla. " +
+                    "Same role ArmorBase plays for armor, with one difference: unlike armor, this " +
+                    "SURVIVES an empty ki bar (ArmorFractionWithoutKi only scales the power-derived " +
+                    "share). Zero armor is a legal value; zero block power is a division by zero " +
+                    "inside Humanoid.BlockAttack that turns your stamina into NaN permanently. " +
+                    "Leave this above zero.",
+                    new AcceptableValueRange<float>(0f, 200f), AdminOnly(58)));
+
+            // Ancorado na tabela do `saiya_block shields`, com o poder bruto indo de ~61 (skill 10)
+            // a ~327 (skill 100):
+            //   raw  61 -> 15.5   abaixo do ShieldWood (18.5), o pior escudo do jogo
+            //   raw 150 -> 35     entre ShieldBronzeBuckler (28.7) e ShieldIronBuckler (41)
+            //   raw 327 -> 74     ShieldSerpentscale (73.8), longe do ShieldFlametalTower (155.8)
+            // Deliberadamente ABAIXO da escada de escudos: o punho ja ganha em nao quebrar, nao
+            // ocupar a mao e escalar sozinho.
+            BlockPowerFromPower = config.Bind(SecCombat, "BlockPowerFromPower", 0.22f,
+                new ConfigDescription(
+                    "Fraction of the power level converted into block power. While ki is on this " +
+                    "REPLACES the blocker item's value — holding a shield changes nothing, exactly " +
+                    "like ArmorFromPower replaces equipment armor. Turning ki off gives the shield " +
+                    "back immediately. " +
+                    "Calibrated to sit BELOW the vanilla shield ladder: at power skill 10 it lands " +
+                    "under the wood shield, at 100 around the serpentscale, never near flametal. " +
+                    "Run 'saiya_block shields' for the table and 'saiya_block <damage>' to see " +
+                    "what a given hit does. " +
+                    "(Starting value, 2026-08-01. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 10f), AdminOnly(56)));
+
+            // Metade do DamageTakenKiCost, e nao o mesmo valor, porque um golpe bloqueado paga as
+            // DUAS contas: o bloqueio barra primeiro, a armadura barra o resto, e cada uma cobra a
+            // sua. Na mesma taxa o preco de apanhar dobraria so por o jogador estar segurando o
+            // botao — que e o oposto do que esta mecanica quer ensinar.
+            BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 0.5f,
+                new ConfigDescription(
+                    "Ki consumed per point of damage the ki BLOCK stopped, measured (not estimated) " +
+                    "from the hit before and after Humanoid.BlockAttack. Same rule as the armor: if " +
+                    "it stopped damage, it costs ki. A failed block stops nothing and costs nothing. " +
+                    "Unlike the punch, an empty bar does not cancel anything — the block already " +
+                    "happened when the charge lands, so it drains what is there, like the armor does. " +
+                    "This is the most expensive thing in the mod by design: blocking stops far more " +
+                    "damage than armor absorbs, so it should be a burst, not a stance. Lower it if " +
+                    "holding block for two hits empties the bar. Set to zero to make blocking free. " +
+                    "(Starting value, 2026-08-01. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
 
             // --- HUD ---
             ShowKiBar = config.Bind(SecHud, "ShowKiBar", true,
