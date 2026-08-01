@@ -116,7 +116,7 @@ namespace Saiyaheim.Ki
             if (prefab == null)
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"Prefab '{prefabName}' does not exist. Run saiya_dumpprefabs to see the valid names.");
+                    $"Prefab '{prefabName}' does not exist. Check the name against the list in the docs.");
                 return null;
             }
 

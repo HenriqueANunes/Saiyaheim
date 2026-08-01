@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using Jotunn.Entities;
 using Saiyaheim.Flight;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
@@ -20,8 +18,11 @@ namespace Saiyaheim.Debugging
     /// saiya_fly skill 50     define o nível da skill de voo (testa o topo da curva sem grind)
     /// saiya_fly xp 10        joga XP na skill de voo
     /// </code>
+    ///
+    /// Como no <see cref="PowerCommand"/>: ler é livre, <c>skill</c> e <c>xp</c> pedem
+    /// <c>devcommands</c>. Ver <see cref="SaiyaheimCommand"/>.
     /// </summary>
-    internal class FlightCommand : ConsoleCommand
+    internal class FlightCommand : SaiyaheimCommand
     {
         public override string Name => "saiya_fly";
 
@@ -30,7 +31,7 @@ namespace Saiyaheim.Debugging
 
         public override List<string> CommandOptionList() => new List<string> { "skill", "xp" };
 
-        public override void Run(string[] args)
+        protected override void Execute(string[] args)
         {
             Player player = Player.m_localPlayer;
             if (player == null)
@@ -45,7 +46,7 @@ namespace Saiyaheim.Debugging
                 return;
             }
 
-            string action = args != null && args.Length > 0 ? args[0].ToLowerInvariant() : null;
+            string action = args.Length > 0 ? args[0].ToLowerInvariant() : null;
 
             switch (action)
             {
@@ -53,6 +54,11 @@ namespace Saiyaheim.Debugging
                     break;
 
                 case "skill":
+                    if (!RequireCheats("skill"))
+                    {
+                        return;
+                    }
+
                     if (!TryParseAmount(args, out float level))
                     {
                         Print("Usage: saiya_fly skill <level 0-100>");
@@ -67,6 +73,11 @@ namespace Saiyaheim.Debugging
                     break;
 
                 case "xp":
+                    if (!RequireCheats("xp"))
+                    {
+                        return;
+                    }
+
                     if (!TryParseAmount(args, out float xp))
                     {
                         Print("Usage: saiya_fly xp <amount>");
@@ -133,22 +144,6 @@ namespace Saiyaheim.Debugging
             }
 
             return false;
-        }
-
-        private static bool TryParseAmount(string[] args, out float amount)
-        {
-            amount = 0f;
-            return args.Length > 1 &&
-                   float.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out amount);
-        }
-
-        private static void Print(string message)
-        {
-            SaiyaheimPlugin.Log.LogInfo(message);
-            if (Console.instance != null)
-            {
-                Console.instance.Print($"[Saiyaheim] {message}");
-            }
         }
     }
 }
