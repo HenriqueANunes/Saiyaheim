@@ -105,6 +105,15 @@ namespace Saiyaheim.Debugging
                   $"(raw {PowerLevel.GetRaw(player):0.#})");
             Print($"Speed: {slow:0.#} normal / {fast:0.#} running  (cap {SaiyaheimConfig.FlightMaxSpeed.Value:0.#})");
             Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running");
+
+            // A economia do fim de jogo e invisivel no custo final — sem imprimir o fator nao da
+            // para saber se o KiPowerReduction esta fazendo alguma coisa ou se o termo ainda dorme.
+            float costFactor = FlightStats.GetPowerCostFactor(player);
+            if (costFactor < 1f)
+            {
+                Print($"  late-game discount: x{costFactor:0.###} " +
+                      $"({(1f - costFactor) * 100f:0}% cheaper, from +{PowerLevel.GetLateGameBonus(player):0.#} power)");
+            }
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#} " +
                   $"— {SecondsOfFlight(slowCost):0} s of normal flight left");
         }

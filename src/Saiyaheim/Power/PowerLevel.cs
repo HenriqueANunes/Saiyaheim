@@ -23,12 +23,30 @@ namespace Saiyaheim.Power
     ///
     /// Sobra o HP, e ele fica de propósito: comida é o único eixo de progressão do jogo base que
     /// continua valendo para quem usa ki.
+    ///
+    /// <b>⚠️ São dois números de poder, e a diferença importa.</b> O
+    /// <see cref="GetLateGameBonus"/> é um termo que só acorda perto do nível 100, e ele
+    /// <b>não</b> vale para todo consumidor:
+    ///
+    /// <list type="table">
+    /// <item><term><see cref="GetCombatRaw"/> (com o termo)</term><description>dano do soco,
+    /// armadura, block power e o número exibido</description></item>
+    /// <item><term><see cref="GetRaw"/> (linear, sem o termo)</term><description>velocidade de
+    /// voo, teto de ki, regeneração e carga de ki</description></item>
+    /// </list>
+    ///
+    /// A separação é decisão de design de 2026-08-01, não detalhe de implementação. Um poder que
+    /// acelera no fim serve para o jogador <b>bater e aguentar</b> mais; deixá-lo também inflar a
+    /// barra de ki e a velocidade quebraria coisas já calibradas — a velocidade encosta no teto de
+    /// engine (<c>FlightMaxSpeed</c>) e o teto de ki cresceria junto com a regeneração, mantendo o
+    /// segundos-para-encher igual mas inchando o número na tela sem significado. O que o fim de
+    /// jogo compra no voo é <b>eficiência</b>, via <c>FlightKiPowerReduction</c>, não velocidade.
     /// </summary>
     internal static class PowerLevel
     {
         /// <summary>
-        /// Power level bruto do jogador. É este número — não o comprimido — que alimenta dano e
-        /// armadura: a compressão é só de exibição.
+        /// Power level bruto <b>linear</b>: sem o termo de fim de jogo. É a fórmula original do mod,
+        /// intocada, e continua sendo a que alimenta voo e ki.
         /// </summary>
         internal static float GetRaw(Player player)
         {
@@ -38,6 +56,60 @@ namespace Saiyaheim.Power
             }
 
             return KiManager.IsEnabled ? GetKiRaw(player) : GetVanillaRaw(player);
+        }
+
+        /// <summary>
+        /// Power level de <b>combate</b>: o linear mais o termo de fim de jogo. Alimenta dano do
+        /// soco, armadura, block power e o número exibido. Ver a nota na doc da classe.
+        /// </summary>
+        internal static float GetCombatRaw(Player player)
+        {
+            if (player == null)
+            {
+                return 0f;
+            }
+
+            return KiManager.IsEnabled ? GetKiCombatRaw(player) : GetVanillaRaw(player);
+        }
+
+        /// <summary>
+        /// O termo de fim de jogo, sozinho.
+        ///
+        /// <b>Por que somar um termo em vez de pôr um expoente no que já existe.</b> Um expoente
+        /// sobre a parcela da skill apenas <b>redistribui</b> um total fixo: para render mais no
+        /// fim, ele tira do meio, e o mid-game fica mais fraco do que já é. Somando, o
+        /// <c>k4 × nível</c> de hoje continua exatamente como está — early e mid game intocados —
+        /// e o termo novo só pesa onde o grind aperta.
+        ///
+        /// <b>O problema que ele resolve.</b> Subir do 99 para o 100 custa mil vezes o que custa
+        /// subir do 0 para o 1 (o <c>GetNextLevelRequirement</c> do Valheim é
+        /// <c>(nível+1)^1.5</c>), mas o poder subia sempre <c>k4</c> por nível. O nível caro rendia
+        /// igual ao barato.
+        ///
+        /// Normalizado no nível 100: o termo entrega exatamente <c>k5 × 100</c> no topo,
+        /// independentemente do expoente. O expoente decide só <b>quão tarde</b> ele acorda —
+        /// com <c>p = 5</c>, no nível 50 ele vale 3% do que vale no 100.
+        ///
+        /// Com <c>k5 = 0</c> a fórmula inteira volta a ser a de antes, o que torna a mudança
+        /// reversível por config, sem recompilar.
+        /// </summary>
+        internal static float GetLateGameBonus(Player player)
+        {
+            if (player == null || !KiManager.IsEnabled)
+            {
+                return 0f;
+            }
+
+            float k5 = SaiyaheimConfig.PowerK5LateGame.Value;
+            if (k5 <= 0f)
+            {
+                return 0f;
+            }
+
+            float normalized = PowerSkill.GetLevel(player) / PowerSkill.MaxLevel;
+
+            return k5 * PowerSkill.MaxLevel
+                   * Mathf.Pow(normalized, SaiyaheimConfig.PowerLateGameExponent.Value);
         }
 
         /// <summary>
@@ -51,6 +123,18 @@ namespace Saiyaheim.Power
         {
             return SaiyaheimConfig.PowerK1Health.Value * GetHealthAboveBase(player)
                    + SaiyaheimConfig.PowerK4PowerSkill.Value * PowerSkill.GetLevel(player);
+        }
+
+        /// <summary>
+        /// Fórmula de combate do ki ligado. Existe pelo mesmo motivo do <see cref="GetKiRaw"/>:
+        /// armadura e block power precisam de um caminho que <b>nunca</b> possa cair no
+        /// <c>GetVanillaRaw</c> e daí no <c>GetBodyArmor()</c>, fechando a recursão. Chamar o
+        /// <see cref="GetCombatRaw"/> a partir deles seria depender de o toggle não virar no meio
+        /// do frame — e depender disso é o erro que esta separação torna impossível de cometer.
+        /// </summary>
+        private static float GetKiCombatRaw(Player player)
+        {
+            return GetKiRaw(player) + GetLateGameBonus(player);
         }
 
         /// <summary>Fórmula do ki desligado: a original do projeto, com arma e armadura do jogo.</summary>
@@ -84,7 +168,7 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            return GetKiRaw(player) * SaiyaheimConfig.PunchDamageFromPower.Value;
+            return GetKiCombatRaw(player) * SaiyaheimConfig.PunchDamageFromPower.Value;
         }
 
         /// <summary>
@@ -110,11 +194,11 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            // GetKiRaw, não GetRaw: ver o comentário de recursão em GetKiRaw. Este método só é
-            // chamado com o ki ligado, então o ramo é o mesmo — mas depender disso seria depender
-            // de um invariante que uma troca de toggle no meio do frame quebra.
+            // GetKiCombatRaw, não GetCombatRaw: ver o comentário de recursão em GetKiRaw. Este
+            // método só é chamado com o ki ligado, então o ramo é o mesmo — mas depender disso
+            // seria depender de um invariante que uma troca de toggle no meio do frame quebra.
             float armor = SaiyaheimConfig.ArmorBase.Value
-                          + GetKiRaw(player) * SaiyaheimConfig.ArmorFromPower.Value;
+                          + GetKiCombatRaw(player) * SaiyaheimConfig.ArmorFromPower.Value;
 
             if (KiManager.Current <= 0f)
             {
@@ -166,7 +250,7 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            float fromPower = GetKiRaw(player) * SaiyaheimConfig.BlockPowerFromPower.Value;
+            float fromPower = GetKiCombatRaw(player) * SaiyaheimConfig.BlockPowerFromPower.Value;
 
             // Mesmo degrau da armadura, e de propósito o mesmo config — mas só sobre a parcela que
             // vem do poder. A base sobrevive, e é essa a diferença em relação ao GetArmor: armadura
@@ -183,12 +267,16 @@ namespace Saiyaheim.Power
         /// <summary>
         /// Número para exibir. Comprimido para não virar um valor gigante e vazio cedo demais.
         ///
+        /// Lê o poder de <b>combate</b>: é o número que o jogador associa a "ficar mais forte", e
+        /// esconder dele justamente a parcela que dispara no fim do jogo tiraria da tela o momento
+        /// que o termo novo existe para criar.
+        ///
         /// ⚠️ Só exibição. Se a compressão entrasse no cálculo, dobrar o poder deixaria de dobrar
         /// o dano e o balanceamento viraria outra coisa.
         /// </summary>
         internal static float GetDisplayValue(Player player)
         {
-            float raw = GetRaw(player);
+            float raw = GetCombatRaw(player);
             if (raw <= 0f)
             {
                 return 0f;

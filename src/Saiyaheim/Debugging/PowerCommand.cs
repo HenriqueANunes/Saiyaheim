@@ -95,7 +95,17 @@ namespace Saiyaheim.Debugging
 
             Print($"Ki: {(kiOn ? "on" : "off")} — {(kiOn ? "ki formula (HP + skill)" : "vanilla formula (HP + weapon + armor)")}");
             Print($"Battle Power: level {PowerSkill.GetLevel(player):0.#}");
-            Print($"Raw power level: {PowerLevel.GetRaw(player):0.#}  (displayed: {PowerLevel.GetDisplayValue(player):0})");
+
+            // Os dois numeros aparecem separados de proposito: e a unica forma de ver, no jogo, se
+            // o termo de fim de jogo ja acordou — e a diferenca entre eles explica por que o soco
+            // cresce sem o voo crescer junto.
+            float linear = PowerLevel.GetRaw(player);
+            float combat = PowerLevel.GetCombatRaw(player);
+            float late = PowerLevel.GetLateGameBonus(player);
+
+            Print($"Power level (combat): {combat:0.#}  (displayed: {PowerLevel.GetDisplayValue(player):0})");
+            Print($"  linear part: {linear:0.#}  — feeds flight speed, ki cap and ki regen");
+            Print($"  late-game term: +{late:0.#}  — feeds punch, armor and block only");
             Print($"Damage added to punch: {(kiOn ? PowerLevel.GetPunchDamageBonus(player).ToString("0.#") : "0 (ki off)")}");
             Print($"Armor: {player.GetBodyArmor():0.#} {(kiOn ? "(from power, equipment ignored)" : "(from equipment)")}");
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#}");

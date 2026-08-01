@@ -42,6 +42,12 @@ namespace Saiyaheim.Flight
         ///
         /// Efeito colateral desejado: comer melhor faz voar mais rápido, porque HP entra na
         /// fórmula do poder. É a leitura correta de "ficar mais forte" no gênero.
+        ///
+        /// ⚠️ <c>GetRaw</c> e não <c>GetCombatRaw</c>: a velocidade fica de fora do termo de fim de
+        /// jogo <b>de propósito</b>. Ela já encosta no <c>FlightMaxSpeed</c>, que é limite de
+        /// streaming de zonas e não balanceamento — acelerar aqui não daria velocidade nenhuma, só
+        /// tempo gasto contra um teto. O que o fim de jogo compra no voo é
+        /// <see cref="GetKiCostPerSecond"/> mais barato.
         /// </summary>
         internal static float GetSpeedFromPower(Player player)
         {
@@ -81,6 +87,14 @@ namespace Saiyaheim.Flight
         /// <summary>
         /// Ki por segundo. O <paramref name="fast"/> vem do mesmo <c>m_run</c> que o
         /// <c>UpdateFlying</c> vanilla lê para escolher a velocidade — os dois andam juntos.
+        ///
+        /// <b>Duas reduções, e elas têm formas diferentes de propósito.</b> A da skill é linear
+        /// (<c>1 - r × fator</c>) porque a entrada é limitada: o fator de skill vive em 0–1 e o
+        /// config em 0–0,95, então o resultado nunca chega a zero sozinho. A do poder <b>não</b>
+        /// pode usar essa forma: o termo de fim de jogo não tem teto, e um <c>1 - r × poder</c>
+        /// atravessaria o zero e viraria negativo — voar <b>dando</b> ki. Daí o hiperbólico
+        /// <c>1 / (1 + r × bônus)</c>, que decai para sempre sem nunca chegar a zero, do mesmo
+        /// jeito que o <c>ApplyArmor</c> do próprio Valheim faz com a armadura.
         /// </summary>
         internal static float GetKiCostPerSecond(Player player, bool fast)
         {
@@ -92,8 +106,28 @@ namespace Saiyaheim.Flight
             }
 
             float reduction = SaiyaheimConfig.FlightKiSkillReduction.Value * FlightSkill.GetLevelFactor(player);
+            cost *= 1f - reduction;
 
-            return Mathf.Max(0f, cost * (1f - reduction));
+            return Mathf.Max(0f, cost * GetPowerCostFactor(player));
+        }
+
+        /// <summary>
+        /// Fator hiperbólico com que o termo de fim de jogo barateia o voo. Devolve 1 (sem efeito)
+        /// enquanto o config estiver em zero, que é o default.
+        ///
+        /// Lê o <c>GetLateGameBonus</c> e <b>não</b> o poder inteiro: quem já voa barato no começo
+        /// do jogo desmontaria o <c>FlightKiPerSecond</c> alto, que existe justamente para o voo
+        /// não virar o meio de transporte padrão. A recompensa é do fim de jogo, e só dele.
+        /// </summary>
+        internal static float GetPowerCostFactor(Player player)
+        {
+            float rate = SaiyaheimConfig.FlightKiPowerReduction.Value;
+            if (rate <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f / (1f + rate * Power.PowerLevel.GetLateGameBonus(player));
         }
     }
 }

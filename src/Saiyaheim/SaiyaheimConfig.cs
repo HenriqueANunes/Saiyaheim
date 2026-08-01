@@ -163,6 +163,12 @@ namespace Saiyaheim
         /// <summary>Fração do custo de ki removida no nível 100 da skill de voo.</summary>
         public static ConfigEntry<float> FlightKiSkillReduction { get; private set; }
 
+        /// <summary>
+        /// Barateamento hiperbólico do voo vindo do termo de fim de jogo. É a única coisa do voo
+        /// que esse termo toca — velocidade fica de fora.
+        /// </summary>
+        public static ConfigEntry<float> FlightKiPowerReduction { get; private set; }
+
         /// <summary>XP da skill de voo por segundo voando.</summary>
         public static ConfigEntry<float> FlightXpPerSecond { get; private set; }
 
@@ -273,6 +279,15 @@ namespace Saiyaheim
 
         /// <summary>Peso do nível de Battle Power. Só entra na fórmula do ki ligado.</summary>
         public static ConfigEntry<float> PowerK4PowerSkill { get; private set; }
+
+        /// <summary>
+        /// Poder que o termo de fim de jogo entrega no nível 100. 0 desliga o termo e devolve a
+        /// fórmula linear original. Só afeta combate — ver <see cref="Power.PowerLevel"/>.
+        /// </summary>
+        public static ConfigEntry<float> PowerK5LateGame { get; private set; }
+
+        /// <summary>Quão tarde o termo de fim de jogo acorda. Maior = mais concentrado no topo.</summary>
+        public static ConfigEntry<float> PowerLateGameExponent { get; private set; }
 
         // ---------- 6.1 - Battle Power ----------
 
@@ -474,11 +489,21 @@ namespace Saiyaheim
                     "(Playtest value, 2026-07-31. Still being tuned.)",
                     new AcceptableValueRange<float>(0f, 200f), AdminOnly(80)));
 
-            ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.15f,
+            // Baixado de 0.15 para 0.06 no playtest de 2026-08-01, junto com a entrada do termo de
+            // fim de jogo (K5_LateGameBonus). O motivo e aritmetico: o poder de combate no nivel
+            // 100 dobrou, e a armadura le esse numero. Em 0.15 o nivel 100 dava 91 de armadura, e
+            // pelo ApplyArmor do jogo (dano²/4*armadura) um golpe de 90 virava 22 — tanque demais.
+            // Em 0.06 o mesmo golpe faz 51, e a curva de armadura fica parecida com a de antes do
+            // termo novo, que era o alvo: o fim de jogo compra dano e alcance de voo, nao imunidade.
+            ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.06f,
                 new ConfigDescription(
                     "Fraction of the power level converted into armor. While ki is on this armor " +
                     "REPLACES equipment armor — worn pieces stop counting. Turning ki off gives " +
-                    "vanilla armor back immediately.",
+                    "vanilla armor back immediately. " +
+                    "Reads the COMBAT power level, so it grows with K5_LateGameBonus — that is why " +
+                    "this is much lower than it looks like it should be. " +
+                    "(Playtest value, 2026-08-01. Lowered from 0.15 when the late-game term " +
+                    "doubled power at level 100 and armor came along for the ride.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
 
             // Fracao e nao valor fixo de propósito: um piso fixo envelhece mal, como o ArmorBase
@@ -698,6 +723,28 @@ namespace Saiyaheim
                     "0.5 = at max level flying costs half. Together with SpeedSkillBonus this is " +
                     "the whole progression of the skill: farther per point of ki.",
                     new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(65)));
+
+            // Hiperbolico e nao linear: a entrada nao tem teto (o termo de fim de jogo cresce sem
+            // limite), e um (1 - r * bonus) atravessaria o zero e viraria custo negativo — voar
+            // dando ki. O 1/(1 + r*x) decai para sempre sem nunca chegar a zero, mesma forma do
+            // ApplyArmor do proprio Valheim.
+            //
+            // O default derruba o custo pela METADE no nivel 100 com K5 = 3 (bonus 300 x 0.0033 = 1,
+            // logo fator 1/2). Multiplica com o KiSkillReduction, entao um jogador no topo das duas
+            // skills paga 15 x 0.5 x 0.5 = 3.75/s. Se o playtest disser que voo ficou barato demais
+            // no fim, este e o numero a baixar — nao o KiPerSecond, que calibra o comeco.
+            FlightKiPowerReduction = config.Bind(SecFlight, "KiPowerReduction", 0.0033f,
+                new ConfigDescription(
+                    "How much the late-game power term (Power Level.K5_LateGameBonus) cheapens " +
+                    "flight, hyperbolically: cost is multiplied by 1 / (1 + this * bonus). " +
+                    "This is the ONLY thing the late-game term changes about flying — speed is " +
+                    "deliberately left out of it, because speed already runs into MaxSpeed, which " +
+                    "is a zone-streaming limit rather than balance. What being strong buys in the " +
+                    "air is range, not velocity. " +
+                    "Reads the late-game term alone and not total power, so early flight stays as " +
+                    "expensive as KiPerSecond says — the reward belongs to the end of the game. " +
+                    "0 disables it. Check it with saiya_fly.",
+                    new AcceptableValueRange<float>(0f, 0.1f), AdminOnly(63)));
 
             FlightXpPerSecond = config.Bind(SecFlight, "XpPerSecond", 0.3f,
                 new ConfigDescription(
@@ -965,6 +1012,32 @@ namespace Saiyaheim
                     "It is the only axis of progression for a ki user — without it, power would be " +
                     "constant from the first boss to the last.",
                     new AcceptableValueRange<float>(0f, 1000f), AdminOnly(70)));
+
+            // Somado ao K4, nao multiplicado nele. Um expoente sobre a parcela da skill so
+            // redistribui um total fixo: para render mais no fim ele tira do meio, e o mid-game
+            // fica mais fraco do que ja e. Somando um termo separado, o K4 de hoje continua
+            // intocado e o novo so pesa onde o grind aperta.
+            PowerK5LateGame = config.Bind(SecPower, "K5_LateGameBonus", 3f,
+                new ConfigDescription(
+                    "Power delivered by the late-game term AT LEVEL 100, on top of K4. It exists " +
+                    "because levelling gets brutally more expensive but the reward did not: going " +
+                    "from 99 to 100 costs a THOUSAND times what 0 to 1 costs (Valheim's curve is " +
+                    "(level+1)^1.5), yet power rose a flat K4 every level. This term makes each " +
+                    "level worth more than the one before it. " +
+                    "AFFECTS COMBAT ONLY: punch damage, armor, block power and the displayed " +
+                    "number. Flight speed and the ki cap deliberately ignore it — see " +
+                    "Flight.KiPowerReduction for what late game buys in the air. " +
+                    "0 turns the term off and restores the original linear formula exactly.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(65)));
+
+            PowerLateGameExponent = config.Bind(SecPower, "LateGameExponent", 5f,
+                new ConfigDescription(
+                    "How LATE the K5 term wakes up. The term is normalised on level 100, so this " +
+                    "never changes what it delivers at the top — only how much of it arrives " +
+                    "early. At 5, level 50 has just 3% of the bonus and level 75 has 24%: almost " +
+                    "all of it lands in the last quarter, which is exactly the stretch that costs " +
+                    "half the total grind. Lower spreads it out, higher concentrates it further.",
+                    new AcceptableValueRange<float>(1f, 10f), AdminOnly(64)));
 
             PowerCompressionExponent = config.Bind(SecPower, "CompressionExponent", 0.5f,
                 new ConfigDescription(
