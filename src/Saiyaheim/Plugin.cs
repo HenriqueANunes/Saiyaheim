@@ -7,6 +7,7 @@ using Saiyaheim.Debugging;
 using Saiyaheim.Flight;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
+using Saiyaheim.Transformations;
 using UnityEngine;
 
 namespace Saiyaheim
@@ -67,6 +68,9 @@ namespace Saiyaheim
             PowerSkill.Register();
             FlightSkill.Register();
 
+            // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
+            TransformationRegistry.Register();
+
             // Quatro patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
             // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch), e o par
@@ -80,6 +84,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new PowerCommand());
             CommandManager.Instance.AddConsoleCommand(new FlightCommand());
             CommandManager.Instance.AddConsoleCommand(new BlockCommand());
+            CommandManager.Instance.AddConsoleCommand(new TransformCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -94,6 +99,7 @@ namespace Saiyaheim
             KiManager.Update(dt);
             KiBodyManager.Update(Player.m_localPlayer);
             FlightManager.Update(Player.m_localPlayer);
+            TransformationManager.Update(Player.m_localPlayer);
             KiHud.Update();
         }
 

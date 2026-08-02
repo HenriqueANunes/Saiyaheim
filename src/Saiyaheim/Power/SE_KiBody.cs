@@ -18,11 +18,16 @@ namespace Saiyaheim.Power
     ///
     /// <b>As duas no mesmo efeito de propósito.</b> <c>SEMan.ModifyAttack</c> percorre os status
     /// effects na ordem em que foram adicionados; se o poder somasse aqui e a transformação
-    /// multiplicasse noutro SE, o resultado dependeria dessa ordem. Quando a etapa 5 chegar, o
-    /// multiplicador da forma entra <b>neste</b> arquivo, depois da soma.
+    /// multiplicasse noutro SE, o resultado dependeria dessa ordem.
     ///
-    /// Herda de <c>SE_Stats</c> para que a etapa 5 possa usar os campos dele (velocidade,
-    /// regeneração, <c>m_modifyAttackSkill</c>) sem trocar a hierarquia.
+    /// <b>A transformação resolveu isso indo para outro lugar</b> (etapa 5, 2026-08-02): ela
+    /// multiplica o power level na fonte, dentro do <c>PowerLevel.GetKiCombatRaw</c>, e não o
+    /// golpe. Então o <c>GetPunchDamageBonus</c> lido abaixo <b>já vem multiplicado</b>, este
+    /// continua sendo o único efeito do mod que mexe no <c>HitData</c>, e a armadilha de ordem
+    /// nunca chega a existir. De quebra, armadura, block power e voo ganharam o multiplicador de
+    /// graça — coisas que um <c>ModifyAttack</c> jamais alcançaria.
+    ///
+    /// Herda de <c>SE_Stats</c> por conveniência de hierarquia; nenhum modificador dele é usado.
     /// </summary>
     internal class SE_KiBody : SE_Stats
     {
@@ -68,8 +73,8 @@ namespace Saiyaheim.Power
         {
             if (IsPunch(skill))
             {
-                // Contusão pura: é o soco base. Cada forma vai misturar uma fração de outro tipo
-                // de dano (raio, fogo) na etapa 5 — é onde o sabor por forma sai quase de graça.
+                // Contusão pura: é o soco base. O sabor por forma — misturar uma fração de raio ou
+                // fogo conforme a transformação ativa — continua em aberto e entraria aqui.
                 hitData.m_damage.m_blunt += ResolveBonusForThisFrame();
             }
 

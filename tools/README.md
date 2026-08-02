@@ -38,36 +38,64 @@ mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 | `linearPower()` | `PowerLevel.GetRaw()` |
 | `combatPower()` | `PowerLevel.GetCombatRaw()` |
 | `lateBonus()` | `PowerLevel.GetLateGameBonus()` |
+| `formMult()` | `TransformationRegistry.GetPowerMultiplier()` |
+| `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
 | `applyArmor()` | `HitData.ApplyArmor` do Valheim, copiada da decompilação |
 | `xpCost[]` | `Skills.Skill.GetNextLevelRequirement()` |
 
 A curva de XP e o `ApplyArmor` são do **jogo**, não do mod: só mudam se o Valheim atualizar.
 
-### Estendendo para as Transformações (etapa 5)
+### As Transformações (etapa 5) — feito em 2026-08-02
 
-O desenho já prevê isso. As transformações **multiplicam por cima** do power level, então o
-caminho é:
+O grupo **Transformação** tem `PowerMultiplier`, `KiDrainPerSecond`, a redução de dreno da maestria
+e o nível de maestria (com "acompanha o nível da linha", igual ao voo). O multiplicador entra em
+`model()` **depois** do `combatPower()`, que é onde o `PowerLevel.GetKiCombatRaw` do mod o aplica.
 
-1. Um slider novo para o multiplicador da forma e, se necessário, um para o nível de maestria.
-2. Multiplicar em `model()`, **depois** do `combatPower()` e antes dos consumidores — é a ordem
-   que o `SE_KiBody` usa, e a página tem de errar do mesmo jeito que o mod erra.
-3. Uma terceira série no gráfico (transformado), reusando o mesmo padrão das duas atuais.
+Duas coisas de desenho que valem para a próxima extensão:
 
-⚠️ **A paleta tem só duas cores validadas.** Uma terceira série precisa passar pelo validador
-antes de entrar — o script está em `tools/validate_palette.py`, portado do
-`skills/dataviz/scripts/validate_palette.js` porque esta máquina não tem Node:
+- **A terceira série só aparece quando diz alguma coisa.** O `FORM_BLIND` lista os stats que o
+  multiplicador não toca (teto de ki, custo e autonomia de voo, dreno, segundos em forma); neles a
+  linha transformada seria idêntica à atual, e duas linhas sobrepostas leem como bug. A legenda
+  some junto.
+- **Esconder item de legenda é `style.display`, não o atributo `hidden`.** O `.item` declara
+  display próprio, e regra de autor ganha do `[hidden] { display: none }` do navegador.
+
+Stat novo: **segundos em forma** (`teto de ki ÷ dreno`) — é o número que decide se a transformação
+é ferramenta ou modo de jogo, e nenhum dos dois multiplicadores da página o toca.
+
+Cartão novo no topo: **transformado no 100**, que mostra o dano recebido dentro da forma. Existe
+porque a armadura é o consumidor que menos aguenta multiplicador — foi ela que obrigou a baixar o
+`ArmorFromPower` quando o termo de fim de jogo entrou, e a forma multiplica a armadura junto com o
+resto.
+
+### Se precisar de uma quarta série
+
+⚠️ **Cor nova passa pelo validador antes de entrar.** O script está em `tools/validate_palette.py`,
+portado do `skills/dataviz/scripts/validate_palette.js` porque esta máquina não tem Node:
 
 ```bash
 # O .tool-versions do repo só declara dotnet, então o `python3` do asdf não resolve aqui.
 # Chamar o interpretador direto evita ter que mexer no ambiente de build por causa de um script.
 PY=~/.asdf/installs/python/3.12.13/bin/python3
 
-$PY tools/validate_palette.py "#0481b3,#ae6700,#NOVA" light "#E4E1D9"
-$PY tools/validate_palette.py "#06a0dd,#d37e01,#NOVA" dark  "#16130F"
+$PY tools/validate_palette.py "#0481b3,#ae6700,#8a5cd0,#NOVA" light "#E4E1D9"
+$PY tools/validate_palette.py "#06a0dd,#d37e01,#9b6ef3,#NOVA" dark  "#16130F"
 ```
 
-Ele checa faixa de lightness, chroma, separação para daltonismo e contraste contra o fundo. As
-duas cores atuais passam nos dois temas; não vale escolher a terceira no olho.
+Ele checa faixa de lightness, chroma, separação para daltonismo e contraste contra o fundo. As três
+cores atuais (`--ki`, `--today`, `--form`) passam nos dois temas; não vale escolher no olho.
+
+### Testar a página sem Node
+
+Não há runtime de JS nesta máquina, e a extensão do Chrome recusa `file://`. O caminho é servir a
+pasta e abrir por `http://`:
+
+```bash
+~/.asdf/installs/python/3.12.13/bin/python3 -m http.server 8917 --bind 127.0.0.1
+```
+
+Só para inspeção — o `http.server` manda `text/html` sem charset e o Chrome cai em windows-1252,
+então os acentos aparecem quebrados. Abrindo direto do disco (`xdg-open`) ou como Artifact, não.
 
 ### Convenções da página
 

@@ -22,8 +22,15 @@ namespace Saiyaheim
         private const string SecGeral = "1 - General";
         private const string SecKi = "2 - Ki";
         private const string SecCombat = "2.1 - Combat";
-        private const string SecTransform = "3 - Transformations";
-        private const string SecMastery = "4 - Mastery";
+
+        /// <summary>
+        /// Uma seção por forma. Não existe seção "3 - Transformations" genérica de propósito:
+        /// <b>não há número compartilhado entre formas</b>. Multiplicador, dreno e maestria são
+        /// da forma, e uma escada de cinco formas ([[Progressão por Bosses]]) precisa que cada
+        /// degrau seja calibrável sozinho. Adicionar a segunda forma é copiar este bloco.
+        /// </summary>
+        private const string SecSsj = "3.1 - SSJ";
+
         private const string SecFlight = "5 - Flight";
         private const string SecFlightPose = "5.1 - Flight Pose";
         private const string SecPower = "6 - Power Level";
@@ -45,6 +52,18 @@ namespace Saiyaheim
 
         /// <summary>Tecla que decola e pousa. Client-side, como as outras.</summary>
         public static ConfigEntry<KeyboardShortcut> ToggleFlightKey { get; private set; }
+
+        /// <summary>Tecla que vai direto à forma mais alta já destravada.</summary>
+        public static ConfigEntry<KeyboardShortcut> TransformKey { get; private set; }
+
+        /// <summary>Tecla que volta direto à forma base, de qualquer degrau.</summary>
+        public static ConfigEntry<KeyboardShortcut> PowerDownKey { get; private set; }
+
+        /// <summary>Tecla que sobe um degrau na escada de formas.</summary>
+        public static ConfigEntry<KeyboardShortcut> TransformStepUpKey { get; private set; }
+
+        /// <summary>Tecla que desce um degrau. Do primeiro, volta à base.</summary>
+        public static ConfigEntry<KeyboardShortcut> TransformStepDownKey { get; private set; }
 
         /// <summary>Bater duas vezes no botão de pulo decola.</summary>
         public static ConfigEntry<bool> FlightTakeOffOnDoubleJump { get; private set; }
@@ -117,24 +136,38 @@ namespace Saiyaheim
         public static ConfigEntry<string> KiBarColor { get; private set; }
         public static ConfigEntry<bool> KiBarAlwaysVisible { get; private set; }
 
-        // ---------- 3 - Transformations ----------
-
-        public static ConfigEntry<float> TransformActivationCost { get; private set; }
-
-        /// <summary>Dreno base, antes da redução por maestria.</summary>
-        public static ConfigEntry<float> TransformDrainPerSecond { get; private set; }
-
-        // ---------- 4 - Mastery ----------
+        // ---------- 3.x - Transformations ----------
 
         /// <summary>
-        /// Fração do dreno removida no nível 100 da skill da forma.
-        /// dreno = base * (1 - nivel/100 * este_valor).
-        /// 0.8 = no nível 100 o dreno cai para 20% do base.
+        /// Os números de <b>uma</b> forma. Uma instância por transformação, cada uma na sua seção
+        /// do <c>.cfg</c> — ver <see cref="BindTransformation"/>.
+        ///
+        /// A maestria mora aqui dentro e não numa seção própria porque ela é <b>por forma</b>: não
+        /// existe "a skill de maestria", existe a skill de Super Saiyan. Ver <c>Transformation</c>.
         /// </summary>
-        public static ConfigEntry<float> MasteryDrainReductionAtMax { get; private set; }
+        public class TransformationConfig
+        {
+            /// <summary>Multiplicador do power level de combate enquanto a forma está ativa.</summary>
+            public ConfigEntry<float> PowerMultiplier { get; internal set; }
 
-        /// <summary>XP de maestria por tick enquanto transformado.</summary>
-        public static ConfigEntry<float> MasteryXpPerTick { get; private set; }
+            /// <summary>Dreno base por segundo, antes da redução por maestria.</summary>
+            public ConfigEntry<float> KiDrainPerSecond { get; internal set; }
+
+            /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
+            public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
+
+            /// <summary>XP da skill desta forma por segundo transformado.</summary>
+            public ConfigEntry<float> MasteryXpPerSecond { get; internal set; }
+
+            /// <summary>Nível mínimo de Battle Power para entrar na forma. 0 desliga a trava.</summary>
+            public ConfigEntry<float> MinBattlePower { get; internal set; }
+        }
+
+        /// <summary>
+        /// O primeiro degrau da escada. O segundo (SSJ2) é outra propriedade como esta, com seção
+        /// própria — ver <see cref="BindTransformation"/>.
+        /// </summary>
+        public static TransformationConfig Ssj { get; private set; }
 
         // ---------- 5 - Flight ----------
 
@@ -350,6 +383,45 @@ namespace Saiyaheim
                     "Key that takes off and lands. Once airborne, movement is the usual one: " +
                     "the game's Jump button climbs, Crouch descends and Run flies fast.",
                     null, ClientSide(85)));
+
+            // Quatro teclas, em dois pares: T/G resolvem o caso comum de um toque so — "poder
+            // maximo agora" e "sai da forma agora" — e Shift+T/Shift+G percorrem a escada degrau a
+            // degrau, para quem quer uma forma intermediaria. Sem o par direto, entrar em SSJ3 no
+            // meio de uma luta custaria tres toques; sem o par de degraus, formas intermediarias
+            // seriam inalcancaveis. T e G sao vizinhas verticais no teclado e ambas livres no
+            // Valheim.
+            //
+            // Nao ha custo de ativacao — o que a forma cobra e o dreno continuo — entao subir e
+            // descer e de graca em qualquer combinacao.
+            TransformKey = config.Bind(SecGeral, "TransformKey",
+                new KeyboardShortcut(KeyCode.T),
+                new ConfigDescription(
+                    "Key that transforms straight into the HIGHEST form you have unlocked, " +
+                    "skipping everything below it. Does nothing when you are already there.",
+                    null, ClientSide(84)));
+
+            TransformStepUpKey = config.Bind(SecGeral, "TransformStepUpKey",
+                new KeyboardShortcut(KeyCode.T, KeyCode.LeftShift),
+                new ConfigDescription(
+                    "Key that goes UP one step on the ladder: base form to SSJ, SSJ to SSJ2, and " +
+                    "so on. Use it to stop at an intermediate form instead of jumping to the top. " +
+                    "Does nothing at the top of what you have unlocked.",
+                    null, ClientSide(83)));
+
+            PowerDownKey = config.Bind(SecGeral, "PowerDownKey",
+                new KeyboardShortcut(KeyCode.G),
+                new ConfigDescription(
+                    "Key that drops you straight back to base form, from whatever step you are " +
+                    "on — no walking back down the ladder. Running out of ki does the same thing " +
+                    "on its own: at zero there is nothing to hold any form with.",
+                    null, ClientSide(82)));
+
+            TransformStepDownKey = config.Bind(SecGeral, "TransformStepDownKey",
+                new KeyboardShortcut(KeyCode.G, KeyCode.LeftShift),
+                new ConfigDescription(
+                    "Key that goes DOWN one step, to trade power for a smaller ki drain without " +
+                    "leaving the ladder entirely. From the first form it returns to base.",
+                    null, ClientSide(81)));
 
             FlightTakeOffOnDoubleJump = config.Bind(SecGeral, "TakeOffOnDoubleJump", true,
                 new ConfigDescription(
@@ -622,29 +694,11 @@ namespace Saiyaheim
                     null, ClientSide(60)));
 
             // --- Transformacoes ---
-            TransformActivationCost = config.Bind(SecTransform, "ActivationCost", 20f,
-                new ConfigDescription("One-off ki cost to activate a transformation.",
-                    new AcceptableValueRange<float>(0f, 1000f), AdminOnly(100)));
-
-            TransformDrainPerSecond = config.Bind(SecTransform, "DrainPerSecond", 5f,
-                new ConfigDescription("Base ki drain per second, before the mastery reduction.",
-                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(90)));
-
-            // --- Maestria ---
-            MasteryDrainReductionAtMax = config.Bind(SecMastery, "DrainReductionAtMaxLevel", 0.8f,
-                new ConfigDescription(
-                    "Fraction of the drain removed at level 100. Formula: " +
-                    "drain = base * (1 - level/100 * this_value). " +
-                    "0.8 = at level 100 the drain falls to 20% of the base. " +
-                    "Careful: too high a value makes the form practically permanent and ki stops " +
-                    "being a source of tension.",
-                    new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(100)));
-
-            MasteryXpPerTick = config.Bind(SecMastery, "XpPerTick", 0.25f,
-                new ConfigDescription(
-                    "XP for the form's skill per ki tick while transformed. " +
-                    "The diminishing gain curve up to level 100 is Valheim's own.",
-                    new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
+            // Uma chamada por forma. A escada de bosses (etapa 7) e' repetir esta linha com
+            // outra secao e outros defaults.
+            Ssj = BindTransformation(config, SecSsj,
+                powerMultiplier: 2f,
+                kiDrainPerSecond: 5f);
 
             // --- Voo ---
             FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 15f,
@@ -1131,6 +1185,80 @@ namespace Saiyaheim
                     null, ClientSide(100)));
 
             SaiyaheimPlugin.Log.LogInfo("Config loaded.");
+        }
+
+        /// <summary>
+        /// Liga as chaves de uma forma numa seção própria do <c>.cfg</c>.
+        ///
+        /// Existe para que adicionar uma transformação nova seja <b>uma chamada</b>, e não um bloco
+        /// copiado com cinco descrições para manter em sincronia. O texto que o jogador lê é o
+        /// mesmo para todas as formas de propósito: o que muda entre elas são os números.
+        /// </summary>
+        private static TransformationConfig BindTransformation(
+            ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond)
+        {
+            return new TransformationConfig
+            {
+                // Multiplica o poder de COMBATE (soco, armadura, block power, numero exibido) e a
+                // velocidade de voo. Teto de ki, regeneracao e carga ficam de fora de proposito:
+                // se a barra crescesse ao transformar ela daria um pulo na tela, e a regeneracao
+                // escalada compensaria parte do proprio dreno — a forma se pagando sozinha.
+                PowerMultiplier = config.Bind(section, "PowerMultiplier", powerMultiplier,
+                    new ConfigDescription(
+                        "Multiplies the COMBAT power level while this form is active — punch " +
+                        "damage, armor, block power and the number on screen all scale from it, " +
+                        "so this one value is the whole strength of the form. Flight speed is " +
+                        "multiplied too. The ki cap, ki regeneration and charging deliberately " +
+                        "are NOT: a bar that grows on transforming would jump on screen, and " +
+                        "scaled regeneration would pay for part of the form's own drain. " +
+                        "Note the ki costs of punching and blocking scale WITH it automatically, " +
+                        "since both are charged per point of damage dealt or absorbed. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(1f, 50f), AdminOnly(100))),
+
+                KiDrainPerSecond = config.Bind(section, "KiDrainPerSecond", kiDrainPerSecond,
+                    new ConfigDescription(
+                        "Base ki drained per second while transformed, before the mastery " +
+                        "reduction. This is the ONLY cost of the form: there is no activation " +
+                        "cost. Hitting zero ki powers you down. " +
+                        "Flat per second and not a fraction of the bar, because the bar already " +
+                        "grows with Battle Power (MaxKiPerPowerLevel) — so the form lasts longer " +
+                        "as the character grows even before mastery, which is the intended " +
+                        "reading of getting stronger. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(90))),
+
+                MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", 0.8f,
+                    new ConfigDescription(
+                        "Fraction of the drain removed at level 100 of THIS form's skill. " +
+                        "drain = KiDrainPerSecond * (1 - level/100 * this). " +
+                        "0.8 = at level 100 the form costs a fifth of what it costs at level 0, " +
+                        "which is the whole progression of mastery: at first you barely hold the " +
+                        "form, later you own it. " +
+                        "Careful: too high and the form becomes permanent and ki stops being a " +
+                        "source of tension.",
+                        new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(80))),
+
+                // Referencia para calibrar: a curva do Valheim ((nivel+1)^1.5 * 0.5 + 0.5 por
+                // nivel) cobra ~20.000 de XP para ir do 0 ao 100, e ~1.600 para chegar ao 30.
+                // A 1/s, o nivel 30 sai com ~27 minutos DENTRO da forma — que nao e' o mesmo que
+                // 27 minutos de jogo, porque o dreno obriga a recarregar entre uma e outra.
+                MasteryXpPerSecond = config.Bind(section, "MasteryXpPerSecond", 1f,
+                    new ConfigDescription(
+                        "XP for this form's skill per second transformed. Holding the form is the " +
+                        "only way to train it, the same way flying is the only way to train Flight. " +
+                        "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
+                        "30 costs about 1600 XP and level 100 about 20000. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
+
+                MinBattlePower = config.Bind(section, "MinBattlePower", 0f,
+                    new ConfigDescription(
+                        "Minimum Battle Power level required to enter this form. 0 disables the " +
+                        "gate. A placeholder for the boss gating of step 7 — same role " +
+                        "Flight.MinBattlePower plays for flying.",
+                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(60)))
+            };
         }
 
         /// <summary>Entrada imposta pelo servidor no multiplayer (etapa 8).</summary>

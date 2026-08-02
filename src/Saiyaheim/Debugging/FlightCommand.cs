@@ -103,6 +103,15 @@ namespace Saiyaheim.Debugging
             Print($"Speed floor: {SaiyaheimConfig.FlightBaseSpeed.Value:0.#} " +
                   $"+ {FlightStats.GetSpeedFromPower(player):0.#} from power level " +
                   $"(raw {PowerLevel.GetRaw(player):0.#})");
+            // A forma multiplica a velocidade DEPOIS de tudo, entao sem esta linha o "Speed floor"
+            // acima nao explica o "Speed" abaixo enquanto o jogador esta transformado.
+            float formFactor = FlightStats.GetFormSpeedFactor(player);
+            if (formFactor > 1f)
+            {
+                Print($"Form speed multiplier: x{formFactor:0.##} " +
+                      $"({Transformations.TransformationRegistry.GetActiveName(player)})");
+            }
+
             Print($"Speed: {slow:0.#} normal / {fast:0.#} running  (cap {SaiyaheimConfig.FlightMaxSpeed.Value:0.#})");
             Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running");
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
+using Saiyaheim.Transformations;
 
 namespace Saiyaheim.Debugging
 {
@@ -106,6 +107,15 @@ namespace Saiyaheim.Debugging
             Print($"Power level (combat): {combat:0.#}  (displayed: {PowerLevel.GetDisplayValue(player):0})");
             Print($"  linear part: {linear:0.#}  — feeds flight speed, ki cap and ki regen");
             Print($"  late-game term: +{late:0.#}  — feeds punch, armor and block only");
+
+            // Sem esta linha as duas de cima passam a mentir enquanto o jogador esta transformado:
+            // elas nao somam o combat, porque a forma multiplica o total depois.
+            Transformation form = TransformationRegistry.GetActive(player);
+            if (form != null)
+            {
+                Print($"  {form.DisplayName}: x{form.GetPowerMultiplier():0.##} over the sum above " +
+                      "— flight speed included, ki cap and regen excluded");
+            }
             Print($"Damage added to punch: {(kiOn ? PowerLevel.GetPunchDamageBonus(player).ToString("0.#") : "0 (ki off)")}");
             Print($"Armor: {player.GetBodyArmor():0.#} {(kiOn ? "(from power, equipment ignored)" : "(from equipment)")}");
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#}");

@@ -17,6 +17,7 @@
     --ink-3: #766D5B;
     --ki: #0481b3;
     --today: #ae6700;
+    --form: #8a5cd0;
     --ki-wash: rgba(4, 129, 179, 0.12);
     --warn: #A33A24;
     --shadow: 0 1px 2px rgba(33, 28, 22, .08), 0 8px 24px rgba(33, 28, 22, .06);
@@ -31,7 +32,7 @@
       --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
       --line: #3A342B; --line-soft: #2F2A22;
       --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-      --ki: #06a0dd; --today: #d37e01;
+      --ki: #06a0dd; --today: #d37e01; --form: #9b6ef3;
       --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
@@ -41,7 +42,7 @@
     --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
     --line: #3A342B; --line-soft: #2F2A22;
     --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-    --ki: #06a0dd; --today: #d37e01;
+    --ki: #06a0dd; --today: #d37e01; --form: #9b6ef3;
     --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
@@ -50,7 +51,7 @@
     --ground: #E4E1D9; --panel: #EFEDE6; --panel-2: #DAD7CD;
     --line: #C3BFB2; --line-soft: #D2CFC4;
     --ink: #211C16; --ink-2: #4E4739; --ink-3: #766D5B;
-    --ki: #0481b3; --today: #ae6700;
+    --ki: #0481b3; --today: #ae6700; --form: #8a5cd0;
     --ki-wash: rgba(4, 129, 179, 0.12); --warn: #A33A24;
     --shadow: 0 1px 2px rgba(33, 28, 22, .08), 0 8px 24px rgba(33, 28, 22, .06);
   }
@@ -295,6 +296,23 @@
       </section>
 
       <section class="card group">
+        <h3>Transformação</h3>
+        <p class="hint">A forma multiplica o poder de <b>combate</b> e a velocidade de voo. Teto de ki, regeneração e carga ficam de fora — por isso a duração da forma não muda com o multiplicador.</p>
+        <div class="ctl"><div class="row"><label for="tm">PowerMultiplier</label><output id="tm-out"></output></div>
+          <input type="range" id="tm" min="1" max="10" step="0.1" value="2"></div>
+        <div class="ctl"><div class="row"><label for="td">KiDrainPerSecond</label><output id="td-out"></output></div>
+          <input type="range" id="td" min="0.5" max="40" step="0.5" value="5"></div>
+        <div class="ctl"><div class="row"><label for="tr">MasteryDrainReduction (no 100)</label><output id="tr-out"></output></div>
+          <input type="range" id="tr" min="0" max="0.95" step="0.05" value="0.8"></div>
+        <div class="ctl"><div class="row"><label for="tl">Nível de maestria</label><output id="tl-out"></output></div>
+          <input type="range" id="tl" min="0" max="100" step="1" value="0"></div>
+        <label class="check">
+          <input type="checkbox" id="tl-track">
+          maestria acompanha o nível da linha
+        </label>
+      </section>
+
+      <section class="card group">
         <h3>Ki</h3>
         <div class="ctl"><div class="row"><label for="kmax">MaxKi</label><output id="kmax-out"></output></div>
           <input type="range" id="kmax" min="10" max="400" step="5" value="50"></div>
@@ -330,6 +348,7 @@
               <button type="button" data-stat="range">autonomia de voo</button>
               <button type="button" data-stat="fly">velocidade</button>
               <button type="button" data-stat="kimax">teto de ki</button>
+              <button type="button" data-stat="formtime">segundos em forma</button>
             </div>
             <div class="seg" id="axis-seg" role="group" aria-label="Eixo horizontal">
               <button type="button" data-axis="level">por nível</button>
@@ -341,6 +360,7 @@
         <div class="legend">
           <span class="item"><span class="swatch" style="background: var(--today)"></span>hoje (só o termo linear)</span>
           <span class="item"><span class="swatch" style="background: var(--ki)"></span><span id="legend-cur"></span></span>
+          <span class="item" id="legend-form-item"><span class="swatch" style="background: var(--form)"></span><span id="legend-form"></span></span>
         </div>
 
         <div class="plot">
@@ -392,7 +412,9 @@
     real do Valheim
     (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de
     metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede
-    a armadura acelerada de virar invulnerabilidade. O peso do inventário é zero em toda a tabela.
+    a armadura acelerada de virar invulnerabilidade. O peso do inventário é zero em toda a tabela,
+    e a tabela é sempre <b>fora</b> da transformação — a forma aparece no gráfico e nos cartões de
+    cima, não aqui.
   </footer>
 
 </div>
@@ -414,10 +436,12 @@
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "armb", "armp", "blkb", "blkp",
-               "fkp", "fki", "fkr", "fb", "fp", "fs", "fm", "kmax", "kper", "creg", "cfp"];
+               "fkp", "fki", "fkr", "fb", "fp", "fs", "fm", "tm", "td", "tr", "tl",
+               "kmax", "kper", "creg", "cfp"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
+  const tlTrack = document.getElementById("tl-track");
   const DEFAULTS = Object.fromEntries(ids.map(i => [i, el[i].value]));
 
   let stat = "gain";
@@ -444,15 +468,28 @@
     return Math.min(1, Math.max(0, dmg / (ac * 4))) * dmg;
   }
 
-  function model(L, k5) {
+  // Multiplicador da forma. `on` falso devolve 1, que e' o jogador fora da transformacao.
+  // Espelha TransformationRegistry.GetPowerMultiplier.
+  const formMult = on => (on ? Math.max(1, v("tm")) : 1);
+
+  // Dreno da forma ja com a maestria descontada. Espelha Transformation.GetKiDrainPerSecond.
+  const formDrain = L => {
+    const lvl = tlTrack.checked ? L : v("tl");
+    return Math.max(0, v("td") * (1 - v("tr") * lvl / MAXLVL));
+  };
+
+  function model(L, k5, form = false) {
     const lin = linearPower(L);
-    const power = combatPower(L, k5);
+    const mult = formMult(form);
+    const power = combatPower(L, k5) * mult;
     const flyLvl = flTrack.checked ? L : 50;
 
-    // Velocidade e teto de ki leem o LINEAR: o termo de fim de jogo nao os toca.
-    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL);
+    // Velocidade e teto de ki leem o LINEAR: o termo de fim de jogo nao os toca. A forma multiplica
+    // a velocidade (depois de tudo, o MaxSpeed continua valendo) e NAO toca no teto nem na carga.
+    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL) * mult;
     const kiMax = v("kmax") + v("kper") * L;
     const charge = v("creg") + v("cfp") * lin;
+    const drain = formDrain(L);
 
     // Custo de voo: reducao linear da skill, depois a hiperbolica do termo de fim de jogo.
     const skillCut = 1 - v("fkr") * flyLvl / MAXLVL;
@@ -461,12 +498,14 @@
 
     const armor = Math.round(v("armb") + power * v("armp"));
     const nxt = Math.min(L + 1, MAXLVL);
-    const gain = combatPower(nxt, k5) - combatPower(L, k5);
+    const gain = (combatPower(nxt, k5) - combatPower(L, k5)) * mult;
 
     return {
       power,
       gain,
       eff: gain / xpCost[Math.max(nxt, 1)],
+      drain,
+      formtime: drain > 0 ? kiMax / drain : Infinity,
       armor,
       taken: applyArmor(v("hit"), armor),
       punch: power * v("dmg"),
@@ -490,8 +529,15 @@
     flycost: { label: "Custo de voo", sub: "ki por segundo, modo lento. É aqui que o termo de fim de jogo entra no voo", dec: 2, unit: " ki/s" },
     range: { label: "Autonomia de voo", sub: "segundos no ar com a barra cheia — a recompensa real do fim de jogo", dec: 0, unit: " s" },
     fly: { label: "Velocidade de voo", sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito", dec: 1, unit: " m/s" },
-    kimax: { label: "Teto de ki", sub: "lê o nível cru — o termo de fim de jogo não infla a barra", dec: 0, unit: "" },
+    kimax: { label: "Teto de ki", sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra", dec: 0, unit: "" },
+    formtime: { label: "Segundos em forma", sub: "teto de ki ÷ dreno. Sobe com a barra (MaxKiPerPowerLevel) e com a maestria — o multiplicador não entra, e é por isso que a linha transformada some aqui", dec: 0, unit: " s" },
+    drain: { label: "Dreno da forma", sub: "ki por segundo, já com a maestria descontada", dec: 2, unit: " ki/s" },
   };
+
+  // Stats em que a forma nao muda nada — a terceira serie coincidiria com a segunda e desenhar
+  // duas linhas identicas leria como bug. Nao e' lista de excecao arbitraria: e' exatamente o
+  // conjunto que o multiplicador nao toca, por decisao de design.
+  const FORM_BLIND = new Set(["kimax", "fill", "flycost", "range", "formtime", "drain"]);
 
   // ── gráfico ───────────────────────────────────────────────────────────────
   const W = 760, H = 360, M = { t: 14, r: 62, b: 40, l: 60 };
@@ -511,10 +557,18 @@
   function draw(k5) {
     svg.textContent = "";
     const spec = STATS[stat];
-    const cur = [], base = [];
-    for (let L = 0; L <= MAXLVL; L++) { cur.push(model(L, k5)[stat]); base.push(model(L, 0)[stat]); }
+    const cur = [], base = [], form = [];
+    for (let L = 0; L <= MAXLVL; L++) {
+      cur.push(model(L, k5)[stat]);
+      base.push(model(L, 0)[stat]);
+      form.push(model(L, k5, true)[stat]);
+    }
 
-    const yMax = niceMax(Math.max(...cur, ...base));
+    // A serie transformada so aparece quando ela diz alguma coisa. Ver FORM_BLIND.
+    const showForm = !FORM_BLIND.has(stat) && formMult(true) > 1.0001;
+
+    const finite = arr => arr.filter(isFinite);
+    const yMax = niceMax(Math.max(...finite(cur), ...finite(base), ...(showForm ? finite(form) : []), 1));
     const xOf = L => M.l + (axis === "level" ? L / MAXLVL : xpTo[L] / XP_TOTAL) * PW;
     const yOf = val => M.t + PH - (val / yMax) * PH;
 
@@ -540,6 +594,9 @@
     const path = arr => arr.map((val, L) => (L ? "L" : "M") + xOf(L).toFixed(2) + " " + yOf(val).toFixed(2)).join(" ");
     svg.appendChild(mk("path", { class: "series", d: path(base), stroke: "var(--today)", "stroke-dasharray": "5 4" }));
     svg.appendChild(mk("path", { class: "series", d: path(cur), stroke: "var(--ki)" }));
+    if (showForm) {
+      svg.appendChild(mk("path", { class: "series", d: path(form), stroke: "var(--form)" }));
+    }
 
     const endLabel = (val, color, dy) => {
       const t = mk("text", { class: "end-label", x: M.l + PW + 8, y: yOf(val) + dy, fill: color });
@@ -553,15 +610,21 @@
       endLabel(b, "var(--today)", a > b ? 12 : -5);
       endLabel(a, "var(--ki)", a > b ? -5 : 12);
     }
+    // A forma multiplica por >= 1, entao a serie dela e' o topo por construcao em todo stat que
+    // ela toca. So rotula quando esta longe o bastante da linha de cima para o texto nao colidir.
+    if (showForm && Math.abs(form[MAXLVL] - Math.max(a, b)) > yMax * 0.04) {
+      endLabel(form[MAXLVL], "var(--form)", -5);
+    }
 
     const cross = mk("line", { class: "axis-line", y1: M.t, y2: M.t + PH, opacity: 0 });
     const dotA = mk("circle", { r: 4.5, fill: "var(--today)", stroke: "var(--panel)", "stroke-width": 2, opacity: 0 });
     const dotB = mk("circle", { r: 4.5, fill: "var(--ki)", stroke: "var(--panel)", "stroke-width": 2, opacity: 0 });
-    svg.append(cross, dotA, dotB);
+    const dotC = mk("circle", { r: 4.5, fill: "var(--form)", stroke: "var(--panel)", "stroke-width": 2, opacity: 0 });
+    svg.append(cross, dotA, dotB, dotC);
     const hit = mk("rect", { x: M.l, y: M.t, width: PW, height: PH, fill: "transparent", style: "cursor: crosshair" });
     svg.appendChild(hit);
 
-    hot = { cur, base, xOf, yOf, spec, cross, dotA, dotB };
+    hot = { cur, base, form, showForm, xOf, yOf, spec, cross, dotA, dotB, dotC };
     hit.addEventListener("pointermove", onMove);
     hit.addEventListener("pointerleave", onLeave);
   }
@@ -579,10 +642,14 @@
     hot.cross.setAttribute("x1", x); hot.cross.setAttribute("x2", x); hot.cross.setAttribute("opacity", 1);
     hot.dotA.setAttribute("cx", x); hot.dotA.setAttribute("cy", hot.yOf(hot.base[bestL])); hot.dotA.setAttribute("opacity", 1);
     hot.dotB.setAttribute("cx", x); hot.dotB.setAttribute("cy", hot.yOf(hot.cur[bestL])); hot.dotB.setAttribute("opacity", 1);
+    if (hot.showForm) {
+      hot.dotC.setAttribute("cx", x); hot.dotC.setAttribute("cy", hot.yOf(hot.form[bestL])); hot.dotC.setAttribute("opacity", 1);
+    }
 
     const d = hot.spec.dec, u = hot.spec.unit;
     tip.innerHTML =
       `<div class="th">nível ${bestL} · ${fmt(xpTo[bestL] / XP_TOTAL * 100, 1)}% do xp</div>` +
+      (hot.showForm ? `<div class="tr"><span class="lbl"><span class="dot" style="background: var(--form)"></span>transformado</span><span class="num">${fmt(hot.form[bestL], d)}${u}</span></div>` : "") +
       `<div class="tr"><span class="lbl"><span class="dot" style="background: var(--ki)"></span>com o termo</span><span class="num">${fmt(hot.cur[bestL], d)}${u}</span></div>` +
       `<div class="tr"><span class="lbl"><span class="dot" style="background: var(--today)"></span>hoje</span><span class="num">${fmt(hot.base[bestL], d)}${u}</span></div>`;
     tip.style.opacity = 1;
@@ -596,7 +663,7 @@
   function onLeave() {
     if (!hot) return;
     tip.style.opacity = 0;
-    [hot.cross, hot.dotA, hot.dotB].forEach(n => n.setAttribute("opacity", 0));
+    [hot.cross, hot.dotA, hot.dotB, hot.dotC].forEach(n => n.setAttribute("opacity", 0));
   }
 
   // ── tabela ────────────────────────────────────────────────────────────────
@@ -644,6 +711,19 @@
         warn: m100.taken < v("hit") * 0.06 },
       { k: "autonomia de voo no 100", v: fmt(m100.range, 0) + " s", n: `hoje são ${fmt(b100.range, 0)} s — ${fmt(rangeMult, 2)}× mais longe` },
     ];
+
+    // A forma multiplica a armadura junto com o resto, e a armadura e' o consumidor que menos
+    // aguenta multiplicador — foi o que obrigou a baixar o ArmorFromPower quando o termo de fim de
+    // jogo entrou. Este cartao existe para esse risco nao passar despercebido de novo.
+    if (formMult(true) > 1.0001) {
+      const f100 = model(100, k5, true);
+      cards.push({
+        k: "transformado no 100",
+        v: fmt(f100.taken, 1),
+        n: `golpe de ${fmt(v("hit"), 0)} contra ${fmt(f100.armor, 0)} de armadura — fora da forma são ${fmt(m100.taken, 1)}`,
+        warn: f100.taken < v("hit") * 0.06,
+      });
+    }
     document.getElementById("readout").innerHTML = cards.map(c =>
       `<div class="stat"><div class="k">${c.k}</div><div class="v${c.accent ? " accent" : c.warn ? " warn" : ""}">${c.v}</div><div class="n">${c.n}</div></div>`
     ).join("");
@@ -661,8 +741,16 @@
     }
 
     const armorHeavy = m100.taken < v("hit") * 0.06;
+    const formTaken = model(100, k5, true).taken;
+    const formHeavy = formMult(true) > 1.0001 && formTaken < v("hit") * 0.06;
+
     if (armorHeavy) {
       txt += ` <strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.`;
+      verdict.classList.add("is-warn");
+    } else if (formHeavy) {
+      // Fora da forma a armadura esta calibrada e o alerta acima nao dispara — mas a forma
+      // multiplica a armadura junto com o dano, e ai a mesma conta estoura.
+      txt += ` <strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> transformado, o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(formTaken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.`;
       verdict.classList.add("is-warn");
     } else {
       verdict.classList.remove("is-warn");
@@ -673,7 +761,8 @@
       `poder = k1 × HP + <span style="color: var(--today)">k4 × nível</span> + <b>k5 × 100 × (nível / 100)<sup>p</sup></b>` +
       `<span class="note">O termo dourado é o mod de hoje e continua intacto; o azul é novo e só pesa no fim. ` +
       `<strong>O azul alimenta soco, armadura, block e o número exibido — e o custo de voo.</strong> ` +
-      `Velocidade de voo, teto de ki e regeneração leem só o dourado.</span>`;
+      `Velocidade de voo, teto de ki e regeneração leem só o dourado. ` +
+      `A <span style="color: var(--form)">transformação</span> multiplica a soma inteira, mais a velocidade de voo — e não toca no teto nem na regeneração de ki.</span>`;
   }
 
   // ── snippet .cfg ──────────────────────────────────────────────────────────
@@ -704,6 +793,11 @@
         kv("SpeedSkillBonus", n("fs", 2)),
         kv("MaxSpeed", n("fm", 0)),
       ]),
+      L("3.1 - SSJ", [
+        kv("PowerMultiplier", n("tm", 1)),
+        kv("KiDrainPerSecond", n("td", 1)),
+        kv("MasteryDrainReduction", n("tr", 2)),
+      ]),
       L("2 - Ki", [
         kv("MaxKi", n("kmax", 0)),
         kv("MaxKiPerPowerLevel", n("kper", 1)),
@@ -716,6 +810,7 @@
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fb: 1, fp: 3, fs: 2, fm: 0,
+                    tm: 1, td: 1, tr: 2, tl: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
   function render() {
@@ -726,6 +821,16 @@
     document.getElementById("plot-sub").textContent = STATS[stat].sub;
     document.getElementById("legend-cur").textContent =
       k5 === 0 ? "com o termo novo (desligado em k5 = 0)" : `com o termo novo (k5 = ${fmt(k5, 1)}, p = ${fmt(v("p"), 1)})`;
+
+    // A legenda da forma some junto com a serie: quando o stat exibido nao e' multiplicado, uma
+    // entrada de legenda sem linha correspondente e' pior que nenhuma.
+    const showForm = !FORM_BLIND.has(stat) && formMult(true) > 1.0001;
+
+    // display e nao o atributo `hidden`: o `.item` da legenda declara display proprio, e regra de
+    // autor ganha do `[hidden] { display: none }` da folha do navegador.
+    document.getElementById("legend-form-item").style.display = showForm ? "" : "none";
+    document.getElementById("legend-form").textContent =
+      `transformado (x${fmt(formMult(true), 1)})`;
 
     document.querySelectorAll("#stat-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.stat === stat)));
     document.querySelectorAll("#axis-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.axis === axis)));
@@ -740,6 +845,7 @@
 
   ids.forEach(i => el[i].addEventListener("input", render));
   flTrack.addEventListener("change", render);
+  tlTrack.addEventListener("change", render);
 
   document.getElementById("presets").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
@@ -753,7 +859,7 @@
   });
   document.getElementById("reset").addEventListener("click", () => {
     ids.forEach(i => el[i].value = DEFAULTS[i]);
-    flTrack.checked = true; render();
+    flTrack.checked = true; tlTrack.checked = false; render();
   });
   document.getElementById("copy").addEventListener("click", async e => {
     try { await navigator.clipboard.writeText(document.getElementById("snippet").textContent); e.target.textContent = "Copiado"; }

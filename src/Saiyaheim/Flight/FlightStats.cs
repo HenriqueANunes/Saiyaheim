@@ -55,7 +55,24 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// Velocidade base, já com poder, skill e peso. É o valor que vai para
+        /// Multiplicador da forma ativa, ou 1 fora dela.
+        ///
+        /// <b>A velocidade é a única coisa do voo que a transformação toca.</b> O custo de ki fica
+        /// de fora de propósito: voar transformado já custa o dreno da forma <i>somado</i> ao custo
+        /// do voo, e encarecer o voo por cima seria cobrar duas vezes pela mesma decisão.
+        ///
+        /// Vem do <c>TransformationRegistry</c> e não do <c>PowerLevel</c> porque a velocidade lê o
+        /// poder <b>linear</b>, e o multiplicador mora no de <b>combate</b> — pegá-lo pelo
+        /// <c>GetCombatRaw</c> traria junto o termo de fim de jogo, que a velocidade recusa por
+        /// razão própria (ver <see cref="GetSpeedFromPower"/>).
+        /// </summary>
+        internal static float GetFormSpeedFactor(Player player)
+        {
+            return Transformations.TransformationRegistry.GetPowerMultiplier(player);
+        }
+
+        /// <summary>
+        /// Velocidade base, já com poder, skill, peso e forma. É o valor que vai para
         /// <c>Character.m_flySlowSpeed</c>.
         ///
         /// O peso multiplica <b>tudo</b>, inclusive a parcela do poder: carregar meio inventário
@@ -67,7 +84,7 @@ namespace Saiyaheim.Flight
             float weightFactor = 1f - SaiyaheimConfig.FlightWeightPenalty.Value * GetWeightLoad(player);
 
             float baseSpeed = SaiyaheimConfig.FlightBaseSpeed.Value + GetSpeedFromPower(player);
-            float speed = baseSpeed * skillFactor * weightFactor;
+            float speed = baseSpeed * skillFactor * weightFactor * GetFormSpeedFactor(player);
 
             // Piso baixo, não zero: com WeightPenalty em 1 e peso máximo o jogador ficaria parado
             // no ar sem entender por quê.

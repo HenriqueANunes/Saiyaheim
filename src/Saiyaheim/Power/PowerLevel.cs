@@ -11,6 +11,7 @@ namespace Saiyaheim.Power
     /// <code>
     /// ki desligado: poder = k1*HP + k2*dano_arma + k3*armadura
     /// ki ligado:    poder = k1*HP + k4*nivel_battle_power
+    /// combate:      (o de cima + termo de fim de jogo) * multiplicador da forma ativa
     /// </code>
     ///
     /// Arma e armadura não sobrevivem ao modo ki:
@@ -34,6 +35,13 @@ namespace Saiyaheim.Power
     /// <item><term><see cref="GetRaw"/> (linear, sem o termo)</term><description>velocidade de
     /// voo, teto de ki, regeneração e carga de ki</description></item>
     /// </list>
+    ///
+    /// <b>O multiplicador da transformação não segue a mesma divisão</b>, e a diferença é
+    /// deliberada (2026-08-02): ele entra no poder de combate <b>e</b> na velocidade de voo, mas
+    /// fica fora do teto de ki, da regeneração e da carga. Se a barra crescesse ao transformar,
+    /// ela daria um pulo na tela; e uma regeneração escalada pela forma pagaria parte do próprio
+    /// dreno, que é a única coisa que a forma custa. A velocidade entra porque tem teto duro
+    /// (<c>FlightMaxSpeed</c>) e nada quebra ao encostar nele.
     ///
     /// A separação é decisão de design de 2026-08-01, não detalhe de implementação. Um poder que
     /// acelera no fim serve para o jogador <b>bater e aguentar</b> mais; deixá-lo também inflar a
@@ -131,10 +139,20 @@ namespace Saiyaheim.Power
         /// <c>GetVanillaRaw</c> e daí no <c>GetBodyArmor()</c>, fechando a recursão. Chamar o
         /// <see cref="GetCombatRaw"/> a partir deles seria depender de o toggle não virar no meio
         /// do frame — e depender disso é o erro que esta separação torna impossível de cometer.
+        ///
+        /// <b>É aqui que a transformação entra</b>, multiplicando o que a soma produziu — o
+        /// "aditivo + multiplicativo" do design, na única linha em que ele existe. Consequência
+        /// desejada: soco, armadura, block power, velocidade de voo e o número na tela sobem
+        /// juntos, sem nenhum deles saber que formas existem.
+        ///
+        /// ⚠️ O <c>GetPowerMultiplier</c> lê config e <c>SEMan</c>, nunca power level. Se um dia
+        /// ele passar a depender do poder — um multiplicador que cresce com a maestria, por
+        /// exemplo — a recursão fecha aqui.
         /// </summary>
         private static float GetKiCombatRaw(Player player)
         {
-            return GetKiRaw(player) + GetLateGameBonus(player);
+            return (GetKiRaw(player) + GetLateGameBonus(player))
+                   * Transformations.TransformationRegistry.GetPowerMultiplier(player);
         }
 
         /// <summary>Fórmula do ki desligado: a original do projeto, com arma e armadura do jogo.</summary>
@@ -160,7 +178,10 @@ namespace Saiyaheim.Power
             return Mathf.Max(0f, player.GetMaxHealth() - player.GetBaseFoodHP());
         }
 
-        /// <summary>Dano somado ao soco. Aditivo — a transformação multiplicará por cima (etapa 5).</summary>
+        /// <summary>
+        /// Dano somado ao soco. Aditivo, e a transformação multiplica por cima — mas isso já
+        /// aconteceu dentro do <see cref="GetKiCombatRaw"/>, não aqui.
+        /// </summary>
         internal static float GetPunchDamageBonus(Player player)
         {
             if (player == null)
@@ -168,7 +189,17 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            return GetKiCombatRaw(player) * SaiyaheimConfig.PunchDamageFromPower.Value;
+            return PunchBonusFor(GetKiCombatRaw(player));
+        }
+
+        /// <summary>
+        /// O bônus de soco de um poder de combate <b>hipotético</b>. Existe para o
+        /// <c>saiya_form</c> poder mostrar o antes e o depois da transformação sem copiar a
+        /// fórmula — e sem transformar o jogador para descobrir.
+        /// </summary>
+        internal static float PunchBonusFor(float combatPower)
+        {
+            return combatPower * SaiyaheimConfig.PunchDamageFromPower.Value;
         }
 
         /// <summary>
@@ -197,8 +228,7 @@ namespace Saiyaheim.Power
             // GetKiCombatRaw, não GetCombatRaw: ver o comentário de recursão em GetKiRaw. Este
             // método só é chamado com o ki ligado, então o ramo é o mesmo — mas depender disso
             // seria depender de um invariante que uma troca de toggle no meio do frame quebra.
-            float armor = SaiyaheimConfig.ArmorBase.Value
-                          + GetKiCombatRaw(player) * SaiyaheimConfig.ArmorFromPower.Value;
+            float armor = ArmorFor(GetKiCombatRaw(player));
 
             if (KiManager.Current <= 0f)
             {
@@ -206,6 +236,16 @@ namespace Saiyaheim.Power
             }
 
             return Mathf.Round(armor);
+        }
+
+        /// <summary>
+        /// A armadura de um poder de combate <b>hipotético</b>, sem o degrau da barra vazia — que é
+        /// estado do jogador, não do poder. Mesmo papel do <see cref="PunchBonusFor"/>: deixar o
+        /// <c>saiya_form</c> comparar dentro e fora da forma sem duplicar a conta.
+        /// </summary>
+        internal static float ArmorFor(float combatPower)
+        {
+            return SaiyaheimConfig.ArmorBase.Value + combatPower * SaiyaheimConfig.ArmorFromPower.Value;
         }
 
         /// <summary>
