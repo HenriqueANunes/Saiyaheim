@@ -130,6 +130,10 @@ namespace Saiyaheim.Ki
                 _state.Enabled = !_state.Enabled;
                 _state.Save(player);
                 SaiyaheimPlugin.Log.LogInfo($"Ki {(_state.Enabled ? "on" : "off")}.");
+
+                // O toggle não tem efeito visual imediato quando o ki está cheio ou vazio; sem
+                // aviso na tela dá para apertar a tecla e não saber em que estado ficou.
+                player.Message(MessageHud.MessageType.Center, _state.Enabled ? "Ki on" : "Ki off");
             }
 
             IsCharging = _state.Enabled
