@@ -161,6 +161,15 @@ namespace Saiyaheim
 
             /// <summary>Nível mínimo de Battle Power para entrar na forma. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinBattlePower { get; internal set; }
+
+            /// <summary>Cor do cabelo enquanto a forma está ativa, em #RRGGBB. Vazio não pinta.</summary>
+            public ConfigEntry<string> HairColor { get; internal set; }
+
+            /// <summary>Multiplicador de brilho da cor acima. Acima de 1 estoura e queima.</summary>
+            public ConfigEntry<float> HairColorIntensity { get; internal set; }
+
+            /// <summary>Cor da aura desta forma, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
+            public ConfigEntry<string> AuraColor { get; internal set; }
         }
 
         /// <summary>
@@ -352,6 +361,22 @@ namespace Saiyaheim
         public static ConfigEntry<string> ChargeEffectColor { get; private set; }
         public static ConfigEntry<float> ChargeEffectScale { get; private set; }
         public static ConfigEntry<bool> ChargeEffectForceLoop { get; private set; }
+
+        /// <summary>Emote de disparo único tocado ao transformar. Vazio desliga.</summary>
+        public static ConfigEntry<string> TransformEmote { get; private set; }
+
+        /// <summary>Prefab da aura que fica acesa enquanto a forma dura. Vazio desliga.</summary>
+        public static ConfigEntry<string> TransformAuraPrefab { get; private set; }
+
+        public static ConfigEntry<float> TransformAuraScale { get; private set; }
+
+        /// <summary>Segundos que o estouro dura. 0 devolve a decisão ao prefab.</summary>
+        public static ConfigEntry<float> TransformAuraDuration { get; private set; }
+
+        public static ConfigEntry<bool> TransformAuraForceLoop { get; private set; }
+
+        /// <summary>Multiplicador da luz dinâmica da aura. 0 apaga; 1 é o prefab como veio.</summary>
+        public static ConfigEntry<float> TransformAuraLightIntensity { get; private set; }
 
         // ---------- 9 - Debug ----------
 
@@ -698,7 +723,8 @@ namespace Saiyaheim
             // outra secao e outros defaults.
             Ssj = BindTransformation(config, SecSsj,
                 powerMultiplier: 2f,
-                kiDrainPerSecond: 5f);
+                kiDrainPerSecond: 5f,
+                hairColor: "#FFE14A");
 
             // --- Voo ---
             FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 15f,
@@ -1163,7 +1189,9 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Charging effect color, #RRGGBB format. Empty keeps the prefab's original " +
                     "color. Applies on the next charge — no restart needed. " +
-                    "The original particle fade is preserved; only the base color changes.",
+                    "The original particle fade is preserved; only the base color changes. " +
+                    "Ignored while you are transformed: charging in a form glows in that form's " +
+                    "AuraColor instead, so the two read as one thing happening harder.",
                     null, ClientSide(85)));
 
             ChargeEffectScale = config.Bind(SecEffects, "ChargeEffectScale", 2f,
@@ -1178,6 +1206,78 @@ namespace Saiyaheim
                     "a quick burst; without this the effect disappears on its own after a second. " +
                     "Turn it off if some prefab looks wrong when repeating.",
                     null, ClientSide(60)));
+
+            // Mesmo emote do carregamento, mas de disparo unico: carregar segura a pose, transformar
+            // e' um estouro. O grito replica sozinho pela ZDO — os amigos veem e ouvem.
+            TransformEmote = config.Bind(SecEffects, "TransformEmote", "roar",
+                new ConfigDescription(
+                    "One-shot emote played when you power up into a form. Empty disables it. " +
+                    "Not played when stepping DOWN a form: coming down is relief, not a burst. " +
+                    "Any emote the player Animator knows works — the same names the /emote chat " +
+                    "command lists.",
+                    null, ClientSide(55)));
+
+            // Mesmo prefab do carregamento de ki de proposito: ele ja se provou legivel preso ao
+            // jogador, e a cor e' quem separa os dois estados — azul carregando, a cor da forma
+            // transformado. A cor NAO fica aqui: e' por forma, na secao de cada uma.
+            TransformAuraPrefab = config.Bind(SecEffects, "TransformAuraPrefab",
+                "fx_DvergerMage_Support_start",
+                new ConfigDescription(
+                    "Effect burst when you power up into a form. Empty disables it. " +
+                    "It fires once and fades — see TransformAuraForceLoop for why it is not kept " +
+                    "alive while the form lasts. Not played when stepping DOWN a form, same as " +
+                    "the emote. The color comes from each form's own AuraColor, not from here. " +
+                    "Alternatives: fx_goblinking_nova, fx_ShieldCharge_1 through _5 " +
+                    "(increasing), DvergerStaffNova_aoe.",
+                    null, ClientSide(50)));
+
+            TransformAuraScale = config.Bind(SecEffects, "TransformAuraScale", 2.5f,
+                new ConfigDescription(
+                    "Scale of the burst. Slightly larger than the charging effect on purpose: " +
+                    "transforming should read bigger than charging up to it.",
+                    new AcceptableValueRange<float>(0.1f, 5f), ClientSide(45)));
+
+            // A duracao e' imposta por nos, nao herdada do prefab: prefab de efeito sustentado ja
+            // vem com as particulas em loop, e o TimedDestruction dele so dispara sozinho se o
+            // prefab marcou m_triggerOnAwake. Confiar nos dois foi o que deixou o efeito aceso a
+            // forma inteira (2026-08-02).
+            TransformAuraDuration = config.Bind(SecEffects, "TransformAuraDuration", 2f,
+                new ConfigDescription(
+                    "How long the burst lasts, in seconds, before it is removed from the player. " +
+                    "This is enforced by the mod and does not depend on the prefab cleaning up " +
+                    "after itself — some of them never do, which is what used to leave the " +
+                    "effect burning for the whole transformation. " +
+                    "Ignored when TransformAuraForceLoop is on, where the effect is meant to " +
+                    "last as long as the form. 0 hands the decision back to the prefab. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 10f), ClientSide(42)));
+
+            // false por playtest (2026-08-02). Ver a descricao: em loop o efeito virou fumaca
+            // colada no personagem, e o Henrique pediu de volta so o estouro da ativacao.
+            TransformAuraForceLoop = config.Bind(SecEffects, "TransformAuraForceLoop", false,
+                new ConfigDescription(
+                    "Keeps the effect alive for as long as the form lasts, by forcing its " +
+                    "particles and audio to repeat. OFF by default, and that is a playtest " +
+                    "result, not an oversight: game prefabs are built for a half-second burst, " +
+                    "and looping one does not make it last longer — it makes it a permanent " +
+                    "cloud stuck to the player. The particles never get to disperse. " +
+                    "Turning this on with a prefab designed for a sustained aura is fine; " +
+                    "turning it on with a burst prefab is what produced the smoke. " +
+                    "(Playtest value, 2026-08-02.)",
+                    null, ClientSide(40)));
+
+            // 1 (nao mexe) porque o efeito voltou a ser um estouro: luz num flash de meio segundo
+            // e' justamente o que da' o baque. A chave existe para quem ligar o ForceLoop, onde
+            // luz presa ao jogador por minutos vira lanterna iluminando o terreno em volta.
+            TransformAuraLightIntensity = config.Bind(SecEffects, "TransformAuraLightIntensity", 1f,
+                new ConfigDescription(
+                    "Multiplier for the effect's dynamic light. 1 leaves the prefab as it came, " +
+                    "which is right for a burst — the flash is most of the punch. " +
+                    "0 removes the light entirely and keeps only the particles. " +
+                    "That matters if you turn TransformAuraForceLoop on: a light that follows " +
+                    "you for minutes lights up the terrain around you and gets tiring, while " +
+                    "the particles glow on their own and do not need it.",
+                    new AcceptableValueRange<float>(0f, 2f), ClientSide(38)));
 
             // --- Debug ---
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
@@ -1195,7 +1295,8 @@ namespace Saiyaheim
         /// mesmo para todas as formas de propósito: o que muda entre elas são os números.
         /// </summary>
         private static TransformationConfig BindTransformation(
-            ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond)
+            ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
+            string hairColor)
         {
             return new TransformationConfig
             {
@@ -1257,7 +1358,41 @@ namespace Saiyaheim
                         "Minimum Battle Power level required to enter this form. 0 disables the " +
                         "gate. A placeholder for the boss gating of step 7 — same role " +
                         "Flight.MinBattlePower plays for flying.",
-                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(60)))
+                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(60))),
+
+                // Cosmetico, entao ClientSide como o resto da secao 8: pintar o cabelo nao muda
+                // numero nenhum, e o servidor nao tem por que impor gosto visual. A cor troca via
+                // ZDO e replica sozinha, entao os amigos veem o cabelo de quem transformou mesmo
+                // com .cfg diferente do deles.
+                HairColor = config.Bind(section, "HairColor", hairColor,
+                    new ConfigDescription(
+                        "Hair color while this form is active, #RRGGBB format. Empty keeps the " +
+                        "character's own color. Applies on the next transformation — no restart " +
+                        "needed. The character's real hair color is never overwritten: this only " +
+                        "lives for as long as the form does.",
+                        null, ClientSide(50))),
+
+                HairColorIntensity = config.Bind(section, "HairColorIntensity", 1.6f,
+                    new ConfigDescription(
+                        "Brightness multiplier applied on top of HairColor. Above 1 the color " +
+                        "blows out and burns, which is what reads as Super Saiyan hair — a plain " +
+                        "hex tops out at #FFFFFF and lands closer to dyed than to glowing. " +
+                        "1 uses the hex as written. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 5f), ClientSide(45))),
+
+                // Uma cor por forma, e nao uma global na secao 8: a escada da etapa 7 quer degraus
+                // distinguiveis de longe, e a cor da aura e' o unico sinal que sobrevive a
+                // distancia. O prefab e' compartilhado; a cor e' a identidade.
+                AuraColor = config.Bind(section, "AuraColor", hairColor,
+                    new ConfigDescription(
+                        "Aura color while this form is active, #RRGGBB format. Empty keeps the " +
+                        "prefab's original color. Applies on the next transformation — no restart " +
+                        "needed. Defaults to the same color as the hair so the two read as one " +
+                        "thing; splitting them is fine if the aura washes out at that tone. " +
+                        "This also becomes the color of the ki CHARGING glow while you hold the " +
+                        "form, replacing Effects.ChargeEffectColor.",
+                        null, ClientSide(40)))
             };
         }
 

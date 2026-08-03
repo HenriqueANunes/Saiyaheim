@@ -1,4 +1,5 @@
 using System;
+using Saiyaheim.Transformations;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -14,11 +15,16 @@ namespace Saiyaheim.Ki
     ///   veem a pose sem nenhum RPC nosso. O jogo também interrompe emote sozinho quando o
     ///   jogador anda, o que casa com carregar parado.
     /// - **Visual e som:** prefabs `fx_`/`sfx_` do jogo, instanciados presos ao transform do
-    ///   jogador. Ver [[Prefabs do Jogo]] no vault para a paleta levantada.
+    ///   jogador pelo <see cref="AttachedEffect"/> — que é quem sabe tingir sem sujar o material
+    ///   compartilhado e desarmar o autodestruir dos prefabs. Ver [[Prefabs do Jogo]] no vault
+    ///   para a paleta levantada.
     ///
     /// Os nomes de prefab e de emote ficam **em config**, não no código: qual pose e qual efeito
     /// "lê" como carregar ki é julgamento visual, e quem vê a tela é o Henrique. Trocar deve
     /// custar editar um .cfg, não uma recompilação.
+    ///
+    /// <b>Carregar transformado usa a cor da forma</b>, não a azul do config — ver
+    /// <see cref="ResolveColor"/>.
     /// </summary>
     internal static class KiChargeEffects
     {
@@ -26,6 +32,13 @@ namespace Saiyaheim.Ki
         private static GameObject _sfx;
         private static bool _emoteStarted;
         private static bool _disabled;
+
+        /// <summary>
+        /// A cor com que o <see cref="_vfx"/> foi criado. A cor é aplicada nos materiais no momento
+        /// da instanciação, então mudá-la depois significa recriar o efeito — e comparar contra
+        /// este campo é como sabemos que ela mudou.
+        /// </summary>
+        private static string _vfxColor;
 
         private static bool IsActive => _vfx != null || _sfx != null || _emoteStarted;
 
@@ -46,6 +59,10 @@ namespace Saiyaheim.Ki
                 {
                     Stop(player);
                 }
+                else if (charging)
+                {
+                    RefreshColor(player);
+                }
             }
             catch (Exception ex)
             {
@@ -64,6 +81,7 @@ namespace Saiyaheim.Ki
         {
             _vfx = null;
             _sfx = null;
+            _vfxColor = null;
             _emoteStarted = false;
         }
 
@@ -75,8 +93,71 @@ namespace Saiyaheim.Ki
                 _emoteStarted = player.StartEmote(SaiyaheimConfig.ChargeEmote.Value, oneshot: false);
             }
 
-            _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player);
-            _sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab.Value, player);
+            _vfxColor = ResolveColor(player);
+
+            _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, _vfxColor);
+            _sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab.Value, player, _vfxColor);
+        }
+
+        /// <summary>
+        /// Recria o efeito visual se a cor certa mudou no meio do carregamento.
+        ///
+        /// O caso que importa é transformar (ou cair da forma) **com a tecla de carregar
+        /// pressionada**: sem isto o jogador ficaria carregando em azul dentro do SSJ até soltar a
+        /// tecla. Comparar a cor a cada frame é uma comparação de string; recriar só acontece
+        /// quando ela de fato muda.
+        ///
+        /// Só o visual é refeito. O som continua tocando e o emote continua em loop — reiniciar
+        /// qualquer um dos dois seria audível, e nenhum tem cor.
+        /// </summary>
+        private static void RefreshColor(Player player)
+        {
+            string color = ResolveColor(player);
+            if (color == _vfxColor)
+            {
+                return;
+            }
+
+            _vfxColor = color;
+
+            if (_vfx != null)
+            {
+                UnityEngine.Object.Destroy(_vfx);
+            }
+
+            _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color);
+        }
+
+        /// <summary>
+        /// A cor do carregamento agora: <b>a da forma ativa, se houver</b>, senão a do config.
+        ///
+        /// Carregar transformado brilhando de azul leria como duas mecânicas soltas acontecendo no
+        /// mesmo corpo. Com a cor da forma, o carregamento e a aura da transformação viram a mesma
+        /// coisa acontecendo mais forte — que é o que de fato está acontecendo.
+        ///
+        /// Forma com <c>AuraColor</c> vazio cai na cor de carregamento em vez de na cor crua do
+        /// prefab: vazio ali quer dizer "não tinja a aura", não "volte ao azul do jogo".
+        /// </summary>
+        private static string ResolveColor(Player player)
+        {
+            Transformation active = TransformationRegistry.GetActive(player);
+
+            if (active != null && !string.IsNullOrEmpty(active.Config.AuraColor.Value))
+            {
+                return active.Config.AuraColor.Value;
+            }
+
+            return SaiyaheimConfig.ChargeEffectColor.Value;
+        }
+
+        private static GameObject Spawn(string prefabName, Player player, string color)
+        {
+            return AttachedEffect.Spawn(
+                player,
+                prefabName,
+                color,
+                SaiyaheimConfig.ChargeEffectScale.Value,
+                SaiyaheimConfig.ChargeEffectForceLoop.Value);
         }
 
         private static void Stop(Player player)
@@ -102,158 +183,6 @@ namespace Saiyaheim.Ki
             {
                 UnityEngine.Object.Destroy(_sfx);
                 _sfx = null;
-            }
-        }
-
-        private static GameObject Spawn(string prefabName, Player player)
-        {
-            if (string.IsNullOrEmpty(prefabName) || ZNetScene.instance == null)
-            {
-                return null;
-            }
-
-            GameObject prefab = ZNetScene.instance.GetPrefab(prefabName);
-            if (prefab == null)
-            {
-                SaiyaheimPlugin.Log.LogWarning(
-                    $"Prefab '{prefabName}' does not exist. Check the name against the list in the docs.");
-                return null;
-            }
-
-            // Efeito puramente local e visual: sem ZDO, sem replicação, sem sujar a rede.
-            // Cada cliente instancia o seu ao ver o emote — que esse sim replica sozinho.
-            bool previousDisableInit = ZNetView.m_forceDisableInit;
-            ZNetView.m_forceDisableInit = true;
-
-            GameObject instance;
-            try
-            {
-                instance = UnityEngine.Object.Instantiate(
-                    prefab, player.transform.position, player.transform.rotation, player.transform);
-            }
-            finally
-            {
-                ZNetView.m_forceDisableInit = previousDisableInit;
-            }
-
-            PrepareForSustainedUse(instance);
-            ApplyTint(instance);
-
-            float scale = SaiyaheimConfig.ChargeEffectScale.Value;
-            if (!Mathf.Approximately(scale, 1f))
-            {
-                instance.transform.localScale *= scale;
-            }
-
-            return instance;
-        }
-
-        /// <summary>
-        /// Tinge o efeito. Vale para partículas, luzes e materiais.
-        ///
-        /// ⚠️ O ponto crítico é usar <c>renderer.materials</c> e **nunca**
-        /// <c>sharedMaterials</c>: o material compartilhado é o asset do jogo, e escrever nele
-        /// pintaria de azul o efeito original para todo mundo que o usa — Dvergr, poções,
-        /// qualquer coisa — até reiniciar o jogo.
-        ///
-        /// Só a cor base é trocada. O <c>colorOverLifetime</c> das partículas multiplica por
-        /// cima, então o fade original é preservado.
-        /// </summary>
-        private static void ApplyTint(GameObject instance)
-        {
-            string raw = SaiyaheimConfig.ChargeEffectColor.Value;
-            if (string.IsNullOrEmpty(raw))
-            {
-                return;
-            }
-
-            if (!ColorUtility.TryParseHtmlString(raw, out Color color))
-            {
-                SaiyaheimPlugin.Log.LogWarning(
-                    $"ChargeEffectColor '{raw}' is not a valid color. Use the #RRGGBB format.");
-                return;
-            }
-
-            foreach (ParticleSystem particles in instance.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                ParticleSystem.MainModule main = particles.main;
-                main.startColor = color;
-            }
-
-            foreach (Light light in instance.GetComponentsInChildren<Light>(true))
-            {
-                light.color = color;
-            }
-
-            foreach (Renderer renderer in instance.GetComponentsInChildren<Renderer>(true))
-            {
-                // .materials devolve instâncias exclusivas deste clone. Elas morrem junto com ele.
-                foreach (Material material in renderer.materials)
-                {
-                    TintMaterial(material, color);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Os shaders do Valheim não usam uma propriedade única de cor. Escrevemos em todas as
-        /// que o material declarar — <c>HasProperty</c> evita erro nas que não existem.
-        /// </summary>
-        private static void TintMaterial(Material material, Color color)
-        {
-            if (material == null)
-            {
-                return;
-            }
-
-            foreach (string property in TintProperties)
-            {
-                if (material.HasProperty(property))
-                {
-                    material.SetColor(property, color);
-                }
-            }
-        }
-
-        private static readonly string[] TintProperties =
-        {
-            "_Color",
-            "_TintColor",
-            "_EmissionColor",
-            "_ColorTint"
-        };
-
-        /// <summary>
-        /// Prefabs de efeito do jogo são feitos para um estouro rápido: quase todos se
-        /// autodestroem e as partículas não repetem. Carregar ki é sustentado, então tiramos o
-        /// timer e forçamos o loop — senão o efeito some sozinho depois de um segundo.
-        /// </summary>
-        private static void PrepareForSustainedUse(GameObject instance)
-        {
-            foreach (TimedDestruction timed in instance.GetComponentsInChildren<TimedDestruction>(true))
-            {
-                UnityEngine.Object.Destroy(timed);
-            }
-
-            if (!SaiyaheimConfig.ChargeEffectForceLoop.Value)
-            {
-                return;
-            }
-
-            foreach (ParticleSystem particles in instance.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                ParticleSystem.MainModule main = particles.main;
-                main.loop = true;
-                particles.Play();
-            }
-
-            foreach (AudioSource audio in instance.GetComponentsInChildren<AudioSource>(true))
-            {
-                audio.loop = true;
-                if (!audio.isPlaying)
-                {
-                    audio.Play();
-                }
             }
         }
     }

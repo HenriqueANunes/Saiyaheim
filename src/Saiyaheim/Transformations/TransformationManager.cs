@@ -41,6 +41,9 @@ namespace Saiyaheim.Transformations
         {
             if (player == null)
             {
+                // Morte ou saída do mundo: a cor do cabelo vive na ZDO do jogador e morreu junto,
+                // mas o estado interno dos efeitos precisa acompanhar.
+                TransformationEffects.Reset();
                 return;
             }
 
@@ -159,6 +162,7 @@ namespace Saiyaheim.Transformations
             // consegue sustentar, que é o oposto do que a tecla existe para fazer.
             RemoveAll(seman);
             seman.AddStatusEffect(GetTemplate(previous));
+            TransformationEffects.OnStepDown(player, previous);
             Message(player, previous.DisplayName);
             SaiyaheimPlugin.LogVerbose($"Stepped down from {active.DisplayName} to {previous.DisplayName}.");
         }
@@ -252,6 +256,8 @@ namespace Saiyaheim.Transformations
 
             seman.AddStatusEffect(GetTemplate(form));
 
+            TransformationEffects.OnPowerUp(player, form);
+
             Message(player, $"{form.DisplayName}!");
             SaiyaheimPlugin.LogVerbose(
                 $"Transformed into {form.DisplayName}: x{form.GetPowerMultiplier():0.##} power, " +
@@ -266,6 +272,7 @@ namespace Saiyaheim.Transformations
         private static void Stop(Player player, SEMan seman, string message)
         {
             RemoveAll(seman);
+            TransformationEffects.OnPowerDown(player);
             SaiyaheimPlugin.LogVerbose($"Powered down. {message}");
 
             Message(player, message);
