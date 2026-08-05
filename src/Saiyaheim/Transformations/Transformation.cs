@@ -185,6 +185,22 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Quanto do dano de contusão do soco esta forma converte em corte, em 0–1.
+        ///
+        /// <b>Converte, não soma.</b> O total do golpe é o mesmo — quem define a força da forma
+        /// continua sendo o <see cref="GetPowerMultiplier"/> sozinho. O que muda é contra o que
+        /// esse total bate: a armadura do Valheim é por tipo de dano, então um golpe partido em
+        /// dois tipos é menos punido por um inimigo que resiste a um deles.
+        ///
+        /// Clamp e não confiança no <c>AcceptableValueRange</c>: acima de 1 o soco ficaria com
+        /// contusão negativa, e dano negativo cura o alvo.
+        /// </summary>
+        internal float GetPunchSlashFraction()
+        {
+            return Mathf.Clamp01(Config.PunchSlashFraction.Value);
+        }
+
+        /// <summary>
         /// O dreno agora, já com a maestria descontada.
         ///
         /// <code>dreno = base * (1 - nivel/100 * reducao_no_100)</code>

@@ -104,6 +104,12 @@ namespace Saiyaheim
         /// <summary>Ki gasto por ponto de dano que o poder somou ao soco. Ki insuficiente não cancela o golpe, só tira o bônus.</summary>
         public static ConfigEntry<float> PunchKiCostPerDamage { get; private set; }
 
+        /// <summary>
+        /// Taxa do desconto hiperbólico que o poder de combate dá nos <b>três</b> custos de ki do
+        /// combate: soco, dano recebido e bloqueio. 0 desliga. Ver <c>PowerLevel.KiCostFactorFor</c>.
+        /// </summary>
+        public static ConfigEntry<float> KiCostPowerReduction { get; private set; }
+
         /// <summary>Fração do power level somada ao dano do soco.</summary>
         public static ConfigEntry<float> PunchDamageFromPower { get; private set; }
 
@@ -152,6 +158,12 @@ namespace Saiyaheim
 
             /// <summary>Dreno base por segundo, antes da redução por maestria.</summary>
             public ConfigEntry<float> KiDrainPerSecond { get; internal set; }
+
+            /// <summary>
+            /// Fração do dano de contusão do soco convertida em corte enquanto a forma está ativa.
+            /// Converte, não soma: o total do golpe não muda.
+            /// </summary>
+            public ConfigEntry<float> PunchSlashFraction { get; internal set; }
 
             /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
@@ -577,6 +589,47 @@ namespace Saiyaheim
                     "cost readable.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
+            // O conserto da assimetria que o playtest de 2026-08-04 expos: os TRES custos de
+            // combate saem do poder de COMBATE, que nao tem teto (o termo de fim de jogo cresce
+            // para sempre e a forma multiplica), e a barra de ki sai do NIVEL da skill, que para em
+            // 100. Um numero que cresce sem fim dividido por um que parou: o combate fica
+            // impagavel — primeiro transformado, depois sempre.
+            //
+            // Uma chave para os tres, e nao uma por consumidor: e' o mesmo fenomeno nos tres, e
+            // separa-las convidaria a um estado incoerente — soco barato e bloqueio caro — sem
+            // nenhuma pergunta de design por tras da diferenca.
+            //
+            // Hiperbolico e nao linear, pela mesma razao do voo: a entrada nao tem teto, e um
+            // `1 - r * poder` atravessaria o zero e viraria golpe que DEVOLVE ki.
+            KiCostPowerReduction = config.Bind(SecCombat, "KiCostPowerReduction", 0.01f,
+                new ConfigDescription(
+                    "How much the combat power level makes the three COMBAT ki costs cheaper — " +
+                    "punching (PunchKiCostPerDamage), taking hits (DamageTakenKiCost) and blocking " +
+                    "(BlockKiCost) — as 1 / (1 + this * combat power). 0 disables the discount and " +
+                    "the costs stay strictly proportional to what ki delivered. " +
+                    "Why it exists: all three costs come from the combat power level, which has no " +
+                    "ceiling — the late-game term grows forever and a transformation multiplies it " +
+                    "— while the ki bar comes from the Battle Power SKILL level, which stops at " +
+                    "100. Without this, a punch eventually costs more than a full bar and lands " +
+                    "with raw vanilla damage, and blocking drains the bar in two hits. \n" +
+                    "The shape matters: each cost approaches its own rate divided by this and " +
+                    "never passes it, so actions per bar settles instead of falling to zero. For " +
+                    "the punch at 0.01 that ceiling is 15 ki, so a full bar always buys a long " +
+                    "fight no matter how far the power level runs. \n" +
+                    "It also fixes transformations without a key of its own: a form multiplies the " +
+                    "power, and it is the power that buys the discount, so the ratio of damage per " +
+                    "bar between transformed and not approaches the form's PowerMultiplier " +
+                    "instead of sitting at 1. \n" +
+                    "One key for all three deliberately: it is the same problem in all of them, and " +
+                    "splitting it would invite cheap punches next to expensive blocks with no " +
+                    "design question behind the difference. \n" +
+                    "Early game the power is small, so the discount is a few percent and the " +
+                    "values calibrated on 2026-08-01 still hold there. " +
+                    "(Playtest value, 2026-08-04. Started at 0.002, which was still tight enough " +
+                    "that the transformed fight lived on the edge of the bar; 0.01 is what made " +
+                    "the combat read as combat instead of bar management.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(95)));
+
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
                     "Fraction of the power level ADDED to punch damage. Additive, not multiplicative: " +
@@ -737,6 +790,7 @@ namespace Saiyaheim
             Ssj = BindTransformation(config, SecSsj,
                 powerMultiplier: 2f,
                 kiDrainPerSecond: 5f,
+                punchSlashFraction: 0.5f,
                 hairColor: "#FFE14A",
                 requiredGlobalKey: "defeated_eikthyr");
 
@@ -1312,7 +1366,7 @@ namespace Saiyaheim
         /// </summary>
         private static TransformationConfig BindTransformation(
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
-            string hairColor, string requiredGlobalKey)
+            float punchSlashFraction, string hairColor, string requiredGlobalKey)
         {
             return new TransformationConfig
             {
@@ -1344,6 +1398,24 @@ namespace Saiyaheim
                         "reading of getting stronger. " +
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(90))),
+
+                // O sabor da forma no golpe. Converter e nao somar e' o ponto: um tipo de dano novo
+                // que viesse por cima seria um segundo multiplicador de forca escondido dentro de
+                // uma decisao estetica, e o PowerMultiplier deixaria de ser "a forca inteira da
+                // forma" que a descricao dele promete.
+                PunchSlashFraction = config.Bind(section, "PunchSlashFraction", punchSlashFraction,
+                    new ConfigDescription(
+                        "Fraction of the punch's BLUNT damage turned into SLASH while this form is " +
+                        "active. 0.5 = half and half. The total damage of the hit does not change: " +
+                        "this moves damage between types, it does not add any. " +
+                        "It applies to the whole punch — vanilla unarmed damage plus the Battle " +
+                        "Power bonus — and only to unarmed attacks. " +
+                        "What it is for: armor is per damage type in Valheim, so a form that hits " +
+                        "with two types is less punished by an enemy that resists one of them. " +
+                        "Blunt and slash both count toward stagger, so the split does not change " +
+                        "how fast a target staggers. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 1f), AdminOnly(85))),
 
                 MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", 0.8f,
                     new ConfigDescription(

@@ -203,6 +203,77 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
+        /// Quanto ki este soco custa, já com o desconto do poder. Ver
+        /// <see cref="GetKiCostFactor"/> para o desconto em si.
+        /// </summary>
+        internal static float GetPunchKiCost(Player player, float bonus)
+        {
+            if (player == null || bonus <= 0f)
+            {
+                return 0f;
+            }
+
+            return bonus * SaiyaheimConfig.PunchKiCostPerDamage.Value * GetKiCostFactor(player);
+        }
+
+        /// <summary>
+        /// O desconto que o poder dá nos <b>três</b> custos de ki do combate — socar, apanhar e
+        /// bloquear. Em 0–1; devolve 1 (sem desconto) enquanto o config estiver em zero.
+        ///
+        /// <b>O problema que ele resolve</b> (playtest de 2026-08-04): os três custos nascem
+        /// proporcionais ao serviço que o ki prestou, e esse serviço vem do poder de
+        /// <b>combate</b> — que não tem teto. O termo de fim de jogo cresce para sempre e a
+        /// transformação multiplica tudo. A barra de ki, do outro lado, vem do <b>nível</b> da
+        /// skill de Battle Power, que para em 100. Um número que cresce sem fim dividido por um que
+        /// parou de crescer: mais cedo ou mais tarde um soco custa a barra inteira e sai com o dano
+        /// vanilla cru, e dois bloqueios esvaziam a barra. O SSJ apenas antecipou isso, dobrando os
+        /// custos hoje em vez de daqui a vinte níveis.
+        ///
+        /// <b>Um fator para os três</b>, e não um por consumidor: é o mesmo fenômeno nos três, e
+        /// separá-los convidaria a um estado incoerente — soco barato ao lado de bloqueio caro —
+        /// sem nenhuma pergunta de design por trás da diferença.
+        ///
+        /// <b>Hiperbólico, e pela mesma razão do voo</b> (<c>FlightStats.GetPowerCostFactor</c>):
+        /// a entrada não tem teto, então um <c>1 - r × poder</c> atravessaria o zero e viraria um
+        /// golpe que <i>devolve</i> ki. O <c>1 / (1 + r × poder)</c> decai para sempre sem nunca
+        /// chegar a zero — a mesma forma que o <c>ApplyArmor</c> do próprio Valheim usa.
+        ///
+        /// A consequência boa é que <b>cada custo satura</b>: tende à taxa dele dividida por esta e
+        /// nunca passa disso. Como a barra também tem teto, ações por barra estabiliza em vez de
+        /// cair a zero.
+        ///
+        /// <b>E conserta a transformação sem chave própria.</b> A forma multiplica o poder, e é o
+        /// poder que compra o desconto: a razão de dano por barra entre transformado e não
+        /// transformado tende ao <c>PowerMultiplier</c> da forma, em vez de ficar em 1 como ficava.
+        ///
+        /// ⚠️ <b>Lê o poder inteiro, ao contrário do voo</b>, que lê só o termo de fim de jogo. Lá
+        /// o motivo é que o custo do voo é fixo por segundo e baratear cedo desmontaria o
+        /// <c>FlightKiPerSecond</c> alto. Aqui os custos <b>já</b> são proporcionais ao poder,
+        /// então o hiperbólico só corrige um crescimento que já existe — e no começo do jogo, com o
+        /// poder pequeno, o desconto é de poucos por cento.
+        /// </summary>
+        internal static float GetKiCostFactor(Player player)
+        {
+            return player == null ? 1f : KiCostFactorFor(GetKiCombatRaw(player));
+        }
+
+        /// <summary>
+        /// O fator de desconto de um poder de combate <b>hipotético</b>. Existe pelo mesmo motivo
+        /// que o <see cref="PunchBonusFor"/>: o <c>saiya_form</c> mostra o antes e o depois da
+        /// transformação sem transformar o jogador nem copiar a fórmula.
+        /// </summary>
+        internal static float KiCostFactorFor(float combatPower)
+        {
+            float rate = SaiyaheimConfig.KiCostPowerReduction.Value;
+            if (rate <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f / (1f + rate * Mathf.Max(0f, combatPower));
+        }
+
+        /// <summary>
         /// Armadura derivada do poder, que <b>substitui</b> a do equipamento enquanto o ki está
         /// ligado. A parcela base existe para o jogador não ficar mais frágil ao ligar o ki no
         /// começo do jogo, quando a skill ainda está em nível baixo.

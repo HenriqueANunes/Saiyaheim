@@ -103,13 +103,22 @@ namespace Saiyaheim.Power
                     return;
                 }
 
+                // O mesmo desconto do soco e do dano recebido, e pelo mesmo motivo: o block power
+                // cresce com o poder, então para mais golpe e cobra mais, enquanto a barra parou de
+                // crescer no nível 100. Ver PowerLevel.GetKiCostFactor.
+                //
+                // O jogador local, e não o `__instance`: o Prefix só marca a janela quando os dois
+                // são o mesmo objeto, então aqui já é uma identidade verificada — e o KiManager é
+                // do jogador local de qualquer forma.
+                float cost = blocked * rate * PowerLevel.GetKiCostFactor(Player.m_localPlayer);
+
                 // Drain e não TryConsume: quando chegamos aqui o bloqueio já aconteceu e o dano já
                 // foi reduzido. Não há o que cancelar, então a barra vazia simplesmente deixa de
                 // pagar o que falta — igual ao custo por dano recebido, e ao contrário do soco.
-                KiManager.Drain(blocked * rate);
+                KiManager.Drain(cost);
 
                 SaiyaheimPlugin.LogVerbose(
-                    $"Ki block stopped {blocked:0.#} damage → {blocked * rate:0.#} ki " +
+                    $"Ki block stopped {blocked:0.#} damage → {cost:0.#} ki " +
                     $"({KiManager.Current:0.#} left).");
             }
         }

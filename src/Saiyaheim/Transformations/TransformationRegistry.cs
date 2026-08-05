@@ -162,6 +162,18 @@ namespace Saiyaheim.Transformations
             return active == null ? 1f : active.GetPowerMultiplier();
         }
 
+        /// <summary>
+        /// Quanto do dano de contusão do soco a forma ativa converte em corte. 0 fora de forma,
+        /// que é o caso da esmagadora maioria das chamadas — e também o de uma forma que não
+        /// tempera o golpe.
+        /// </summary>
+        internal static float GetPunchSlashFraction(Player player)
+        {
+            Transformation active = GetActive(player);
+
+            return active == null ? 0f : active.GetPunchSlashFraction();
+        }
+
         /// <summary>Nome da forma ativa, para log e HUD. Null se não há forma.</summary>
         internal static string GetActiveName(Player player)
         {

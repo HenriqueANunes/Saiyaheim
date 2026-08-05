@@ -216,6 +216,81 @@ namespace Saiyaheim.Debugging
             Print($"  armor {PowerLevel.ArmorFor(outOfForm):0} → {PowerLevel.ArmorFor(inForm):0}, " +
                   $"punch bonus {PowerLevel.PunchBonusFor(outOfForm):0.#} → " +
                   $"{PowerLevel.PunchBonusFor(inForm):0.#}");
+
+            PrintDamageSplit(form, PowerLevel.PunchBonusFor(inForm));
+            PrintPunchEconomy(outOfForm, inForm);
+        }
+
+        /// <summary>
+        /// O que a forma faz com a <b>economia</b> do soco, e não só com o dano dele.
+        ///
+        /// Existe por causa do playtest de 2026-08-04, em que o SSJ parecia bugado — o primeiro
+        /// soco saía com dano cheio e os seguintes com o dano vanilla cru. Não era bug: a forma
+        /// dobrava o custo do soco sem dobrar a barra, e o segundo soco não cabia. Nenhuma tela do
+        /// mod mostrava isso, e o diagnóstico só saiu lendo o <c>LogOutput.log</c>.
+        ///
+        /// <b>Socos por barra é a linha que importa</b>, mais do que o custo em si: é ela que diz
+        /// se transformar melhora ou piora a luta. Se o valor em forma for menor que fora dela, a
+        /// forma está cobrando mais do que entrega.
+        /// </summary>
+        private void PrintPunchEconomy(float outOfForm, float inForm)
+        {
+            float costOut = PunchCostFor(outOfForm);
+            float costIn = PunchCostFor(inForm);
+            float max = KiManager.Max;
+
+            Print($"  punch cost {costOut:0.#} → {costIn:0.#} ki" +
+                  $"{DescribeDiscount(inForm)}");
+
+            if (costOut <= 0f || costIn <= 0f || max <= 0f)
+            {
+                return;
+            }
+
+            // Dano por barra e' o teste de fogo da forma: dobrar o dano do soco e' inutil se a
+            // barra passar a comprar metade dos socos.
+            Print($"  punches per full bar ({max:0} ki): {max / costOut:0.#} → {max / costIn:0.#}" +
+                  $"   bonus damage per bar: {max / costOut * PowerLevel.PunchBonusFor(outOfForm):0} → " +
+                  $"{max / costIn * PowerLevel.PunchBonusFor(inForm):0}");
+        }
+
+        /// <summary>O custo de ki de um soco a um poder de combate hipotético.</summary>
+        private static float PunchCostFor(float combatPower)
+        {
+            return PowerLevel.PunchBonusFor(combatPower)
+                   * SaiyaheimConfig.PunchKiCostPerDamage.Value
+                   * PowerLevel.KiCostFactorFor(combatPower);
+        }
+
+        /// <summary>O desconto por poder no soco em forma, ou string vazia se está desligado.</summary>
+        private static string DescribeDiscount(float inForm)
+        {
+            float factor = PowerLevel.KiCostFactorFor(inForm);
+
+            return factor >= 1f
+                ? ""
+                : $"   (power discount in form: x{factor:0.###}, {(1f - factor) * 100f:0}% off)";
+        }
+
+        /// <summary>
+        /// Como o soco desta forma se reparte entre tipos de dano.
+        ///
+        /// Impresso em cima do bônus de poder porque é o número que domina o golpe; o dano
+        /// desarmado vanilla é repartido junto, na mesma proporção, e é pequeno demais para mudar
+        /// a leitura. Uma linha só, e omitida quando a forma não reparte nada — sem repartição não
+        /// há o que conferir, e a tela do <c>saiya_form</c> já é longa.
+        /// </summary>
+        private void PrintDamageSplit(Transformation form, float punchBonus)
+        {
+            float slash = form.GetPunchSlashFraction();
+            if (slash <= 0f)
+            {
+                return;
+            }
+
+            Print($"  punch damage split: {(1f - slash) * 100f:0}% blunt / {slash * 100f:0}% slash " +
+                  $"({punchBonus * (1f - slash):0.#} + {punchBonus * slash:0.#} of the bonus) " +
+                  "— same total, spread over two types");
         }
 
         /// <summary>

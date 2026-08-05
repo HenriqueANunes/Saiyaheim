@@ -262,6 +262,11 @@
         <p class="hint">Fuling Berserker bate ~90; Seeker Soldier, ~110. Serve para ler o dano recebido depois da armadura.</p>
         <div class="ctl"><div class="row"><label for="dmg">PunchDamageFromPower</label><output id="dmg-out"></output></div>
           <input type="range" id="dmg" min="0" max="0.3" step="0.005" value="0.05"></div>
+        <p class="hint">O custo do soco sai do poder de <b>combate</b>, que não tem teto; a barra de ki sai do <b>nível</b>, que para em 100. Sem o desconto abaixo essa tesoura só abre — e a forma, que multiplica o poder e não a barra, abre ela mais rápido.</p>
+        <div class="ctl"><div class="row"><label for="pkc">PunchKiCostPerDamage</label><output id="pkc-out"></output></div>
+          <input type="range" id="pkc" min="0" max="10" step="0.1" value="3"></div>
+        <div class="ctl"><div class="row"><label for="pkr">KiCostPowerReduction <b>novo</b></label><output id="pkr-out"></output></div>
+          <input type="range" id="pkr" min="0" max="0.02" step="0.0001" value="0.01"></div>
         <div class="ctl"><div class="row"><label for="armb">ArmorBase</label><output id="armb-out"></output></div>
           <input type="range" id="armb" min="0" max="40" step="1" value="1"></div>
         <div class="ctl"><div class="row"><label for="armp">ArmorFromPower</label><output id="armp-out"></output></div>
@@ -343,6 +348,8 @@
               <button type="button" data-stat="armor">armadura</button>
               <button type="button" data-stat="taken">dano recebido</button>
               <button type="button" data-stat="punch">dano do soco</button>
+              <button type="button" data-stat="punchcost">custo do soco</button>
+              <button type="button" data-stat="punches">socos por barra</button>
               <button type="button" data-stat="block">block</button>
               <button type="button" data-stat="flycost">custo de voo</button>
               <button type="button" data-stat="range">autonomia de voo</button>
@@ -435,7 +442,7 @@
   const XP_TOTAL = xpTo[MAXLVL];
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
-  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "armb", "armp", "blkb", "blkp",
+  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fb", "fp", "fs", "fm", "tm", "td", "tr", "tl",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
@@ -496,6 +503,13 @@
     const powerCut = 1 / (1 + v("fkp") * lateBonus(L, k5));
     const flycost = Math.max(0, v("fki") * skillCut * powerCut);
 
+    // Custo do soco: proporcional ao bonus, e o poder de combate desconta por cima. Mesma forma
+    // hiperbolica do voo, mas lendo o poder INTEIRO e nao so' o termo de fim de jogo — o custo do
+    // soco ja' e' proporcional ao poder, entao o desconto so' corrige um crescimento que ja'
+    // existia. Espelha PowerLevel.GetPunchKiCost.
+    const punch = power * v("dmg");
+    const punchcost = Math.max(0, punch * v("pkc") / (1 + v("pkr") * power));
+
     const armor = Math.round(v("armb") + power * v("armp"));
     const nxt = Math.min(L + 1, MAXLVL);
     const gain = (combatPower(nxt, k5) - combatPower(L, k5)) * mult;
@@ -508,7 +522,14 @@
       formtime: drain > 0 ? kiMax / drain : Infinity,
       armor,
       taken: applyArmor(v("hit"), armor),
-      punch: power * v("dmg"),
+      punch,
+      punchcost,
+      punches: punchcost > 0 ? kiMax / punchcost : Infinity,
+
+      // Dano por barra nao e' plotavel de proposito — como curva ele nao dizia nada que "socos
+      // por barra" ja' nao dissesse. Continua calculado porque e' ele que alimenta o alerta da
+      // transformacao la' embaixo, onde a COMPARACAO entre transformado e nao e' o ponto inteiro.
+      punchbar: punchcost > 0 ? kiMax / punchcost * punch : Infinity,
       block: v("blkb") + power * v("blkp"),
       flycost,
       range: flycost > 0 ? kiMax / flycost : Infinity,
@@ -525,6 +546,8 @@
     armor: { label: "Armadura", sub: "ArmorBase + poder de combate × ArmorFromPower, arredondada", dec: 0, unit: "" },
     taken: { label: "Dano recebido por golpe", sub: "fórmula real do Valheim, depois da armadura. Cai por 1/armadura — nunca chega a zero", dec: 1, unit: "" },
     punch: { label: "Dano do soco", sub: "bônus somado ao soco desarmado", dec: 1, unit: "" },
+    punchcost: { label: "Custo do soco", sub: "ki por soco, já com o desconto do poder. Satura em PunchDamageFromPower × PunchKiCostPerDamage ÷ KiCostPowerReduction — nunca passa disso", dec: 1, unit: " ki" },
+    punches: { label: "Socos por barra cheia", sub: "teto de ki ÷ custo do soco. Cair não é problema; cair abaixo de 2 é — um soco que não cabe na barra sai com o dano vanilla cru", dec: 1, unit: "" },
     block: { label: "Block power", sub: "escudo de madeira é 18,5; serpentscale, 94", dec: 1, unit: "" },
     flycost: { label: "Custo de voo", sub: "ki por segundo, modo lento. É aqui que o termo de fim de jogo entra no voo", dec: 2, unit: " ki/s" },
     range: { label: "Autonomia de voo", sub: "segundos no ar com a barra cheia — a recompensa real do fim de jogo", dec: 0, unit: " s" },
@@ -744,7 +767,21 @@
     const formTaken = model(100, k5, true).taken;
     const formHeavy = formMult(true) > 1.0001 && formTaken < v("hit") * 0.06;
 
-    if (armorHeavy) {
+    // O alerta que faltava em 2026-08-04, quando o SSJ pareceu bugado no playtest: a forma dobrava
+    // o dano do soco E o custo dele, sem dobrar a barra, entao o dano total por barra ficava
+    // IGUAL — e o segundo soco nao cabia, saindo com o dano vanilla cru. O grafico mostrava a
+    // linha do dano dobrada e nada dizendo isso.
+    const form100 = model(100, k5, true);
+    const formStarves = formMult(true) > 1.0001 && form100.punchbar <= m100.punchbar * 1.05;
+    const punchStarves = m100.punches < 2;
+
+    if (punchStarves) {
+      txt += ` <strong>O soco não cabe na barra:</strong> no nível 100 são ${fmt(m100.punches, 1)} socos com a barra cheia, e abaixo de 1 o golpe sai com o dano vanilla cru — o bônus simplesmente não é cobrado. Suba o <code>KiCostPowerReduction</code>.`;
+      verdict.classList.add("is-warn");
+    } else if (formStarves) {
+      txt += ` <strong>A transformação cobra o que entrega:</strong> no nível 100 ela dá ${fmt(form100.punch / m100.punch, 2)}× de dano por soco, mas o dano total por barra de ki fica em ${fmt(form100.punchbar / m100.punchbar, 2)}× — a forma multiplica o custo junto com o dano e o teto de ki não acompanha. Suba o <code>KiCostPowerReduction</code>: é o poder que compra o desconto, então a forma passa a se pagar.`;
+      verdict.classList.add("is-warn");
+    } else if (armorHeavy) {
       txt += ` <strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.`;
       verdict.classList.add("is-warn");
     } else if (formHeavy) {
@@ -779,6 +816,8 @@
       ]),
       L("2.1 - Combat", [
         kv("PunchDamageFromPower", n("dmg", 3)),
+        kv("PunchKiCostPerDamage", n("pkc", 1)),
+        kv("KiCostPowerReduction", n("pkr", 4)),
         kv("ArmorBase", n("armb", 0)),
         kv("ArmorFromPower", n("armp", 3)),
         kv("BlockPowerBase", n("blkb", 0)),
@@ -808,7 +847,7 @@
   }
 
   // ── render ────────────────────────────────────────────────────────────────
-  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, armb: 0, armp: 3, blkb: 0,
+  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fb: 1, fp: 3, fs: 2, fm: 0,
                     tm: 1, td: 1, tr: 2, tl: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };

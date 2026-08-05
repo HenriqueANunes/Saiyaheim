@@ -73,14 +73,56 @@ namespace Saiyaheim.Power
         {
             if (IsPunch(skill))
             {
-                // Contusão pura: é o soco base. O sabor por forma — misturar uma fração de raio ou
-                // fogo conforme a transformação ativa — continua em aberto e entraria aqui.
+                // Contusão pura: é o soco base. O sabor por forma entra logo abaixo, repartindo
+                // este total — nunca somando.
                 hitData.m_damage.m_blunt += ResolveBonusForThisFrame();
+
+                ApplyFormFlavor(hitData);
             }
 
             // Base por último: o SE_Stats multiplica, e queremos (base + poder) * mult,
             // não base * mult + poder.
             base.ModifyAttack(skill, ref hitData);
+        }
+
+        /// <summary>
+        /// O tempero da forma ativa no soco: move uma fração da contusão para corte.
+        ///
+        /// <b>Move, não soma.</b> O total do golpe sai daqui igual ao que entrou — a força da forma
+        /// continua sendo só o <c>PowerMultiplier</c>, e o que muda é contra o que ela bate. A
+        /// armadura do Valheim é por tipo (<c>m_damageModifiers</c>), então um golpe partido em
+        /// dois tipos é menos punido por um inimigo que resiste a um deles, e menos premiado por um
+        /// que é fraco ao outro. Contusão e corte contam igual para stagger, então o ritmo do
+        /// combate não muda.
+        ///
+        /// <b>Reparte o soco inteiro</b>, não só o bônus de poder: "metade do meu soco é corte" é
+        /// uma afirmação sobre o golpe, e o dano desarmado vanilla é parte dele. Na prática a
+        /// diferença é de dígito único, já que o bônus domina o total desde cedo.
+        ///
+        /// <b>Aqui e não num <c>ModifyAttack</c> do <see cref="Transformations.SE_Transformation"/></b>,
+        /// que seria o lugar óbvio: o <c>SEMan.ModifyAttack</c> percorre os efeitos na ordem de
+        /// inserção, então uma repartição lá poderia rodar <i>antes</i> deste bônus existir e
+        /// deixar o bônus inteiro como contusão. É a mesma armadilha de ordem que o cabeçalho desta
+        /// classe descreve, e a resposta continua sendo a mesma: um único efeito mexe no
+        /// <c>HitData</c>.
+        ///
+        /// <c>HitData</c> é classe, e o <c>Attack.DoMeleeAttack</c> cria um por alvo atingido —
+        /// escrever nele aqui não vaza para o alvo seguinte do mesmo golpe.
+        /// </summary>
+        private void ApplyFormFlavor(HitData hitData)
+        {
+            float fraction = Transformations.TransformationRegistry
+                .GetPunchSlashFraction(m_character as Player);
+
+            if (fraction <= 0f)
+            {
+                return;
+            }
+
+            float moved = hitData.m_damage.m_blunt * fraction;
+
+            hitData.m_damage.m_blunt -= moved;
+            hitData.m_damage.m_slash += moved;
         }
 
         /// <summary>
@@ -160,15 +202,21 @@ namespace Saiyaheim.Power
                 return;
             }
 
+            // O mesmo desconto do soco, e pelo mesmo motivo: a armadura de ki cresce com o poder,
+            // então absorve mais e cobra mais, enquanto a barra parou de crescer no nível 100. Sem
+            // isto, apanhar fica progressivamente impagável junto com bater. Ver
+            // PowerLevel.GetKiCostFactor.
+            float cost = absorbed * rate * PowerLevel.GetKiCostFactor(player);
+
             // Drain e não TryConsume: a barra vazia não impede o golpe de acontecer, e o
             // que sobrar do custo simplesmente não é cobrado.
-            KiManager.Drain(absorbed * rate);
+            KiManager.Drain(cost);
 
             // Sem isto a calibração do DamageTakenKiCost é às cegas: na tela o jogador só vê a
             // barra andar, não quanto do golpe a armadura barrou.
             SaiyaheimPlugin.LogVerbose(
                 $"Hit for {hit.GetTotalDamage():0.#} raw, ki armor absorbed {absorbed:0.#} " +
-                $"→ {absorbed * rate:0.#} ki ({KiManager.Current:0.#} left).");
+                $"→ {cost:0.#} ki ({KiManager.Current:0.#} left).");
         }
 
         /// <summary>
@@ -252,10 +300,14 @@ namespace Saiyaheim.Power
         /// <summary>
         /// Cobra o ki do golpe uma única vez por frame e devolve o bônus de dano que ele comprou.
         ///
-        /// <b>O custo é proporcional ao bônus</b>, espelhando o <c>OnDamaged</c>: lá se cobra pelo
-        /// dano que a armadura de ki barrou, aqui pelo dano que o poder somou. Os dois medem o
-        /// serviço que o ki prestou, e por isso envelhecem bem — um custo fixo faria o soco ficar
-        /// cada vez mais barato em relação ao que entrega, já que o bônus cresce com o poder.
+        /// <b>O custo sai do bônus</b>, espelhando o <c>OnDamaged</c>: lá se cobra pelo dano que a
+        /// armadura de ki barrou, aqui pelo dano que o poder somou. Os dois medem o serviço que o
+        /// ki prestou, e por isso envelhecem bem — um custo fixo faria o soco ficar cada vez mais
+        /// barato em relação ao que entrega, já que o bônus cresce com o poder.
+        ///
+        /// Proporcional puro ele já não é: o <see cref="PowerLevel.GetPunchKiCost"/> desconta o
+        /// poder por cima, porque proporção pura envelhecia para o outro lado — o bônus cresce sem
+        /// teto e a barra de ki não. Ver lá.
         ///
         /// <b>O dano desarmado vanilla sai de graça</b>, e é a leitura certa: o ki não o produziu.
         /// É também o único número disponível aqui — quanto dano o golpe de fato aplica só se sabe
@@ -290,7 +342,7 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            float cost = bonus * SaiyaheimConfig.PunchKiCostPerDamage.Value;
+            float cost = PowerLevel.GetPunchKiCost(player, bonus);
             if (cost > 0f && !KiManager.TryConsume(cost))
             {
                 return 0f;
@@ -300,8 +352,15 @@ namespace Saiyaheim.Power
 
             // Simétrico ao log do OnDamaged, e pelo mesmo motivo: sem ele a calibração do
             // PunchKiCostPerDamage é às cegas — na tela só se vê a barra andar.
+            // A repartição por forma acontece depois disto e não aparece aqui: quem a mostra é o
+            // saiya_form, com o golpe inteiro em vez de só o bônus.
+            // O desconto entra no log porque sem ele a calibração do KiCostPowerReduction é
+            // impossível: o custo sozinho não diz de quanto ele já foi abatido.
+            float factor = PowerLevel.GetKiCostFactor(player);
+
             SaiyaheimPlugin.LogVerbose(
-                $"Punch bonus {bonus:0.#} blunt → {cost:0.#} ki ({KiManager.Current:0.#} left).");
+                $"Punch bonus {bonus:0.#} → {cost:0.#} ki ({KiManager.Current:0.#} left)" +
+                $"{(factor < 1f ? $", power discount x{factor:0.###}" : "")}.");
 
             return bonus;
         }
