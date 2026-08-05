@@ -403,7 +403,7 @@ namespace Saiyaheim
                     null, ClientSide(95)));
 
             ToggleFlightKey = config.Bind(SecGeral, "ToggleFlightKey",
-                new KeyboardShortcut(KeyCode.V),
+                new KeyboardShortcut(KeyCode.F),
                 new ConfigDescription(
                     "Key that takes off and lands. Once airborne, movement is the usual one: " +
                     "the game's Jump button climbs, Crouch descends and Run flies fast.",
@@ -555,7 +555,7 @@ namespace Saiyaheim
             // Substituiu a chave `PunchKiCost` (fixa, 6) em 2026-08-01. Renomeada de proposito:
             // o valor antigo num .cfg existente significaria 6 de ki por PONTO de dano bonus,
             // dezenas de ki por soco. O nome novo forca o default novo. Apagar a linha orfa.
-            PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 1f,
+            PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 3f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the power level ADDED to the punch — the " +
                     "mirror of DamageTakenKiCost, which charges per point the ki armor absorbed. " +
@@ -566,7 +566,9 @@ namespace Saiyaheim
                     "hit: the punch lands with raw vanilla damage, without the bonus. Missing " +
                     "costs nothing (the charge happens on the hit, not on the swing). Set to zero " +
                     "to disable the cost. " +
-                    "(Starts at 1 to match DamageTakenKiCost — first playtest is 2026-08-01.)",
+                    "(Playtest value, 2026-08-01: started at 1 to match DamageTakenKiCost and the " +
+                    "punch was nearly free — the bar barely moved in a fight. 3 is what made the " +
+                    "cost readable.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
@@ -1133,18 +1135,20 @@ namespace Saiyaheim
             // --- Battle Power ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
-            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.05f,
+            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.1f,
                 new ConfigDescription(
                     "XP per point of damage dealt, CAPPED at the target's remaining HP. That cap is " +
                     "what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts as 10. " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "(Playtest value, 2026-08-01: 0.05 made the early levels crawl.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(100)));
 
-            SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.05f,
+            SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.1f,
                 new ConfigDescription(
                     "XP per point of damage taken, measured AFTER armor. Measuring it after armor is " +
                     "what kills the exploit of taking hits on purpose from a weak enemy: taking " +
-                    "little damage pays little.",
+                    "little damage pays little. " +
+                    "(Playtest value, 2026-08-01: kept equal to XpPerDamageDealt on purpose — the " +
+                    "two sides of the fight should pay the same.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
             SkillXpWeightBonus = config.Bind(SecPowerSkill, "XpWeightBonus", 1f,
