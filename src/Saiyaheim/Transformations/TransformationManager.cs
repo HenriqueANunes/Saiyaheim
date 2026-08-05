@@ -237,10 +237,12 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            if (!form.IsUnlocked(player))
+            // A mensagem vem da própria forma: ela sabe qual das travas está fechada, e "mata o
+            // Eikthyr" e "treina até o nível 20" mandam fazer coisas diferentes.
+            string lockReason = form.GetLockReason(player);
+            if (lockReason != null)
             {
-                Message(player,
-                    $"Battle Power {form.Config.MinBattlePower.Value:0} required for {form.DisplayName}.");
+                Message(player, lockReason);
                 return;
             }
 

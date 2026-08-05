@@ -1,5 +1,6 @@
 using Jotunn.Managers;
 using Saiyaheim.Power;
+using Saiyaheim.Util;
 using UnityEngine;
 
 namespace Saiyaheim.Transformations
@@ -46,6 +47,26 @@ namespace Saiyaheim.Transformations
         /// <summary>Hash pelo qual o <c>SEMan</c> identifica a forma. Cacheado: é o custo do lookup.</summary>
         internal int NameHashValue { get; }
 
+        /// <summary>
+        /// Ignora as travas <b>desta forma</b>: a global key do boss e o <c>MinBattlePower</c>.
+        /// Ligado só pelo <c>saiya_form &lt;forma&gt; unlock</c>, e só com <c>devcommands</c>.
+        ///
+        /// <b>Por que existe em vez de mandar usar o <c>setglobalkey</c> do jogo.</b> Aquele
+        /// comando funciona, e testa o caminho real — mas escreve <c>defeated_eikthyr</c> no save
+        /// do <b>mundo</b>, e a chave não é só do mod: ela controla raids e spawns do Valheim.
+        /// Testar a trava sujaria o mundo de jogar. Este atalho não toca em nada de fora do mod.
+        ///
+        /// <b>É por forma, e não um interruptor geral</b>, porque a pergunta do playtest é sobre um
+        /// degrau: "como é o SSJ2 antes do Bonemass" quer o SSJ2 aberto e o resto da escada como
+        /// está. Um interruptor geral só sabe responder "tudo aberto", que é outra pergunta.
+        ///
+        /// <b>Não é persistido, de propósito.</b> Vive na memória e morre com o processo. Uma
+        /// trava desligada que sobrevivesse ao restart seria um playtest mentindo em silêncio, e a
+        /// mentira só apareceria muito depois. Pelo mesmo motivo o <c>saiya_form</c> avisa na
+        /// primeira linha enquanto houver qualquer forma assim.
+        /// </summary>
+        internal bool IgnoreLocks { get; set; }
+
         internal Skills.SkillType SkillType { get; private set; } = Skills.SkillType.None;
 
         internal bool IsRegistered => SkillType != Skills.SkillType.None;
@@ -82,21 +103,57 @@ namespace Saiyaheim.Transformations
         /// <summary>
         /// O jogador já destravou esta forma?
         ///
-        /// Destravar é só Battle Power: a forma existe desde sempre e o que falta é o jogador
-        /// chegar no nível. Ki e estado (morto, dormindo) <b>não</b> entram aqui — aquilo é
-        /// "não posso agora", isto é "não posso ainda", e a tecla de ir direto ao topo precisa
-        /// justamente da segunda pergunta.
+        /// Destravar tem <b>duas</b> travas independentes, e as duas precisam estar abertas:
+        /// o boss (<c>RequiredGlobalKey</c>, a trava da escada) e o nível de Battle Power
+        /// (<c>MinBattlePower</c>, treino). Hoje só a primeira está em uso — a escada é ritmada por
+        /// bosses, e exigir grind por cima ritmaria duas vezes a mesma progressão.
+        ///
+        /// Ki e estado (morto, dormindo) <b>não</b> entram aqui: aquilo é "não posso agora", isto é
+        /// "não posso <i>ainda</i>", e a tecla de ir direto ao topo precisa justamente da segunda
+        /// pergunta para saber a que forma ir.
         /// </summary>
         internal bool IsUnlocked(Player player)
         {
+            return GetLockReason(player) == null;
+        }
+
+        /// <summary>
+        /// O que falta para esta forma destravar, em uma frase, ou null se ela já está destravada.
+        ///
+        /// Existe separado do <see cref="IsUnlocked"/> porque as duas travas falham por motivos
+        /// diferentes e o jogador precisa saber <b>qual</b>: "mata o Eikthyr" e "treina até o nível
+        /// 20" mandam fazer coisas que não se parecem. A regra de desbloqueio continua morando num
+        /// lugar só — o booleano é derivado daqui, e não o contrário.
+        /// </summary>
+        internal string GetLockReason(Player player)
+        {
             if (player == null || !IsRegistered)
             {
-                return false;
+                // Skill não registrada não é trava a burlar: é o mod carregado errado, e o
+                // IgnoreLocks abaixo não deve esconder isso.
+                return $"{DisplayName} is not available.";
+            }
+
+            if (IgnoreLocks)
+            {
+                return null;
+            }
+
+            // O boss primeiro: é a trava que o jogo inteiro usa para marcar progresso, e é a que
+            // vai estar fechada na esmagadora maioria das vezes em que esta mensagem aparecer.
+            string bossLock = BossGate.DescribeLock(Config.RequiredGlobalKey.Value);
+            if (bossLock != null)
+            {
+                return bossLock;
             }
 
             float required = Config.MinBattlePower.Value;
+            if (required > 0f && PowerSkill.GetLevel(player) < required)
+            {
+                return $"Battle Power {required:0} required for {DisplayName}.";
+            }
 
-            return required <= 0f || PowerSkill.GetLevel(player) >= required;
+            return null;
         }
 
         /// <summary>Nível de maestria, 0–100.</summary>

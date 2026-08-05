@@ -162,6 +162,12 @@ namespace Saiyaheim
             /// <summary>Nível mínimo de Battle Power para entrar na forma. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinBattlePower { get; internal set; }
 
+            /// <summary>
+            /// Global key do boss que destrava a forma. Vazio desliga a trava. Ver
+            /// <c>Util.BossGate</c>.
+            /// </summary>
+            public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
+
             /// <summary>Cor do cabelo enquanto a forma está ativa, em #RRGGBB. Vazio não pinta.</summary>
             public ConfigEntry<string> HairColor { get; internal set; }
 
@@ -721,12 +727,18 @@ namespace Saiyaheim
                     null, ClientSide(60)));
 
             // --- Transformacoes ---
-            // Uma chamada por forma. A escada de bosses (etapa 7) e' repetir esta linha com
-            // outra secao e outros defaults.
+            // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir
+            // esta linha com outra secao, outros numeros e a global key do boss dele.
+            //
+            // O SSJ atras do Eikthyr: e' o primeiro boss e cai na primeira hora de jogo, entao a
+            // trava e' curta de proposito. Ela nao existe para segurar o jogador longe da forma —
+            // existe para que transformar seja uma COISA QUE ACONTECE, com um antes e um depois,
+            // em vez de um botao que sempre esteve la. Ver [[Progressao por Bosses]].
             Ssj = BindTransformation(config, SecSsj,
                 powerMultiplier: 2f,
                 kiDrainPerSecond: 5f,
-                hairColor: "#FFE14A");
+                hairColor: "#FFE14A",
+                requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
             FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 15f,
@@ -1300,7 +1312,7 @@ namespace Saiyaheim
         /// </summary>
         private static TransformationConfig BindTransformation(
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
-            string hairColor)
+            string hairColor, string requiredGlobalKey)
         {
             return new TransformationConfig
             {
@@ -1360,9 +1372,30 @@ namespace Saiyaheim
                 MinBattlePower = config.Bind(section, "MinBattlePower", 0f,
                     new ConfigDescription(
                         "Minimum Battle Power level required to enter this form. 0 disables the " +
-                        "gate. A placeholder for the boss gating of step 7 — same role " +
-                        "Flight.MinBattlePower plays for flying.",
+                        "gate. This is the TRAINING gate, and it is independent of the boss gate " +
+                        "below: with both set, the form needs both. Left at 0 for every form so " +
+                        "far, because the ladder is paced by bosses and grinding a skill to reach " +
+                        "a form would pace it twice.",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(60))),
+
+                // A trava de verdade da escada. Vazio = sem trava, que e' o que toda forma nova
+                // deve nascer com — amarrar a um boss e' decisao de design, nao default.
+                RequiredGlobalKey = config.Bind(section, "RequiredGlobalKey", requiredGlobalKey,
+                    new ConfigDescription(
+                        "Global key of the boss that unlocks this form. Empty disables the gate. " +
+                        "The key belongs to the WORLD, not to the character: the server syncs it " +
+                        "for free, it survives in the world save, and it counts for everyone in " +
+                        "that world — so someone joining later arrives with whatever the group " +
+                        "has already killed. That is the intended reading for a world played " +
+                        "with friends: the ladder measures the world's progress, not each " +
+                        "player's trophy list.\n" +
+                        "The five valid keys, and mind that two of them are NOT named after the " +
+                        "boss: defeated_eikthyr (Eikthyr), defeated_gdking (The Elder), " +
+                        "defeated_bonemass (Bonemass), defeated_dragon (MODER), " +
+                        "defeated_goblinking (YAGLUTH). A key that does not exist is not an " +
+                        "error — it is a form that never unlocks. Check the current state with " +
+                        "saiya_form.",
+                        null, AdminOnly(58))),
 
                 // Cosmetico, entao ClientSide como o resto da secao 8: pintar o cabelo nao muda
                 // numero nenhum, e o servidor nao tem por que impor gosto visual. A cor troca via

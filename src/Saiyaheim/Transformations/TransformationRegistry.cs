@@ -29,6 +29,42 @@ namespace Saiyaheim.Transformations
         };
 
         /// <summary>
+        /// A forma cujo <see cref="Transformation.Id"/> ou nome casa com <paramref name="name"/>,
+        /// ou null. Insensível a caixa: quem digita no console não deve ter que acertar
+        /// maiúscula.
+        /// </summary>
+        internal static Transformation Find(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            foreach (Transformation form in All)
+            {
+                if (string.Equals(form.Id, name, System.StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(form.DisplayName, name, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return form;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>As formas com a trava desligada por debug. Vazio no caso normal.</summary>
+        internal static IEnumerable<Transformation> Unlocked()
+        {
+            foreach (Transformation form in All)
+            {
+                if (form.IgnoreLocks)
+                {
+                    yield return form;
+                }
+            }
+        }
+
+        /// <summary>
         /// O degrau acima de <paramref name="current"/>, ou null se já está no topo. Null como
         /// entrada significa forma base, então devolve o primeiro degrau.
         /// </summary>

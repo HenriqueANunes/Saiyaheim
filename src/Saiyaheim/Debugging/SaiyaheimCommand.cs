@@ -65,11 +65,23 @@ namespace Saiyaheim.Debugging
             _context?.AddString($"[Saiyaheim] {message}");
         }
 
+        /// <summary>O número logo depois do subcomando, no formato <c>saiya_x acao 50</c>.</summary>
         protected static bool TryParseAmount(string[] args, out float amount)
         {
+            return TryParseAmount(args, 1, out amount);
+        }
+
+        /// <summary>
+        /// O número numa posição qualquer. O <c>saiya_form</c> precisa disto porque aceita o nome
+        /// da forma antes do subcomando (<c>saiya_form ssj skill 50</c>), e aí o número desliza uma
+        /// casa para a direita.
+        /// </summary>
+        protected static bool TryParseAmount(string[] args, int index, out float amount)
+        {
             amount = 0f;
-            return args.Length > 1 &&
-                   float.TryParse(args[1], NumberStyles.Float, CultureInfo.InvariantCulture, out amount);
+            return args.Length > index &&
+                   float.TryParse(args[index], NumberStyles.Float, CultureInfo.InvariantCulture,
+                       out amount);
         }
     }
 }
