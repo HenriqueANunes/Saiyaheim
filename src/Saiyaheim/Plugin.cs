@@ -72,9 +72,11 @@ namespace Saiyaheim
             // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
             TransformationRegistry.Register();
 
-            // Quatro patches, todos mínimos e nenhum em física: Character.ApplyDamage para
+            // Cinco patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
-            // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch), e o par
+            // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch),
+            // CharacterAnimEvent.CustomLateUpdate para as poses procedurais — voo e carregamento
+            // de ki — escreverem depois do animator (ver PoseDriver), e o par
             // Humanoid.BlockAttack + ItemData.GetBlockPower para o bloqueio escalar com o poder
             // (ver BlockPowerPatch — é o único stat sem hook nativo de StatusEffect).
             // Dano, armadura e o voo em si saem de StatusEffect.

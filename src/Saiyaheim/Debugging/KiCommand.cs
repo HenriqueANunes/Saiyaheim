@@ -16,6 +16,7 @@ namespace Saiyaheim.Debugging
     /// saiya_ki full         enche
     /// saiya_ki empty        zera
     /// saiya_ki toggle       liga/desliga o ki
+    /// saiya_ki pose         segura a pose de carregamento, para calibrar
     /// </code>
     ///
     /// Como no <see cref="PowerCommand"/>: ler o estado é livre, mas tudo que escreve no ki é
@@ -26,10 +27,10 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_ki";
 
         public override string Help =>
-            "Tests ki. Usage: saiya_ki [set <n> | drain <n> | full | empty | toggle]";
+            "Tests ki. Usage: saiya_ki [set <n> | drain <n> | full | empty | toggle | pose]";
 
         public override List<string> CommandOptionList() =>
-            new List<string> { "set", "drain", "full", "empty", "toggle" };
+            new List<string> { "set", "drain", "full", "empty", "toggle", "pose" };
 
         protected override void Execute(string[] args)
         {
@@ -41,9 +42,22 @@ namespace Saiyaheim.Debugging
 
             string action = args.Length > 0 ? args[0].ToLowerInvariant() : null;
 
-            // Sem argumento é leitura pura; todo subcomando daqui escreve no ki, então todos passam
+            // Sem argumento é leitura pura; quase todo subcomando daqui escreve no ki, então passam
             // pelo porteiro. O typo é rejeitado antes, senão "isso é cheat" sai para quem só errou
             // de digitar.
+            //
+            // O 'pose' é a exceção e sai antes: ele não toca no ki, só segura um desenho na tela
+            // para calibrar os números da pose no ConfigurationManager sem a barra encher e o
+            // carregamento parar sozinho no meio do ajuste. Exigir devcommands para olhar o próprio
+            // personagem seria porteiro sem porta.
+            if (action == "pose")
+            {
+                KiChargePose.DebugHold = !KiChargePose.DebugHold;
+                Print($"Charging pose held: {(KiChargePose.DebugHold ? "on" : "off")}" +
+                      $"{(SaiyaheimConfig.ChargePoseEnabled.Value ? "" : " (but ChargePose.Enabled is off)")}");
+                return;
+            }
+
             if (action != null)
             {
                 if (!CommandOptionList().Contains(action))

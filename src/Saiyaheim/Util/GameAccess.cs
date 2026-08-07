@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -123,30 +122,15 @@ namespace Saiyaheim.Util
             }
         }
 
-        /// <summary>
-        /// <c>Character.StopEmote()</c> é protected. Poderia ser substituído por
-        /// <c>StartEmote("")</c>, mas esse caminho passa antes por checagens de
-        /// <c>CanMove()</c>/<c>InAttack()</c> e falharia justamente quando mais precisamos parar.
-        /// </summary>
-        private static readonly MethodInfo StopEmoteMethod =
-            AccessTools.Method(typeof(Character), "StopEmote");
-
-        internal static void StopEmote(Player player)
-        {
-            if (StopEmoteMethod == null || player == null)
-            {
-                return;
-            }
-
-            try
-            {
-                StopEmoteMethod.Invoke(player, null);
-            }
-            catch (Exception ex)
-            {
-                SaiyaheimPlugin.Log.LogWarning($"Failed to stop the emote: {ex.Message}");
-            }
-        }
+        // Aqui moraram dois acessos a emote, removidos em 2026-08-07 junto com o emote de
+        // carregamento: `Character.StopEmote()` (protected) e `Player.m_emoteState` (private).
+        //
+        // O segundo vale ser lembrado, porque é a solução de um problema que vai voltar: o
+        // `Player.UpdateEmote` roda em **toda** cópia do jogador, em toda máquina, e copia para o
+        // `m_emoteState` o nome que veio da ZDO — e só no ramo de emote **em loop**, nunca no de
+        // disparo único. Ou seja, um `StartEmote(nome, oneshot: false)` é um flag booleano
+        // sincronizado de graça, legível por qualquer cliente. Se um dia for preciso replicar um
+        // estado sustentado sem escrever RPC nem status effect, o caminho é esse.
 
         /// <summary>
         /// Cria o acessor sem derrubar o mod se o campo sumir numa atualização do jogo —

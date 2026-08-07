@@ -1,6 +1,5 @@
-using System;
 using System.Collections.Generic;
-using HarmonyLib;
+using Saiyaheim.Ki;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -14,26 +13,26 @@ namespace Saiyaheim.Flight
     /// pernas afastadas na postura de andar, braços caídos, nada muda quando ele acelera.
     ///
     /// <b>A saída.</b> Voar parado e voar para frente não são duas performances, são duas
-    /// <i>poses</i> — e pose é um punhado de rotações. Este arquivo lê a pose que o animator acabou
-    /// de produzir, sobrescreve os controles que interessam e devolve.
+    /// <i>poses</i> — e pose é um punhado de rotações. Esta classe lê a pose que o animator acabou
+    /// de produzir e sobrescreve os controles que interessam; quem faz a leitura e a devolução é o
+    /// <see cref="PoseDriver"/>, que é o dono do hook e do handler.
     ///
     /// <b>Espaço de músculos, não rotação de osso.</b> Escrever <c>localRotation</c> osso a osso
     /// exigiria saber qual eixo local de cada osso é "afastar o braço" — e isso depende da bind pose
-    /// do rig. O sistema humanoide da Unity já resolve: <see cref="HumanPoseHandler"/> expõe a pose
-    /// como ~95 <b>músculos</b> nomeados em escala normalizada [-1, 1], onde os extremos são os
-    /// limites que o próprio avatar declara.
-    ///
-    /// <b>Por que aqui.</b> <c>CharacterAnimEvent.CustomLateUpdate</c> é public e roda na fase de
-    /// LateUpdate (via <c>MonoUpdaters.LateUpdate.CharacterAnimEvent</c>), ou seja <b>depois</b> de
-    /// o animator ter escrito a pose do frame — a mesma janela em que o jogo aplica rotação de
-    /// cabeça e IK de pés.
+    /// do rig. O sistema humanoide da Unity já resolve: ver <see cref="HumanMuscles"/>.
     ///
     /// <b>Multiplayer.</b> Nada disto é replicado, e não precisa: o <see cref="SE_Flight"/> já
     /// sincroniza por ZDO, então cada cliente descobre quem está voando e aplica a pose localmente.
-    /// Por isso o postfix roda em <b>todo</b> <c>Player</c>, não só no local.
+    /// Por isso o driver roda em <b>todo</b> <c>Player</c>, não só no local.
     /// </summary>
-    internal static class FlightPose
+    internal sealed class FlightPose : IPoseContributor
     {
+        internal static readonly FlightPose Instance = new FlightPose();
+
+        private FlightPose()
+        {
+        }
+
         // ---------- A pose, fixa no código ----------
         //
         // Ficou em config enquanto era chute, para o playtest poder mexer sem recompilar. Depois de
@@ -123,13 +122,10 @@ namespace Saiyaheim.Flight
         private const string MuscleFootL = "Left Foot Up-Down";
         private const string MuscleFootR = "Right Foot Up-Down";
 
-        private static Dictionary<string, int> _muscleIndex;
+        private static bool _warnedMissing;
 
         private sealed class PoseState
         {
-            internal HumanPoseHandler Handler;
-            internal HumanPose Pose;
-
             /// <summary>0 a 1. Faz a pose entrar e sair sem estalo.</summary>
             internal float Weight;
 
@@ -143,41 +139,18 @@ namespace Saiyaheim.Flight
         private static readonly Dictionary<Character, PoseState> States =
             new Dictionary<Character, PoseState>();
 
-        private static float _nextSweepTime;
-
-        private const float SweepInterval = 5f;
-
-        [HarmonyPatch(typeof(CharacterAnimEvent), nameof(CharacterAnimEvent.CustomLateUpdate))]
-        private static class Patch
+        public float Step(Player player, float deltaTime)
         {
-            private static void Postfix(CharacterAnimEvent __instance, float deltaTime)
-            {
-                Apply(__instance, deltaTime);
-            }
-        }
-
-        private static void Apply(CharacterAnimEvent animEvent, float deltaTime)
-        {
-            SweepDestroyed();
-
-            // Roda em todo personagem carregado, inclusive bicho: sair barato importa.
-            if (!(GameAccess.GetAnimEventCharacter(animEvent) is Player player))
-            {
-                return;
-            }
-
             bool flying = FlightManager.IsFlying(player);
 
             if (!flying && !States.ContainsKey(player))
             {
-                return;
+                return 0f;
             }
 
+            WarnMissingOnce();
+
             PoseState state = GetOrCreateState(player);
-            if (state == null)
-            {
-                return;
-            }
 
             state.ActionWeight = Mathf.MoveTowards(
                 state.ActionWeight,
@@ -189,11 +162,24 @@ namespace Saiyaheim.Flight
 
             if (state.Weight <= 0f)
             {
-                Release(player);
-                return;
+                States.Remove(player);
+                return 0f;
             }
 
-            ApplyPose(player, state);
+            return state.Weight;
+        }
+
+        public void Apply(Player player, ref HumanPose pose)
+        {
+            if (States.TryGetValue(player, out PoseState state))
+            {
+                ApplyPose(player, state, ref pose);
+            }
+        }
+
+        public void Forget(Character character)
+        {
+            States.Remove(character);
         }
 
         /// <summary>
@@ -203,15 +189,9 @@ namespace Saiyaheim.Flight
         /// que se inclina continuamente conforme o jogador acelera. O componente vertical fica de
         /// fora — subir na vertical não deve deitar o corpo para frente.
         /// </summary>
-        private static void ApplyPose(Player player, PoseState state)
+        private static void ApplyPose(Player player, PoseState state, ref HumanPose pose)
         {
-            state.Handler.GetHumanPose(ref state.Pose);
-
-            float[] muscles = state.Pose.muscles;
-            if (muscles == null)
-            {
-                return;
-            }
+            float[] muscles = pose.muscles;
 
             // Dois pesos, e a divisão importa. As **pernas** ficam na pose durante um golpe: são
             // elas que dizem "isto é voo", e nenhuma animação de ataque do Valheim depende delas
@@ -255,12 +235,10 @@ namespace Saiyaheim.Flight
 
                 // Guinada e inclinação são orientação do quadril: saem junto com o resto do corpo,
                 // senão volta a torção do primeiro playtest.
-                SquareToHeading(ref state.Pose, muscles, action);
-                PitchForward(ref state.Pose, speed01, fast01, vertical01, action);
+                SquareToHeading(ref pose, muscles, action);
+                PitchForward(ref pose, speed01, fast01, vertical01, action);
                 ApplyMuscles(muscles, speed01, fast01, action, legs);
             }
-
-            state.Handler.SetHumanPose(ref state.Pose);
         }
 
         /// <summary>
@@ -409,20 +387,8 @@ namespace Saiyaheim.Flight
             Blend(muscles, MuscleFootR, ToePoint, legs);
         }
 
-        /// <summary>
-        /// Escreve o músculo interpolado com o que o animator produziu. O peso é o que permite a
-        /// pose entrar por cima da animação vanilla em vez de substituí-la de uma vez.
-        /// </summary>
-        private static void Blend(float[] muscles, string name, float target, float weight)
-        {
-            int index = GetMuscleIndex(name);
-            if (index < 0 || index >= muscles.Length)
-            {
-                return;
-            }
-
-            muscles[index] = Mathf.Lerp(muscles[index], target, weight);
-        }
+        private static void Blend(float[] muscles, string name, float target, float weight) =>
+            HumanMuscles.Blend(muscles, name, target, weight);
 
         private static float StepWeight(float weight, bool flying, float deltaTime)
         {
@@ -453,8 +419,11 @@ namespace Saiyaheim.Flight
         /// que o <see cref="FlightPosePatch"/> já mantém. Cai fora a categoria de bug em vez de um
         /// caso dela — o chute do golpe secundário, que mexe nas pernas, vem junto de graça.
         ///
-        /// <c>InEmote</c> entra na lista de propósito: o carregamento de ki é um emote, e sem isto
-        /// a pose de voo comeria aquela animação do mesmo jeito.
+        /// <c>InEmote</c> entra na lista para a pose não comer a animação de um emote que o jogador
+        /// tenha pedido. O <see cref="KiChargePose.IsPosing"/> vem junto e é o que resolve carregar
+        /// ki no ar: são duas poses procedurais disputando o mesmo corpo, e quem cede é o voo.
+        /// (Até 2026-08-07 o carregamento era um emote e caía no <c>InEmote</c>; hoje não é mais,
+        /// e sem esta segunda checagem as duas brigariam.)
         /// </summary>
         private static float ActionTarget(Player player)
         {
@@ -462,7 +431,8 @@ namespace Saiyaheim.Flight
                         || player.IsBlocking()
                         || player.InMinorAction()
                         || player.InDodge()
-                        || player.InEmote();
+                        || player.InEmote()
+                        || KiChargePose.IsPosing(player);
 
             return busy ? 0f : 1f;
         }
@@ -474,121 +444,27 @@ namespace Saiyaheim.Flight
                 return existing;
             }
 
-            Animator animator = GameAccess.GetAnimator(player);
-
-            // isHuman é a checagem que importa: sem avatar humanoide válido o HumanPoseHandler
-            // lança no construtor, e lançar aqui seria uma vez por frame.
-            if (animator == null || !animator.isHuman || animator.avatar == null)
-            {
-                return null;
-            }
-
-            PoseState state;
-            try
-            {
-                state = new PoseState
-                {
-                    Handler = new HumanPoseHandler(animator.avatar, animator.transform),
-                    Pose = new HumanPose(),
-                    Weight = 0f,
-                };
-            }
-            catch (Exception ex)
-            {
-                SaiyaheimPlugin.Log.LogWarning($"Failed to create the flight pose handler: {ex.Message}");
-                return null;
-            }
-
+            PoseState state = new PoseState { Weight = 0f };
             States[player] = state;
-            SaiyaheimPlugin.LogVerbose("Flight pose handler created.");
             return state;
         }
 
-        private static void Release(Character character)
+        private static void WarnMissingOnce()
         {
-            if (!States.TryGetValue(character, out PoseState state))
+            if (_warnedMissing)
             {
                 return;
             }
 
-            state.Handler?.Dispose();
-            States.Remove(character);
-        }
+            _warnedMissing = true;
 
-        /// <summary>
-        /// Morrer voando destrói o personagem sem passar por <see cref="Release"/> — o postfix
-        /// simplesmente para de ser chamado por ele. Sem esta varredura o handler nativo ficaria
-        /// pendurado até o jogo fechar.
-        /// </summary>
-        private static void SweepDestroyed()
-        {
-            if (Time.time < _nextSweepTime)
-            {
-                return;
-            }
-
-            _nextSweepTime = Time.time + SweepInterval;
-
-            List<KeyValuePair<Character, PoseState>> dead = null;
-            foreach (KeyValuePair<Character, PoseState> entry in States)
-            {
-                // O operador == da Unity: um objeto destruído compara igual a null.
-                if (entry.Key == null)
-                {
-                    (dead ?? (dead = new List<KeyValuePair<Character, PoseState>>())).Add(entry);
-                }
-            }
-
-            if (dead == null)
-            {
-                return;
-            }
-
-            foreach (KeyValuePair<Character, PoseState> entry in dead)
-            {
-                entry.Value.Handler?.Dispose();
-                States.Remove(entry.Key);
-            }
-        }
-
-        private static int GetMuscleIndex(string name)
-        {
-            if (_muscleIndex == null)
-            {
-                BuildMuscleIndex();
-            }
-
-            return _muscleIndex.TryGetValue(name, out int index) ? index : -1;
-        }
-
-        private static void BuildMuscleIndex()
-        {
-            _muscleIndex = new Dictionary<string, int>();
-
-            string[] names = HumanTrait.MuscleName;
-            for (int i = 0; i < names.Length; i++)
-            {
-                _muscleIndex[names[i]] = i;
-            }
-
-            // Um nome que não resolve degrada para "esse músculo não é tocado", o que é uma pose
-            // pior e não um crash. Mas vale saber que aconteceu: numa atualização do jogo que mexa
-            // no rig, é este aviso que explica a pose ficar estranha.
-            foreach (string required in new[]
-                     {
-                         MuscleSpine, MuscleChest, MuscleSpineTwist, MuscleChestTwist,
-                         MuscleUpperChestTwist, MuscleArmSpreadL, MuscleArmSpreadR,
-                         MuscleArmSwingL, MuscleArmSwingR, MuscleElbowL, MuscleElbowR,
-                         MuscleLegSwingL, MuscleLegSwingR, MuscleLegSpreadL, MuscleLegSpreadR,
-                         MuscleKneeL, MuscleKneeR, MuscleFootL, MuscleFootR,
-                     })
-            {
-                if (!_muscleIndex.ContainsKey(required))
-                {
-                    SaiyaheimPlugin.Log.LogWarning(
-                        $"Muscle '{required}' not found in this rig. The flight pose will ignore it.");
-                }
-            }
+            HumanMuscles.WarnMissing(
+                "The flight pose",
+                MuscleSpine, MuscleChest, MuscleSpineTwist, MuscleChestTwist,
+                MuscleUpperChestTwist, MuscleArmSpreadL, MuscleArmSpreadR,
+                MuscleArmSwingL, MuscleArmSwingR, MuscleElbowL, MuscleElbowR,
+                MuscleLegSwingL, MuscleLegSwingR, MuscleLegSpreadL, MuscleLegSpreadR,
+                MuscleKneeL, MuscleKneeR, MuscleFootL, MuscleFootR);
         }
     }
 }

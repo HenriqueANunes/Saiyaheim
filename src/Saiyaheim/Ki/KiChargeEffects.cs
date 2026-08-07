@@ -6,22 +6,21 @@ using UnityEngine;
 namespace Saiyaheim.Ki
 {
     /// <summary>
-    /// Feedback do carregamento de ki: animação, efeito visual e som.
+    /// Feedback do carregamento de ki: efeito visual e som.
     ///
-    /// Tudo reaproveitado do jogo — **nada exige Blender ou Unity**:
+    /// **Visual e som:** prefabs `fx_`/`sfx_` do jogo, instanciados presos ao transform do
+    /// jogador pelo <see cref="AttachedEffect"/> — que é quem sabe tingir sem sujar o material
+    /// compartilhado e desarmar o autodestruir dos prefabs. Ver [[Prefabs do Jogo]] no vault
+    /// para a paleta levantada. Nada disto exige Blender ou Unity.
     ///
-    /// - **Animação:** um emote existente em loop, via <c>Player.StartEmote(nome, oneshot: false)</c>.
-    ///   O emote é escrito na ZDO, então **replica no multiplayer de graça** — outros jogadores
-    ///   veem a pose sem nenhum RPC nosso. O jogo também interrompe emote sozinho quando o
-    ///   jogador anda, o que casa com carregar parado.
-    /// - **Visual e som:** prefabs `fx_`/`sfx_` do jogo, instanciados presos ao transform do
-    ///   jogador pelo <see cref="AttachedEffect"/> — que é quem sabe tingir sem sujar o material
-    ///   compartilhado e desarmar o autodestruir dos prefabs. Ver [[Prefabs do Jogo]] no vault
-    ///   para a paleta levantada.
+    /// **A pose saiu daqui.** Até 2026-08-07 este arquivo também tocava um emote em loop
+    /// (<c>roar</c>), que era o que fazia as vezes de animação. Quem faz a pose agora é a
+    /// <see cref="KiChargePose"/>, procedural, e o emote foi removido: um grito por cima de uma
+    /// pose escrita músculo a músculo é uma animação brigando com a outra, e na tela ficou ruim.
     ///
-    /// Os nomes de prefab e de emote ficam **em config**, não no código: qual pose e qual efeito
-    /// "lê" como carregar ki é julgamento visual, e quem vê a tela é o Henrique. Trocar deve
-    /// custar editar um .cfg, não uma recompilação.
+    /// Os nomes de prefab ficam **em config**, não no código: qual efeito "lê" como carregar ki é
+    /// julgamento visual, e quem vê a tela é o Henrique. Trocar deve custar editar um .cfg, não
+    /// uma recompilação.
     ///
     /// <b>Carregar transformado usa a cor da forma</b>, não a azul do config — ver
     /// <see cref="ResolveColor"/>.
@@ -30,7 +29,6 @@ namespace Saiyaheim.Ki
     {
         private static GameObject _vfx;
         private static GameObject _sfx;
-        private static bool _emoteStarted;
         private static bool _disabled;
 
         /// <summary>
@@ -40,7 +38,7 @@ namespace Saiyaheim.Ki
         /// </summary>
         private static string _vfxColor;
 
-        private static bool IsActive => _vfx != null || _sfx != null || _emoteStarted;
+        private static bool IsActive => _vfx != null || _sfx != null;
 
         internal static void Update(Player player, bool charging)
         {
@@ -57,7 +55,7 @@ namespace Saiyaheim.Ki
                 }
                 else if (!charging && IsActive)
                 {
-                    Stop(player);
+                    Cleanup();
                 }
                 else if (charging)
                 {
@@ -82,17 +80,10 @@ namespace Saiyaheim.Ki
             _vfx = null;
             _sfx = null;
             _vfxColor = null;
-            _emoteStarted = false;
         }
 
         private static void Start(Player player)
         {
-            if (SaiyaheimConfig.ChargeEmote.Value.Length > 0)
-            {
-                // oneshot: false = fica em loop até mandarmos parar.
-                _emoteStarted = player.StartEmote(SaiyaheimConfig.ChargeEmote.Value, oneshot: false);
-            }
-
             _vfxColor = ResolveColor(player);
 
             _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, _vfxColor);
@@ -158,17 +149,6 @@ namespace Saiyaheim.Ki
                 color,
                 SaiyaheimConfig.ChargeEffectScale.Value,
                 SaiyaheimConfig.ChargeEffectForceLoop.Value);
-        }
-
-        private static void Stop(Player player)
-        {
-            if (_emoteStarted)
-            {
-                GameAccess.StopEmote(player);
-                _emoteStarted = false;
-            }
-
-            Cleanup();
         }
 
         private static void Cleanup()

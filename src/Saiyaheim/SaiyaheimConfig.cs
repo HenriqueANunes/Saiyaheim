@@ -50,6 +50,20 @@ namespace Saiyaheim
         private const string SecPowerSkill = "6.1 - Battle Power";
         private const string SecHud = "7 - HUD";
         private const string SecEffects = "8 - Effects";
+
+        /// <summary>
+        /// A pose procedural de carregamento de ki, músculo a músculo.
+        ///
+        /// <b>Seção temporária, de propósito.</b> Estes números estão aqui pelo mesmo motivo que os
+        /// da pose de voo estiveram: pose é julgamento visual, quem vê a tela é o Henrique, e
+        /// recompilar a cada ajuste de meio grau mataria a iteração. Quando a pose estiver
+        /// calibrada ela vira constante no código — como o <c>FlightPose</c> virou em 2026-07-31 —
+        /// e esta seção some do <c>.cfg</c> de quem instalar depois.
+        ///
+        /// Client-side: a pose é desenho local, cada jogador aplica a sua em todo mundo que vê.
+        /// </summary>
+        private const string SecChargePose = "8.1 - Ki Charge Pose";
+
         private const string SecDebug = "9 - Debug";
 
         // ---------- 1 - General ----------
@@ -395,14 +409,60 @@ namespace Saiyaheim
 
         // ---------- 8 - Effects ----------
 
-        /// <summary>Emote em loop tocado enquanto carrega. Vazio desliga.</summary>
-        public static ConfigEntry<string> ChargeEmote { get; private set; }
+        // Aqui morava o ChargeEmote, removido em 2026-08-07: o emote de carregamento saiu inteiro
+        // quando a pose procedural entrou. Ver KiChargePose.
 
         public static ConfigEntry<string> ChargeEffectPrefab { get; private set; }
         public static ConfigEntry<string> ChargeSoundPrefab { get; private set; }
         public static ConfigEntry<string> ChargeEffectColor { get; private set; }
         public static ConfigEntry<float> ChargeEffectScale { get; private set; }
         public static ConfigEntry<bool> ChargeEffectForceLoop { get; private set; }
+
+        // ---------- 8.1 - Ki Charge Pose ----------
+        //
+        // Espaco de intencao, nao espaco de musculo: **positivo e sempre "mais do que o nome diz"**.
+        // A traducao para o sinal do musculo da Unity mora em KiChargePose, nas constantes
+        // LeanSign/HeadTiltSign/ShrugSign. Se alguma coisa sair invertida na tela, o conserto e la
+        // e nao aqui.
+        //
+        // A excecao e o ArmDown, que e alvo absoluto no espaco de musculo — mesma convencao do
+        // HoverArmSpread do voo, e por isso mesmo esta documentada na descricao dele.
+
+        /// <summary>Desliga a pose. Sem ela o carregamento não tem animação nenhuma.</summary>
+        public static ConfigEntry<bool> ChargePoseEnabled { get; private set; }
+
+        public static ConfigEntry<float> ChargePoseBlendSeconds { get; private set; }
+
+        // Um peso por grupo de músculos, porque **zero num alvo não quer dizer "não mexe"**:
+        // "Left Arm Down-Up = 0" e' T-pose e "Left Upper Leg In-Out = 0" e' pernas juntas. Dizer
+        // "deixa como a animacao deixou" e' nao escrever aquele musculo, e e' isso que peso zero
+        // faz. Serve para acender um grupo por vez na calibragem.
+        // O tronco sao **tres** grupos e nao um: peito, peito alto e lombar sao articulacoes
+        // diferentes no rig do Valheim, e so a lombar arrasta o quadril. Ver KiChargePose.
+        public static ConfigEntry<float> ChargePoseChestWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseUpperChestWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseSpineWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseShoulderWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseHeadWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseArmWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseLegWeight { get; private set; }
+        public static ConfigEntry<float> ChargePoseChestLean { get; private set; }
+        public static ConfigEntry<float> ChargePoseUpperChestLean { get; private set; }
+        public static ConfigEntry<float> ChargePoseSpineLean { get; private set; }
+        public static ConfigEntry<float> ChargePoseShoulderShrug { get; private set; }
+        public static ConfigEntry<float> ChargePoseHeadTilt { get; private set; }
+        public static ConfigEntry<float> ChargePoseArmDown { get; private set; }
+        public static ConfigEntry<float> ChargePoseArmBack { get; private set; }
+        public static ConfigEntry<float> ChargePoseArmTwist { get; private set; }
+        public static ConfigEntry<float> ChargePoseElbowBend { get; private set; }
+        public static ConfigEntry<float> ChargePoseFistClench { get; private set; }
+        public static ConfigEntry<float> ChargePoseStanceWidth { get; private set; }
+        public static ConfigEntry<float> ChargePoseKneeBend { get; private set; }
+        public static ConfigEntry<float> ChargePoseHipDrop { get; private set; }
+        public static ConfigEntry<float> ChargePoseStrain { get; private set; }
+        public static ConfigEntry<float> ChargePoseStrainSpeed { get; private set; }
+        public static ConfigEntry<float> ChargePoseTremor { get; private set; }
+        public static ConfigEntry<float> ChargePoseTremorSpeed { get; private set; }
 
         /// <summary>Emote de disparo único tocado ao transformar. Vazio desliga.</summary>
         public static ConfigEntry<string> TransformEmote { get; private set; }
@@ -1128,12 +1188,6 @@ namespace Saiyaheim
             // efeito "le" como carregar ki e julgamento visual — e quem ve a tela e o Henrique.
             // Trocar deve custar editar este arquivo, nao uma recompilacao.
             // "roar" foi o emote escolhido no playtest: é o que lê como power up.
-            ChargeEmote = config.Bind(SecEffects, "ChargeEmote", "roar",
-                new ConfigDescription(
-                    "Emote looped while charging ki. Empty disables the animation. " +
-                    "Only emotes the player Animator knows work, and only the Bool ones loop.",
-                    null, ClientSide(100)));
-
             ChargeEffectPrefab = config.Bind(SecEffects, "ChargeEffectPrefab", "fx_DvergerMage_Support_start",
                 new ConfigDescription(
                     "Visual effect prefab attached to the player while charging. Empty disables it. " +
@@ -1168,6 +1222,210 @@ namespace Saiyaheim
                     "a quick burst; without this the effect disappears on its own after a second. " +
                     "Turn it off if some prefab looks wrong when repeating.",
                     null, ClientSide(60)));
+
+            // --- A pose de carregamento ---
+            //
+            // Ordem decrescente para o ConfigurationManager mostrar de cima para baixo na sequencia
+            // em que se calibra: primeiro o interruptor, depois o tronco, os bracos, as pernas e por
+            // ultimo a vida.
+
+            ChargePoseEnabled = config.Bind(SecChargePose, "Enabled", true,
+                new ConfigDescription(
+                    "Procedurally poses the body while charging ki, muscle by muscle, on top of " +
+                    "whatever the game's animation is doing. Off means charging has no animation " +
+                    "at all — the emote it replaced was removed on 2026-08-07.",
+                    null, ClientSide(200)));
+
+            ChargePoseBlendSeconds = config.Bind(SecChargePose, "BlendSeconds", 0.25f,
+                new ConfigDescription(
+                    "Seconds for the pose to come in when you start charging and to leave when you " +
+                    "stop. Zero snaps.",
+                    new AcceptableValueRange<float>(0f, 2f), ClientSide(199)));
+
+            // Os cinco interruptores de grupo. Ficam no topo da secao, logo abaixo do Enabled,
+            // porque sao por onde a calibragem comeca: acender um grupo, ajustar os alvos dele,
+            // acender o proximo.
+            ChargePoseChestWeight = config.Bind(SecChargePose, "ChestWeight", 1f,
+                new ConfigDescription(
+                    "How much of the CHEST the pose owns. THIS IS A SWITCH, not an intensity: zero " +
+                    "is not 'neutral chest', it is 'do not touch the chest, leave the animation " +
+                    "alone'. That distinction is why every group here has a weight — a target of " +
+                    "zero would force a muscle to its neutral value, which is itself a pose. " +
+                    "Same for every other weight below. " +
+                    "The chest is the joint that bends the torso WITHOUT taking the hips with it, " +
+                    "which is why it is the one that starts on.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(198)));
+
+            ChargePoseUpperChestWeight = config.Bind(SecChargePose, "UpperChestWeight", 0f,
+                new ConfigDescription(
+                    "How much of the UPPER chest the pose owns — the joint above the chest, the " +
+                    "most isolated of the three. Use it on top of the chest for a deeper bend that " +
+                    "still does not reach the hips, or alone for the subtlest possible lean.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(197)));
+
+            ChargePoseSpineWeight = config.Bind(SecChargePose, "SpineWeight", 0f,
+                new ConfigDescription(
+                    "How much of the LOWER BACK the pose owns. Off by default and it should " +
+                    "probably stay that way: in the Valheim rig this joint drags the hips along " +
+                    "with it, so bending it moves the legs too. It is what made the first version " +
+                    "of this pose look wrong on 2026-08-07, and it is the same joint the flight " +
+                    "pose keeps small for the same reason. Turn it on only if the lean needs to " +
+                    "come from the waist.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(196)));
+
+            ChargePoseShoulderWeight = config.Bind(SecChargePose, "ShoulderWeight", 0f,
+                new ConfigDescription(
+                    "How much of the shoulders the pose owns. Zero leaves them to the animation.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(195)));
+
+            ChargePoseHeadWeight = config.Bind(SecChargePose, "HeadWeight", 0f,
+                new ConfigDescription(
+                    "How much of the neck and head the pose owns. Zero leaves them to the " +
+                    "animation — including the game's own look-at, which aims the head at whatever " +
+                    "you are looking at and is usually worth keeping.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(194)));
+
+            ChargePoseArmWeight = config.Bind(SecChargePose, "ArmWeight", 0f,
+                new ConfigDescription(
+                    "How much of both arms the pose owns — upper arm, twist and elbow. Zero leaves " +
+                    "them exactly as the animation has them. FistClench is deliberately outside " +
+                    "this group: a closed hand still reads as tension on an otherwise normal arm.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(193)));
+
+            ChargePoseLegWeight = config.Bind(SecChargePose, "LegWeight", 0f,
+                new ConfigDescription(
+                    "How much of both legs the pose owns — stance width, knees and the hip drop " +
+                    "that goes with them. Zero leaves the legs to the animation, which also makes " +
+                    "the feet-off-the-ground problem described under KneeBend impossible.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(192)));
+
+            ChargePoseChestLean = config.Bind(SecChargePose, "ChestLean", 0.25f,
+                new ConfigDescription(
+                    "How far the CHEST bends FORWARD, when ChestWeight is on. Negative arches back. " +
+                    "This and the two below used to be a single 'Lean' split between the joints by " +
+                    "a fixed ratio in code — which meant the lower back always came along, hips " +
+                    "and all. Reported as bad on screen on 2026-08-07 and split into three.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(189)));
+
+            ChargePoseUpperChestLean = config.Bind(SecChargePose, "UpperChestLean", 0.2f,
+                new ConfigDescription(
+                    "How far the UPPER chest bends forward, when UpperChestWeight is on. " +
+                    "Negative arches back.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(188)));
+
+            ChargePoseSpineLean = config.Bind(SecChargePose, "SpineLean", 0.1f,
+                new ConfigDescription(
+                    "How far the LOWER BACK bends forward, when SpineWeight is on. Keep it small: " +
+                    "this joint carries the hips. Negative arches back.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(187)));
+
+            ChargePoseShoulderShrug = config.Bind(SecChargePose, "ShoulderShrug", 0.3f,
+                new ConfigDescription(
+                    "How far the shoulders are pulled UP. This is most of what reads as 'tense' — " +
+                    "the same pose with relaxed shoulders reads as standing around.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(185)));
+
+            ChargePoseHeadTilt = config.Bind(SecChargePose, "HeadTilt", 0.15f,
+                new ConfigDescription(
+                    "How far the chin drops. Split between neck and head. Negative looks up " +
+                    "instead, which is the other classic reading of the same pose — worth trying " +
+                    "if the effect column ever goes up into the sky.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(180)));
+
+            // Alvo ABSOLUTO no espaco de musculo, e nao intencao: e o unico numero desta secao que
+            // segue a convencao da Unity direto, porque nao ha nome de intencao honesto para "onde
+            // fica o braco" — e a mesma escolha que o HoverArmSpread do voo fez.
+            ChargePoseArmDown = config.Bind(SecChargePose, "ArmDown", -0.5f,
+                new ConfigDescription(
+                    "Where the upper arms sit. This one is raw muscle space, not intent: 0 is a " +
+                    "T-pose and about -0.65 is arms hanging straight down. -0.5 leaves the elbows " +
+                    "slightly flared, which is what makes the fists land beside the hips instead " +
+                    "of in front of the crotch.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(175)));
+
+            ChargePoseArmBack = config.Bind(SecChargePose, "ArmBack", 0.25f,
+                new ConfigDescription(
+                    "How far the upper arms are pulled BACK, behind the ribs. Together with " +
+                    "ElbowBend this is what puts the fists at the hips rather than in front of " +
+                    "the belly. Negative pushes them forward.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(170)));
+
+            ChargePoseArmTwist = config.Bind(SecChargePose, "ArmTwist", 0.15f,
+                new ConfigDescription(
+                    "Rotation of the upper arm along its own length. It does nothing by itself and " +
+                    "everything in combination: it decides WHERE the bent elbow points the " +
+                    "forearm. Change this first if the forearms cross the body or stick out " +
+                    "sideways instead of coming forward.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(165)));
+
+            ChargePoseElbowBend = config.Bind(SecChargePose, "ElbowBend", 0.7f,
+                new ConfigDescription(
+                    "How far the elbows are bent. 0 is a straight arm, 1 is the tightest bend the " +
+                    "rig allows.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(160)));
+
+            ChargePoseFistClench = config.Bind(SecChargePose, "FistClench", 0f,
+                new ConfigDescription(
+                    "How hard the hands close, independently of ArmWeight — a closed fist reads as " +
+                    "tension even on an arm the pose is not touching. Fingers are muscles like any " +
+                    "other, so this costs nothing but the names. Zero leaves the hands as the " +
+                    "animation had them. Does nothing if the player rig has no mapped finger " +
+                    "bones — no error, just no fist.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(155)));
+
+            ChargePoseStanceWidth = config.Bind(SecChargePose, "StanceWidth", 0.3f,
+                new ConfigDescription(
+                    "How far apart the feet are planted. Both legs get the same value, which in " +
+                    "Unity muscle space should spread them symmetrically — if they scissor instead " +
+                    "of spreading, one of the two signs needs flipping in code, so report it.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(150)));
+
+            ChargePoseKneeBend = config.Bind(SecChargePose, "KneeBend", 0.25f,
+                new ConfigDescription(
+                    "How deep the half squat is. READ HipDrop BEFORE RAISING THIS: bending the " +
+                    "knees shortens the leg, and if the hips do not come down by the same amount " +
+                    "the feet leave the ground. The game's foot IK will NOT save it — it runs " +
+                    "before the mod writes the pose.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(145)));
+
+            ChargePoseHipDrop = config.Bind(SecChargePose, "HipDrop", 0.16f,
+                new ConfigDescription(
+                    "How far the hips come down, per unit of KneeBend, so the squat is a squat and " +
+                    "not a character floating with folded legs. In avatar units, which for a " +
+                    "player-sized rig is roughly meters — the default is about 4 cm at the default " +
+                    "KneeBend. Too low and the feet hover; too high and the legs sink into the " +
+                    "ground. Zero disables it, which is the safe fallback if it looks wrong.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(140)));
+
+            // As duas senoides que tiram a pose do estado de boneco de vitrine. A lenta e o esforco,
+            // a rapida e a tensao — ver o comentario no KiChargePose.Apply.
+            ChargePoseStrain = config.Bind(SecChargePose, "Strain", 0.07f,
+                new ConfigDescription(
+                    "Amplitude of the slow heave: the whole body sinking and rising, like someone " +
+                    "straining. This is the one that makes the pose look alive. Zero freezes it.",
+                    new AcceptableValueRange<float>(0f, 0.5f), ClientSide(135)));
+
+            ChargePoseStrainSpeed = config.Bind(SecChargePose, "StrainSpeed", 2.2f,
+                new ConfigDescription(
+                    "Speed of the slow heave, in radians per second. Around 2 is roughly one cycle " +
+                    "every three seconds — heavy breathing. Much faster stops reading as effort.",
+                    new AcceptableValueRange<float>(0.1f, 20f), ClientSide(130)));
+
+            ChargePoseTremor = config.Bind(SecChargePose, "Tremor", 0f,
+                new ConfigDescription(
+                    "Amplitude of the fast tremble, ON TOP of whichever muscle groups are turned " +
+                    "on above — it has nothing to shake in a group whose weight is zero. Off by " +
+                    "default: start from the still pose and dial this up until it reads as effort. " +
+                    "Deliberately tiny when on, around 0.02: this should be felt, not seen. If you " +
+                    "can tell it is a sine wave, it is too high.",
+                    new AcceptableValueRange<float>(0f, 0.3f), ClientSide(125)));
+
+            ChargePoseTremorSpeed = config.Bind(SecChargePose, "TremorSpeed", 17f,
+                new ConfigDescription(
+                    "Speed of the fast tremble, in radians per second. The two sides run at " +
+                    "slightly different rates on purpose — in sync it reads as machine vibration, " +
+                    "out of phase it reads as muscle.",
+                    new AcceptableValueRange<float>(1f, 60f), ClientSide(120)));
 
             // Mesmo emote do carregamento, mas de disparo unico: carregar segura a pose, transformar
             // e' um estouro. O grito replica sozinho pela ZDO — os amigos veem e ouvem.
