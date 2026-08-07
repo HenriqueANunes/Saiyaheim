@@ -90,7 +90,7 @@ namespace Saiyaheim.Util
         /// Só a cor base é trocada. O <c>colorOverLifetime</c> das partículas multiplica por
         /// cima, então o fade original é preservado.
         /// </summary>
-        private static void ApplyTint(GameObject instance, string colorHex)
+        internal static void ApplyTint(GameObject instance, string colorHex)
         {
             if (string.IsNullOrEmpty(colorHex))
             {

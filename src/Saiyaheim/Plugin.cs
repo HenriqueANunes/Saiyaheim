@@ -3,6 +3,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using Jotunn.Managers;
 using Jotunn.Utils;
+using Saiyaheim.Attacks;
 using Saiyaheim.Debugging;
 using Saiyaheim.Flight;
 using Saiyaheim.Ki;
@@ -85,6 +86,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new FlightCommand());
             CommandManager.Instance.AddConsoleCommand(new BlockCommand());
             CommandManager.Instance.AddConsoleCommand(new TransformCommand());
+            CommandManager.Instance.AddConsoleCommand(new AttackCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -100,6 +102,7 @@ namespace Saiyaheim
             KiBodyManager.Update(Player.m_localPlayer);
             FlightManager.Update(Player.m_localPlayer);
             TransformationManager.Update(Player.m_localPlayer);
+            KiAttackManager.Update(Player.m_localPlayer);
             KiHud.Update();
         }
 

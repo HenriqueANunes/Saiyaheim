@@ -31,6 +31,20 @@ namespace Saiyaheim
         /// </summary>
         private const string SecSsj = "3.1 - SSJ";
 
+        /// <summary>
+        /// O que vale para <b>todos</b> os ataques de ki: as duas teclas moram na seção 1, com as
+        /// outras, e aqui fica o que é da mecânica e não de um ataque específico. Hoje é só o
+        /// tempo mínimo entre disparos de ataques diferentes — ver <c>MinimumInterval</c>.
+        /// </summary>
+        private const string SecKiAttacks = "4 - Ki Attacks";
+
+        /// <summary>
+        /// Uma seção por ataque, pelo mesmo motivo das formas: <b>não há número compartilhado
+        /// entre ataques</b>. Dano, custo, cooldown e projétil são do ataque, e uma escada de
+        /// ataques ([[Ataques de Ki]]) precisa que cada um seja calibrável sozinho.
+        /// </summary>
+        private const string SecKiBlast = "4.1 - Ki Blast";
+
         private const string SecFlight = "5 - Flight";
         private const string SecFlightPose = "5.1 - Flight Pose";
         private const string SecPower = "6 - Power Level";
@@ -64,6 +78,12 @@ namespace Saiyaheim
 
         /// <summary>Tecla que desce um degrau. Do primeiro, volta à base.</summary>
         public static ConfigEntry<KeyboardShortcut> TransformStepDownKey { get; private set; }
+
+        /// <summary>Tecla que dispara o ataque de ki selecionado.</summary>
+        public static ConfigEntry<KeyboardShortcut> FireKiAttackKey { get; private set; }
+
+        /// <summary>Tecla que troca de ataque, entre os destravados.</summary>
+        public static ConfigEntry<KeyboardShortcut> CycleKiAttackKey { get; private set; }
 
         /// <summary>Bater duas vezes no botão de pulo decola.</summary>
         public static ConfigEntry<bool> FlightTakeOffOnDoubleJump { get; private set; }
@@ -195,6 +215,72 @@ namespace Saiyaheim
         /// própria — ver <see cref="BindTransformation"/>.
         /// </summary>
         public static TransformationConfig Ssj { get; private set; }
+
+        // ---------- 4.x - Ki Attacks ----------
+
+        /// <summary>
+        /// Tempo mínimo entre dois disparos, <b>qualquer que seja o ataque</b>. O cooldown de cada
+        /// ataque é dele; este é o piso comum, e existe para que trocar de ataque não seja um jeito
+        /// de burlar cooldown.
+        /// </summary>
+        public static ConfigEntry<float> KiAttackMinimumInterval { get; private set; }
+
+        /// <summary>
+        /// Os números de <b>um</b> ataque de ki. Uma instância por ataque, cada uma na sua seção do
+        /// <c>.cfg</c> — ver <see cref="BindKiAttack"/>.
+        ///
+        /// <b>Não há chave de tipo de dano.</b> O ki blast é contusão pura, por decisão de design
+        /// de 2026-08-06: contusão staggera (fogo e gelo não), é o mesmo tipo do soco, e corte —
+        /// que foi a primeira escolha — deixaria o ataque à distância fraco justamente contra
+        /// morto-vivo, que é contra quem mais se quer atirar. Ver [[Ataques de Ki]].
+        /// </summary>
+        public class KiAttackConfig
+        {
+            /// <summary>Dano no power level zero. O piso do ataque, antes da parcela do poder.</summary>
+            public ConfigEntry<float> DamageBase { get; internal set; }
+
+            /// <summary>Fração do power level de combate somada ao dano.</summary>
+            public ConfigEntry<float> DamageFromPower { get; internal set; }
+
+            /// <summary>Ki gasto por disparo. Fixo: não escala com nada, de propósito.</summary>
+            public ConfigEntry<float> KiCost { get; internal set; }
+
+            /// <summary>Segundos até este ataque poder ser disparado de novo.</summary>
+            public ConfigEntry<float> Cooldown { get; internal set; }
+
+            /// <summary>Empurrão no alvo atingido.</summary>
+            public ConfigEntry<float> Knockback { get; internal set; }
+
+            /// <summary>Prefab do projétil, do <c>ZNetScene</c>. Ver [[Prefabs do Jogo]].</summary>
+            public ConfigEntry<string> ProjectilePrefab { get; internal set; }
+
+            /// <summary>Velocidade do projétil em m/s.</summary>
+            public ConfigEntry<float> ProjectileSpeed { get; internal set; }
+
+            /// <summary>Segundos de vida do projétil. Alcance = velocidade x isto.</summary>
+            public ConfigEntry<float> ProjectileLifetime { get; internal set; }
+
+            /// <summary>Gravidade sobre o projétil. 0 voa reto.</summary>
+            public ConfigEntry<float> ProjectileGravity { get; internal set; }
+
+            /// <summary>Escala do projétil. 1 é o tamanho do prefab.</summary>
+            public ConfigEntry<float> ProjectileScale { get; internal set; }
+
+            /// <summary>Cor do projétil, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
+            public ConfigEntry<string> ProjectileColor { get; internal set; }
+
+            /// <summary>Nível mínimo de Battle Power para usar o ataque. 0 desliga a trava.</summary>
+            public ConfigEntry<float> MinBattlePower { get; internal set; }
+
+            /// <summary>Global key do boss que destrava o ataque. Vazio desliga a trava.</summary>
+            public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
+        }
+
+        /// <summary>
+        /// O primeiro ataque da escada. O segundo é outra propriedade como esta, com seção própria
+        /// — ver <see cref="BindKiAttack"/>.
+        /// </summary>
+        public static KiAttackConfig KiBlast { get; private set; }
 
         // ---------- 5 - Flight ----------
 
@@ -465,6 +551,28 @@ namespace Saiyaheim
                     "Key that goes DOWN one step, to trade power for a smaller ki drain without " +
                     "leaving the ladder entirely. From the first form it returns to base.",
                     null, ClientSide(81)));
+
+            // V e Shift+V pelo mesmo desenho de T/G: a acao comum num toque, a troca no Shift. Nao
+            // sao G nem H porque G ja e' o power down — e disparar e destransformar sao as duas
+            // teclas que mais se aperta com pressa, entao vizinhas seria pedir engano.
+            //
+            // Passam pelo Hotkey e nao pelo KeyboardShortcut.IsDown cru: atirar parado e' justamente
+            // o que nao se quer ensinar, e o IsDown do BepInEx recusa o atalho com W pressionado.
+            FireKiAttackKey = config.Bind(SecGeral, "FireKiAttackKey",
+                new KeyboardShortcut(KeyCode.V),
+                new ConfigDescription(
+                    "Key that fires the selected ki attack, aimed where you are looking. " +
+                    "Needs ki turned on, enough ki for the shot, and the attack unlocked. " +
+                    "The ki is spent on the shot, hit or miss.",
+                    null, ClientSide(79)));
+
+            CycleKiAttackKey = config.Bind(SecGeral, "CycleKiAttackKey",
+                new KeyboardShortcut(KeyCode.V, KeyCode.LeftShift),
+                new ConfigDescription(
+                    "Key that cycles through the ki attacks you have unlocked. " +
+                    "With a single one unlocked it just names it on screen. " +
+                    "The selection is not saved: every session starts on the first attack.",
+                    null, ClientSide(78)));
 
             FlightTakeOffOnDoubleJump = config.Bind(SecGeral, "TakeOffOnDoubleJump", true,
                 new ConfigDescription(
@@ -792,6 +900,34 @@ namespace Saiyaheim
                 kiDrainPerSecond: 5f,
                 punchSlashFraction: 0.5f,
                 hairColor: "#FFE14A",
+                requiredGlobalKey: "defeated_eikthyr");
+
+            // --- Ataques de ki ---
+            KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
+                new ConfigDescription(
+                    "Minimum seconds between two ki attacks, whatever they are. Each attack has " +
+                    "its own Cooldown; this is the shared floor, and it exists so that switching " +
+                    "attacks is not a way around a cooldown.",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(100)));
+
+            // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
+            // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de
+            // dois mornos. Espacar custaria mexer numa trava de forma ja calibrada em playtest.
+            //
+            // Adicionar o ataque seguinte e' repetir esta chamada com outra secao, outros numeros e
+            // a global key do boss dele.
+            // Os quatro numeros de partida, ancorados no soco em vez de chutados no vazio:
+            //   dano por poder 0,04 contra os 0,05 do PunchDamageFromPower — o tiro bate um pouco
+            //   MENOS por acerto que o soco, que e' o que compra o direito de ser a distancia.
+            //   Custo 8 fixo contra os ~3,75 de um soco no comeco do jogo: cedo o tiro e' caro (seis
+            //   por barra cheia), e vai ficando barato conforme a barra cresce e este numero nao.
+            // O saiya_blast imprime dano/ki dos dois lado a lado — e' por ali que a calibracao sai.
+            KiBlast = BindKiAttack(config, SecKiBlast,
+                damageBase: 8f,
+                damageFromPower: 0.04f,
+                kiCost: 8f,
+                cooldown: 0.5f,
+                projectilePrefab: "DvergerStaffFire_fireball_projectile",
                 requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
@@ -1502,6 +1638,150 @@ namespace Saiyaheim
                         "This also becomes the color of the ki CHARGING glow while you hold the " +
                         "form, replacing Effects.ChargeEffectColor.",
                         null, ClientSide(40)))
+            };
+        }
+
+        /// <summary>
+        /// Liga as chaves de um ataque de ki numa seção própria do <c>.cfg</c>.
+        ///
+        /// Mesmo papel do <see cref="BindTransformation"/>, e pelo mesmo motivo: o ataque seguinte
+        /// deve ser <b>uma chamada</b>, não um bloco copiado com treze descrições para manter em
+        /// sincronia.
+        /// </summary>
+        private static KiAttackConfig BindKiAttack(
+            ConfigFile config, string section, float damageBase, float damageFromPower,
+            float kiCost, float cooldown, string projectilePrefab, string requiredGlobalKey)
+        {
+            return new KiAttackConfig
+            {
+                DamageBase = config.Bind(section, "DamageBase", damageBase,
+                    new ConfigDescription(
+                        "Damage of this attack at power level zero, before the power share below. " +
+                        "It is the floor: a fresh character has almost no power level, and an " +
+                        "attack that did nothing at all until the bar filled would read as broken " +
+                        "on the very first shot. All of it is BLUNT damage. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 1000f), AdminOnly(100))),
+
+                // Le o poder de COMBATE, o mesmo do soco — nao o linear. Duas coisas saem de graca:
+                // o termo de fim de jogo entra (o ataque acompanha o soco em vez de virar plato no
+                // nivel 100) e o multiplicador da forma entra (transformar deixa o blast mais forte
+                // sem uma linha de codigo a mais).
+                DamageFromPower = config.Bind(section, "DamageFromPower", damageFromPower,
+                    new ConfigDescription(
+                        "Share of the COMBAT power level added to this attack's damage. " +
+                        "Same number the punch reads, so the attack keeps up with the fists " +
+                        "instead of falling behind, transforming makes it stronger for free, and " +
+                        "the late-game term applies to it as well. " +
+                        "Careful: this is a RANGED hit with no wind-up, so it should sit below " +
+                        "PunchDamageFromPower or there is no reason to ever close distance. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 10f), AdminOnly(95))),
+
+                // Fixo, e a decisao esta' registrada como provisoria em [[Ataques de Ki]]: o soco
+                // cobra por ponto de dano e ganhou desconto hiperbolico, e este anda no sentido
+                // contrario. No fim do jogo tende a ficar quase de graca. A pergunta do playtest e'
+                // em que nivel isso acontece, e se mata o soco quando acontecer.
+                KiCost = config.Bind(section, "KiCost", kiCost,
+                    new ConfigDescription(
+                        "Ki spent per shot, charged when you fire — hit or miss. Charging on " +
+                        "impact instead would reward aim and punish fighting anything fast, which " +
+                        "is the opposite of what a ranged attack should teach. " +
+                        "FLAT on purpose, unlike the punch, which costs per point of damage: this " +
+                        "is the starting shape and it is expected to get cheap late, when the bar " +
+                        "has grown and this number has not. Watch it with saiya_blast, which " +
+                        "prints shots per full bar. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 1000f), AdminOnly(90))),
+
+                Cooldown = config.Bind(section, "Cooldown", cooldown,
+                    new ConfigDescription(
+                        "Seconds before this attack can be fired again. Without it the rate of " +
+                        "fire is limited only by the frame rate and by the bar, which turns the " +
+                        "attack into a machine gun and makes KiCost the only thing standing " +
+                        "between the player and emptying the bar in one second.",
+                        new AcceptableValueRange<float>(0f, 30f), AdminOnly(85))),
+
+                Knockback = config.Bind(section, "Knockback", 30f,
+                    new ConfigDescription(
+                        "Push applied to whatever is hit. It is what makes the shot read as an " +
+                        "impact rather than a scratch, and it buys back the distance the attack " +
+                        "exists to keep.",
+                        new AcceptableValueRange<float>(0f, 500f), AdminOnly(80))),
+
+                // Prefab do jogo, nao asset novo — a regra de [[Efeitos Visuais]]. Trocar o nome
+                // aqui troca o visual inteiro sem recompilar, que e' o ponto de ser config.
+                ProjectilePrefab = config.Bind(section, "ProjectilePrefab", projectilePrefab,
+                    new ConfigDescription(
+                        "Name of the game prefab used as the projectile. It is instantiated from " +
+                        "ZNetScene, so it must be a prefab the game has loaded — a name that does " +
+                        "not exist logs a warning and fires nothing. " +
+                        "The mod strips whatever the prefab brought with it: its own damage, its " +
+                        "status effect (no more setting things on fire) and whatever it spawned " +
+                        "on impact. Only the visual and the sound are kept. " +
+                        "Alternatives worth trying: DvergerStaffIce_projectile (blue), " +
+                        "DvergerStaffFire_clusterbomb_projectile, charred_magestaff_fire.",
+                        null, AdminOnly(75))),
+
+                ProjectileSpeed = config.Bind(section, "ProjectileSpeed", 30f,
+                    new ConfigDescription(
+                        "Projectile speed in metres per second. For reference, a player runs at " +
+                        "about 5 and flies at up to 30. Too slow and anything mobile walks out of " +
+                        "the way; too fast and there is nothing to see between the hand and the " +
+                        "target.",
+                        new AcceptableValueRange<float>(1f, 200f), AdminOnly(70))),
+
+                ProjectileLifetime = config.Bind(section, "ProjectileLifetime", 3f,
+                    new ConfigDescription(
+                        "Seconds the projectile lives before vanishing. Range is this times " +
+                        "ProjectileSpeed — saiya_blast prints the result in metres. Overrides the " +
+                        "prefab's own lifetime.",
+                        new AcceptableValueRange<float>(0.5f, 30f), AdminOnly(65))),
+
+                ProjectileGravity = config.Bind(section, "ProjectileGravity", 0f,
+                    new ConfigDescription(
+                        "Gravity pulling the projectile down. 0 flies dead straight, which is what " +
+                        "reads as energy rather than as a thrown rock. Raise it for an arc.",
+                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(60))),
+
+                ProjectileScale = config.Bind(section, "ProjectileScale", 1f,
+                    new ConfigDescription(
+                        "Size of the projectile, 1 being the prefab as it came. " +
+                        "Visual only: it does NOT change what the projectile hits.",
+                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(55))),
+
+                // Cosmetico, entao ClientSide como a cor da aura. Vazio de proposito: o primeiro
+                // playtest deve ver o prefab como ele e', antes de decidir que cor o ki tem.
+                ProjectileColor = config.Bind(section, "ProjectileColor", "",
+                    new ConfigDescription(
+                        "Projectile color, #RRGGBB format. Empty keeps the prefab's own colors, " +
+                        "which is the default on purpose: look at the effect as the game made it " +
+                        "before deciding what color ki is. Tinting touches particles, lights and " +
+                        "this clone's own materials only.",
+                        null, ClientSide(50))),
+
+                // Cosmetico, entao ClientSide — mas note que ele replica: o ZSyncAnimation.SetTrigger
+                // manda RPC para todo mundo, entao os amigos veem a pose de quem atirou mesmo com
+                // .cfg diferente. Mesmo padrao da cor de cabelo.
+                //
+                MinBattlePower = config.Bind(section, "MinBattlePower", 0f,
+                    new ConfigDescription(
+                        "Minimum Battle Power level required to use this attack. 0 disables the " +
+                        "gate. Independent of the boss gate below: with both set, the attack needs " +
+                        "both. Left at 0 like the forms, because the ladder is paced by bosses.",
+                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(45))),
+
+                RequiredGlobalKey = config.Bind(section, "RequiredGlobalKey", requiredGlobalKey,
+                    new ConfigDescription(
+                        "Global key of the boss that unlocks this attack. Empty disables the gate. " +
+                        "The key belongs to the WORLD, so the server syncs it for free and someone " +
+                        "joining later arrives with whatever the group has already killed.\n" +
+                        "The five valid keys, and mind that two are NOT named after the boss: " +
+                        "defeated_eikthyr (Eikthyr), defeated_gdking (The Elder), " +
+                        "defeated_bonemass (Bonemass), defeated_dragon (MODER), " +
+                        "defeated_goblinking (YAGLUTH). A key that does not exist is not an error " +
+                        "— it is an attack that never unlocks. Check it with saiya_blast.",
+                        null, AdminOnly(40)))
             };
         }
 
