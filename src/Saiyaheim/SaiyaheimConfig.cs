@@ -64,6 +64,18 @@ namespace Saiyaheim
         /// </summary>
         private const string SecChargePose = "8.1 - Ki Charge Pose";
 
+        /// <summary>
+        /// A pose procedural de disparo do ki blast.
+        ///
+        /// <b>Temporária pelo mesmo motivo da 8.1</b>, e provavelmente por menos tempo: são poucas
+        /// chaves e um gesto só. Quando estiver calibrada na tela ela vira constante no
+        /// <c>KiBlastPose</c> — como o <c>FlightPose</c> virou em 2026-07-31 — e esta seção some do
+        /// <c>.cfg</c> de quem instalar depois.
+        ///
+        /// Client-side: pose é desenho local.
+        /// </summary>
+        private const string SecBlastPose = "8.2 - Ki Blast Pose";
+
         private const string SecDebug = "9 - Debug";
 
         // ---------- 1 - General ----------
@@ -463,6 +475,43 @@ namespace Saiyaheim
         public static ConfigEntry<float> ChargePoseStrainSpeed { get; private set; }
         public static ConfigEntry<float> ChargePoseTremor { get; private set; }
         public static ConfigEntry<float> ChargePoseTremorSpeed { get; private set; }
+
+        // ---------- 8.2 - Ki Blast Pose ----------
+        //
+        // Mesma convencao da 8.1: espaco de **intencao**, positivo e sempre "mais do que o nome
+        // diz", e a traducao para o sinal do musculo da Unity mora no KiBlastPose (ForwardSign e
+        // TwistSign). Se sair invertido na tela, o conserto e la.
+        //
+        // As excecoes sao ArmHeight, ArmTwist, ElbowBend, ShoulderLift e WristBend: alvos
+        // ABSOLUTOS no espaco de musculo, porque nao ha nome de intencao honesto para "onde fica o
+        // braco". Estao documentadas uma a uma.
+
+        /// <summary>Desliga a pose. Sem ela o disparo não tem animação nenhuma.</summary>
+        public static ConfigEntry<bool> BlastPoseEnabled { get; private set; }
+
+        // O envelope. Assimetrico de proposito — ver o comentario no topo do KiBlastPose.
+        public static ConfigEntry<float> BlastPoseRiseSeconds { get; private set; }
+        public static ConfigEntry<float> BlastPoseHoldSeconds { get; private set; }
+        public static ConfigEntry<float> BlastPoseFallSeconds { get; private set; }
+
+        // Um peso por grupo, porque **zero num alvo nao quer dizer "nao mexe"**: "Right Arm Down-Up
+        // = 0" e' T-pose. Dizer "deixa como a animacao deixou" e' nao escrever aquele musculo, e e'
+        // isso que peso zero faz.
+        public static ConfigEntry<float> BlastPoseArmWeight { get; private set; }
+        public static ConfigEntry<float> BlastPoseShoulderWeight { get; private set; }
+        public static ConfigEntry<float> BlastPoseTorsoWeight { get; private set; }
+        public static ConfigEntry<float> BlastPoseSpineTwistWeight { get; private set; }
+
+        public static ConfigEntry<float> BlastPoseArmForward { get; private set; }
+        public static ConfigEntry<float> BlastPoseArmHeight { get; private set; }
+        public static ConfigEntry<float> BlastPoseAimFollow { get; private set; }
+        public static ConfigEntry<float> BlastPoseArmTwist { get; private set; }
+        public static ConfigEntry<float> BlastPoseElbowBend { get; private set; }
+        public static ConfigEntry<float> BlastPoseShoulderPush { get; private set; }
+        public static ConfigEntry<float> BlastPoseShoulderLift { get; private set; }
+        public static ConfigEntry<float> BlastPoseTorsoTwist { get; private set; }
+        public static ConfigEntry<float> BlastPoseHandOpen { get; private set; }
+        public static ConfigEntry<float> BlastPoseWristBend { get; private set; }
 
         /// <summary>Emote de disparo único tocado ao transformar. Vazio desliga.</summary>
         public static ConfigEntry<string> TransformEmote { get; private set; }
@@ -1426,6 +1475,155 @@ namespace Saiyaheim
                     "slightly different rates on purpose — in sync it reads as machine vibration, " +
                     "out of phase it reads as muscle.",
                     new AcceptableValueRange<float>(1f, 60f), ClientSide(120)));
+
+            // --- A pose de disparo ---
+            //
+            // Mesma ordem decrescente da secao acima, e a mesma logica de calibragem: o
+            // interruptor, o envelope, e depois os grupos de cima para baixo. So o braco comeca
+            // ligado — e' o pedido inteiro ("apontar a mao direita para frente"); o resto sobe
+            // um de cada vez.
+            //
+            // ⚠️ Calibrar isto SEM o `saiya_blast pose` e' impossivel: a pose dura menos que o
+            // tempo de arrastar um slider e olhar o personagem.
+
+            BlastPoseEnabled = config.Bind(SecBlastPose, "Enabled", true,
+                new ConfigDescription(
+                    "Procedurally throws the right arm forward when a ki blast leaves your hand, " +
+                    "on top of whatever the game's animation is doing. Off means firing has no " +
+                    "animation at all, which is how it shipped on 2026-08-06.",
+                    null, ClientSide(200)));
+
+            BlastPoseRiseSeconds = config.Bind(SecBlastPose, "RiseSeconds", 0.06f,
+                new ConfigDescription(
+                    "Seconds for the arm to snap out. Keep it SHORT and shorter than FallSeconds: " +
+                    "a slow rise turns a thrust into a stretch. Zero snaps instantly, which is " +
+                    "also fine here.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(199)));
+
+            BlastPoseHoldSeconds = config.Bind(SecBlastPose, "HoldSeconds", 0.18f,
+                new ConfigDescription(
+                    "Seconds the arm stays out at full extension before relaxing. Firing again " +
+                    "before it ends just pushes this deadline forward — the arm does not drop and " +
+                    "snap back between shots of a burst.",
+                    new AcceptableValueRange<float>(0f, 3f), ClientSide(198)));
+
+            BlastPoseFallSeconds = config.Bind(SecBlastPose, "FallSeconds", 0.3f,
+                new ConfigDescription(
+                    "Seconds for the arm to come back. LONGER than RiseSeconds on purpose: the " +
+                    "gesture is a snap out and a relax back, and a fast return reads as the " +
+                    "animation being cut rather than ending.",
+                    new AcceptableValueRange<float>(0f, 3f), ClientSide(197)));
+
+            BlastPoseArmWeight = config.Bind(SecBlastPose, "ArmWeight", 1f,
+                new ConfigDescription(
+                    "How much of the RIGHT ARM the pose owns — upper arm, twist and elbow. THIS " +
+                    "IS A SWITCH, not an intensity: zero is not 'neutral arm', it is 'do not " +
+                    "touch the arm, leave the animation alone'. A target of zero would instead " +
+                    "force the muscle to its neutral value, which is itself a pose (a T-pose, in " +
+                    "this case). Same for every other weight below. This is the one group that " +
+                    "starts ON, because it is the whole request.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(196)));
+
+            BlastPoseShoulderWeight = config.Bind(SecBlastPose, "ShoulderWeight", 0f,
+                new ConfigDescription(
+                    "How much of the right SHOULDER the pose owns. This is what turns 'arm raised' " +
+                    "into 'arm extended' — without it the reach stops at the shoulder socket and " +
+                    "the character looks like he is pointing rather than pushing. Turn it on " +
+                    "second, right after the arm.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(195)));
+
+            BlastPoseTorsoWeight = config.Bind(SecBlastPose, "TorsoWeight", 0f,
+                new ConfigDescription(
+                    "How much of the TORSO TWIST the pose owns — chest and upper chest bringing " +
+                    "the right shoulder around to follow the arm. Turn it on third. Zero leaves " +
+                    "the torso to the animation, including whatever twist the game's aiming does.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(194)));
+
+            BlastPoseSpineTwistWeight = config.Bind(SecBlastPose, "SpineTwistWeight", 0f,
+                new ConfigDescription(
+                    "How much of the twist reaches the LOWER BACK, as a fraction of TorsoWeight. " +
+                    "Off by default and it should probably stay that way: in the Valheim rig this " +
+                    "joint drags the hips along, so twisting it turns the whole character away " +
+                    "from where he is aiming. It is the same joint the charging pose and the " +
+                    "flight pose both keep out for the same reason.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(193)));
+
+            BlastPoseArmForward = config.Bind(SecBlastPose, "ArmForward", 0.9f,
+                new ConfigDescription(
+                    "How far the upper arm swings FORWARD. This is the gesture: at 0 the arm is " +
+                    "out to the side, at 1 it points straight ahead. Negative pulls it behind the " +
+                    "ribs, which is the charging pose, not this one.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(190)));
+
+            BlastPoseArmHeight = config.Bind(SecBlastPose, "ArmHeight", 0f,
+                new ConfigDescription(
+                    "Where the upper arm sits vertically. Raw muscle space, not intent: 0 is a " +
+                    "T-pose, meaning the arm is horizontal — which is already shoulder height, so " +
+                    "0 is the right starting point for aiming straight ahead. About -0.65 is the " +
+                    "arm hanging down. Positive raises it above the shoulder.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(189)));
+
+            BlastPoseAimFollow = config.Bind(SecBlastPose, "AimFollow", 0.5f,
+                new ConfigDescription(
+                    "How much the arm follows where you are LOOKING, added on top of ArmHeight. " +
+                    "This matters more than it sounds: the projectile spawns at the right hand and " +
+                    "flies along your look direction, so with a locked arm, aiming at the sky " +
+                    "sends the shot upward out of a hand that is pointing at the horizon. 1 is " +
+                    "full follow, 0 pins the arm to ArmHeight.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(188)));
+
+            BlastPoseArmTwist = config.Bind(SecBlastPose, "ArmTwist", 0f,
+                new ConfigDescription(
+                    "Rotation of the upper arm along its own length. Raw muscle space. With the " +
+                    "elbow straight it barely changes the silhouette, but it decides which way the " +
+                    "PALM faces — and the ki ball is born in that hand. Change this if the back of " +
+                    "the hand ends up facing the target.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(187)));
+
+            BlastPoseElbowBend = config.Bind(SecBlastPose, "ElbowBend", 0f,
+                new ConfigDescription(
+                    "How far the elbow is bent. Raw muscle space: 0 is a straight arm, which is " +
+                    "what the pose asks for, and 1 is the tightest bend the rig allows. Raise it " +
+                    "slightly if a fully locked elbow reads as stiff.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(186)));
+
+            BlastPoseShoulderPush = config.Bind(SecBlastPose, "ShoulderPush", 0.5f,
+                new ConfigDescription(
+                    "How far the right shoulder is pushed FORWARD, when ShoulderWeight is on. This " +
+                    "is the extra reach. Negative pulls it back.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(185)));
+
+            BlastPoseShoulderLift = config.Bind(SecBlastPose, "ShoulderLift", 0.1f,
+                new ConfigDescription(
+                    "How far the right shoulder rides UP, when ShoulderWeight is on. Raw muscle " +
+                    "space. Small: a shrugged shoulder on an extended arm reads as flinching.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(184)));
+
+            BlastPoseTorsoTwist = config.Bind(SecBlastPose, "TorsoTwist", 0.3f,
+                new ConfigDescription(
+                    "How far the torso rotates to bring the right shoulder AROUND, when " +
+                    "TorsoWeight is on. Split across the three spine joints, most at the top and " +
+                    "least at the bottom. Keep it small — the point is the torso following the " +
+                    "arm, not the character turning sideways to his own aim. Negative twists the " +
+                    "other way, which would pull the firing shoulder back.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(183)));
+
+            BlastPoseHandOpen = config.Bind(SecBlastPose, "HandOpen", 0f,
+                new ConfigDescription(
+                    "How far the right hand opens into a flat palm, independently of ArmWeight — " +
+                    "the exact opposite of the charging pose's FistClench, and the contrast is the " +
+                    "point: charging is a closed fist, firing is an open palm. Zero leaves the " +
+                    "hand as the animation had it. Does nothing if the player rig has no mapped " +
+                    "finger bones — no error, just no palm.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(182)));
+
+            BlastPoseWristBend = config.Bind(SecBlastPose, "WristBend", 0f,
+                new ConfigDescription(
+                    "How far the wrist bends back, so the palm faces where the shot is going. Raw " +
+                    "muscle space, and it rides on HandOpen rather than having a weight of its " +
+                    "own: a pushed palm and an open hand are one gesture. Negative curls the wrist " +
+                    "the other way.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(181)));
 
             // Mesmo emote do carregamento, mas de disparo unico: carregar segura a pose, transformar
             // e' um estouro. O grito replica sozinho pela ZDO — os amigos veem e ouvem.

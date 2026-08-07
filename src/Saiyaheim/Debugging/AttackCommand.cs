@@ -19,23 +19,27 @@ namespace Saiyaheim.Debugging
     /// saiya_blast blast select    seleciona aquele ataque
     /// saiya_blast blast unlock    ignora a trava daquele ataque nesta sessão
     /// saiya_blast blast lock      devolve a trava
+    /// saiya_blast pose            segura a pose de disparo, para calibrar
     /// </code>
     ///
     /// <b>O nome do ataque é opcional em toda linha</b>, como no <c>saiya_form</c>: sem ele o alvo é
     /// o selecionado. <c>unlock</c> e <c>lock</c> sem nome valem para a escada inteira.
     ///
-    /// Ler é livre; destravar pede <c>devcommands</c>.
+    /// Ler é livre; destravar pede <c>devcommands</c>. O <c>pose</c> é a exceção que não pede nada:
+    /// ele não toca em ataque nenhum, só segura um desenho na tela — e sem ele a pose de disparo é
+    /// <b>impossível</b> de calibrar, porque ela dura menos que o tempo de arrastar um slider no
+    /// ConfigurationManager e olhar o personagem. Mesmo papel do <c>saiya_ki pose</c>.
     /// </summary>
     internal class AttackCommand : SaiyaheimCommand
     {
         public override string Name => "saiya_blast";
 
         public override string Help =>
-            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock]";
+            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock] | pose";
 
         public override List<string> CommandOptionList()
         {
-            List<string> options = new List<string> { "select", "unlock", "lock" };
+            List<string> options = new List<string> { "select", "unlock", "lock", "pose" };
 
             foreach (KiAttack attack in KiAttackRegistry.All)
             {
@@ -51,6 +55,16 @@ namespace Saiyaheim.Debugging
             if (player == null)
             {
                 Print("No player. Join a world first.");
+                return;
+            }
+
+            // O 'pose' sai antes de tudo: ele não fala de ataque nenhum, então não passa pelo
+            // desdobramento abaixo nem precisa de um ataque registrado para funcionar.
+            if (args.Length > 0 && args[0].ToLowerInvariant() == "pose")
+            {
+                KiBlastPose.DebugHold = !KiBlastPose.DebugHold;
+                Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}" +
+                      $"{(SaiyaheimConfig.BlastPoseEnabled.Value ? "" : " (but BlastPose.Enabled is off)")}");
                 return;
             }
 
@@ -298,6 +312,7 @@ namespace Saiyaheim.Debugging
                 case "select":
                 case "unlock":
                 case "lock":
+                case "pose":
                     return true;
                 default:
                     return false;

@@ -83,6 +83,10 @@ namespace Saiyaheim.Attacks
 
             KiManager.TryConsume(cost);
 
+            // A pose só levanta depois de o projétil existir, pelo mesmo motivo que o ki só é
+            // cobrado aqui: um prefab errado no .cfg faria o braço esticar sem nada sair da mão.
+            KiBlastPose.Trigger(player);
+
             attack.StartCooldown();
             KiAttackRegistry.StartGlobalCooldown();
         }

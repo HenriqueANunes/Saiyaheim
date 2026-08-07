@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using Saiyaheim.Attacks;
 using Saiyaheim.Flight;
 using Saiyaheim.Ki;
 using UnityEngine;
@@ -8,8 +9,7 @@ using UnityEngine;
 namespace Saiyaheim.Util
 {
     /// <summary>
-    /// Uma pose procedural. Voo é uma, carregamento de ki é outra, e o disparo de ki blast será a
-    /// terceira ([[Melhorias#Pose procedural de disparo do ki blast]]).
+    /// Uma pose procedural. São três: voo, carregamento de ki e disparo de ki blast.
     ///
     /// O contrato é dividido em dois por um motivo de custo: <see cref="Step"/> roda para
     /// <b>todo</b> jogador carregado, todo frame, e precisa ser barato para quem não está fazendo
@@ -55,22 +55,32 @@ namespace Saiyaheim.Util
     /// primeiro escreveu — o tipo de acoplamento que só aparece na tela. Aqui a pose é lida uma
     /// vez, cada contribuinte escreve em cima, e ela volta uma vez.
     ///
-    /// <b>Multiplayer.</b> Nada disto é replicado, e não precisa: cada contribuinte descobre
-    /// sozinho quem está voando ou carregando por um canal que o jogo já sincroniza (ZDO do
-    /// <c>SE_Flight</c>, ZDO do emote), e aplica a pose localmente. Por isso o postfix roda em
-    /// <b>todo</b> <c>Player</c>, não só no local.
+    /// <b>Multiplayer.</b> Nada disto é replicado <i>pelo driver</i>, e nem precisaria: cada
+    /// contribuinte descobre sozinho a quem a pose se aplica e a escreve localmente. Por isso o
+    /// postfix roda em <b>todo</b> <c>Player</c>, não só no local — e é essa decisão que faz o
+    /// conserto do multiplayer ser trabalho de contribuinte, não de driver.
+    ///
+    /// Hoje só o voo tem o canal: o <c>SE_Flight</c> sincroniza por ZDO, então todo cliente sabe
+    /// quem está voando. O carregamento e o disparo não têm, e por isso as poses deles são locais
+    /// — cada um vê a sua. Os dois se fecham na etapa 8, com um mecanismo só.
     /// </summary>
     internal static class PoseDriver
     {
         /// <summary>
         /// A ordem importa quando duas poses se sobrepõem: quem vem depois escreve por cima.
-        /// Hoje elas se excluem por construção (o carregamento derruba o peso do voo), então a
-        /// ordem é só o desempate de segurança.
+        ///
+        /// Voo e carregamento se excluem por construção (o carregamento derruba o peso do voo),
+        /// então entre esses dois a ordem é só desempate de segurança. Com o <b>disparo</b> ela
+        /// passou a significar alguma coisa: atirar voando e atirar carregando são situações
+        /// normais, e nas duas o braço direito é disputado. O disparo fica por último porque é o
+        /// gesto que o jogador acabou de pedir — e as outras duas continuam donas de tudo que ele
+        /// não toca.
         /// </summary>
         private static readonly IPoseContributor[] Contributors =
         {
             FlightPose.Instance,
             KiChargePose.Instance,
+            KiBlastPose.Instance,
         };
 
         private static readonly float[] Weights = new float[Contributors.Length];
