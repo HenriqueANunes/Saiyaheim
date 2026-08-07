@@ -34,6 +34,75 @@ namespace Saiyaheim.Flight
     /// </summary>
     internal static class FlightPose
     {
+        // ---------- A pose, fixa no código ----------
+        //
+        // Ficou em config enquanto era chute, para o playtest poder mexer sem recompilar. Depois de
+        // calibrada em 2026-07-31 a pose é uma decisão fechada, não balanceamento: ninguém vai
+        // querer outro número, e vinte e cinco chaves no .cfg só atrapalham quem for instalar.
+        //
+        // Toda a metade de músculos é escala normalizada [-1, 1] — não é grau nem radiano: os
+        // extremos são os limites que o próprio avatar declara, e por isso os mesmos números
+        // funcionariam em qualquer rig humanoide. As de inclinação são graus de verdade.
+        //
+        // Dois conjuntos, Hover e Forward, interpolados pela velocidade horizontal.
+
+        /// <summary>Lombar parado. Pequena de propósito: no rig do Valheim ela arrasta o quadril.</summary>
+        private const float HoverSpine = 0.3f;
+
+        /// <summary>Peito parado. Dobra o tronco sem levar o quadril junto.</summary>
+        private const float HoverChest = 0f;
+
+        /// <summary>Braços parado. Alvo absoluto: 0 é T-pose, ~-0,65 é braço caído.</summary>
+        private const float HoverArmSpread = -0.45f;
+        private const float HoverArmSwing = 0.05f;
+
+        private const float ForwardSpine = 0.15f;
+
+        /// <summary>Peito em cruzeiro — a inclinação principal do voo lento.</summary>
+        private const float ForwardChest = 0.4f;
+
+        /// <summary>Braços colados no corpo em velocidade máxima: é o que parece aerodinâmico.</summary>
+        private const float ForwardArmSpread = -0.6f;
+        private const float ForwardArmSwing = 0.4f;
+
+        /// <summary>Graus de barriga para baixo em velocidade de corrida. 90 seria Superman.</summary>
+        private const float FastPitch = 55f;
+
+        /// <summary>A versão suave do <see cref="FastPitch"/>, em velocidade de cruzeiro.</summary>
+        private const float CruisePitch = 12f;
+
+        /// <summary>Graus de nariz para cima subindo, e para baixo descendo.</summary>
+        private const float ClimbPitch = 25f;
+
+        private const float ElbowBend = 0.8f;
+
+        /// <summary>Pé esticado. Barato, e vende voo melhor que quase tudo aqui.</summary>
+        private const float ToePoint = 0.4f;
+
+        // Perna esquerda e direita separadas: a pose do gênero é assimétrica — uma recolhida, a
+        // outra estendida — e o espelhamento automático saiu para o lado errado no playtest.
+        private const float LegBendLeft = 0.7f;
+        private const float LegBendRight = 0.3f;
+        private const float LegSpreadLeft = 0f;
+        private const float LegSpreadRight = 0.1f;
+        private const float LegSwingLeft = 0.4f;
+        private const float LegSwingRight = 0.3f;
+
+        /// <summary>
+        /// Quanto o corpo é girado para ficar de frente para a direção do voo. Ver
+        /// <see cref="SquareToHeading"/>.
+        /// </summary>
+        private const float SquareToHeadingAmount = 1f;
+
+        /// <summary>Quanto da pose das pernas sobrevive a um golpe. 1 segura tudo.</summary>
+        private const float ActionLegHold = 1f;
+
+        /// <summary>Segundos para entregar o corpo à animação de ação, e para retomá-lo.</summary>
+        private const float ActionBlendSeconds = 0.12f;
+
+        /// <summary>Segundos para a pose entrar na decolagem e sair no pouso.</summary>
+        private const float BlendSeconds = 0.35f;
+
         private const string MuscleSpine = "Spine Front-Back";
         private const string MuscleChest = "Chest Front-Back";
         private const string MuscleSpineTwist = "Spine Twist Left-Right";
@@ -89,22 +158,15 @@ namespace Saiyaheim.Flight
 
         private static void Apply(CharacterAnimEvent animEvent, float deltaTime)
         {
-            bool enabled = SaiyaheimConfig.FlightPoseEnabled.Value;
-
-            // Roda em todo personagem carregado, inclusive bicho: sair barato importa.
-            if (!enabled && States.Count == 0)
-            {
-                return;
-            }
-
             SweepDestroyed();
 
+            // Roda em todo personagem carregado, inclusive bicho: sair barato importa.
             if (!(GameAccess.GetAnimEventCharacter(animEvent) is Player player))
             {
                 return;
             }
 
-            bool flying = enabled && FlightManager.IsFlying(player);
+            bool flying = FlightManager.IsFlying(player);
 
             if (!flying && !States.ContainsKey(player))
             {
@@ -120,7 +182,7 @@ namespace Saiyaheim.Flight
             state.ActionWeight = Mathf.MoveTowards(
                 state.ActionWeight,
                 ActionTarget(player),
-                StepPerSecond(SaiyaheimConfig.FlightPoseActionBlendSeconds.Value) * deltaTime);
+                StepPerSecond(ActionBlendSeconds) * deltaTime);
 
             // A ação multiplica o peso da pose inteira, e não só o da metade de cima. Ver ActionTarget.
             state.Weight = StepWeight(state.Weight, flying, deltaTime);
@@ -161,8 +223,7 @@ namespace Saiyaheim.Flight
             // soltou tudo, e aí bloquear parecia estar de pé no ar. O corte certo é este.
             float weight = state.Weight;
             float action = weight * state.ActionWeight;
-            float legs = weight * Mathf.Lerp(
-                state.ActionWeight, 1f, SaiyaheimConfig.FlightPoseActionLegHold.Value);
+            float legs = weight * Mathf.Lerp(state.ActionWeight, 1f, ActionLegHold);
 
             if (weight > 0f)
             {
@@ -220,7 +281,7 @@ namespace Saiyaheim.Flight
         /// </summary>
         private static void SquareToHeading(ref HumanPose pose, float[] muscles, float weight)
         {
-            float amount = SaiyaheimConfig.FlightPoseSquareToHeading.Value * weight;
+            float amount = SquareToHeadingAmount * weight;
             if (amount <= 0f)
             {
                 return;
@@ -275,8 +336,8 @@ namespace Saiyaheim.Flight
             // Cruzeiro e corrida se revezam: a inclinação leve da velocidade lenta some conforme a
             // forte entra, em vez de as duas se somarem.
             float basePitch =
-                SaiyaheimConfig.FlightPoseCruisePitch.Value * speed01 * (1f - fast01) +
-                SaiyaheimConfig.FlightPoseFastPitch.Value * fast01;
+                CruisePitch * speed01 * (1f - fast01) +
+                FastPitch * fast01;
 
             // Subir levanta o nariz, descer abaixa. Sem este termo a inclinação vertical só
             // aparecia por acidente, como queda do fator horizontal — e por isso subir e descer
@@ -284,7 +345,7 @@ namespace Saiyaheim.Flight
             //
             // Multiplicado pela velocidade horizontal porque inclinar é coisa de quem se desloca:
             // subir na vertical, parado, é o Goku subindo em pé, não um avião cabrando.
-            float climb = SaiyaheimConfig.FlightPoseClimbPitch.Value * vertical01 * speed01;
+            float climb = ClimbPitch * vertical01 * speed01;
 
             float target = (basePitch - climb) * weight;
 
@@ -313,22 +374,14 @@ namespace Saiyaheim.Flight
             // descreveu como "fica bom devagar, mas apertando para correr fica muito ruim".
             float walk = 1f - fast01;
 
-            float spine = Mathf.Lerp(
-                SaiyaheimConfig.FlightPoseHoverSpine.Value,
-                SaiyaheimConfig.FlightPoseForwardSpine.Value, speed01) * walk;
+            float spine = Mathf.Lerp(HoverSpine, ForwardSpine, speed01) * walk;
 
             // Lombar e peito separados porque não são a mesma articulação: no rig do Valheim a
             // lombar arrasta o quadril junto, e foi ela que o playtest viu "mexendo as pernas".
-            float chest = Mathf.Lerp(
-                SaiyaheimConfig.FlightPoseHoverChest.Value,
-                SaiyaheimConfig.FlightPoseForwardChest.Value, speed01) * walk;
+            float chest = Mathf.Lerp(HoverChest, ForwardChest, speed01) * walk;
 
-            float armSpread = Mathf.Lerp(
-                SaiyaheimConfig.FlightPoseHoverArmSpread.Value,
-                SaiyaheimConfig.FlightPoseForwardArmSpread.Value, speed01);
-            float armSwing = Mathf.Lerp(
-                SaiyaheimConfig.FlightPoseHoverArmSwing.Value,
-                SaiyaheimConfig.FlightPoseForwardArmSwing.Value, speed01);
+            float armSpread = Mathf.Lerp(HoverArmSpread, ForwardArmSpread, speed01);
+            float armSwing = Mathf.Lerp(HoverArmSwing, ForwardArmSwing, speed01);
 
             Blend(muscles, MuscleSpine, spine, weight);
             Blend(muscles, MuscleChest, chest, weight);
@@ -338,24 +391,22 @@ namespace Saiyaheim.Flight
             Blend(muscles, MuscleArmSwingL, armSwing, weight);
             Blend(muscles, MuscleArmSwingR, armSwing, weight);
 
-            float elbow = SaiyaheimConfig.FlightPoseElbowBend.Value;
-            Blend(muscles, MuscleElbowL, elbow, weight);
-            Blend(muscles, MuscleElbowR, elbow, weight);
+            Blend(muscles, MuscleElbowL, ElbowBend, weight);
+            Blend(muscles, MuscleElbowR, ElbowBend, weight);
 
             // Perna esquerda e direita separadas: a pose clássica do gênero tem uma perna recolhida
             // e a outra estendida, e no primeiro playtest o valor único ainda espelhava errado.
-            Blend(muscles, MuscleLegSwingL, SaiyaheimConfig.FlightPoseLegSwingLeft.Value, legs);
-            Blend(muscles, MuscleLegSwingR, SaiyaheimConfig.FlightPoseLegSwingRight.Value, legs);
+            Blend(muscles, MuscleLegSwingL, LegSwingLeft, legs);
+            Blend(muscles, MuscleLegSwingR, LegSwingRight, legs);
 
-            Blend(muscles, MuscleLegSpreadL, SaiyaheimConfig.FlightPoseLegSpreadLeft.Value, legs);
-            Blend(muscles, MuscleLegSpreadR, SaiyaheimConfig.FlightPoseLegSpreadRight.Value, legs);
+            Blend(muscles, MuscleLegSpreadL, LegSpreadLeft, legs);
+            Blend(muscles, MuscleLegSpreadR, LegSpreadRight, legs);
 
-            Blend(muscles, MuscleKneeL, SaiyaheimConfig.FlightPoseLegBendLeft.Value, legs);
-            Blend(muscles, MuscleKneeR, SaiyaheimConfig.FlightPoseLegBendRight.Value, legs);
+            Blend(muscles, MuscleKneeL, LegBendLeft, legs);
+            Blend(muscles, MuscleKneeR, LegBendRight, legs);
 
-            float foot = SaiyaheimConfig.FlightPoseToePoint.Value;
-            Blend(muscles, MuscleFootL, foot, legs);
-            Blend(muscles, MuscleFootR, foot, legs);
+            Blend(muscles, MuscleFootL, ToePoint, legs);
+            Blend(muscles, MuscleFootR, ToePoint, legs);
         }
 
         /// <summary>
@@ -377,8 +428,7 @@ namespace Saiyaheim.Flight
         {
             float target = flying ? 1f : 0f;
             return Mathf.MoveTowards(
-                weight, target,
-                StepPerSecond(SaiyaheimConfig.FlightPoseBlendSeconds.Value) * deltaTime);
+                weight, target, StepPerSecond(BlendSeconds) * deltaTime);
         }
 
         /// <summary>Blend em segundos vira passo por segundo; 0 vira "instantâneo".</summary>
@@ -408,11 +458,6 @@ namespace Saiyaheim.Flight
         /// </summary>
         private static float ActionTarget(Player player)
         {
-            if (!SaiyaheimConfig.FlightPoseReleaseOnAction.Value)
-            {
-                return 1f;
-            }
-
             bool busy = player.InAttack()
                         || player.IsBlocking()
                         || player.InMinorAction()
