@@ -61,6 +61,11 @@ namespace Saiyaheim
         /// e esta seção some do <c>.cfg</c> de quem instalar depois.
         ///
         /// Client-side: a pose é desenho local, cada jogador aplica a sua em todo mundo que vê.
+        ///
+        /// 📌 <b>Calibrada em 2026-08-07</b> e os treze valores promovidos para cá — mas a seção
+        /// <b>continua</b>, e não virou <c>const</c> como a do voo. A diferença é que a do voo foi
+        /// declarada fechada e esta ainda não: o Henrique disse que ajusta jogando. Quando fechar,
+        /// vira <c>const</c> no <c>KiChargePose</c> e some do <c>.cfg</c>.
         /// </summary>
         private const string SecChargePose = "8.1 - Ki Charge Pose";
 
@@ -966,25 +971,28 @@ namespace Saiyaheim
             // Os quatro numeros de partida, ancorados no soco em vez de chutados no vazio:
             //   dano por poder 0,04 contra os 0,05 do PunchDamageFromPower — o tiro bate um pouco
             //   MENOS por acerto que o soco, que e' o que compra o direito de ser a distancia.
-            //   Custo 8 fixo contra os ~3,75 de um soco no comeco do jogo: cedo o tiro e' caro (seis
-            //   por barra cheia), e vai ficando barato conforme a barra cresce e este numero nao.
+            //   Custo 20 fixo: cedo o tiro e' caro, e vai ficando barato conforme a barra cresce e
+            //   este numero nao. Comecou em 8, ancorado nos ~3,75 de um soco no comeco do jogo, e o
+            //   playtest de 2026-08-07 subiu para 20 — 2,5x. Isso NAO responde a pergunta do fim de
+            //   jogo, so a atrasa: ver [[Em Aberto]].
             // O saiya_blast imprime dano/ki dos dois lado a lado — e' por ali que a calibracao sai.
             KiBlast = BindKiAttack(config, SecKiBlast,
                 damageBase: 8f,
                 damageFromPower: 0.04f,
-                kiCost: 8f,
+                kiCost: 20f,
                 cooldown: 0.5f,
                 projectilePrefab: "DvergerStaffFire_fireball_projectile",
                 requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
-            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 15f,
+            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 10f,
                 new ConfigDescription(
                     "Ki per second while flying. Deliberately high: flight should be a tool, " +
                     "not the default way to get around — otherwise the game's hostile terrain " +
                     "turns into scenery. Running out of ki in the air drops you. " +
-                    "(Playtest value, 2026-07-31. Raised from 4: at that cost flight was cheap " +
-                    "enough to become the default way to travel.)",
+                    "(Playtest value, 2026-08-07. Went 4 → 15 on 2026-07-31, because at 4 flight " +
+                    "was cheap enough to become the default way to travel, then 15 → 10 while " +
+                    "playing the ki attack stage.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2.5f,
@@ -1291,9 +1299,15 @@ namespace Saiyaheim
                     "stop. Zero snaps.",
                     new AcceptableValueRange<float>(0f, 2f), ClientSide(199)));
 
-            // Os cinco interruptores de grupo. Ficam no topo da secao, logo abaixo do Enabled,
+            // Os sete interruptores de grupo. Ficam no topo da secao, logo abaixo do Enabled,
             // porque sao por onde a calibragem comeca: acender um grupo, ajustar os alvos dele,
             // acender o proximo.
+            //
+            // Depois do playtest de 2026-08-07 cinco deles nascem LIGADOS — peito, peito alto,
+            // ombros, cabeca e bracos. Os dois que continuam em zero sao os dois que o rig do
+            // Valheim desaconselha: a **lombar**, que arrasta o quadril, e as **pernas**, que sem
+            // o agachamento do HipDrop levantam os pes do chao. Nao e' "falta calibrar": e' a
+            // pose calibrada.
             ChargePoseChestWeight = config.Bind(SecChargePose, "ChestWeight", 1f,
                 new ConfigDescription(
                     "How much of the CHEST the pose owns. THIS IS A SWITCH, not an intensity: zero " +
@@ -1305,7 +1319,7 @@ namespace Saiyaheim
                     "which is why it is the one that starts on.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(198)));
 
-            ChargePoseUpperChestWeight = config.Bind(SecChargePose, "UpperChestWeight", 0f,
+            ChargePoseUpperChestWeight = config.Bind(SecChargePose, "UpperChestWeight", 1f,
                 new ConfigDescription(
                     "How much of the UPPER chest the pose owns — the joint above the chest, the " +
                     "most isolated of the three. Use it on top of the chest for a deeper bend that " +
@@ -1322,19 +1336,22 @@ namespace Saiyaheim
                     "come from the waist.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(196)));
 
-            ChargePoseShoulderWeight = config.Bind(SecChargePose, "ShoulderWeight", 0f,
+            ChargePoseShoulderWeight = config.Bind(SecChargePose, "ShoulderWeight", 1f,
                 new ConfigDescription(
                     "How much of the shoulders the pose owns. Zero leaves them to the animation.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(195)));
 
-            ChargePoseHeadWeight = config.Bind(SecChargePose, "HeadWeight", 0f,
+            ChargePoseHeadWeight = config.Bind(SecChargePose, "HeadWeight", 1f,
                 new ConfigDescription(
                     "How much of the neck and head the pose owns. Zero leaves them to the " +
                     "animation — including the game's own look-at, which aims the head at whatever " +
-                    "you are looking at and is usually worth keeping.",
+                    "you are looking at. Keeping the look-at was the original guess; the " +
+                    "calibrated pose takes the head instead, because a dropped chin is half of " +
+                    "what reads as bracing. " +
+                    "(Playtest value, 2026-08-07.)",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(194)));
 
-            ChargePoseArmWeight = config.Bind(SecChargePose, "ArmWeight", 0f,
+            ChargePoseArmWeight = config.Bind(SecChargePose, "ArmWeight", 1f,
                 new ConfigDescription(
                     "How much of both arms the pose owns — upper arm, twist and elbow. Zero leaves " +
                     "them exactly as the animation has them. FistClench is deliberately outside " +
@@ -1348,7 +1365,7 @@ namespace Saiyaheim
                     "the feet-off-the-ground problem described under KneeBend impossible.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(192)));
 
-            ChargePoseChestLean = config.Bind(SecChargePose, "ChestLean", 0.25f,
+            ChargePoseChestLean = config.Bind(SecChargePose, "ChestLean", 0.5f,
                 new ConfigDescription(
                     "How far the CHEST bends FORWARD, when ChestWeight is on. Negative arches back. " +
                     "This and the two below used to be a single 'Lean' split between the joints by " +
@@ -1356,47 +1373,60 @@ namespace Saiyaheim
                     "and all. Reported as bad on screen on 2026-08-07 and split into three.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(189)));
 
-            ChargePoseUpperChestLean = config.Bind(SecChargePose, "UpperChestLean", 0.2f,
+            ChargePoseUpperChestLean = config.Bind(SecChargePose, "UpperChestLean", 0.5f,
                 new ConfigDescription(
                     "How far the UPPER chest bends forward, when UpperChestWeight is on. " +
                     "Negative arches back.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(188)));
 
-            ChargePoseSpineLean = config.Bind(SecChargePose, "SpineLean", 0.1f,
+            ChargePoseSpineLean = config.Bind(SecChargePose, "SpineLean", 0f,
                 new ConfigDescription(
                     "How far the LOWER BACK bends forward, when SpineWeight is on. Keep it small: " +
                     "this joint carries the hips. Negative arches back.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(187)));
 
-            ChargePoseShoulderShrug = config.Bind(SecChargePose, "ShoulderShrug", 0.3f,
+            // ⚠️ NEGATIVO depois do playtest de 2026-08-07: a pose calibrada puxa os ombros para
+            // BAIXO, nao para cima. O desenho original apostava no contrario — ombro erguido como
+            // sinal de tensao —, e a tela decidiu o oposto.
+            ChargePoseShoulderShrug = config.Bind(SecChargePose, "ShoulderShrug", -0.5f,
                 new ConfigDescription(
-                    "How far the shoulders are pulled UP. This is most of what reads as 'tense' — " +
-                    "the same pose with relaxed shoulders reads as standing around.",
+                    "How far the shoulders are pulled UP — and the default is NEGATIVE, meaning " +
+                    "down. Pulling them up was the original guess (shrugged reads as tense) and " +
+                    "the screen went the other way: shoulders driven down and back read as " +
+                    "bracing, which is what charging is. " +
+                    "(Playtest value, 2026-08-07.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(185)));
 
-            ChargePoseHeadTilt = config.Bind(SecChargePose, "HeadTilt", 0.15f,
+            ChargePoseHeadTilt = config.Bind(SecChargePose, "HeadTilt", 0.5f,
                 new ConfigDescription(
                     "How far the chin drops. Split between neck and head. Negative looks up " +
                     "instead, which is the other classic reading of the same pose — worth trying " +
-                    "if the effect column ever goes up into the sky.",
+                    "if the effect column ever goes up into the sky. " +
+                    "(Playtest value, 2026-08-07. Started at 0.15, which barely moved the head.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(180)));
 
             // Alvo ABSOLUTO no espaco de musculo, e nao intencao: e o unico numero desta secao que
             // segue a convencao da Unity direto, porque nao ha nome de intencao honesto para "onde
             // fica o braco" — e a mesma escolha que o HoverArmSpread do voo fez.
-            ChargePoseArmDown = config.Bind(SecChargePose, "ArmDown", -0.5f,
+            ChargePoseArmDown = config.Bind(SecChargePose, "ArmDown", -0.2f,
                 new ConfigDescription(
                     "Where the upper arms sit. This one is raw muscle space, not intent: 0 is a " +
-                    "T-pose and about -0.65 is arms hanging straight down. -0.5 leaves the elbows " +
-                    "slightly flared, which is what makes the fists land beside the hips instead " +
-                    "of in front of the crotch.",
+                    "T-pose and about -0.65 is arms hanging straight down, so the calibrated " +
+                    "-0.2 keeps the elbows well away from the ribs. " +
+                    "(Playtest value, 2026-08-07. The first guess was -0.5, aiming for fists " +
+                    "beside the hips; the screen wanted the arms further out than that.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(175)));
 
-            ChargePoseArmBack = config.Bind(SecChargePose, "ArmBack", 0.25f,
+            // ⚠️ NEGATIVO depois do playtest de 2026-08-07: os bracos vao para FRENTE das
+            // costelas, nao para tras. Junto com o ArmDown -0,2 e o cotovelo mais aberto, a pose
+            // calibrada e' de bracos abertos e a frente, e nao de punhos colados no quadril.
+            ChargePoseArmBack = config.Bind(SecChargePose, "ArmBack", -0.25f,
                 new ConfigDescription(
-                    "How far the upper arms are pulled BACK, behind the ribs. Together with " +
-                    "ElbowBend this is what puts the fists at the hips rather than in front of " +
-                    "the belly. Negative pushes them forward.",
+                    "How far the upper arms are pulled BACK, behind the ribs — and the default is " +
+                    "NEGATIVE, meaning forward. Together with ArmDown and ElbowBend this is what " +
+                    "decides where the hands end up. The original guess pulled them back, to put " +
+                    "the fists at the hips; the calibrated pose pushes them forward instead. " +
+                    "(Playtest value, 2026-08-07.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(170)));
 
             ChargePoseArmTwist = config.Bind(SecChargePose, "ArmTwist", 0.15f,
@@ -1407,13 +1437,15 @@ namespace Saiyaheim
                     "sideways instead of coming forward.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(165)));
 
-            ChargePoseElbowBend = config.Bind(SecChargePose, "ElbowBend", 0.7f,
+            ChargePoseElbowBend = config.Bind(SecChargePose, "ElbowBend", 0.3f,
                 new ConfigDescription(
                     "How far the elbows are bent. 0 is a straight arm, 1 is the tightest bend the " +
-                    "rig allows.",
+                    "rig allows. " +
+                    "(Playtest value, 2026-08-07. Started at 0.7 — a tight bend that belonged to " +
+                    "the fists-at-the-hips version of this pose.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(160)));
 
-            ChargePoseFistClench = config.Bind(SecChargePose, "FistClench", 0f,
+            ChargePoseFistClench = config.Bind(SecChargePose, "FistClench", 1f,
                 new ConfigDescription(
                     "How hard the hands close, independently of ArmWeight — a closed fist reads as " +
                     "tension even on an arm the pose is not touching. Fingers are muscles like any " +
@@ -1902,8 +1934,7 @@ namespace Saiyaheim
                         "FLAT on purpose, unlike the punch, which costs per point of damage: this " +
                         "is the starting shape and it is expected to get cheap late, when the bar " +
                         "has grown and this number has not. Watch it with saiya_blast, which " +
-                        "prints shots per full bar. " +
-                        "(Starting value. Not playtested yet.)",
+                        "prints shots per full bar.",
                         new AcceptableValueRange<float>(0f, 1000f), AdminOnly(90))),
 
                 Cooldown = config.Bind(section, "Cooldown", cooldown,

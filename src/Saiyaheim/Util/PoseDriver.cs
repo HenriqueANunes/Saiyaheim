@@ -62,7 +62,9 @@ namespace Saiyaheim.Util
     ///
     /// Hoje só o voo tem o canal: o <c>SE_Flight</c> sincroniza por ZDO, então todo cliente sabe
     /// quem está voando. O carregamento e o disparo não têm, e por isso as poses deles são locais
-    /// — cada um vê a sua. Os dois se fecham na etapa 8, com um mecanismo só.
+    /// — cada um vê a sua. Os dois se fecham na etapa 8, e não pelo mesmo caminho: o
+    /// carregamento é estado e pede um <c>SE_</c>; o disparo é instante, e o próprio projétil, que
+    /// já replica, é o sinal.
     /// </summary>
     internal static class PoseDriver
     {

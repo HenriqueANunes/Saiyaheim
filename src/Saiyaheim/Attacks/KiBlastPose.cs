@@ -36,8 +36,10 @@ namespace Saiyaheim.Attacks
     /// braço esticar. O conserto é da etapa 8 e o caminho barato já está desenhado em
     /// [[Melhorias#Pose procedural de disparo do ki blast]] — o projétil já replica, então um
     /// cliente que vê nascer uma bola de ki com aquele dono pode chamar o <see cref="Trigger"/>
-    /// daquele jogador. Não foi feito agora porque a pose de recarga tem exatamente o mesmo furo e
-    /// os dois se fecham juntos, com um mecanismo só.
+    /// daquele jogador. Não foi feito agora porque a pose de recarga tem o mesmo furo e os dois
+    /// entram juntos na etapa 8 — mas <b>não pelo mesmo mecanismo</b>: carregar é estado e um
+    /// <c>SE_</c> responde bem a "quem está carregando agora?"; disparar é instante, e um
+    /// <c>SE_</c> de 200 ms por tiro seria status effect usado como variável.
     ///
     /// <b>Não tem <c>ActionTarget</c></b>, ao contrário das outras duas. Elas precisam sair do
     /// caminho porque um estado que dura pisa em cima de qualquer golpe que o jogador tente no
