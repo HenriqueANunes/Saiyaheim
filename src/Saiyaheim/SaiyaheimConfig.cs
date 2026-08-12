@@ -1085,18 +1085,22 @@ namespace Saiyaheim
                     "0 disables it. Check it with saiya_fly.",
                     new AcceptableValueRange<float>(0f, 0.1f), AdminOnly(63)));
 
-            FlightXpPerSecond = config.Bind(SecFlight, "XpPerSecond", 0.3f,
+            FlightXpPerSecond = config.Bind(SecFlight, "XpPerSecond", 0.5f,
                 new ConfigDescription(
                     "Flight skill XP per second airborne. Flying is its own training — there is " +
                     "no other way to raise it. Valheim's own diminishing curve up to 100 applies. " +
-                    "(Playtest value, 2026-07-31. Lowered from 1: the skill is what makes flight " +
-                    "cheap, and reaching that quickly would undo the cost of KiPerSecond.)",
+                    "(Playtest value, 2026-08-11. Went 1 → 0.3 on 2026-07-31, because the skill is " +
+                    "what makes flight cheap and reaching that quickly would undo the cost of " +
+                    "KiPerSecond; 0.3 turned out to be the other extreme, with the skill barely " +
+                    "moving over a whole session.)",
                     new AcceptableValueRange<float>(0f, 20f), AdminOnly(60)));
 
-            FlightWeightPenalty = config.Bind(SecFlight, "WeightPenalty", 0.5f,
+            FlightWeightPenalty = config.Bind(SecFlight, "WeightPenalty", 0.6f,
                 new ConfigDescription(
                     "Fraction of the speed lost with the inventory at maximum weight. " +
-                    "0.5 = flying fully loaded you go at half speed.",
+                    "0.5 = flying fully loaded you go at half speed. " +
+                    "(Playtest value, 2026-08-11. Raised from 0.5: hauling a full inventory by air " +
+                    "should cost something the player can feel.)",
                     new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(55)));
 
             FlightMinBattlePower = config.Bind(SecFlight, "MinBattlePower", 0f,
@@ -1210,19 +1214,20 @@ namespace Saiyaheim
             // --- Battle Power ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
-            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.1f,
+            SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.07f,
                 new ConfigDescription(
                     "XP per point of damage dealt, CAPPED at the target's remaining HP. That cap is " +
                     "what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts as 10. " +
-                    "(Playtest value, 2026-08-01: 0.05 made the early levels crawl.)",
+                    "(Playtest value, 2026-08-11. Went 0.05 → 0.1 on 2026-08-01, when the early " +
+                    "levels crawled; 0.07 is the settled middle, after 0.1 made them climb too fast.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(100)));
 
-            SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.1f,
+            SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.07f,
                 new ConfigDescription(
                     "XP per point of damage taken, measured AFTER armor. Measuring it after armor is " +
                     "what kills the exploit of taking hits on purpose from a weak enemy: taking " +
                     "little damage pays little. " +
-                    "(Playtest value, 2026-08-01: kept equal to XpPerDamageDealt on purpose — the " +
+                    "(Playtest value, 2026-08-11: kept equal to XpPerDamageDealt on purpose — the " +
                     "two sides of the fight should pay the same.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
