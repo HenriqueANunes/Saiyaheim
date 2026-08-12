@@ -1903,7 +1903,7 @@ namespace Saiyaheim
                         "Damage of this attack at power level zero, before the power share below. " +
                         "It is the floor: a fresh character has almost no power level, and an " +
                         "attack that did nothing at all until the bar filled would read as broken " +
-                        "on the very first shot. All of it is BLUNT damage. " +
+                        "on the very first shot. All of it is SLASH damage. " +
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 1000f), AdminOnly(100))),
 

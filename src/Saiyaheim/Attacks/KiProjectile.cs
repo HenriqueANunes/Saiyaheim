@@ -103,7 +103,7 @@ namespace Saiyaheim.Attacks
             projectile.Setup(player, aim * speed, -1f, BuildHit(player, attack, damage), null, null);
 
             SaiyaheimPlugin.LogVerbose(
-                $"Ki attack '{attack.Id}': {damage:0.#} blunt, {attack.GetKiCost():0.#} ki, " +
+                $"Ki attack '{attack.Id}': {damage:0.#} slash, {attack.GetKiCost():0.#} ki, " +
                 $"{speed:0.#} m/s for {attack.Config.ProjectileLifetime.Value:0.##}s " +
                 $"({speed * attack.Config.ProjectileLifetime.Value:0} m range).");
 
@@ -167,8 +167,10 @@ namespace Saiyaheim.Attacks
         /// <summary>
         /// O golpe que o projétil vai aplicar.
         ///
-        /// <b>Contusão pura</b> — decisão de 2026-08-06, ver [[Ataques de Ki]]. Não é chave de
+        /// <b>Corte puro</b> — decisão de 2026-08-11, ver [[Ataques de Ki]]. Não é chave de
         /// config porque não é número de balanceamento: é o que o ataque <i>é</i>.
+        /// (Era contusão até 2026-08-06; slash conta para stagger do mesmo jeito, então a troca
+        /// muda só a resistência do alvo, não o ritmo do combate.)
         ///
         /// <b>Bloqueável e esquivável</b>, como qualquer projétil do jogo. Tirar isso faria o
         /// ataque ignorar em silêncio as duas defesas que o Valheim inteiro ensina, e um inimigo
@@ -178,7 +180,7 @@ namespace Saiyaheim.Attacks
         {
             HitData hit = new HitData();
 
-            hit.m_damage.m_blunt = damage;
+            hit.m_damage.m_slash = damage;
             hit.m_pushForce = Mathf.Max(0f, attack.Config.Knockback.Value);
             hit.m_blockable = true;
             hit.m_dodgeable = true;

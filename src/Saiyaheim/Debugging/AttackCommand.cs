@@ -158,7 +158,7 @@ namespace Saiyaheim.Debugging
             float damage = attack.DamageFor(combat);
             float cost = attack.GetKiCost();
 
-            Print($"Damage: {damage:0.#} blunt " +
+            Print($"Damage: {damage:0.#} slash " +
                   $"(base {attack.Config.DamageBase.Value:0.#} + " +
                   $"{attack.Config.DamageFromPower.Value:0.###} x {combat:0.#} combat power)");
 
