@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Saiyaheim.Net;
 using Saiyaheim.Transformations;
 using Saiyaheim.Util;
 using UnityEngine;
@@ -24,70 +26,114 @@ namespace Saiyaheim.Ki
     ///
     /// <b>Carregar transformado usa a cor da forma</b>, não a azul do config — ver
     /// <see cref="ResolveColor"/>.
+    ///
+    /// <b>Etapa 8: um conjunto de efeitos por jogador, não um só.</b> Até aqui esta classe tinha
+    /// dois campos estáticos e servia exclusivamente o jogador local — um amigo carregando ki era
+    /// invisível. Quem diz quem está carregando agora é o <see cref="NetState"/>, e quem varre
+    /// todos os jogadores é o <see cref="RemoteEffects"/>. O <c>m_forceDisableInit</c> do
+    /// <see cref="AttachedEffect"/> continua igual e continua certo: o efeito é <b>criado
+    /// localmente em cada máquina</b> a partir da bandeira, e não replicado como objeto de rede.
     /// </summary>
     internal static class KiChargeEffects
     {
-        private static GameObject _vfx;
-        private static GameObject _sfx;
-        private static bool _disabled;
-
         /// <summary>
-        /// A cor com que o <see cref="_vfx"/> foi criado. A cor é aplicada nos materiais no momento
-        /// da instanciação, então mudá-la depois significa recriar o efeito — e comparar contra
-        /// este campo é como sabemos que ela mudou.
+        /// O que está aceso num jogador. Ausente quer dizer "não está carregando" — o dicionário é
+        /// a resposta, não um cache.
         /// </summary>
-        private static string _vfxColor;
+        private sealed class Active
+        {
+            internal GameObject Vfx;
+            internal GameObject Sfx;
 
-        private static bool IsActive => _vfx != null || _sfx != null;
+            /// <summary>
+            /// A cor com que o <see cref="Vfx"/> foi criado. A cor é aplicada nos materiais no
+            /// momento da instanciação, então mudá-la depois significa recriar o efeito — e
+            /// comparar contra este campo é como sabemos que ela mudou.
+            /// </summary>
+            internal string Color;
+        }
+
+        private static readonly Dictionary<Player, Active> Live = new Dictionary<Player, Active>();
+
+        private static bool _disabled;
 
         internal static void Update(Player player, bool charging)
         {
-            if (_disabled)
+            if (_disabled || player == null)
             {
                 return;
             }
 
             try
             {
-                if (charging && !IsActive)
+                bool live = Live.TryGetValue(player, out Active active);
+
+                if (charging && !live)
                 {
                     Start(player);
                 }
-                else if (!charging && IsActive)
+                else if (!charging && live)
                 {
-                    Cleanup();
+                    Cleanup(player, active);
                 }
                 else if (charging)
                 {
-                    RefreshColor(player);
+                    RefreshColor(player, active);
                 }
             }
             catch (Exception ex)
             {
                 _disabled = true;
-                Cleanup();
+                Reset();
                 SaiyaheimPlugin.Log.LogError($"Charging effects disabled after an error: {ex}");
             }
         }
 
         /// <summary>
-        /// Zera o estado sem tentar tocar no jogador — usado quando ele deixou de existir
-        /// (morte, saída do mundo). Os objetos de efeito são filhos do transform dele e já
-        /// morreram junto; só as referências ficaram.
+        /// Este jogador deixou de existir (morte, saída do mundo, saiu do alcance). Os objetos de
+        /// efeito são filhos do transform dele e já morreram junto; só a entrada ficou.
+        /// </summary>
+        internal static void Forget(Player player)
+        {
+            Live.Remove(player);
+        }
+
+        /// <summary>
+        /// Apaga tudo que está aceso. Usado ao sair do mundo e quando um erro desliga os efeitos.
+        ///
+        /// <b>Destrói, não só esquece.</b> Enquanto isto servia só o jogador local dava para largar
+        /// as referências e confiar que os objetos morriam junto com ele; agora o caminho de erro
+        /// pode disparar com jogadores vivos na tela, e esquecer deixaria o brilho aceso para
+        /// sempre, sem ninguém que soubesse apagá-lo.
         /// </summary>
         internal static void Reset()
         {
-            _vfx = null;
-            _sfx = null;
-            _vfxColor = null;
+            foreach (Active active in Live.Values)
+            {
+                if (active.Vfx != null)
+                {
+                    UnityEngine.Object.Destroy(active.Vfx);
+                }
+
+                if (active.Sfx != null)
+                {
+                    UnityEngine.Object.Destroy(active.Sfx);
+                }
+            }
+
+            Live.Clear();
         }
 
         private static void Start(Player player)
         {
-            _vfxColor = ResolveColor(player);
+            string color = ResolveColor(player);
 
-            _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, _vfxColor);
-            _sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab.Value, player, _vfxColor);
+            Live[player] = new Active
+            {
+                Color = color,
+                Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color),
+                Sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab.Value, player, color)
+            };
         }
 
         /// <summary>
@@ -98,25 +144,25 @@ namespace Saiyaheim.Ki
         /// tecla. Comparar a cor a cada frame é uma comparação de string; recriar só acontece
         /// quando ela de fato muda.
         ///
-        /// Só o visual é refeito. O som continua tocando e o emote continua em loop — reiniciar
-        /// qualquer um dos dois seria audível, e nenhum tem cor.
+        /// Só o visual é refeito. O som continua tocando — reiniciá-lo seria audível, e ele não
+        /// tem cor.
         /// </summary>
-        private static void RefreshColor(Player player)
+        private static void RefreshColor(Player player, Active active)
         {
             string color = ResolveColor(player);
-            if (color == _vfxColor)
+            if (color == active.Color)
             {
                 return;
             }
 
-            _vfxColor = color;
+            active.Color = color;
 
-            if (_vfx != null)
+            if (active.Vfx != null)
             {
-                UnityEngine.Object.Destroy(_vfx);
+                UnityEngine.Object.Destroy(active.Vfx);
             }
 
-            _vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color);
+            active.Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color);
         }
 
         /// <summary>
@@ -128,10 +174,13 @@ namespace Saiyaheim.Ki
         ///
         /// Forma com <c>AuraColor</c> vazio cai na cor de carregamento em vez de na cor crua do
         /// prefab: vazio ali quer dizer "não tinja a aura", não "volte ao azul do jogo".
+        ///
+        /// <b>Lê a forma pelo <see cref="NetState"/> e não pelo <c>SEMan</c></b>, senão a resposta
+        /// valeria só para o jogador local e um amigo em SSJ carregaria em azul.
         /// </summary>
         private static string ResolveColor(Player player)
         {
-            Transformation active = TransformationRegistry.GetActive(player);
+            Transformation active = TransformationRegistry.At(NetState.GetFormIndex(player));
 
             if (active != null && !string.IsNullOrEmpty(active.Config.AuraColor.Value))
             {
@@ -151,19 +200,19 @@ namespace Saiyaheim.Ki
                 SaiyaheimConfig.ChargeEffectForceLoop.Value);
         }
 
-        private static void Cleanup()
+        private static void Cleanup(Player player, Active active)
         {
-            if (_vfx != null)
+            if (active.Vfx != null)
             {
-                UnityEngine.Object.Destroy(_vfx);
-                _vfx = null;
+                UnityEngine.Object.Destroy(active.Vfx);
             }
 
-            if (_sfx != null)
+            if (active.Sfx != null)
             {
-                UnityEngine.Object.Destroy(_sfx);
-                _sfx = null;
+                UnityEngine.Object.Destroy(active.Sfx);
             }
+
+            Live.Remove(player);
         }
     }
 }

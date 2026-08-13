@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Saiyaheim.Ki;
+using Saiyaheim.Net;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -21,9 +22,15 @@ namespace Saiyaheim.Flight
     /// exigiria saber qual eixo local de cada osso é "afastar o braço" — e isso depende da bind pose
     /// do rig. O sistema humanoide da Unity já resolve: ver <see cref="HumanMuscles"/>.
     ///
-    /// <b>Multiplayer.</b> Nada disto é replicado, e não precisa: o <see cref="SE_Flight"/> já
-    /// sincroniza por ZDO, então cada cliente descobre quem está voando e aplica a pose localmente.
-    /// Por isso o driver roda em <b>todo</b> <c>Player</c>, não só no local.
+    /// <b>Multiplayer.</b> Nada disto é replicado, e não precisa: quem está voando vem do
+    /// <see cref="NetState"/>, e cada cliente aplica a pose localmente. Por isso o driver roda em
+    /// <b>todo</b> <c>Player</c>, não só no local.
+    ///
+    /// ⚠️ <b>Até a etapa 8 esta pose era local, e o comentário aqui dizia o contrário</b> — a
+    /// premissa era que o <c>SE_Flight</c> sincronizava por ZDO, e status effect não sincroniza.
+    /// O que os outros viam do voo era só efeito colateral: o <see cref="FlightPosePatch"/>
+    /// escreve <c>onGround</c> e <c>falling</c> pelo <c>ZSyncAnimation</c>, e <b>isso</b> replica.
+    /// Boneco em pé deslizando pelo ar. Ver o cabeçalho do <see cref="NetState"/>.
     /// </summary>
     internal sealed class FlightPose : IPoseContributor
     {
@@ -141,7 +148,8 @@ namespace Saiyaheim.Flight
 
         public float Step(Player player, float deltaTime)
         {
-            bool flying = FlightManager.IsFlying(player);
+            // NetState e não FlightManager: o segundo pergunta ao SEMan, que só responde pelo dono.
+            bool flying = NetState.IsFlying(player);
 
             if (!flying && !States.ContainsKey(player))
             {

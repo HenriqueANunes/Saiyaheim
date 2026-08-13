@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Saiyaheim.Net;
 using UnityEngine;
 
 namespace Saiyaheim.Power
@@ -22,9 +23,15 @@ namespace Saiyaheim.Power
     /// <c>ApplyDamage</c> é público e tem assinatura estável, então a superfície de quebra numa
     /// atualização do Valheim é pequena.
     ///
-    /// ⚠️ <b>Multiplayer (etapa 8):</b> <c>ApplyDamage</c> roda no <b>dono</b> do alvo. Em
-    /// singleplayer isso é sempre o jogador local; num servidor, acertar um bicho que outro
-    /// cliente possui não passa por aqui. Resolver junto do resto da sincronização.
+    /// <b>Multiplayer:</b> <c>ApplyDamage</c> roda no <b>dono</b> do alvo. Em singleplayer isso é
+    /// sempre o jogador local; num servidor, acertar um bicho que outro cliente possui roda na
+    /// máquina <i>dele</i>. Até a etapa 8 isso significava <b>zero XP</b> nesse caso — e numa dupla
+    /// o bicho é de um ou de outro, então sumia perto de metade do XP de combate, em silêncio.
+    ///
+    /// ✅ <b>Resolvido pelo <see cref="DamageReport"/></b>: quando quem bateu não é o jogador
+    /// local, o número medido aqui é enviado para a máquina dele. O postfix continua sendo o único
+    /// lugar que mede, e continua medindo a mesma coisa; o que mudou é que o resultado agora
+    /// chega em quem tem direito a ele.
     /// </summary>
     [HarmonyPatch(typeof(Character), nameof(Character.ApplyDamage))]
     internal static class DamageXpPatch
@@ -63,6 +70,12 @@ namespace Saiyaheim.Power
             {
                 PowerSkill.RaiseFromDamageDealt(local, applied);
                 SaiyaheimPlugin.LogVerbose($"Battle Power XP: dealt {applied:0.#} damage.");
+            }
+            else if (hit.GetAttacker() is Player attacker)
+            {
+                // Quem bateu é outro cliente. Esta máquina é a única que sabe o número, e não tem
+                // o que fazer com ele.
+                DamageReport.Send(attacker, applied);
             }
         }
     }

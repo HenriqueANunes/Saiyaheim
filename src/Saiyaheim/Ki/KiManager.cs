@@ -86,10 +86,13 @@ namespace Saiyaheim.Ki
             {
                 // Morte ou saída do mundo: os efeitos morrem junto com o jogador (são filhos do
                 // transform dele), mas o estado interno precisa acompanhar.
+                //
+                // Quem larga os efeitos é o RemoteEffects, desde a etapa 8: eles deixaram de ser
+                // do jogador local para serem de cada jogador, e um Reset daqui apagaria também os
+                // dos amigos.
                 _trackedPlayer = null;
                 _state = null;
                 IsCharging = false;
-                KiChargeEffects.Reset();
                 return;
             }
 
@@ -120,8 +123,8 @@ namespace Saiyaheim.Ki
             // Abrir inventário no meio do carregamento não pode deixar efeito preso na tela.
             if (!AcceptsInput())
             {
+                // Abaixar a bandeira basta: o efeito segue o canal, e o canal segue isto.
                 IsCharging = false;
-                KiChargeEffects.Update(player, charging: false);
                 return;
             }
 
@@ -139,8 +142,6 @@ namespace Saiyaheim.Ki
             IsCharging = _state.Enabled
                          && SaiyaheimConfig.ChargeKiKey.Value.IsPressed()
                          && CanCharge(player);
-
-            KiChargeEffects.Update(player, IsCharging);
         }
 
         private static bool CanCharge(Player player)

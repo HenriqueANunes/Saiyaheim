@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Saiyaheim.Net;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -29,14 +31,29 @@ namespace Saiyaheim.Transformations
     internal static class TransformationEffects
     {
         /// <summary>
-        /// O último estouro criado. Normalmente já se autodestruiu quando alguém olha — só existe
-        /// para prefabs sem <c>TimedDestruction</c> não se acumularem ao longo da sessão.
+        /// O último estouro criado em cada jogador. Normalmente já se autodestruiu quando alguém
+        /// olha — só existe para prefabs sem <c>TimedDestruction</c> não se acumularem ao longo da
+        /// sessão, e para transformar duas vezes seguidas não somar dois estouros.
+        ///
+        /// <b>Por jogador desde a etapa 8</b>, como tudo o mais que é visual: dois amigos subindo
+        /// de forma ao mesmo tempo são dois estouros, e um campo só apagaria o primeiro.
         ///
         /// As chaves de config continuam se chamando <c>TransformAura*</c> mesmo depois de o
         /// efeito ter deixado de ser uma aura. Renomear chave duplica o <c>.cfg</c> de quem já tem
         /// o arquivo — mesma razão pela qual as chaves do voo mantiveram o prefixo <c>Flight</c>.
         /// </summary>
-        private static GameObject _burst;
+        private static readonly Dictionary<Player, GameObject> Bursts =
+            new Dictionary<Player, GameObject>();
+
+        /// <summary>
+        /// Último índice de forma visto em cada jogador. É a memória que transforma a bandeira de
+        /// estado do <see cref="NetState"/> no <b>evento</b> "acabou de subir de forma".
+        ///
+        /// Ausente quer dizer "nunca vi este jogador": anota-se o que ele já é e não se estoura
+        /// nada. Sem isso, chegar perto de alguém que está em SSJ há dez minutos dispararia o
+        /// efeito de transformação na cara de quem chegou.
+        /// </summary>
+        private static readonly Dictionary<Player, int> LastSeenForm = new Dictionary<Player, int>();
 
         /// <summary>
         /// Componente que pinta o modelo do jogador. Cacheado por jogador: o
@@ -52,16 +69,68 @@ namespace Saiyaheim.Transformations
         private static bool _disabled;
 
         /// <summary>
-        /// Entrou numa forma <b>subindo</b>: grita, estoura o efeito e pinta o cabelo.
+        /// Entrou numa forma <b>subindo</b>: grita e pinta o cabelo.
+        ///
+        /// <b>O estouro não sai daqui desde a etapa 8</b> — quem o dispara é o
+        /// <see cref="Observe"/>, vendo o índice da forma subir no canal, e em toda máquina de uma
+        /// vez. As duas coisas que sobraram aqui têm em comum o fato de <b>já</b> replicarem
+        /// sozinhas e de só poderem ser feitas pelo dono: o emote escreve na ZDO do jogador e o
+        /// <c>VisEquipment.SetHairColor</c> também. Estourar daqui seria o terceiro caminho, e o
+        /// único que pararia na tela de quem transformou.
         /// </summary>
         internal static void OnPowerUp(Player player, Transformation form)
         {
             Run(() =>
             {
                 PlayEmote(player, SaiyaheimConfig.TransformEmote.Value);
-                SpawnBurst(player, form);
                 SetHairColor(player, form);
             });
+        }
+
+        /// <summary>
+        /// Olha o canal deste jogador e estoura o efeito se ele acabou de subir de forma.
+        ///
+        /// Chamado pelo <see cref="RemoteEffects"/> para <b>todo</b> jogador carregado, o local
+        /// inclusive. Barato no caso comum: uma leitura de ZDO e uma comparação de inteiros.
+        ///
+        /// <b>Só subida estoura.</b> Descer um degrau e voltar à base repintam o cabelo e mais
+        /// nada — um estouro ali leria como transformar de novo, que é o oposto do que aconteceu.
+        /// A regra é a mesma que o <see cref="OnStepDown"/> já aplicava; agora ela vale para quem
+        /// está olhando de fora também.
+        /// </summary>
+        internal static void Observe(Player player)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            int index = NetState.GetFormIndex(player);
+
+            if (!LastSeenForm.TryGetValue(player, out int seen))
+            {
+                LastSeenForm[player] = index;
+                return;
+            }
+
+            if (index == seen)
+            {
+                return;
+            }
+
+            LastSeenForm[player] = index;
+
+            if (index > seen)
+            {
+                Run(() => SpawnBurst(player, TransformationRegistry.At(index)));
+            }
+        }
+
+        /// <summary>Este jogador deixou de existir: descarta o que era lembrado dele.</summary>
+        internal static void Forget(Player player)
+        {
+            Bursts.Remove(player);
+            LastSeenForm.Remove(player);
         }
 
         /// <summary>
@@ -101,7 +170,8 @@ namespace Saiyaheim.Transformations
             _visEquipment = null;
             _trackedPlayer = null;
             _hairTinted = false;
-            _burst = null;
+            Bursts.Clear();
+            LastSeenForm.Clear();
         }
 
         /// <summary>
@@ -117,15 +187,19 @@ namespace Saiyaheim.Transformations
         /// disparar, e foi isso que deixou o efeito aceso a forma inteira. Ver
         /// <c>AttachedEffect.PrepareForBurst</c> e a chave <c>TransformAuraDuration</c>.
         ///
-        /// O <see cref="_burst"/> ainda existe para o caso de transformar duas vezes dentro da
+        /// O <see cref="Bursts"/> ainda existe para o caso de transformar duas vezes dentro da
         /// duração do estouro: o anterior sai na hora em vez de os dois se somarem.
         /// </summary>
         private static void SpawnBurst(Player player, Transformation form)
         {
-            if (_burst != null)
+            if (Bursts.TryGetValue(player, out GameObject previous))
             {
-                UnityEngine.Object.Destroy(_burst);
-                _burst = null;
+                if (previous != null)
+                {
+                    UnityEngine.Object.Destroy(previous);
+                }
+
+                Bursts.Remove(player);
             }
 
             if (form == null)
@@ -133,7 +207,7 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            _burst = AttachedEffect.Spawn(
+            Bursts[player] = AttachedEffect.Spawn(
                 player,
                 SaiyaheimConfig.TransformAuraPrefab.Value,
                 form.Config.AuraColor.Value,

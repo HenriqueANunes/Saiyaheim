@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Saiyaheim.Net;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -13,16 +14,21 @@ namespace Saiyaheim.Ki
     /// a músculo é uma animação brigando com a outra, e a mistura ficou pior que qualquer uma das
     /// duas sozinha.
     ///
-    /// <b>⚠️ E isso custou o multiplayer, de propósito.</b> Enquanto o emote existia, ele
+    /// <b>⚠️ E isso custou o multiplayer por um tempo.</b> Enquanto o emote existia, ele
     /// replicava a bandeira de graça: <c>StartEmote(nome, oneshot: false)</c> escreve na ZDO e o
     /// <c>Player.UpdateEmote</c> copia o nome para o <c>m_emoteState</c> de <b>toda</b> cópia do
-    /// jogador, em toda máquina — então qualquer cliente sabia quem estava carregando. Sem o
-    /// emote não há canal, e <b>a pose é local</b>: cada um vê a sua.
+    /// jogador, em toda máquina — então qualquer cliente sabia quem estava carregando. Tirar o
+    /// emote tirou o canal junto, e de 2026-08-07 até a etapa 8 esta pose foi local.
     ///
-    /// O conserto é da etapa 8 e é conhecido: um <c>SE_</c> de carregamento, no molde do
-    /// <see cref="SE_Flight"/>, que já sincroniza por ZDO e do qual o <c>FlightPose</c> já
-    /// depende para descobrir quem está voando. Não foi feito aqui porque o resto da etapa 2
-    /// também é estado local, e adiantar meia sincronização não deixa nada jogável antes.
+    /// ✅ <b>Resolvido na etapa 8, e não pelo <c>SE_</c> que estava planejado.</b> Status effect
+    /// não replica — ver o cabeçalho do <see cref="NetState"/> —, então nem o molde do
+    /// <c>SE_Flight</c> teria funcionado; a pose de voo tinha o mesmo furo sem que ninguém
+    /// soubesse. Quem responde "quem está carregando?" agora é uma bandeira no inteiro que o
+    /// jogador publica na própria ZDO, e ela custou um bit.
+    ///
+    /// De quebra sumiu o medo que a nota de melhorias registrava: aplicar e remover um
+    /// <c>StatusEffect</c> a cada tapinha no <c>R</c> seria churn, e um bit num inteiro que já é
+    /// publicado todo frame não é nada.
     ///
     /// <b>Construir a pose por grupos.</b> Cada grupo de músculos tem um <b>peso</b> além do alvo,
     /// porque zero num alvo de músculo <b>não</b> quer dizer "não mexe": <c>Left Arm Down-Up = 0</c>
@@ -442,15 +448,20 @@ namespace Saiyaheim.Ki
         }
 
         /// <summary>
-        /// Quem está carregando, na perspectiva desta máquina — e hoje a resposta só pode ser o
-        /// jogador local.
+        /// Quem está carregando, na perspectiva desta máquina — e desde a etapa 8 a resposta vale
+        /// para <b>qualquer</b> jogador, não só o local.
         ///
-        /// O <see cref="KiManager"/> é estado local (etapa 2), e desde que o emote saiu não há
-        /// canal que conte a um cliente que <i>outro</i> jogador está carregando. Ver o aviso de
-        /// multiplayer no topo da classe: o conserto é um <c>SE_</c>, e é da etapa 8.
+        /// <b>O <see cref="KiManager"/> não é consultado aqui, nem para o jogador local.</b> Ele
+        /// sabe a resposta, e usá-lo criaria duas fontes de verdade para a mesma pergunta: o
+        /// Henrique veria a própria pose pelo caminho curto e a dos amigos pelo canal, e uma
+        /// bandeira que parasse de ser publicada só apareceria quebrada na tela dos outros. Lendo
+        /// todo mundo do mesmo lugar, o bug aparece na tela de quem está desenvolvendo.
         ///
-        /// O driver continua rodando em todo <c>Player</c> — é aqui que os outros são recusados,
-        /// e é aqui que a linha some quando a sincronização existir.
+        /// Não custa latência: o <c>Publish</c> roda no <c>Update</c> do plugin e a pose é escrita
+        /// no <c>LateUpdate</c> do mesmo frame, e escrever e ler ZDO na mesma máquina é memória.
+        ///
+        /// O <see cref="DebugHold"/> continua sendo exceção local — é ferramenta de calibragem de
+        /// quem está com o ConfigurationManager aberto, e não faz sentido anunciá-lo à rede.
         /// </summary>
         private static bool IsCharging(Player player)
         {
@@ -459,12 +470,12 @@ namespace Saiyaheim.Ki
                 return false;
             }
 
-            if (player != Player.m_localPlayer)
+            if (DebugHold && player == Player.m_localPlayer)
             {
-                return false;
+                return true;
             }
 
-            return DebugHold || KiManager.IsCharging;
+            return NetState.IsCharging(player);
         }
 
         /// <summary>

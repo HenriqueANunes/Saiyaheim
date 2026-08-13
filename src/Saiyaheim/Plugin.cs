@@ -7,6 +7,7 @@ using Saiyaheim.Attacks;
 using Saiyaheim.Debugging;
 using Saiyaheim.Flight;
 using Saiyaheim.Ki;
+using Saiyaheim.Net;
 using Saiyaheim.Power;
 using Saiyaheim.Transformations;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace Saiyaheim
 {
     /// <summary>
     /// Ponto de entrada do mod. Etapa 1 do roadmap: esqueleto + config.
-    /// Nenhuma mecânica ainda — só bootstrap, config e o comando de dump de prefabs.
+    /// Nenhuma mec—nica ainda — só bootstrap, config e o comando de dump de prefabs.
     /// </summary>
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     [BepInDependency(Jotunn.Main.ModGuid)]
@@ -72,13 +73,14 @@ namespace Saiyaheim
             // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
             TransformationRegistry.Register();
 
-            // Cinco patches, todos mínimos e nenhum em física: Character.ApplyDamage para
+            // Seis patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
             // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch),
-            // CharacterAnimEvent.CustomLateUpdate para as poses procedurais — voo e carregamento
-            // de ki — escreverem depois do animator (ver PoseDriver), e o par
+            // CharacterAnimEvent.CustomLateUpdate para as poses procedurais — voo, carregamento de
+            // ki e disparo — escreverem depois do animator (ver PoseDriver), o par
             // Humanoid.BlockAttack + ItemData.GetBlockPower para o bloqueio escalar com o poder
-            // (ver BlockPowerPatch — é o único stat sem hook nativo de StatusEffect).
+            // (ver BlockPowerPatch — é o único stat sem hook nativo de StatusEffect) e o construtor
+            // do ZRoutedRpc, que é só onde o RPC de XP do coop se registra (ver DamageReport).
             // Dano, armadura e o voo em si saem de StatusEffect.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
@@ -89,6 +91,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new BlockCommand());
             CommandManager.Instance.AddConsoleCommand(new TransformCommand());
             CommandManager.Instance.AddConsoleCommand(new AttackCommand());
+            CommandManager.Instance.AddConsoleCommand(new NetCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -105,7 +108,37 @@ namespace Saiyaheim
             FlightManager.Update(Player.m_localPlayer);
             TransformationManager.Update(Player.m_localPlayer);
             KiAttackManager.Update(Player.m_localPlayer);
+
+            // Publicar antes de aplicar: o que os efeitos leem neste frame é o estado deste frame.
+            PublishNetState(Player.m_localPlayer);
+            RemoteEffects.Update();
+
             KiHud.Update();
+        }
+
+        /// <summary>
+        /// Conta aos outros clientes o que este jogador está fazendo. Etapa 8.
+        ///
+        /// <b>Depois dos managers, de propósito</b>: o valor publicado é o do frame que acabou de
+        /// ser decidido, e não o do anterior. Transformar e atirar no mesmo frame chegam juntos ao
+        /// outro lado.
+        ///
+        /// A montagem do estado mora aqui e não dentro do <see cref="NetState"/> para o canal não
+        /// precisar conhecer ki, voo nem formas — e para a ordem estar visível num lugar só.
+        /// </summary>
+        private static void PublishNetState(Player player)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            NetState.Publish(
+                player,
+                KiManager.IsEnabled,
+                FlightManager.IsFlying(player),
+                KiManager.IsCharging,
+                TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)));
         }
 
         private void OnDestroy()
