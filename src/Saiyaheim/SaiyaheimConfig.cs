@@ -677,13 +677,14 @@ namespace Saiyaheim
                     "quadruples the bar (100 base + 300).",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(95)));
 
-            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 1f,
+            KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 2f,
                 new ConfigDescription(
                     "Ki regenerated per second while idle. Deliberately low: passive regeneration " +
                     "is the safety net, not the normal way to get ki back. " +
                     "If you want ki, you charge for it. " +
-                    "(Calibrated in the 2026-07-28 playtest at 0.5; raised to 1 on 2026-08-01, " +
-                    "when taking damage started costing ki and the safety net had to hold more.)",
+                    "(Playtest value, 2026-08-13. Went 0.5 → 1 on 2026-08-01, when taking damage " +
+                    "started costing ki and the safety net had to hold more; 1 → 2 once flight " +
+                    "got cheaper and the downtime between flights was the thing being waited on.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(90)));
 
             // Escala pelo power level DERIVADO, nao pelo nivel da skill: e a mesma base do
@@ -1007,21 +1008,24 @@ namespace Saiyaheim
                 requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
-            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 10f,
+            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 5f,
                 new ConfigDescription(
-                    "Ki per second while flying. Deliberately high: flight should be a tool, " +
-                    "not the default way to get around — otherwise the game's hostile terrain " +
-                    "turns into scenery. Running out of ki in the air drops you. " +
-                    "(Playtest value, 2026-08-07. Went 4 → 15 on 2026-07-31, because at 4 flight " +
+                    "Ki per second while flying. Flight should be a tool, not the default way to " +
+                    "get around — otherwise the game's hostile terrain turns into scenery. " +
+                    "Running out of ki in the air drops you. " +
+                    "(Playtest value, 2026-08-13. Went 4 → 15 on 2026-07-31, because at 4 flight " +
                     "was cheap enough to become the default way to travel, then 15 → 10 while " +
-                    "playing the ki attack stage.)",
+                    "playing the ki attack stage, then 10 → 5: with BaseSpeed at 2 the early-game " +
+                    "flight is slow enough to hold itself back without the ki cost doing it too.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
-            FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2.5f,
+            FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2f,
                 new ConfigDescription(
-                    "Ki cost multiplier while the Run button is held. Higher than the speed " +
-                    "multiplier on purpose: fast flight should cost more per travelled metre, " +
-                    "not just more per second.",
+                    "Ki cost multiplier while the Run button is held. " +
+                    "(Playtest value, 2026-08-13. Was 2.5, above FastSpeedMultiplier on purpose " +
+                    "so fast flight cost more per travelled metre; now equal to it, which makes " +
+                    "the metre cost the same fast or slow and turns the Run button into a pure " +
+                    "time-saver. Raise it above FastSpeedMultiplier to get the penalty back.)",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(95)));
 
             // 15 era o valor da primeira versão e fazia o modo rápido bater o MaxSpeed (15 x 2 = 30)
@@ -1060,17 +1064,20 @@ namespace Saiyaheim
                     "Run saiya_fly to see how much this is contributing right now.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(88)));
 
-            FlightFastSpeedMultiplier = config.Bind(SecFlight, "FastSpeedMultiplier", 1.8f,
+            FlightFastSpeedMultiplier = config.Bind(SecFlight, "FastSpeedMultiplier", 2f,
                 new ConfigDescription(
                     "Speed multiplier while the Run button is held. Vanilla already reads that " +
-                    "button inside its own flight code, so fast flight costs no extra keybind.",
+                    "button inside its own flight code, so fast flight costs no extra keybind. " +
+                    "(Playtest value, 2026-08-13. Raised from 1.8.)",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(85)));
 
-            FlightVerticalSpeedFactor = config.Bind(SecFlight, "VerticalSpeedFactor", 0.5f,
+            FlightVerticalSpeedFactor = config.Bind(SecFlight, "VerticalSpeedFactor", 1f,
                 new ConfigDescription(
                     "Climb and dive speed, as a fraction of the horizontal speed. " +
-                    "1.0 goes up as fast as forward, which makes altitude nearly free. " +
-                    "(Lowered from 0.75 after the 2026-07-31 playtest: climbing felt too quick.)",
+                    "1.0 goes up as fast as forward, so altitude costs no more than distance. " +
+                    "(Playtest value, 2026-08-13. Went 0.75 → 0.5 on 2026-07-31, when climbing " +
+                    "felt too quick; back to 1 after BaseSpeed dropped to 2 — with the horizontal " +
+                    "speed that low, half of it made gaining altitude a crawl.)",
                     new AcceptableValueRange<float>(0f, 2f), AdminOnly(80)));
 
             FlightTurnSpeed = config.Bind(SecFlight, "TurnSpeed", 200f,
