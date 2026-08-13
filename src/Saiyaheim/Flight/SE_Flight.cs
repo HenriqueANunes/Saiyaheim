@@ -198,7 +198,12 @@ namespace Saiyaheim.Flight
         private static void DrainKi(Player player, float dt)
         {
             bool fast = GameAccess.IsRunPressed(player);
-            KiManager.Drain(FlightStats.GetKiCostPerSecond(player, fast) * dt);
+
+            // Depois do ApplyVerticalInput de propósito: é ele que escreve o componente Y no
+            // m_moveDir, e sem isso subir com o Jump passaria por "parado no ar".
+            bool hovering = FlightStats.IsHovering(player);
+
+            KiManager.Drain(FlightStats.GetKiCostPerSecond(player, fast, hovering) * dt);
         }
 
         /// <summary>

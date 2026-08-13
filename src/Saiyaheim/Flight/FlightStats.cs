@@ -102,8 +102,34 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
+        /// Parado no ar: nenhum input de movimento, nem horizontal nem vertical.
+        ///
+        /// Lê o <c>m_moveDir</c> em vez do teclado porque ele é o resultado final do input —
+        /// já passou pelo <c>PlayerController</c> e pelo <c>SE_Flight.ApplyVerticalInput</c>,
+        /// então subir com o Jump ou descer com o Crouch aparece aqui e não conta como parado.
+        /// Só vale chamar <b>depois</b> do <c>ApplyVerticalInput</c> do tick.
+        ///
+        /// O épsilon é teste de zero, não número de balanceamento: sem input o vetor é
+        /// exatamente zero, com input ele é normalizado. Existe só para não deixar drift de
+        /// analógico contar como movimento.
+        /// </summary>
+        internal static bool IsHovering(Player player)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+
+            return player.GetMoveDir().sqrMagnitude < 0.0001f;
+        }
+
+        /// <summary>
         /// Ki por segundo. O <paramref name="fast"/> vem do mesmo <c>m_run</c> que o
         /// <c>UpdateFlying</c> vanilla lê para escolher a velocidade — os dois andam juntos.
+        ///
+        /// <paramref name="hovering"/> (ver <see cref="IsHovering"/>) barateia o voo parado no ar:
+        /// manter altitude é menos esforço do que atravessar o mapa, e sem isso parar para mirar,
+        /// olhar em volta ou conversar custava o mesmo que viajar.
         ///
         /// <b>Duas reduções, e elas têm formas diferentes de propósito.</b> A da skill é linear
         /// (<c>1 - r × fator</c>) porque a entrada é limitada: o fator de skill vive em 0–1 e o
@@ -113,11 +139,18 @@ namespace Saiyaheim.Flight
         /// <c>1 / (1 + r × bônus)</c>, que decai para sempre sem nunca chegar a zero, do mesmo
         /// jeito que o <c>ApplyArmor</c> do próprio Valheim faz com a armadura.
         /// </summary>
-        internal static float GetKiCostPerSecond(Player player, bool fast)
+        internal static float GetKiCostPerSecond(Player player, bool fast, bool hovering = false)
         {
             float cost = SaiyaheimConfig.FlightKiPerSecond.Value;
 
-            if (fast)
+            if (hovering)
+            {
+                // O botão de correr é ignorado de propósito: parado no ar ele não compra
+                // velocidade nenhuma, e cobrar o FastKiMultiplier por um shift esquecido seria
+                // punir o jogador por um input que não fez nada.
+                cost *= SaiyaheimConfig.FlightHoverKiMultiplier.Value;
+            }
+            else if (fast)
             {
                 cost *= SaiyaheimConfig.FlightFastKiMultiplier.Value;
             }

@@ -330,6 +330,9 @@ namespace Saiyaheim
         /// <summary>Multiplicador do custo de ki com o botão de correr segurado.</summary>
         public static ConfigEntry<float> FlightFastKiMultiplier { get; private set; }
 
+        /// <summary>Multiplicador do custo de ki parado no ar, sem nenhum input de movimento.</summary>
+        public static ConfigEntry<float> FlightHoverKiMultiplier { get; private set; }
+
         public static ConfigEntry<float> FlightBaseSpeed { get; private set; }
 
         /// <summary>Velocidade somada por ponto de power level bruto.</summary>
@@ -1028,6 +1031,14 @@ namespace Saiyaheim
             // 2 e um piso deliberadamente miseravel: e velocidade de caminhada no Valheim (correr
             // e ~5). Voar cedo no jogo e mais lento que andar, e quem paga a velocidade e o
             // SpeedFromPower. Voo virou privilegio de quem ja e forte, nao meio de transporte.
+            FlightHoverKiMultiplier = config.Bind(SecFlight, "HoverKiMultiplier", 0.5f,
+                new ConfigDescription(
+                    "Ki cost multiplier while hovering — airborne with no movement input at all, " +
+                    "not even rising or descending. Holding position is cheaper than travelling, " +
+                    "so stopping in the air to look around, aim or talk is not charged at the " +
+                    "same rate as crossing the map. Set to 1 to charge the full cost regardless.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(94)));
+
             FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 2f,
                 new ConfigDescription(
                     "Flight speed floor: skill 0, power level 0, carrying nothing. " +

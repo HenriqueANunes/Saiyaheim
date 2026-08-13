@@ -96,6 +96,7 @@ namespace Saiyaheim.Debugging
             float fast = FlightStats.GetFastSpeed(player);
             float slowCost = FlightStats.GetKiCostPerSecond(player, fast: false);
             float fastCost = FlightStats.GetKiCostPerSecond(player, fast: true);
+            float hoverCost = FlightStats.GetKiCostPerSecond(player, fast: false, hovering: true);
 
             Print($"Flying: {(FlightManager.IsFlying(player) ? "yes" : "no")}  (ki {(KiManager.IsEnabled ? "on" : "off")})");
             Print($"Flight skill: level {FlightSkill.GetLevel(player):0.#}");
@@ -113,7 +114,8 @@ namespace Saiyaheim.Debugging
             }
 
             Print($"Speed: {slow:0.#} normal / {fast:0.#} running  (cap {SaiyaheimConfig.FlightMaxSpeed.Value:0.#})");
-            Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running");
+            Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running, " +
+                  $"{hoverCost:0.##}/s hovering");
 
             // A economia do fim de jogo e invisivel no custo final — sem imprimir o fator nao da
             // para saber se o KiPowerReduction esta fazendo alguma coisa ou se o termo ainda dorme.
