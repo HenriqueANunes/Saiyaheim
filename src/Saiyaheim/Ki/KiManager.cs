@@ -128,7 +128,7 @@ namespace Saiyaheim.Ki
                 return;
             }
 
-            if (SaiyaheimConfig.ToggleKiKey.Value.IsDown())
+            if (Hotkey.IsDown(SaiyaheimConfig.ToggleKiKey))
             {
                 _state.Enabled = !_state.Enabled;
                 _state.Save(player);
@@ -140,7 +140,7 @@ namespace Saiyaheim.Ki
             }
 
             IsCharging = _state.Enabled
-                         && SaiyaheimConfig.ChargeKiKey.Value.IsPressed()
+                         && Hotkey.IsPressed(SaiyaheimConfig.ChargeKiKey)
                          && CanCharge(player);
         }
 

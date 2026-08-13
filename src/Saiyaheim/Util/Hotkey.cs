@@ -15,6 +15,9 @@ namespace Saiyaheim.Util
     /// segurados e os outros soltos, e ignora o resto do teclado. É o mínimo para que <c>T</c> e
     /// <c>Shift+T</c> nunca disparem juntos.
     ///
+    /// <b>Toda tecla do mod passa por aqui</b>, tanto de toque quanto de segurar (carregar ki
+    /// andando cai no mesmo problema: <c>IsPressed</c> do BepInEx recusa o R com W pressionado).
+    ///
     /// Esquerda e direita continuam distintas, como no BepInEx: quem bindar <c>LeftShift+T</c> não
     /// aciona com o Shift direito.
     /// </summary>
@@ -39,6 +42,21 @@ namespace Saiyaheim.Util
 
             return shortcut.MainKey != KeyCode.None
                    && Input.GetKeyDown(shortcut.MainKey)
+                   && ModifiersMatch(shortcut);
+        }
+
+        /// <summary>Tecla principal segurada agora, com os modificadores certos.</summary>
+        internal static bool IsPressed(ConfigEntry<KeyboardShortcut> entry)
+        {
+            if (entry == null)
+            {
+                return false;
+            }
+
+            KeyboardShortcut shortcut = entry.Value;
+
+            return shortcut.MainKey != KeyCode.None
+                   && Input.GetKey(shortcut.MainKey)
                    && ModifiersMatch(shortcut);
         }
 

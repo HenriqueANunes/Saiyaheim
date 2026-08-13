@@ -86,7 +86,7 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            if (!SaiyaheimConfig.ToggleFlightKey.Value.IsDown())
+            if (!Hotkey.IsDown(SaiyaheimConfig.ToggleFlightKey))
             {
                 return;
             }
