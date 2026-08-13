@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Saiyaheim.Net;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -30,16 +31,16 @@ namespace Saiyaheim.Attacks
     /// donas de tudo que esta não toca — as pernas do voo, o braço esquerdo da recarga —, que é
     /// justamente o que um único driver com uma pose lida e devolvida uma vez permite.
     ///
-    /// <b>⚠️ E aqui o multiplayer não vem de graça</b>, ao contrário do voo. Lá o <c>SE_Flight</c>
-    /// sincroniza por ZDO e cada cliente descobre sozinho quem está voando. Um disparo não tem
-    /// status effect onde pendurar a bandeira, então <b>a pose é local</b>: cada um vê o próprio
-    /// braço esticar. O conserto é da etapa 8 e o caminho barato já está desenhado em
-    /// [[Melhorias#Pose procedural de disparo do ki blast]] — o projétil já replica, então um
-    /// cliente que vê nascer uma bola de ki com aquele dono pode chamar o <see cref="Trigger"/>
-    /// daquele jogador. Não foi feito agora porque a pose de recarga tem o mesmo furo e os dois
-    /// entram juntos na etapa 8 — mas <b>não pelo mesmo mecanismo</b>: carregar é estado e um
-    /// <c>SE_</c> responde bem a "quem está carregando agora?"; disparar é instante, e um
-    /// <c>SE_</c> de 200 ms por tiro seria status effect usado como variável.
+    /// <b>✅ O multiplayer entrou na etapa 8, e o mecanismo previsto não foi o usado.</b> A ideia
+    /// era o próprio projétil ser o sinal: ele replica, então um cliente que visse nascer uma bola
+    /// de ki com aquele dono chamaria a pose. Caiu por duas razões — o <c>Setup</c> só roda em quem
+    /// atirou, e distinguir a nossa bola da do Dvergr do outro lado do fio exigiria marcar a ZDO do
+    /// projétil. Como o carregamento já ia precisar de um canal de estado, um <b>contador</b> no
+    /// mesmo inteiro custou um campo e resolveu os dois casos.
+    ///
+    /// E resolveu justamente o que o desenho antigo temia: o disparo é instante, não estado, e um
+    /// <c>SE_</c> de 200 ms por tiro seria status effect usado como variável. Contador não tem esse
+    /// problema — ele nem sabe quanto tempo a pose dura. Ver <see cref="NetState"/>.
     ///
     /// <b>Não tem <c>ActionTarget</c></b>, ao contrário das outras duas. Elas precisam sair do
     /// caminho porque um estado que dura pisa em cima de qualquer golpe que o jogador tente no
@@ -116,13 +117,29 @@ namespace Saiyaheim.Attacks
             new Dictionary<Character, PoseState>();
 
         /// <summary>
+        /// Último contador de disparo visto em cada jogador. É a memória que transforma o número
+        /// que só sobe do <see cref="NetState"/> num evento.
+        ///
+        /// <b>Separado do <see cref="States"/> de propósito</b>: aquele é descartado quando a pose
+        /// termina de descer, e este precisa sobreviver ao intervalo entre dois tiros. Fundir os
+        /// dois faria cada tiro parecer o primeiro.
+        ///
+        /// <b>Ausente quer dizer "nunca vi este jogador"</b>, e é o que impede um falso disparo
+        /// quando alguém entra no alcance já com o contador em 7: anota-se o 7 e espera-se o 8.
+        /// </summary>
+        private static readonly Dictionary<Character, int> LastSeenBlast =
+            new Dictionary<Character, int>();
+
+        /// <summary>
         /// O tiro saiu: levanta a pose.
         ///
-        /// Chamado pelo <see cref="KiAttackManager"/> <b>depois</b> de o projétil existir de fato,
-        /// e não quando a tecla é apertada. A diferença aparece na tela: um prefab errado no
-        /// <c>.cfg</c>, ou a barra vazia, fariam o braço esticar sem nada sair da mão.
+        /// <b>Ninguém chama isto diretamente desde a etapa 8</b>, nem quem atirou. O disparo é
+        /// anunciado por <c>NetState.PublishBlast</c> e é o <see cref="ObserveBlast"/> que traz o
+        /// anúncio de volta para cá — em toda máquina, inclusive na de quem apertou a tecla. O
+        /// caminho curto existia e foi removido pelo mesmo motivo que o do carregamento: duas
+        /// fontes para o mesmo evento escondem a quebra do canal justamente de quem poderia vê-la.
         /// </summary>
-        internal static void Trigger(Player player)
+        private static void Trigger(Player player)
         {
             if (player == null || !SaiyaheimConfig.BlastPoseEnabled.Value)
             {
@@ -135,6 +152,8 @@ namespace Saiyaheim.Attacks
 
         public float Step(Player player, float deltaTime)
         {
+            ObserveBlast(player);
+
             States.TryGetValue(player, out PoseState state);
 
             bool up = IsUp(player, state);
@@ -247,6 +266,43 @@ namespace Saiyaheim.Attacks
         public void Forget(Character character)
         {
             States.Remove(character);
+            LastSeenBlast.Remove(character);
+        }
+
+        /// <summary>
+        /// Traduz o contador de disparos do <see cref="NetState"/> em chamadas ao
+        /// <see cref="Trigger"/>. Roda para todo jogador carregado, todo frame, e por isso a saída
+        /// barata é o caminho comum: uma leitura de ZDO e uma comparação de inteiros.
+        ///
+        /// <b>Dispara uma pose por tiro, mesmo que dois cheguem no mesmo frame.</b> Um jogador com
+        /// lag pode aparecer com o contador dois à frente, e a pose não tem o que fazer com isso —
+        /// o gesto é o mesmo. O que importa é não perder o <i>último</i>, e o carimbo de tempo
+        /// cuida disso sozinho.
+        /// </summary>
+        private static void ObserveBlast(Player player)
+        {
+            int count = NetState.GetBlastCount(player);
+
+            if (!LastSeenBlast.TryGetValue(player, out int seen))
+            {
+                // Primeira vez que este cliente olha para este jogador: anota e não dispara nada.
+                LastSeenBlast[player] = count;
+                return;
+            }
+
+            if (count == seen)
+            {
+                return;
+            }
+
+            LastSeenBlast[player] = count;
+
+            // Menor que o visto significa que o jogador reentrou no mundo e o contador reiniciou.
+            // Não é disparo, é ZDO nova.
+            if (count > seen)
+            {
+                Trigger(player);
+            }
         }
 
         /// <summary>

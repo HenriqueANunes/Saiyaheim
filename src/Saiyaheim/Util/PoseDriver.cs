@@ -120,6 +120,14 @@ namespace Saiyaheim.Util
                 return;
             }
 
+            // Um lugar só para a chave, e é aqui: os contribuintes não precisam saber que ela
+            // existe, e ninguém pode esquecer de consultá-la ao escrever a quarta pose.
+            if (!SaiyaheimConfig.ShowRemotePoses.Value && !ReferenceEquals(player, Player.m_localPlayer))
+            {
+                Release(player);
+                return;
+            }
+
             float total = 0f;
             for (int i = 0; i < Contributors.Length; i++)
             {

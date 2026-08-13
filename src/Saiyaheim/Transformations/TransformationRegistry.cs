@@ -113,6 +113,18 @@ namespace Saiyaheim.Transformations
             return highest;
         }
 
+        /// <summary>
+        /// A forma nesta posição da escada, ou null. É a volta do <see cref="IndexOf"/>, e existe
+        /// porque o índice é o que atravessa a rede: o canal do <c>NetState</c> carrega a posição
+        /// na escada, não o id, para caber em oito bits.
+        ///
+        /// -1 é forma base e devolve null, como o índice de qualquer coisa fora da escada.
+        /// </summary>
+        internal static Transformation At(int index)
+        {
+            return index >= 0 && index < All.Length ? All[index] : null;
+        }
+
         /// <summary>Posição na escada, ou -1. Usado para comparar dois degraus.</summary>
         internal static int IndexOf(Transformation form)
         {

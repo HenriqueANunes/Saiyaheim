@@ -83,6 +83,17 @@ namespace Saiyaheim
 
         private const string SecDebug = "9 - Debug";
 
+        /// <summary>
+        /// O que este cliente desenha dos <b>outros</b> jogadores. Client-side de propósito: é
+        /// preferência e diagnóstico de quem está na frente da tela, não regra do servidor.
+        ///
+        /// As duas chaves existem separadas porque servem para <b>bissecar</b>. A etapa 8 é
+        /// validada numa sessão marcada com amigo, não iterando — quando alguém disser "ficou
+        /// estranho quando o outro transformou", a pergunta seguinte é qual dos dois sistemas, e
+        /// uma chave só não responde.
+        /// </summary>
+        private const string SecMultiplayer = "10 - Multiplayer";
+
         // ---------- 1 - General ----------
 
         /// <summary>Tecla que liga/desliga o ki. Client-side: cada um usa a que quiser.</summary>
@@ -533,6 +544,14 @@ namespace Saiyaheim
 
         /// <summary>Multiplicador da luz dinâmica da aura. 0 apaga; 1 é o prefab como veio.</summary>
         public static ConfigEntry<float> TransformAuraLightIntensity { get; private set; }
+
+        // ---------- 10 - Multiplayer ----------
+
+        /// <summary>Poses procedurais dos outros jogadores: voo, carregamento e disparo.</summary>
+        public static ConfigEntry<bool> ShowRemotePoses { get; private set; }
+
+        /// <summary>Efeitos dos outros jogadores: o estouro da transformação e o brilho do carregamento.</summary>
+        public static ConfigEntry<bool> ShowRemoteEffects { get; private set; }
 
         // ---------- 9 - Debug ----------
 
@@ -1735,6 +1754,16 @@ namespace Saiyaheim
                     new AcceptableValueRange<float>(0f, 2f), ClientSide(38)));
 
             // --- Debug ---
+            ShowRemotePoses = config.Bind(SecMultiplayer, "ShowRemotePoses", true,
+                new ConfigDescription(
+                    "Draw the mod poses (flight, ki charge, ki blast) on other players.",
+                    null, ClientSide(0)));
+
+            ShowRemoteEffects = config.Bind(SecMultiplayer, "ShowRemoteEffects", true,
+                new ConfigDescription(
+                    "Draw the mod effects (transformation burst, ki charge glow) on other players.",
+                    null, ClientSide(1)));
+
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
                 new ConfigDescription("Detailed logging in the BepInEx console.",
                     null, ClientSide(100)));

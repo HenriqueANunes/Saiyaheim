@@ -1,4 +1,5 @@
 using Saiyaheim.Ki;
+using Saiyaheim.Net;
 using Saiyaheim.Util;
 
 namespace Saiyaheim.Attacks
@@ -85,7 +86,10 @@ namespace Saiyaheim.Attacks
 
             // A pose só levanta depois de o projétil existir, pelo mesmo motivo que o ki só é
             // cobrado aqui: um prefab errado no .cfg faria o braço esticar sem nada sair da mão.
-            KiBlastPose.Trigger(player);
+            //
+            // Anuncia em vez de chamar a pose direto: o contador na ZDO é o que faz o braço
+            // esticar na tela de todo mundo, e quem atirou não é exceção. Ver KiBlastPose.Trigger.
+            NetState.PublishBlast(player);
 
             attack.StartCooldown();
             KiAttackRegistry.StartGlobalCooldown();
