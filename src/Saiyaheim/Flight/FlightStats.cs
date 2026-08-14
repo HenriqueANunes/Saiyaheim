@@ -131,13 +131,14 @@ namespace Saiyaheim.Flight
         /// manter altitude é menos esforço do que atravessar o mapa, e sem isso parar para mirar,
         /// olhar em volta ou conversar custava o mesmo que viajar.
         ///
-        /// <b>Duas reduções, e elas têm formas diferentes de propósito.</b> A da skill é linear
-        /// (<c>1 - r × fator</c>) porque a entrada é limitada: o fator de skill vive em 0–1 e o
-        /// config em 0–0,95, então o resultado nunca chega a zero sozinho. A do poder <b>não</b>
-        /// pode usar essa forma: o termo de fim de jogo não tem teto, e um <c>1 - r × poder</c>
-        /// atravessaria o zero e viraria negativo — voar <b>dando</b> ki. Daí o hiperbólico
-        /// <c>1 / (1 + r × bônus)</c>, que decai para sempre sem nunca chegar a zero, do mesmo
-        /// jeito que o <c>ApplyArmor</c> do próprio Valheim faz com a armadura.
+        /// <b>Duas reduções, e elas têm formas diferentes de propósito.</b> A da skill é
+        /// subtrativa (ver <see cref="GetSkillCostFactor"/>) porque a entrada é limitada: o fator
+        /// de skill vive em 0–1 e o config em 0–0,99, então o resultado nunca chega a zero
+        /// sozinho. A do poder <b>não</b> pode usar essa forma: o termo de fim de jogo não tem
+        /// teto, e um <c>1 - r × poder</c> atravessaria o zero e viraria negativo — voar
+        /// <b>dando</b> ki. Daí o hiperbólico <c>1 / (1 + r × bônus)</c>, que decai para sempre
+        /// sem nunca chegar a zero, do mesmo jeito que o <c>ApplyArmor</c> do próprio Valheim faz
+        /// com a armadura.
         /// </summary>
         internal static float GetKiCostPerSecond(Player player, bool fast, bool hovering = false)
         {
@@ -155,10 +156,32 @@ namespace Saiyaheim.Flight
                 cost *= SaiyaheimConfig.FlightFastKiMultiplier.Value;
             }
 
-            float reduction = SaiyaheimConfig.FlightKiSkillReduction.Value * FlightSkill.GetLevelFactor(player);
-            cost *= 1f - reduction;
+            cost *= GetSkillCostFactor(player);
 
             return Mathf.Max(0f, cost * GetPowerCostFactor(player));
+        }
+
+        /// <summary>
+        /// Fator pelo qual a skill de voo multiplica o custo: <c>1 - reducao × (nivel/100)^curva</c>.
+        ///
+        /// A curva existe porque os dois extremos são requisitos que brigam entre si. O nível 100
+        /// precisa parecer chegada — a skill de voo é o <b>único</b> eixo de progressão do voo, e
+        /// maximizá-la para pagar metade do preço não se parece com ter maximizado nada. Mas uma
+        /// reta até 95% de desconto entrega metade da economia no nível 50, e aí o voo vira o
+        /// transporte padrão antes de o jogador ter treinado qualquer coisa.
+        ///
+        /// O expoente resolve os dois: a economia fica quase toda depois do nível 75, o começo
+        /// continua pagando o <c>FlightKiPerSecond</c> quase cheio, e o topo é praticamente de
+        /// graça. Com <c>KiSkillCurve</c> em 1 a forma volta a ser a reta antiga.
+        ///
+        /// Nunca chega a zero por si só: o config tem teto em 0,99.
+        /// </summary>
+        internal static float GetSkillCostFactor(Player player)
+        {
+            float curve = SaiyaheimConfig.FlightKiSkillCurve.Value;
+            float progress = Mathf.Pow(FlightSkill.GetLevelFactor(player), curve);
+
+            return 1f - SaiyaheimConfig.FlightKiSkillReduction.Value * progress;
         }
 
         /// <summary>

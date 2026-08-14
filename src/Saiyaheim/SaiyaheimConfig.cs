@@ -354,6 +354,13 @@ namespace Saiyaheim
         public static ConfigEntry<float> FlightKiSkillReduction { get; private set; }
 
         /// <summary>
+        /// Expoente da curva com que a redução da skill de voo chega ao valor do
+        /// <see cref="FlightKiSkillReduction"/>. 1 = linear; acima disso a economia se concentra
+        /// no topo da skill.
+        /// </summary>
+        public static ConfigEntry<float> FlightKiSkillCurve { get; private set; }
+
+        /// <summary>
         /// Barateamento hiperbólico do voo vindo do termo de fim de jogo. É a única coisa do voo
         /// que esse termo toca — velocidade fica de fora.
         /// </summary>
@@ -1093,12 +1100,31 @@ namespace Saiyaheim
                 new ConfigDescription("Speed bonus at level 100 of the flight skill. 0.5 = +50%.",
                     new AcceptableValueRange<float>(0f, 3f), AdminOnly(70)));
 
-            FlightKiSkillReduction = config.Bind(SecFlight, "KiSkillReduction", 0.5f,
+            // 0.95 e nao 0.5 desde o playtest de 2026-08-13: no linear o nivel 100 so' cortava
+            // metade do custo, e maximizar a unica skill que o voo tem precisa se PARECER com ter
+            // maximizado alguma coisa. O que segura o comeco do jogo agora e' a curva abaixo, nao
+            // este numero.
+            FlightKiSkillReduction = config.Bind(SecFlight, "KiSkillReduction", 0.95f,
                 new ConfigDescription(
                     "Fraction of the ki cost removed at level 100 of the flight skill. " +
-                    "0.5 = at max level flying costs half. Together with SpeedSkillBonus this is " +
-                    "the whole progression of the skill: farther per point of ki.",
-                    new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(65)));
+                    "0.95 = at max level flying costs a twentieth. Together with SpeedSkillBonus " +
+                    "this is the whole progression of the skill: farther per point of ki. " +
+                    "KiSkillCurve decides how much of it arrives before level 100.",
+                    new AcceptableValueRange<float>(0f, 0.99f), AdminOnly(65)));
+
+            // O expoente e' o que separa "voo barato no fim" de "voo barato". Com a reducao em
+            // 0.95 e curva 1 (linear) o nivel 50 ja' pagaria metade do preco, e o voo viraria o
+            // transporte padrao antes de o jogador ter treinado nada. Em 2 a mesma reducao chega
+            // quase toda depois do nivel 75: 50 -> -24%, 75 -> -53%, 90 -> -77%, 100 -> -95%.
+            FlightKiSkillCurve = config.Bind(SecFlight, "KiSkillCurve", 2f,
+                new ConfigDescription(
+                    "Shape of the flight skill discount: reduction = KiSkillReduction * " +
+                    "(level/100)^this. 1 is a straight line, so half the skill gives half the " +
+                    "discount. Above 1 the saving is back-loaded — the last levels are where " +
+                    "flight actually gets cheap, which is what keeps early flight expensive " +
+                    "while still making level 100 feel like an arrival. Below 1 front-loads it. " +
+                    "Check it with saiya_fly skill <level>.",
+                    new AcceptableValueRange<float>(0.25f, 5f), AdminOnly(64)));
 
             // Hiperbolico e nao linear: a entrada nao tem teto (o termo de fim de jogo cresce sem
             // limite), e um (1 - r * bonus) atravessaria o zero e viraria custo negativo — voar

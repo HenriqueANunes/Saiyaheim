@@ -286,7 +286,9 @@
         <div class="ctl"><div class="row"><label for="fki">KiPerSecond</label><output id="fki-out"></output></div>
           <input type="range" id="fki" min="0" max="60" step="0.5" value="5"></div>
         <div class="ctl"><div class="row"><label for="fkr">KiSkillReduction</label><output id="fkr-out"></output></div>
-          <input type="range" id="fkr" min="0" max="0.95" step="0.05" value="0.5"></div>
+          <input type="range" id="fkr" min="0" max="0.99" step="0.01" value="0.95"></div>
+        <div class="ctl"><div class="row"><label for="fkc">KiSkillCurve <b>novo</b></label><output id="fkc-out"></output></div>
+          <input type="range" id="fkc" min="0.25" max="5" step="0.25" value="2"></div>
         <div class="ctl"><div class="row"><label for="fb">BaseSpeed</label><output id="fb-out"></output></div>
           <input type="range" id="fb" min="1" max="20" step="0.5" value="2"></div>
         <div class="ctl"><div class="row"><label for="fp">SpeedFromPower</label><output id="fp-out"></output></div>
@@ -447,7 +449,7 @@
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "armb", "armp", "blkb", "blkp",
-               "fkp", "fki", "fkr", "fb", "fp", "fs", "fm", "fl", "tm", "td", "tr", "tl",
+               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fm", "fl", "tm", "td", "tr", "tl",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -506,8 +508,10 @@
     const charge = v("creg") + v("cfp") * lin;
     const drain = formDrain(L);
 
-    // Custo de voo: reducao linear da skill, depois a hiperbolica do termo de fim de jogo.
-    const skillCut = 1 - v("fkr") * flyLvl / MAXLVL;
+    // Custo de voo: reducao em curva da skill, depois a hiperbolica do termo de fim de jogo.
+    // O expoente joga a economia da skill para o fim: sem ele, 95% de desconto no 100 significaria
+    // metade do preco ja' no nivel 50. Espelha FlightStats.GetSkillCostFactor.
+    const skillCut = 1 - v("fkr") * Math.pow(flyLvl / MAXLVL, v("fkc"));
     const powerCut = 1 / (1 + v("fkp") * lateBonus(L, k5));
     const flycost = Math.max(0, v("fki") * skillCut * powerCut);
 
@@ -557,7 +561,7 @@
     punchcost: { label: "Custo do soco", sub: "ki por soco, já com o desconto do poder. Satura em PunchDamageFromPower × PunchKiCostPerDamage ÷ KiCostPowerReduction — nunca passa disso", dec: 1, unit: " ki" },
     punches: { label: "Socos por barra cheia", sub: "teto de ki ÷ custo do soco. Cair não é problema; cair abaixo de 2 é — um soco que não cabe na barra sai com o dano vanilla cru", dec: 1, unit: "" },
     block: { label: "Block power", sub: "escudo de madeira é 18,5; serpentscale, 94", dec: 1, unit: "" },
-    flycost: { label: "Custo de voo", sub: "ki por segundo, modo lento, já com as duas reduções: a linear da skill de voo e a hiperbólica do termo de fim de jogo", dec: 2, unit: " ki/s" },
+    flycost: { label: "Custo de voo", sub: "ki por segundo, modo lento, já com as duas reduções: a da skill de voo (em curva, quase toda no fim da skill) e a hiperbólica do termo de fim de jogo", dec: 2, unit: " ki/s" },
     range: { label: "Autonomia de voo", sub: "teto de ki ÷ custo — segundos no ar com a barra cheia. Sobe pelos dois eixos: o nível enche a barra, a skill de voo esvazia mais devagar", dec: 0, unit: " s" },
     fly: { label: "Velocidade de voo", sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito", dec: 1, unit: " m/s" },
     kimax: { label: "Teto de ki", sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra", dec: 0, unit: "" },
@@ -861,6 +865,7 @@
         kv("KiPowerReduction", n("fkp", 4)),
         kv("KiPerSecond", n("fki", 1)),
         kv("KiSkillReduction", n("fkr", 2)),
+        kv("KiSkillCurve", n("fkc", 2)),
         kv("BaseSpeed", n("fb", 1)),
         kv("SpeedFromPower", n("fp", 3)),
         kv("SpeedSkillBonus", n("fs", 2)),
@@ -882,7 +887,7 @@
 
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, armb: 0, armp: 3, blkb: 0,
-                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fb: 1, fp: 3, fs: 2, fm: 0, fl: 0,
+                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fm: 0, fl: 0,
                     tm: 1, td: 1, tr: 2, tl: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 

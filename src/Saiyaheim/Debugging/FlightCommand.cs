@@ -99,7 +99,11 @@ namespace Saiyaheim.Debugging
             float hoverCost = FlightStats.GetKiCostPerSecond(player, fast: false, hovering: true);
 
             Print($"Flying: {(FlightManager.IsFlying(player) ? "yes" : "no")}  (ki {(KiManager.IsEnabled ? "on" : "off")})");
-            Print($"Flight skill: level {FlightSkill.GetLevel(player):0.#}");
+            // A skill agora desconta em curva, nao em reta: sem imprimir o fator o jogador nao tem
+            // como saber quanto do desconto ja' chegou no nivel em que esta'.
+            float skillFactor = FlightStats.GetSkillCostFactor(player);
+            Print($"Flight skill: level {FlightSkill.GetLevel(player):0.#} " +
+                  $"— ki cost x{skillFactor:0.###} ({(1f - skillFactor) * 100f:0}% cheaper)");
             Print($"Carry load: {FlightStats.GetWeightLoad(player) * 100f:0}% of max weight");
             Print($"Speed floor: {SaiyaheimConfig.FlightBaseSpeed.Value:0.#} " +
                   $"+ {FlightStats.GetSpeedFromPower(player):0.#} from power level " +
