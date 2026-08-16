@@ -119,6 +119,12 @@ namespace Saiyaheim.Debugging
             Print($"Power level: {PowerLevel.GetRaw(player):0.#} raw");
             Print($"Regen: {regen:0.##}/s  ({SecondsToFill(regen)} to fill)");
             Print($"Charge: {charge:0.##}/s  ({SecondsToFill(charge)} to fill)");
+
+            // O Rested mexe na linha de regen acima e na pausa pos-gasto, e nao ha como olhar a
+            // barra e saber se o buff esta ativo. Sem isto, calibrar os dois multiplicadores seria
+            // adivinhacao.
+            Print($"Rested: {(KiManager.IsRested(player) ? "yes" : "no")}  " +
+                  $"(regen blocked for {KiManager.RegenDelayFor(player):0.#} s after spending)");
         }
 
         /// <summary>

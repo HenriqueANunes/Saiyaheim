@@ -45,21 +45,66 @@ namespace Saiyaheim.Ki
         internal static bool IsEnabled => _state != null && _state.Enabled;
 
         /// <summary>
-        /// Regeneração passiva por segundo, já escalada pelo poder.
+        /// Regeneração passiva por segundo, já escalada pelo poder e pelo descanso.
         ///
-        /// Escala porque o teto não é fixo: <see cref="MaxFor"/> cresce com o nível de Battle
-        /// Power, e uma torneira plena enchendo um reservatório cada vez maior significa que
+        /// Escala com o poder porque o teto não é fixo: <see cref="MaxFor"/> cresce com o nível de
+        /// Battle Power, e uma torneira plena enchendo um reservatório cada vez maior significa que
         /// ficar forte deixa o jogador proporcionalmente <b>mais lento</b> para recuperar ki —
         /// o contrário do que o mod quer dizer.
         ///
-        /// Aditiva, como todo o resto do mod. Lê o power level derivado, a mesma base do
+        /// Aditiva no poder, como todo o resto do mod. Lê o power level derivado, a mesma base do
         /// <c>FlightSpeedFromPower</c>: se comer melhor faz voar mais rápido, faz recarregar
         /// mais rápido também.
+        ///
+        /// O bônus de <see cref="IsRested"/> entra por último e é <b>multiplicativo</b>: aditivo
+        /// ele seria decisivo no começo do jogo e ruído no fim, quando a torneira já é grande.
         /// </summary>
         internal static float RegenPerSecondFor(Player player)
         {
-            return SaiyaheimConfig.KiRegenPerSecond.Value
-                   + SaiyaheimConfig.KiRegenFromPower.Value * PowerLevel.GetRaw(player);
+            float perSecond = SaiyaheimConfig.KiRegenPerSecond.Value
+                              + SaiyaheimConfig.KiRegenFromPower.Value * PowerLevel.GetRaw(player);
+
+            return IsRested(player)
+                ? perSecond * SaiyaheimConfig.KiRegenRestedMultiplier.Value
+                : perSecond;
+        }
+
+        /// <summary>
+        /// Segundos de bloqueio da regeneração depois de gastar ki, já com o desconto do descanso.
+        ///
+        /// É aqui que o Rested aparece de verdade. Multiplicar uma torneira de poucos ki por
+        /// segundo some numa barra de centenas; o que o jogador cronometra no meio da luta é esta
+        /// pausa, e encurtá-la muda o ritmo do combate.
+        /// </summary>
+        internal static float RegenDelayFor(Player player)
+        {
+            float delay = SaiyaheimConfig.KiRegenDelay.Value;
+
+            return IsRested(player)
+                ? delay * SaiyaheimConfig.KiRegenDelayRestedMultiplier.Value
+                : delay;
+        }
+
+        /// <summary>
+        /// Verdadeiro enquanto o jogador está com o buff <c>Rested</c> do jogo base — fogueira sob
+        /// abrigo, ou acordar numa cama.
+        ///
+        /// O buff dura <c>300s + 60s por nível de conforto</c> e vai junto com o jogador para o
+        /// campo, então o bônus não é "recarrega mais rápido em casa" (carregar já é mais rápido
+        /// que esperar), é sair de casa aguentando mais tempo de luta lá fora.
+        ///
+        /// Status effect nativo consultado pela API pública do <c>SEMan</c>: sincroniza sozinho no
+        /// multiplayer e não precisa de patch nenhum.
+        /// </summary>
+        internal static bool IsRested(Player player)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+
+            SEMan seman = player.GetSEMan();
+            return seman != null && seman.HaveStatusEffect(SEMan.s_statusEffectRested);
         }
 
         /// <summary>Carregamento ativo por segundo, já escalado pelo poder. Ver <see cref="RegenPerSecondFor"/>.</summary>
@@ -215,6 +260,13 @@ namespace Saiyaheim.Ki
         /// <summary>
         /// Gasta ki até zerar, sem exigir o valor cheio. É o dreno contínuo —
         /// chegar a zero é o gatilho de destransformação e de queda no voo.
+        ///
+        /// <b>Bloqueia a regeneração como qualquer outro gasto, e isso é regra, não descuido.</b>
+        /// O dreno é cobrado a cada tick, então cada tick reagenda o bloqueio e a regeneração
+        /// passiva não corre enquanto houver forma no ar ou voo ativo. Separar manutenção de
+        /// combate foi tentado em 2026-08-16 e revertido no mesmo dia: com a regeneração correndo
+        /// por baixo, o que a barra sente é o dreno líquido, e segurar a forma e voar ficaram
+        /// fáceis demais. Ver Decisões Tomadas, "Manutenção também desliga a regeneração".
         /// </summary>
         internal static void Drain(float amount)
         {
@@ -229,7 +281,7 @@ namespace Saiyaheim.Ki
         private static void Spend(float amount)
         {
             _state.Current = Mathf.Max(0f, _state.Current - amount);
-            _state.RegenBlockedUntil = Time.time + SaiyaheimConfig.KiRegenDelay.Value;
+            _state.RegenBlockedUntil = Time.time + RegenDelayFor(_trackedPlayer);
         }
 
         /// <summary>Uso de debug e console. Não bloqueia a regeneração.</summary>

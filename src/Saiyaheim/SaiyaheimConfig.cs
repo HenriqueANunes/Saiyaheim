@@ -151,6 +151,12 @@ namespace Saiyaheim
         /// <summary>Segundos sem regenerar depois de gastar ki.</summary>
         public static ConfigEntry<float> KiRegenDelay { get; private set; }
 
+        /// <summary>Multiplicador da regeneração passiva enquanto o jogador está com o buff Rested do jogo.</summary>
+        public static ConfigEntry<float> KiRegenRestedMultiplier { get; private set; }
+
+        /// <summary>Multiplicador do <see cref="KiRegenDelay"/> enquanto o jogador está com o buff Rested.</summary>
+        public static ConfigEntry<float> KiRegenDelayRestedMultiplier { get; private set; }
+
         /// <summary>Ki por segundo enquanto a tecla de carregar está segurada.</summary>
         public static ConfigEntry<float> ChargeKiPerSecond { get; private set; }
 
@@ -727,6 +733,37 @@ namespace Saiyaheim
                     "with a low KiRegenPerSecond: spending ki should hurt, and recovering it " +
                     "should be an action. (Calibrated in the 2026-07-28 playtest.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
+
+            // Rested e o unico loop do vanilla que recompensa montar base, e o mod meio que
+            // atropela ele: um saiyajin que voa e atira ki blast tem pouco motivo pra construir
+            // casa. Pendurar ki no buff devolve peso ao conforto sem inventar sistema novo.
+            //
+            // O buff dura 300s + 60s por nivel de conforto e ACOMPANHA o jogador no campo, entao
+            // o bonus nao e "recarrega mais rapido em casa" (isso seria inutil, carregar ja e mais
+            // rapido que esperar) e sim "sai de casa aguentando mais tempo de luta la fora".
+            KiRegenRestedMultiplier = config.Bind(SecKi, "KiRegenRestedMultiplier", 1.5f,
+                new ConfigDescription(
+                    "Multiplies passive ki regeneration while the player has the vanilla Rested " +
+                    "buff (fire under shelter, or waking up in a bed). Same 1.5 the game itself " +
+                    "uses for health and stamina regen, so the ki bar reads as one more thing " +
+                    "Rested covers instead of a mod-only rule. " +
+                    "Multiplicative, unlike the additive bonuses elsewhere in the mod, because it " +
+                    "has to keep up with a tap that already grows with power level. " +
+                    "1 disables it. Does NOT touch active charging: making charging faster at home " +
+                    "would only say 'top up before leaving', which is not a decision worth having.",
+                    new AcceptableValueRange<float>(0.1f, 5f), AdminOnly(68)));
+
+            // Este e o lado que se sente de verdade. A regen passiva e 2/s numa barra de centenas:
+            // 50% a mais somem na conta. O delay pos-gasto e o que o jogador cronometra no meio da
+            // luta, e cortar dois segundos dele muda o ritmo do combate.
+            KiRegenDelayRestedMultiplier = config.Bind(SecKi, "KiRegenDelayRestedMultiplier", 0.6f,
+                new ConfigDescription(
+                    "Multiplies KiRegenDelay while the player has the vanilla Rested buff. " +
+                    "With the defaults, the 5s pause after spending ki becomes 3s. " +
+                    "This is the half of the Rested bonus that actually gets noticed in combat — " +
+                    "the multiplier on a small passive tap does not. " +
+                    "1 disables it; 0 removes the pause entirely while rested.",
+                    new AcceptableValueRange<float>(0f, 2f), AdminOnly(66)));
 
             ChargeKiPerSecond = config.Bind(SecKi, "ChargeKiPerSecond", 5f,
                 new ConfigDescription(
