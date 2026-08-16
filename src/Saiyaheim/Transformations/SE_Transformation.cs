@@ -5,10 +5,10 @@ namespace Saiyaheim.Transformations
     /// <summary>
     /// A forma ativa: o <c>StatusEffect</c> que representa estar transformado.
     ///
-    /// <b>Ele faz duas coisas, e só.</b> Drena ki por segundo e paga XP de maestria pelo tempo
-    /// segurando a forma. O <b>poder</b> da transformação não está aqui: é o
-    /// <c>PowerLevel.GetKiCombatRaw</c> que consulta o <see cref="TransformationRegistry"/> e
-    /// multiplica.
+    /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, paga XP de maestria pelo tempo
+    /// segurando a forma e levanta o limite de peso do inventário. O <b>poder</b> da transformação
+    /// não está aqui: é o <c>PowerLevel.GetKiCombatRaw</c> que consulta o
+    /// <see cref="TransformationRegistry"/> e multiplica.
     ///
     /// <b>Por que o multiplicador não mora neste arquivo.</b> Ele não é um modificador de dano —
     /// é um modificador de <i>power level</i>, e o power level alimenta soco, armadura, block
@@ -54,7 +54,8 @@ namespace Saiyaheim.Transformations
             // e é por ele que o SEMan acha (e o registry reconhece) a forma.
             effect.name = form.ObjectName;
             effect.m_name = form.DisplayName;
-            effect.m_tooltip = "Your power level is multiplied. Ki drains while you hold the form.";
+            effect.m_tooltip = "Your power level is multiplied and you carry more. " +
+                           "Ki drains while you hold the form.";
             effect._form = form;
 
             // Sem ícone: SEMan.GetHUDStatusEffects filtra por m_icon, então a forma não ocupa
@@ -87,6 +88,40 @@ namespace Saiyaheim.Transformations
             KiManager.Drain(_form.GetKiDrainPerSecond(player) * dt);
 
             FlushXp(player, dt);
+        }
+
+        /// <summary>
+        /// Levanta o limite de peso do inventário enquanto a forma está ativa.
+        ///
+        /// <b>API nativa, zero patch Harmony.</b> <c>Player.GetMaxCarryWeight</c> chama
+        /// <c>SEMan.ModifyMaxCarryWeight</c>, que percorre os efeitos ativos — o mesmo caminho por
+        /// onde o Megingjord passa. Tudo que lê o limite (a barra de peso do inventário, o
+        /// "encumbered", o que dá para pegar do chão) vem de graça e continua certo se o Valheim
+        /// mexer nas contas.
+        ///
+        /// <b>Aqui e não no <c>m_addMaxCarryWeight</c> do <c>SE_Stats</c></b>, que existe e faria
+        /// exatamente isto: aquele campo é copiado do template no <c>Clone()</c> e congelaria o
+        /// valor do <c>.cfg</c> lido na inicialização. Lendo a config a cada chamada, mexer no
+        /// número com o jogo aberto vale na hora — que é o ciclo de playtest inteiro deste mod.
+        ///
+        /// <b>Some junto com a forma</b>, e isso é intencional: destransformar carregando mais do
+        /// que o limite normal deixa o jogador sobrecarregado na hora. É o preço de usar a forma
+        /// como carroça, e o dreno já avisa que ela vai acabar.
+        ///
+        /// ⚠️ Efeito colateral que o <c>.cfg</c> explica e vale repetir: carga é uma <b>fração do
+        /// limite</b> (<c>FlightStats.GetWeightLoad</c>), então um limite maior faz a mesma carga
+        /// pesar menos no voo e pagar menos XP de Battle Power pelo <c>XpWeightBonus</c>.
+        /// </summary>
+        public override void ModifyMaxCarryWeight(float baseLimit, ref float limit)
+        {
+            base.ModifyMaxCarryWeight(baseLimit, ref limit);
+
+            if (_form == null)
+            {
+                return;
+            }
+
+            limit += _form.GetCarryWeightBonus();
         }
 
         public override void Stop()

@@ -226,6 +226,12 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<float> PunchSlashFraction { get; internal set; }
 
+            /// <summary>
+            /// Peso máximo somado ao limite do inventário enquanto a forma está ativa. Soma ao
+            /// limite base do jogador, e ao Megingjord se ele estiver equipado.
+            /// </summary>
+            public ConfigEntry<float> CarryWeightBonus { get; internal set; }
+
             /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
 
@@ -981,6 +987,9 @@ namespace Saiyaheim
                 powerMultiplier: 2f,
                 kiDrainPerSecond: 5f,
                 punchSlashFraction: 0.5f,
+                // Calibrado no playtest de 2026-08-16. Saiu em 300 — o limite base inteiro do
+                // Valheim, ou seja, mochila dobrada — e desceu para 100 na primeira sessao.
+                carryWeightBonus: 100f,
                 hairColor: "#FFE14A",
                 requiredGlobalKey: "defeated_eikthyr");
 
@@ -1824,7 +1833,8 @@ namespace Saiyaheim
         /// </summary>
         private static TransformationConfig BindTransformation(
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
-            float punchSlashFraction, string hairColor, string requiredGlobalKey)
+            float punchSlashFraction, float carryWeightBonus, string hairColor,
+            string requiredGlobalKey)
         {
             return new TransformationConfig
             {
@@ -1874,6 +1884,28 @@ namespace Saiyaheim
                         "how fast a target staggers. " +
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(85))),
+
+                // O peso e' o unico numero da forma que NAO passa pelo PowerMultiplier, e de
+                // proposito: multiplicar o limite pelo poder faria a mochila crescer junto com o
+                // grind de Battle Power, e o limite de peso e' logistica, nao combate. Aqui cada
+                // degrau da escada carrega o que o degrau dele carrega, e ponto.
+                //
+                // Somado e nao multiplicado pelo mesmo motivo do bonus de soco: soma convive com o
+                // Megingjord (+150) em vez de brigar com ele, e o numero no .cfg e' lido direto na
+                // tela do inventario, sem depender do limite base.
+                CarryWeightBonus = config.Bind(section, "CarryWeightBonus", carryWeightBonus,
+                    new ConfigDescription(
+                        "Extra carry weight while this form is active. Added on top of the " +
+                        "character's own limit (300 in vanilla) and on top of Megingjord, so " +
+                        "300 here would mean double the backpack while transformed. " +
+                        "Falls off the moment the form does, and anything you were carrying over " +
+                        "the plain limit makes you encumbered again — powering down mid-haul is " +
+                        "the cost of using the form as a cart. " +
+                        "Side effect worth knowing: carry load is a fraction of the LIMIT, so a " +
+                        "bigger limit means the same cargo slows flight less and pays less " +
+                        "Battle Power XP (XpWeightBonus). " +
+                        "Playtested 2026-08-16: started at 300 and came down to 100.",
+                        new AcceptableValueRange<float>(0f, 2000f), AdminOnly(83))),
 
                 MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", 0.8f,
                     new ConfigDescription(

@@ -201,6 +201,23 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Quanto peso a mais o inventário aguenta enquanto esta forma está ativa.
+        ///
+        /// <b>Não passa pelo <see cref="GetPowerMultiplier"/>, e não escala com maestria.</b> A
+        /// força da forma é uma coisa; quanto ela carrega é outra, e as duas não têm por que andar
+        /// juntas — o limite de peso é logística, não combate. A maestria também fica de fora: a
+        /// moeda dela é o dreno, e só ela (ver <see cref="GetKiDrainPerSecond"/>).
+        ///
+        /// Piso em zero: um bônus negativo seria uma forma que <b>reduz</b> a mochila, e o
+        /// <c>.cfg</c> de um jogador não deve conseguir inverter o sentido da mecânica — mesma
+        /// regra do multiplicador de poder.
+        /// </summary>
+        internal float GetCarryWeightBonus()
+        {
+            return Mathf.Max(0f, Config.CarryWeightBonus.Value);
+        }
+
+        /// <summary>
         /// O dreno agora, já com a maestria descontada.
         ///
         /// <code>dreno = base * (1 - nivel/100 * reducao_no_100)</code>

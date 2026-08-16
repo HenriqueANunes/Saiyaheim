@@ -197,6 +197,7 @@ namespace Saiyaheim.Debugging
 
             Print($"{form.DisplayName} mastery: level {form.GetSkillLevel(player):0.#}");
             Print($"Power multiplier: x{form.GetPowerMultiplier():0.##}");
+            PrintCarryWeight(player, form, active);
             Print($"Ki drain: {drain:0.##}/s " +
                   $"(base {form.Config.KiDrainPerSecond.Value:0.##}, " +
                   $"mastery cuts {(1f - SafeRatio(drain, form.Config.KiDrainPerSecond.Value)) * 100f:0}%)");
@@ -219,6 +220,35 @@ namespace Saiyaheim.Debugging
 
             PrintDamageSplit(form, PowerLevel.PunchBonusFor(inForm));
             PrintPunchEconomy(outOfForm, inForm);
+        }
+
+        /// <summary>
+        /// O que a forma faz com o limite de peso, com os dois lados na mesma linha.
+        ///
+        /// Sem isto o número não existe em lugar nenhum: o inventário mostra o limite <b>já
+        /// somado</b>, sem dizer quanto dele veio da forma, e fora de forma o bônus não aparece de
+        /// jeito nenhum. A carga atual entra junto porque é ela que diz se o bônus está fazendo
+        /// alguma diferença agora ou se é só um número maior na tela.
+        ///
+        /// Omitida quando a forma não soma peso, como a linha de repartição de dano: forma sem
+        /// bônus não tem o que dizer.
+        /// </summary>
+        private void PrintCarryWeight(Player player, Transformation form, Transformation active)
+        {
+            float bonus = form.GetCarryWeightBonus();
+            if (bonus <= 0f)
+            {
+                return;
+            }
+
+            // O limite que o jogo devolve JA inclui o bonus da forma ativa, se houver uma — e ela
+            // pode nao ser a forma sendo mostrada. Descontar a ativa (e nao a mostrada) e' o que
+            // faz "saiya_form ssj2" em SSJ imprimir os dois lados certos.
+            float outOfForm = player.GetMaxCarryWeight() - (active == null ? 0f : active.GetCarryWeightBonus());
+            Inventory inventory = player.GetInventory();
+
+            Print($"Carry weight: {outOfForm:0} → {outOfForm + bonus:0} " +
+                  $"(carrying {(inventory == null ? 0f : inventory.GetTotalWeight()):0})");
         }
 
         /// <summary>
