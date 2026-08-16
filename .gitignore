@@ -20,3 +20,5 @@ Environment.props
 
 
 CLAUDE.md
+# Zips de distribuição gerados pelo package.sh
+dist/
