@@ -159,6 +159,33 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Repinta o cabelo com a forma que o jogador já tem, se tiver alguma.
+        ///
+        /// Existe porque o jogo apaga a nossa tinta sozinho a cada mudança de equipamento — ver
+        /// <see cref="HairColorPatch"/>, que é quem chama. Não é um evento do mod: é um conserto
+        /// atrás de um evento do jogo, e por isso não estoura nada nem toca no emote.
+        ///
+        /// <b>Sem forma ativa não faz nada</b>, de propósito. A cor que o jogo acabou de escrever
+        /// é a original, que é exatamente a certa para quem está na base — chamar o
+        /// <see cref="RestoreHairColor"/> aqui só reescreveria o mesmo valor.
+        ///
+        /// A pergunta vai ao <c>SEMan</c> e não ao <c>NetState</c>: o <c>SetupVisEquipment</c> roda
+        /// no meio de uma mudança de equipamento, que pode cair no mesmo frame em que a forma mudou
+        /// e antes de o estado ter sido publicado. O <c>SEMan</c> é a autoridade na máquina do
+        /// dono, que é a única onde a escrita de ZDO vale.
+        /// </summary>
+        internal static void ReapplyHairColor(Player player)
+        {
+            Transformation form = TransformationRegistry.GetActive(player);
+            if (form == null)
+            {
+                return;
+            }
+
+            Run(() => SetHairColor(player, form));
+        }
+
+        /// <summary>
         /// Zera o estado sem tocar no jogador — ele deixou de existir (morte, saída do mundo).
         ///
         /// Não há nada a restaurar nem a destruir nesse caminho: a cor trocada vive na ZDO do
