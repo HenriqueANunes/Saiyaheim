@@ -1110,8 +1110,9 @@ namespace Saiyaheim
             // boss. Ver [[Progressao por Bosses]].
             //
             // Os numeros sao os do SSJ "mais fortes", e cada um tem uma razao para o salto que deu:
-            //   PowerMultiplier 3,5 = quase o dobro do SSJ. Saiu em 4 (o dobro exato, a leitura
-            //     direta do genero) e o playtest de 2026-08-16 desceu — ver [[Transformacoes]].
+            //   PowerMultiplier 3 = uma vez e meia o SSJ. Saiu em 4 (o dobro exato, a leitura
+            //     direta do genero), o playtest de 2026-08-16 desceu para 3,5 e o de 2026-08-17
+            //     desceu de novo para 3 — ver [[Transformacoes]].
             //   KiDrainPerSecond 10 = MAIS que o dobro de proposito, e continua sendo depois da
             //     calibragem. Se o dreno dobrasse junto com o poder, o degrau alto seria
             //     estritamente melhor por ki gasto e o SSJ viraria letra morta — a escolha entre
@@ -1120,7 +1121,7 @@ namespace Saiyaheim
             //     maestria aproxime o custo do degrau alto do custo do degrau baixo. Segurar o
             //     SSJ2 sai de 2x o dreno do SSJ (cru) para 1,5x (maxado) — encolhe com o treino
             //     sem nunca fechar, e o "sem nunca fechar" foi decidido: 0,90 igualaria os dois
-            //     em 1,0/s, e ao mesmo preco o SSJ2 entrega 3,5x contra 2x. O SSJ perderia toda
+            //     em 1,0/s, e ao mesmo preco o SSJ2 entrega 3x contra 2x. O SSJ perderia toda
             //     razao de existir para quem treinou os dois. Ver [[Transformacoes]].
             //   CarryWeightBonus 200 = o dobro do SSJ, pela mesma leitura de "forma mais alta
             //     carrega mais". Nao passa pelo multiplicador, como no SSJ.
@@ -1131,7 +1132,8 @@ namespace Saiyaheim
             // parecidos — quem separa os degraus na tela e' o raio, que e' como o SSJ2 se apresenta.
             Ssj2 = BindTransformation(config, SecSsj2,
                 // Calibrados no playtest de 2026-08-16, o primeiro do SSJ2.
-                powerMultiplier: 3.5f,
+                // O multiplicador desceu de novo em 2026-08-17: 4 → 3,5 → 3.
+                powerMultiplier: 3f,
                 kiDrainPerSecond: 10f,
                 punchSlashFraction: 0f,
                 punchLightningFraction: 0.5f,
