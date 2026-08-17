@@ -88,7 +88,8 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// Olha o canal deste jogador e estoura o efeito se ele acabou de subir de forma.
+        /// Olha o canal deste jogador e aplica o que ele conta: estoura o efeito se ele acabou de
+        /// subir de forma, e mantém os raios da forma em que ele está.
         ///
         /// Chamado pelo <see cref="RemoteEffects"/> para <b>todo</b> jogador carregado, o local
         /// inclusive. Barato no caso comum: uma leitura de ZDO e uma comparação de inteiros.
@@ -97,6 +98,11 @@ namespace Saiyaheim.Transformations
         /// nada — um estouro ali leria como transformar de novo, que é o oposto do que aconteceu.
         /// A regra é a mesma que o <see cref="OnStepDown"/> já aplicava; agora ela vale para quem
         /// está olhando de fora também.
+        ///
+        /// <b>O raio é a exceção à regra do instante</b>, e o único efeito daqui que responde ao
+        /// <i>estado</i> em vez do evento: por isso o <see cref="FormLightning"/> é chamado em todo
+        /// frame e fora do desvio de "mudou de forma". Ver a cabeça daquela classe para por que ele
+        /// pode durar onde a aura não podia.
         /// </summary>
         internal static void Observe(Player player)
         {
@@ -107,23 +113,23 @@ namespace Saiyaheim.Transformations
 
             int index = NetState.GetFormIndex(player);
 
-            if (!LastSeenForm.TryGetValue(player, out int seen))
+            // Ausente quer dizer "nunca vi este jogador": anota-se o que ele já é e não se estoura
+            // nada, senão chegar perto de alguém que está em SSJ há dez minutos dispararia o
+            // efeito de transformação na cara de quem chegou. O raio, esse, começa na hora — ele
+            // não é o evento de transformar, é como a forma se parece.
+            bool firstSight = !LastSeenForm.TryGetValue(player, out int seen);
+
+            if (firstSight || index != seen)
             {
                 LastSeenForm[player] = index;
-                return;
+
+                if (!firstSight && index > seen)
+                {
+                    Run(() => SpawnBurst(player, TransformationRegistry.At(index)));
+                }
             }
 
-            if (index == seen)
-            {
-                return;
-            }
-
-            LastSeenForm[player] = index;
-
-            if (index > seen)
-            {
-                Run(() => SpawnBurst(player, TransformationRegistry.At(index)));
-            }
+            Run(() => FormLightning.Tick(player, TransformationRegistry.At(index)));
         }
 
         /// <summary>Este jogador deixou de existir: descarta o que era lembrado dele.</summary>
@@ -131,6 +137,7 @@ namespace Saiyaheim.Transformations
         {
             Bursts.Remove(player);
             LastSeenForm.Remove(player);
+            FormLightning.Forget(player);
         }
 
         /// <summary>
@@ -199,6 +206,7 @@ namespace Saiyaheim.Transformations
             _hairTinted = false;
             Bursts.Clear();
             LastSeenForm.Clear();
+            FormLightning.Reset();
         }
 
         /// <summary>

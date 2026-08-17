@@ -18,14 +18,17 @@ namespace Saiyaheim.Transformations
         /// teclas de degrau percorrem, e é ela que define qual é o "mais alto destravado" que a
         /// tecla de transformar direto procura.
         ///
-        /// Um degrau só, por enquanto — a etapa 5 do roadmap pede <b>uma</b> transformação, e a
-        /// escada completa depende de decidir qual forma se amarra a qual boss (etapa 7, ver
-        /// [[Em Aberto]]). O degrau seguinte é uma linha aqui e uma chamada de
-        /// <c>BindTransformation</c> na config.
+        /// Dois degraus. O terceiro é uma linha aqui e uma chamada de
+        /// <c>BindTransformation</c> na config — a promessa de "forma é dado, não código" foi
+        /// cobrada quando o SSJ2 entrou, e o preço foi exatamente esse.
+        ///
+        /// A qual boss cada forma acima do SSJ2 se amarra continua aberto, e depende de decidir
+        /// quais formas existirão — ver [[Progressão por Bosses]] e [[Em Aberto]].
         /// </summary>
         internal static readonly Transformation[] All =
         {
-            new Transformation("ssj", "SSJ", SaiyaheimConfig.Ssj)
+            new Transformation("ssj", "SSJ", SaiyaheimConfig.Ssj),
+            new Transformation("ssj2", "SSJ2", SaiyaheimConfig.Ssj2)
         };
 
         /// <summary>
@@ -175,15 +178,22 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// Quanto do dano de contusão do soco a forma ativa converte em corte. 0 fora de forma,
-        /// que é o caso da esmagadora maioria das chamadas — e também o de uma forma que não
-        /// tempera o golpe.
+        /// Como a forma ativa reparte o soco entre corte e raio. Zero nos dois fora de forma, que
+        /// é o caso da esmagadora maioria das chamadas — e também o de uma forma que não tempera
+        /// o golpe.
         /// </summary>
-        internal static float GetPunchSlashFraction(Player player)
+        internal static void GetPunchSplit(Player player, out float slash, out float lightning)
         {
             Transformation active = GetActive(player);
 
-            return active == null ? 0f : active.GetPunchSlashFraction();
+            if (active == null)
+            {
+                slash = 0f;
+                lightning = 0f;
+                return;
+            }
+
+            active.GetPunchSplit(out slash, out lightning);
         }
 
         /// <summary>Nome da forma ativa, para log e HUD. Null se não há forma.</summary>

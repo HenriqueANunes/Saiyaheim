@@ -86,14 +86,19 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// O tempero da forma ativa no soco: move uma fração da contusão para corte.
+        /// O tempero da forma ativa no soco: move frações da contusão para corte e para raio.
         ///
         /// <b>Move, não soma.</b> O total do golpe sai daqui igual ao que entrou — a força da forma
         /// continua sendo só o <c>PowerMultiplier</c>, e o que muda é contra o que ela bate. A
         /// armadura do Valheim é por tipo (<c>m_damageModifiers</c>), então um golpe partido em
         /// dois tipos é menos punido por um inimigo que resiste a um deles, e menos premiado por um
-        /// que é fraco ao outro. Contusão e corte contam igual para stagger, então o ritmo do
+        /// que é fraco ao outro. Contusão, corte e raio contam igual para stagger, então o ritmo do
         /// combate não muda.
+        ///
+        /// <b>Os dois tipos convivem em vez de um substituir o outro</b>, e é o que faz "qual tipo
+        /// de dano" ser o eixo de sabor da escada: o SSJ reparte em contusão e corte, o SSJ2 em
+        /// contusão e raio, e nada impede um degrau futuro de usar os três. Quem garante que as
+        /// frações cabem no todo é o <c>Transformation.GetPunchSplit</c>, não este método.
         ///
         /// <b>Reparte o soco inteiro</b>, não só o bônus de poder: "metade do meu soco é corte" é
         /// uma afirmação sobre o golpe, e o dano desarmado vanilla é parte dele. Na prática a
@@ -111,18 +116,25 @@ namespace Saiyaheim.Power
         /// </summary>
         private void ApplyFormFlavor(HitData hitData)
         {
-            float fraction = Transformations.TransformationRegistry
-                .GetPunchSlashFraction(m_character as Player);
+            Transformations.TransformationRegistry.GetPunchSplit(
+                m_character as Player, out float slash, out float lightning);
 
-            if (fraction <= 0f)
+            if (slash <= 0f && lightning <= 0f)
             {
                 return;
             }
 
-            float moved = hitData.m_damage.m_blunt * fraction;
+            // A base das duas é a MESMA contusão, lida antes de qualquer subtração. Descontar uma
+            // e repartir o resto faria a segunda fração significar "do que sobrou", e aí a ordem
+            // das duas linhas mudaria o resultado.
+            float blunt = hitData.m_damage.m_blunt;
 
-            hitData.m_damage.m_blunt -= moved;
-            hitData.m_damage.m_slash += moved;
+            float toSlash = blunt * slash;
+            float toLightning = blunt * lightning;
+
+            hitData.m_damage.m_blunt -= toSlash + toLightning;
+            hitData.m_damage.m_slash += toSlash;
+            hitData.m_damage.m_lightning += toLightning;
         }
 
         /// <summary>
