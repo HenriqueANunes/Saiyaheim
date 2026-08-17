@@ -137,6 +137,10 @@ namespace Saiyaheim.Transformations
         /// Acumula o tempo transformado e converte em XP uma vez por segundo. Chamar
         /// <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo para o mesmo
         /// efeito. Mesmo padrão do <c>SE_Flight.FlushXp</c>.
+        ///
+        /// Quem reparte é o <see cref="TransformationRegistry.RaiseMastery"/>, e não este efeito:
+        /// o tempo pago treina esta forma <b>e todos os degraus abaixo dela</b>, e quem sabe onde
+        /// a forma cai na escada é o registry. Este arquivo só sabe o seu próprio degrau.
         /// </summary>
         private void FlushXp(Player player, float dt, bool force = false)
         {
@@ -147,7 +151,11 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            _form?.RaiseMastery(player, _pendingXpSeconds);
+            if (_form != null)
+            {
+                TransformationRegistry.RaiseMastery(player, _form, _pendingXpSeconds);
+            }
+
             _pendingXpSeconds = 0f;
         }
     }

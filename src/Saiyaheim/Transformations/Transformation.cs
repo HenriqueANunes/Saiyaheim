@@ -92,9 +92,9 @@ namespace Saiyaheim.Transformations
             SkillType = SkillManager.Instance.AddSkill(
                 "saiyaheim.mastery." + Id,
                 DisplayName,
-                $"Mastery of the {DisplayName} form. Grows while you hold it, and every level " +
-                "makes holding it cost less ki. It does not make the form stronger — that is " +
-                "Battle Power's job.",
+                $"Mastery of the {DisplayName} form. Grows while you hold it — or any form above " +
+                "it — and every level makes holding it cost less ki. It does not make the form " +
+                "stronger — that is Battle Power's job.",
                 increaseStep: 1f);
 
             SaiyaheimPlugin.Log.LogInfo($"Skill '{DisplayName}' (mastery) registered ({SkillType}).");
@@ -273,6 +273,10 @@ namespace Saiyaheim.Transformations
         /// XP de maestria por tempo segurando a forma. O chamador acumula os segundos e passa de
         /// uma vez — <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo pelo
         /// mesmo efeito.
+        ///
+        /// <b>Isto é o pagamento de uma forma só.</b> Segurar um degrau treina também os degraus
+        /// abaixo dele, mas essa regra é da escada e mora no
+        /// <see cref="TransformationRegistry.RaiseMastery"/> — o normal é chamar por lá, não aqui.
         /// </summary>
         internal void RaiseMastery(Player player, float seconds)
         {
