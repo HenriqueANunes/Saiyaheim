@@ -308,6 +308,18 @@ namespace Saiyaheim
         public static ConfigEntry<float> KiAttackMinimumInterval { get; private set; }
 
         /// <summary>
+        /// Liga a convergência da mira: apontar o tiro da mão <b>para o ponto</b> que a cruz está
+        /// olhando, em vez de copiar a direção da câmera. Ver <see cref="Attacks.KiAim"/>.
+        /// </summary>
+        public static ConfigEntry<bool> KiAttackAimConvergence { get; private set; }
+
+        /// <summary>Até onde o raio da mira procura o ponto que o jogador está olhando.</summary>
+        public static ConfigEntry<float> KiAttackAimRange { get; private set; }
+
+        /// <summary>Quanto, em graus, a correção pode desviar do olhar. Trava de segurança.</summary>
+        public static ConfigEntry<float> KiAttackAimMaxCorrection { get; private set; }
+
+        /// <summary>
         /// Os números de <b>um</b> ataque de ki. Uma instância por ataque, cada uma na sua seção do
         /// <c>.cfg</c> — ver <see cref="BindKiAttack"/>.
         ///
@@ -1141,6 +1153,36 @@ namespace Saiyaheim
                     "its own Cooldown; this is the shared floor, and it exists so that switching " +
                     "attacks is not a way around a cooldown.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(100)));
+
+            // Correcao de mira, nao balanceamento — mas fica aqui porque muda ONDE o tiro cai, e
+            // isso e' gameplay. Desligar existe so' para o playtest poder comparar com o antes.
+            KiAttackAimConvergence = config.Bind(SecKiAttacks, "AimConvergence", true,
+                new ConfigDescription(
+                    "Aim the shot from the hand AT THE POINT the crosshair is on, instead of just " +
+                    "copying the camera direction. " +
+                    "Off, the shot leaves the hand on a line PARALLEL to the aim line — offset by " +
+                    "the distance between the eye and the hand — and two parallel lines never " +
+                    "meet, so it always lands below the crosshair, worse the closer the target is. " +
+                    "This is the same defect the vanilla bow has. Leave it on; the switch exists " +
+                    "to compare against the old behaviour.",
+                    null, AdminOnly(98)));
+
+            KiAttackAimRange = config.Bind(SecKiAttacks, "AimRange", 200f,
+                new ConfigDescription(
+                    "How far the aim ray looks for whatever the crosshair is on. Past this the " +
+                    "shot is aimed at a point this far down the camera line, which is close " +
+                    "enough — the eye-to-hand offset stops mattering long before that. " +
+                    "Only worth raising if a ki attack ever outranges it.",
+                    new AcceptableValueRange<float>(10f, 1000f), AdminOnly(97)));
+
+            KiAttackAimMaxCorrection = config.Bind(SecKiAttacks, "AimMaxCorrection", 30f,
+                new ConfigDescription(
+                    "How far, in degrees, the correction may bend the shot away from where you " +
+                    "are looking. Safety rail: aiming at the ground by your feet, the point under " +
+                    "the crosshair can end up BEHIND the hand, and an uncapped correction would " +
+                    "fire back at the player. Beyond this the shot bends partway, never inverts. " +
+                    "90 effectively disables the cap.",
+                    new AcceptableValueRange<float>(0f, 90f), AdminOnly(96)));
 
             // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
             // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de

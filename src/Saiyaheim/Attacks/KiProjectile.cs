@@ -60,15 +60,17 @@ namespace Saiyaheim.Attacks
                 return false;
             }
 
-            // A mira é a direção do olhar, que no jogador é a da câmera — o mesmo GetAimDir que as
-            // armas de projétil do jogo usam.
-            Vector3 aim = player.GetLookDir().normalized;
+            // NÃO é a direção do olhar. Copiar o olhar — o que o GetAimDir do jogo faz, e por isso
+            // o arco vanilla erra para baixo — deixaria o tiro numa reta paralela à da mira,
+            // deslocada pela distância entre o olho e a mão. Ver KiAim.
+            Vector3 origin = GetOrigin(player);
+            Vector3 aim = KiAim.Resolve(player, origin);
             if (aim == Vector3.zero)
             {
                 return false;
             }
 
-            Vector3 spawnPoint = GetOrigin(player) + aim * SpawnClearance;
+            Vector3 spawnPoint = origin + aim * SpawnClearance;
 
             GameObject instance = Object.Instantiate(prefab, spawnPoint, Quaternion.LookRotation(aim));
 
