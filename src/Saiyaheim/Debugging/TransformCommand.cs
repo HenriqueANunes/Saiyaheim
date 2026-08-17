@@ -312,15 +312,39 @@ namespace Saiyaheim.Debugging
         /// </summary>
         private void PrintDamageSplit(Transformation form, float punchBonus)
         {
-            float slash = form.GetPunchSlashFraction();
-            if (slash <= 0f)
+            form.GetPunchSplit(out float slash, out float lightning);
+
+            if (slash <= 0f && lightning <= 0f)
             {
                 return;
             }
 
-            Print($"  punch damage split: {(1f - slash) * 100f:0}% blunt / {slash * 100f:0}% slash " +
-                  $"({punchBonus * (1f - slash):0.#} + {punchBonus * slash:0.#} of the bonus) " +
-                  "— same total, spread over two types");
+            float blunt = 1f - slash - lightning;
+
+            // As três partes na mesma linha, e as duas de zero omitidas: o que a linha existe para
+            // conferir é que a soma continua sendo o bônus inteiro, e um "0% slash" no meio só
+            // atrapalha essa leitura. As frações vêm normalizadas do GetPunchSplit, então o que
+            // está impresso aqui é o que o golpe faz — não o que o .cfg pediu.
+            string parts = $"{blunt * 100f:0}% blunt";
+            string amounts = $"{punchBonus * blunt:0.#}";
+            int types = 1;
+
+            if (slash > 0f)
+            {
+                parts += $" / {slash * 100f:0}% slash";
+                amounts += $" + {punchBonus * slash:0.#}";
+                types++;
+            }
+
+            if (lightning > 0f)
+            {
+                parts += $" / {lightning * 100f:0}% lightning";
+                amounts += $" + {punchBonus * lightning:0.#}";
+                types++;
+            }
+
+            Print($"  punch damage split: {parts} ({amounts} of the bonus) " +
+                  $"— same total, spread over {types} types");
         }
 
         /// <summary>

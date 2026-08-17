@@ -185,19 +185,53 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// Quanto do dano de contusão do soco esta forma converte em corte, em 0–1.
+        /// Como esta forma reparte o soco: quanto da contusão vira corte e quanto vira raio, os
+        /// dois em 0–1.
         ///
         /// <b>Converte, não soma.</b> O total do golpe é o mesmo — quem define a força da forma
         /// continua sendo o <see cref="GetPowerMultiplier"/> sozinho. O que muda é contra o que
         /// esse total bate: a armadura do Valheim é por tipo de dano, então um golpe partido em
         /// dois tipos é menos punido por um inimigo que resiste a um deles.
         ///
-        /// Clamp e não confiança no <c>AcceptableValueRange</c>: acima de 1 o soco ficaria com
-        /// contusão negativa, e dano negativo cura o alvo.
+        /// <b>As duas frações saem daqui já somando no máximo 1</b>, e é por isso que elas são
+        /// respondidas juntas em vez de uma por método. Cada chave sozinha respeita o intervalo
+        /// 0–1, mas nada impede um <c>.cfg</c> de pedir 0,8 de corte e 0,8 de raio — e servir as
+        /// duas ao pé da letra deixaria a contusão negativa, que <b>cura o alvo</b>. Quando a soma
+        /// passa de 1, as duas encolhem na mesma proporção: a intenção de "muito corte, pouco
+        /// raio" é preservada, e o que se perde é só o excesso.
+        ///
+        /// Clamp por cima do <c>AcceptableValueRange</c> pelo mesmo motivo: o intervalo é dica de
+        /// UI, não garantia — um <c>.cfg</c> editado à mão passa por ele.
         /// </summary>
-        internal float GetPunchSlashFraction()
+        internal void GetPunchSplit(out float slash, out float lightning)
         {
-            return Mathf.Clamp01(Config.PunchSlashFraction.Value);
+            slash = Mathf.Clamp01(Config.PunchSlashFraction.Value);
+            lightning = Mathf.Clamp01(Config.PunchLightningFraction.Value);
+
+            float total = slash + lightning;
+            if (total > 1f)
+            {
+                slash /= total;
+                lightning /= total;
+            }
+        }
+
+        /// <summary>Esta forma estala raios em volta do corpo enquanto está ativa?</summary>
+        internal bool HasLightning => Config.LightningEnabled.Value;
+
+        /// <summary>
+        /// A cor dos raios desta forma. Vazio na chave própria cai na cor da aura — a forma tem
+        /// uma cor só, e repeti-la em duas chaves seria mais uma coisa a manter em sincronia.
+        ///
+        /// Vazio nas <b>duas</b> devolve vazio, que o <c>AttachedEffect</c> lê como <i>não tinja</i>
+        /// e deixa o prefab com a cor original. Isso é diferente de cair numa cor padrão: quem
+        /// apaga as duas chaves está pedindo o raio cru do jogo.
+        /// </summary>
+        internal string GetLightningColor()
+        {
+            string own = Config.LightningColor.Value;
+
+            return string.IsNullOrEmpty(own) ? Config.AuraColor.Value : own;
         }
 
         /// <summary>

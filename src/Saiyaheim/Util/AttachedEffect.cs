@@ -26,9 +26,15 @@ namespace Saiyaheim.Util
         /// Segundos de vida quando <paramref name="forceLoop"/> está desligado. Ver
         /// <see cref="PrepareForBurst"/>. 0 deixa o prefab decidir sozinho.
         /// </param>
+        /// <param name="localOffset">
+        /// Deslocamento a partir dos pés do jogador, no espaço <b>dele</b>: X é o lado, Y a altura,
+        /// Z a frente. Gira junto com o personagem, que é o que se quer de um efeito preso ao
+        /// corpo — um offset em espaço de mundo escorregaria para as costas ao virar.
+        /// <c>Vector3.zero</c> é o comportamento de sempre, no chão sob o jogador.
+        /// </param>
         internal static GameObject Spawn(
             Player player, string prefabName, string colorHex, float scale, bool forceLoop,
-            float lightIntensity = 1f, float burstDuration = 0f)
+            float lightIntensity = 1f, float burstDuration = 0f, Vector3 localOffset = default)
         {
             if (player == null || string.IsNullOrEmpty(prefabName) || ZNetScene.instance == null)
             {
@@ -74,6 +80,14 @@ namespace Saiyaheim.Util
             if (!Mathf.Approximately(scale, 1f))
             {
                 instance.transform.localScale *= scale;
+            }
+
+            // Depois do Instantiate e não como argumento dele: o construtor recebe posição de
+            // MUNDO, e o que queremos é o espaço local do jogador — que é o que faz o efeito
+            // acompanhar o corpo ao andar e ao virar.
+            if (localOffset != Vector3.zero)
+            {
+                instance.transform.localPosition = localOffset;
             }
 
             return instance;

@@ -32,6 +32,12 @@ namespace Saiyaheim
         private const string SecSsj = "3.1 - SSJ";
 
         /// <summary>
+        /// O segundo degrau. Seção própria e não uma variante da anterior pelo mesmo motivo:
+        /// <b>nenhum número é compartilhado entre formas</b>. Ver <see cref="SecSsj"/>.
+        /// </summary>
+        private const string SecSsj2 = "3.2 - SSJ2";
+
+        /// <summary>
         /// O que vale para <b>todos</b> os ataques de ki: as duas teclas moram na seção 1, com as
         /// outras, e aqui fica o que é da mecânica e não de um ataque específico. Hoje é só o
         /// tempo mínimo entre disparos de ataques diferentes — ver <c>MinimumInterval</c>.
@@ -233,6 +239,13 @@ namespace Saiyaheim
             public ConfigEntry<float> PunchSlashFraction { get; internal set; }
 
             /// <summary>
+            /// Fração do dano de contusão do soco convertida em <b>raio</b> enquanto a forma está
+            /// ativa. Mesma regra do corte acima: move, não soma. As duas frações repartem o mesmo
+            /// total, e a soma delas é normalizada se passar de 1.
+            /// </summary>
+            public ConfigEntry<float> PunchLightningFraction { get; internal set; }
+
+            /// <summary>
             /// Peso máximo somado ao limite do inventário enquanto a forma está ativa. Soma ao
             /// limite base do jogador, e ao Megingjord se ele estiver equipado.
             /// </summary>
@@ -261,13 +274,29 @@ namespace Saiyaheim
 
             /// <summary>Cor da aura desta forma, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
             public ConfigEntry<string> AuraColor { get; internal set; }
+
+            /// <summary>
+            /// Se esta forma estala raios em volta do corpo enquanto está ativa. É a única chave
+            /// que decide <b>quais</b> formas crepitam; a regulagem do efeito é compartilhada, na
+            /// seção 8 (<c>FormLightning*</c>).
+            /// </summary>
+            public ConfigEntry<bool> LightningEnabled { get; internal set; }
+
+            /// <summary>
+            /// Cor dos raios desta forma, em #RRGGBB. Vazio cai na <see cref="AuraColor"/>, que é
+            /// o caso normal — a forma tem uma cor só.
+            /// </summary>
+            public ConfigEntry<string> LightningColor { get; internal set; }
         }
 
         /// <summary>
-        /// O primeiro degrau da escada. O segundo (SSJ2) é outra propriedade como esta, com seção
+        /// O primeiro degrau da escada. Cada degrau novo é outra propriedade como esta, com seção
         /// própria — ver <see cref="BindTransformation"/>.
         /// </summary>
         public static TransformationConfig Ssj { get; private set; }
+
+        /// <summary>O segundo degrau. Ver <see cref="Ssj"/>.</summary>
+        public static TransformationConfig Ssj2 { get; private set; }
 
         // ---------- 4.x - Ki Attacks ----------
 
@@ -566,6 +595,39 @@ namespace Saiyaheim
 
         /// <summary>Multiplicador da luz dinâmica da aura. 0 apaga; 1 é o prefab como veio.</summary>
         public static ConfigEntry<float> TransformAuraLightIntensity { get; private set; }
+
+        // Os raios das formas altas. A regulagem é COMPARTILHADA e mora aqui; quais formas
+        // crepitam e de que cor é por forma (LightningEnabled/LightningColor). É a mesma divisão
+        // que a aura já usa — "o prefab é compartilhado; a cor é a identidade".
+
+        /// <summary>Prefab de um estalo de raio. Vazio desliga os raios em todas as formas.</summary>
+        public static ConfigEntry<string> FormLightningPrefab { get; private set; }
+
+        /// <summary>Segundos entre um estalo e o próximo, antes do sorteio do jitter.</summary>
+        public static ConfigEntry<float> FormLightningInterval { get; private set; }
+
+        /// <summary>Quanto o intervalo varia, em fração dele. 0 vira metrônomo.</summary>
+        public static ConfigEntry<float> FormLightningIntervalJitter { get; private set; }
+
+        /// <summary>Quantos raios saem por estalo.</summary>
+        public static ConfigEntry<int> FormLightningCount { get; private set; }
+
+        public static ConfigEntry<float> FormLightningScale { get; private set; }
+
+        /// <summary>Raio do cilindro em volta do corpo onde os estalos nascem, em metros.</summary>
+        public static ConfigEntry<float> FormLightningRadius { get; private set; }
+
+        /// <summary>Altura do centro do cilindro acima dos pés, em metros.</summary>
+        public static ConfigEntry<float> FormLightningHeight { get; private set; }
+
+        /// <summary>Altura total do cilindro, em metros.</summary>
+        public static ConfigEntry<float> FormLightningSpread { get; private set; }
+
+        /// <summary>Segundos que cada estalo dura. 0 devolve a decisão ao prefab.</summary>
+        public static ConfigEntry<float> FormLightningDuration { get; private set; }
+
+        /// <summary>Multiplicador da luz dinâmica de cada estalo. 0 apaga e deixa só as partículas.</summary>
+        public static ConfigEntry<float> FormLightningLightIntensity { get; private set; }
 
         // ---------- 10 - Multiplayer ----------
 
@@ -1024,11 +1086,51 @@ namespace Saiyaheim
                 powerMultiplier: 2f,
                 kiDrainPerSecond: 5f,
                 punchSlashFraction: 0.5f,
+                punchLightningFraction: 0f,
                 // Calibrado no playtest de 2026-08-16. Saiu em 300 — o limite base inteiro do
                 // Valheim, ou seja, mochila dobrada — e desceu para 100 na primeira sessao.
                 carryWeightBonus: 100f,
                 hairColor: "#FFE14A",
-                requiredGlobalKey: "defeated_eikthyr");
+                requiredGlobalKey: "defeated_eikthyr",
+                lightning: false);
+
+            // O SSJ2 atras do Elder — o boss seguinte ao do SSJ, mantendo o ritmo de um degrau por
+            // boss. Ver [[Progressao por Bosses]].
+            //
+            // Os numeros sao os do SSJ "mais fortes", e cada um tem uma razao para o salto que deu:
+            //   PowerMultiplier 3,5 = quase o dobro do SSJ. Saiu em 4 (o dobro exato, a leitura
+            //     direta do genero) e o playtest de 2026-08-16 desceu — ver [[Transformacoes]].
+            //   KiDrainPerSecond 10 = MAIS que o dobro de proposito, e continua sendo depois da
+            //     calibragem. Se o dreno dobrasse junto com o poder, o degrau alto seria
+            //     estritamente melhor por ki gasto e o SSJ viraria letra morta — a escolha entre
+            //     os dois degraus tem que custar alguma coisa. Saiu em 12.
+            //   MasteryDrainReduction 0,85 contra os 0,8 do SSJ, e essa diferenca de cinco pontos
+            //     INVERTE a economia no fim da curva: em maestria igual, o SSJ rende mais poder
+            //     por ki ate' o nivel ~83, e o SSJ2 rende mais dali para cima. Dominar o degrau
+            //     alto e' o que paga o degrau alto. Ver [[Transformacoes]].
+            //   CarryWeightBonus 200 = o dobro do SSJ, pela mesma leitura de "forma mais alta
+            //     carrega mais". Nao passa pelo multiplicador, como no SSJ.
+            //   O soco reparte em contusao e RAIO, sem corte: o tipo de dano e' o sabor do degrau,
+            //     e repetir o corte do SSJ desperdicaria o unico eixo de sabor que existe.
+            //
+            // O cabelo e' um amarelo mais claro e mais duro que o do SSJ, mas os dois continuam
+            // parecidos — quem separa os degraus na tela e' o raio, que e' como o SSJ2 se apresenta.
+            Ssj2 = BindTransformation(config, SecSsj2,
+                // Calibrados no playtest de 2026-08-16, o primeiro do SSJ2.
+                powerMultiplier: 3.5f,
+                kiDrainPerSecond: 10f,
+                punchSlashFraction: 0f,
+                punchLightningFraction: 0.5f,
+                carryWeightBonus: 200f,
+                hairColor: "#FFF08A",
+                requiredGlobalKey: "defeated_gdking",
+                lightning: true,
+                // Azul, contra o amarelo do cabelo e da aura. Playtest de 2026-08-16: com a cor da
+                // aura o raio virava parte do brilho e sumia dentro dele.
+                lightningColor: "#66D9FF",
+                // 0,85 contra os 0,8 do SSJ. Ver o bloco de comentario acima: sao os cinco pontos
+                // que fazem a maestria inverter qual degrau rende mais poder por ki.
+                masteryDrainReduction: 0.85f);
 
             // --- Ataques de ki ---
             KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
@@ -1047,13 +1149,16 @@ namespace Saiyaheim
             // Os quatro numeros de partida, ancorados no soco em vez de chutados no vazio:
             //   dano por poder 0,04 contra os 0,05 do PunchDamageFromPower — o tiro bate um pouco
             //   MENOS por acerto que o soco, que e' o que compra o direito de ser a distancia.
+            //   A base subiu de 8 para 10 no playtest de 2026-08-16: e' a parcela que NAO escala
+            //   com o poder, entao ela so se faz sentir cedo, que e' exatamente onde o tiro estava
+            //   fraco demais para valer os 20 de ki.
             //   Custo 20 fixo: cedo o tiro e' caro, e vai ficando barato conforme a barra cresce e
             //   este numero nao. Comecou em 8, ancorado nos ~3,75 de um soco no comeco do jogo, e o
             //   playtest de 2026-08-07 subiu para 20 — 2,5x. Isso NAO responde a pergunta do fim de
             //   jogo, so a atrasa: ver [[Em Aberto]].
             // O saiya_blast imprime dano/ki dos dois lado a lado — e' por ali que a calibracao sai.
             KiBlast = BindKiAttack(config, SecKiBlast,
-                damageBase: 8f,
+                damageBase: 10f,
                 damageFromPower: 0.04f,
                 kiCost: 20f,
                 cooldown: 0.5f,
@@ -1843,6 +1948,101 @@ namespace Saiyaheim
                     "the particles glow on their own and do not need it.",
                     new AcceptableValueRange<float>(0f, 2f), ClientSide(38)));
 
+            // --- Raios das formas altas ---
+            //
+            // Estalos REPETIDOS, e nao um efeito sustentado, e a razao esta' na chave acima: prefab
+            // do jogo forcado a repetir vira nuvem colada no personagem (playtest de 2026-08-02).
+            // Raio nao tem esse problema porque ele JA' e' intermitente por natureza — a leitura
+            // certa e' um estalo curto aqui, outro ali, que e' literalmente como o SSJ2 se
+            // apresenta. O efeito dura enquanto a forma durar sem nunca ficar aceso.
+            FormLightningPrefab = config.Bind(SecEffects, "FormLightningPrefab", "fx_Lightning",
+                new ConfigDescription(
+                    "Prefab of a single lightning crackle, spawned over and over around the body " +
+                    "while a form with LightningEnabled is active. Empty disables the crackles " +
+                    "for every form at once — the per-form key only says WHICH forms crackle. " +
+                    "Alternatives: fx_chainlightning_spread (spreads wider), fx_redlightning_burst " +
+                    "(red variant, for a form of another color), vfx_HitSparks (small sparks).",
+                    null, ClientSide(36)));
+
+            FormLightningInterval = config.Bind(SecEffects, "FormLightningInterval", 0.55f,
+                new ConfigDescription(
+                    "Average seconds between two crackles. Lower is more frantic. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0.05f, 10f), ClientSide(35)));
+
+            // Sem jitter os estalos batem em compasso e leem como maquina, nao como energia
+            // instavel. E' a mesma razao pela qual o proprio jogo randomiza som de passo.
+            FormLightningIntervalJitter = config.Bind(SecEffects, "FormLightningIntervalJitter", 0.6f,
+                new ConfigDescription(
+                    "How much the interval varies, as a fraction of it. 0.6 means each gap is " +
+                    "drawn between 40% and 160% of FormLightningInterval. " +
+                    "0 turns the crackles into a metronome, which reads as a machine rather than " +
+                    "as unstable energy.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(34)));
+
+            FormLightningCount = config.Bind(SecEffects, "FormLightningCount", 1,
+                new ConfigDescription(
+                    "How many bolts fire per crackle. Above 1 they are scattered independently " +
+                    "around the body in the same instant. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<int>(1, 8), ClientSide(33)));
+
+            FormLightningScale = config.Bind(SecEffects, "FormLightningScale", 0.5f,
+                new ConfigDescription(
+                    "Scale of each bolt. Well under the transformation burst on purpose: these " +
+                    "are sparks around the body, not an explosion. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0.05f, 5f), ClientSide(32)));
+
+            FormLightningRadius = config.Bind(SecEffects, "FormLightningRadius", 0.6f,
+                new ConfigDescription(
+                    "How far from the body's center line the bolts pop, in meters. " +
+                    "A player is roughly 0.4m wide, so values under that put the bolts inside " +
+                    "the character and values well over it read as weather instead of aura. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 5f), ClientSide(31)));
+
+            FormLightningHeight = config.Bind(SecEffects, "FormLightningHeight", 1.1f,
+                new ConfigDescription(
+                    "Height above the feet of the center of the band where bolts spawn, in " +
+                    "meters. 1.1 is about chest height on a Valheim character. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(-1f, 4f), ClientSide(30)));
+
+            FormLightningSpread = config.Bind(SecEffects, "FormLightningSpread", 1.8f,
+                new ConfigDescription(
+                    "Total height of that band, in meters. 1.8 covers the whole body, so bolts " +
+                    "appear from the feet to just over the head. Smaller values concentrate them " +
+                    "around FormLightningHeight. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 6f), ClientSide(29)));
+
+            // Imposta por nos pelo mesmo motivo da TransformAuraDuration: o TimedDestruction do
+            // prefab so dispara sozinho se ele marcou m_triggerOnAwake, e aqui o custo de confiar
+            // seria pior que la' — sao dezenas de objetos por minuto, nao um por transformacao.
+            FormLightningDuration = config.Bind(SecEffects, "FormLightningDuration", 0.35f,
+                new ConfigDescription(
+                    "How long each bolt lasts, in seconds. Short on purpose: a crackle that " +
+                    "lingers stops reading as lightning. " +
+                    "Enforced by the mod and not left to the prefab, which matters more here " +
+                    "than for the transformation burst — this spawns dozens of objects a minute, " +
+                    "and one that forgets to clean itself up would pile up on the player. " +
+                    "0 hands the decision back to the prefab. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 5f), ClientSide(28)));
+
+            // 0 de proposito: a luz dinamica de fx_Lightning ilumina o terreno, e piscando a cada
+            // meio segundo ela vira estroboscopio na cara de quem esta' jogando a noite. As
+            // particulas tem brilho proprio e continuam visiveis sem ela.
+            FormLightningLightIntensity = config.Bind(SecEffects, "FormLightningLightIntensity", 0f,
+                new ConfigDescription(
+                    "Multiplier for each bolt's dynamic light. 0 removes the light and keeps only " +
+                    "the particles, which is the default and deliberate: a light flashing every " +
+                    "half second lights up the terrain around you and turns into a strobe at " +
+                    "night. The particles glow on their own. 1 leaves the prefab as it came. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 2f), ClientSide(27)));
+
             // --- Debug ---
             ShowRemotePoses = config.Bind(SecMultiplayer, "ShowRemotePoses", true,
                 new ConfigDescription(
@@ -1870,8 +2070,9 @@ namespace Saiyaheim
         /// </summary>
         private static TransformationConfig BindTransformation(
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
-            float punchSlashFraction, float carryWeightBonus, string hairColor,
-            string requiredGlobalKey)
+            float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
+            string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
+            float masteryDrainReduction = 0.8f)
         {
             return new TransformationConfig
             {
@@ -1922,6 +2123,24 @@ namespace Saiyaheim
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(85))),
 
+                // Um segundo tipo ao lado do corte, e nao no lugar dele: a repartição é a regra da
+                // forma, não uma escolha do SSJ. Cada degrau escolhe quanto do soco vai para onde,
+                // e o SSJ2 escolhe contusão e raio sem passar pelo corte.
+                PunchLightningFraction = config.Bind(section, "PunchLightningFraction", punchLightningFraction,
+                    new ConfigDescription(
+                        "Fraction of the punch's BLUNT damage turned into LIGHTNING while this " +
+                        "form is active. Same rule as PunchSlashFraction above: it MOVES damage " +
+                        "between types and adds none, so the total of the hit does not change. " +
+                        "The two fractions split the same total. If they add up to more than 1 " +
+                        "they are scaled down to fit, rather than eating into the blunt that is " +
+                        "not there. " +
+                        "Why it matters: lightning is resisted by very few things in Valheim, and " +
+                        "the Swamp and Mountains are full of enemies weak to it — but frost caves " +
+                        "and Fenring resist it, so it is not a free upgrade over slash. " +
+                        "Lightning also counts toward stagger like the other physical types. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 1f), AdminOnly(84))),
+
                 // O peso e' o unico numero da forma que NAO passa pelo PowerMultiplier, e de
                 // proposito: multiplicar o limite pelo poder faria a mochila crescer junto com o
                 // grind de Battle Power, e o limite de peso e' logistica, nao combate. Aqui cada
@@ -1944,7 +2163,7 @@ namespace Saiyaheim
                         "Playtested 2026-08-16: started at 300 and came down to 100.",
                         new AcceptableValueRange<float>(0f, 2000f), AdminOnly(83))),
 
-                MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", 0.8f,
+                MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", masteryDrainReduction,
                     new ConfigDescription(
                         "Fraction of the drain removed at level 100 of THIS form's skill. " +
                         "drain = KiDrainPerSecond * (1 - level/100 * this). " +
@@ -2028,7 +2247,39 @@ namespace Saiyaheim
                         "thing; splitting them is fine if the aura washes out at that tone. " +
                         "This also becomes the color of the ki CHARGING glow while you hold the " +
                         "form, replacing Effects.ChargeEffectColor.",
-                        null, ClientSide(40)))
+                        null, ClientSide(40))),
+
+                // Um booleano, e nao um prefab por forma: o que separa um degrau do outro é
+                // crepitar ou não, e a regulagem de um estalo é a mesma em qualquer forma. Mesma
+                // divisão da aura — prefab compartilhado na seção 8, identidade aqui.
+                LightningEnabled = config.Bind(section, "LightningEnabled", lightning,
+                    new ConfigDescription(
+                        "Crackle bolts of lightning around the body for as long as this form is " +
+                        "active. It is the visual signature of the higher forms, and unlike the " +
+                        "transformation burst it lasts the whole time — lightning is intermittent " +
+                        "by nature, so repeating it does not turn into the permanent cloud that " +
+                        "looping a burst prefab did. " +
+                        "Everything about HOW the crackles look lives in Effects " +
+                        "(FormLightning*), shared by every form; this key only says which forms " +
+                        "get them.",
+                        null, ClientSide(37))),
+
+                // A unica cor que NAO acompanha as outras, e de proposito. Ver o playtest de
+                // 2026-08-16 na descricao: raio da cor da aura le como mais aura, nao como
+                // eletricidade.
+                LightningColor = config.Bind(section, "LightningColor", lightningColor,
+                    new ConfigDescription(
+                        "Color of this form's lightning, #RRGGBB format. Empty falls back to " +
+                        "AuraColor. " +
+                        "This is the one color of a form that is meant to CONTRAST with the " +
+                        "others rather than match them, and that is a playtest result " +
+                        "(2026-08-16): bolts tinted like the aura read as more aura, not as " +
+                        "electricity — the eye needs the hue break to tell them apart from the " +
+                        "glow they sit on top of. Electric blue over a gold aura is the classic " +
+                        "read; white also works. " +
+                        "Applies to the next bolt, so you can retune it with the game open. " +
+                        "Ignored when LightningEnabled is off.",
+                        null, ClientSide(35)))
             };
         }
 
