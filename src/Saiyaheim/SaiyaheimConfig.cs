@@ -1266,6 +1266,8 @@ namespace Saiyaheim
                 impactEffectStrip: "smoke, fire",
                 // Vazio: o estouro sai na cor do proprio tiro. Ver ImpactColor.
                 impactColor: "",
+                // Amarelo de ki, aprovado na tela em 2026-08-20.
+                projectileColor: "#FFFF00",
                 requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
@@ -2396,7 +2398,8 @@ namespace Saiyaheim
         private static KiAttackConfig BindKiAttack(
             ConfigFile config, string section, float damageBase, float damageFromPower,
             float kiCost, float cooldown, string projectilePrefab, string impactEffect,
-            string impactEffectStrip, string impactColor, string requiredGlobalKey)
+            string impactEffectStrip, string impactColor, string projectileColor,
+            string requiredGlobalKey)
         {
             return new KiAttackConfig
             {
@@ -2586,12 +2589,18 @@ namespace Saiyaheim
 
                 // Cosmetico, entao ClientSide como a cor da aura. Vazio de proposito: o primeiro
                 // playtest deve ver o prefab como ele e', antes de decidir que cor o ki tem.
-                ProjectileColor = config.Bind(section, "ProjectileColor", "",
+                // Amarelo desde o playtest de 2026-08-20 — antes era vazio, "o prefab manda", que
+                // era a posicao certa enquanto nao se sabia que cor o ki tinha. Agora se sabe, e
+                // deixar vazio faria a instalacao limpa de outro jogador nascer com a cor do prefab
+                // emprestado (verde de raiz, laranja de fogo) em vez da do mod.
+                //
+                // O ImpactColor pendura nele: vazio la' significa "a cor deste tiro".
+                ProjectileColor = config.Bind(section, "ProjectileColor", projectileColor,
                     new ConfigDescription(
-                        "Projectile color, #RRGGBB format. Empty keeps the prefab's own colors, " +
-                        "which is the default on purpose: look at the effect as the game made it " +
-                        "before deciding what color ki is. Tinting touches particles, lights and " +
-                        "this clone's own materials only.",
+                        "Projectile color, #RRGGBB format. Empty keeps the prefab's own colors. " +
+                        "Tinting touches particles, lights and this clone's own materials only — " +
+                        "never the game's shared assets. " +
+                        "The impact burst follows this colour unless ImpactColor says otherwise.",
                         null, ClientSide(50))),
 
                 // Cosmetico, entao ClientSide — mas note que ele replica: o ZSyncAnimation.SetTrigger
