@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -113,6 +114,61 @@ namespace Saiyaheim.Attacks
         }
 
         /// <summary>
+        /// Imprime, com <c>VerboseLogging</c>, o que o prefab toca no impacto — e, dentro de cada
+        /// efeito, o nome de cada emissor de partícula.
+        ///
+        /// Existe porque "o estouro é bom, o que sobra depois é que não" não se resolve olhando
+        /// para a tela: o impacto é uma <b>lista</b> de prefabs, e cada prefab é uma árvore de
+        /// emissores. A fumaça pode estar em qualquer um dos dois níveis, e nenhum deles aparece
+        /// na tela com nome. Sem esta lista, escolher o que fica é adivinhação; com ela, o
+        /// <c>ImpactEffect</c> e o <c>ImpactEffectStrip</c> apontam direto para a peça certa.
+        /// </summary>
+        private static void LogImpactEffects(Projectile projectile, KiAttack attack)
+        {
+            EffectList.EffectData[] effects = projectile.m_hitEffects?.m_effectPrefabs;
+            if (effects == null || effects.Length == 0)
+            {
+                SaiyaheimPlugin.LogVerbose($"Ki attack '{attack.Id}': prefab has no impact effects.");
+                return;
+            }
+
+            foreach (EffectList.EffectData effect in effects)
+            {
+                GameObject effectPrefab = effect?.m_prefab;
+                if (effectPrefab == null)
+                {
+                    SaiyaheimPlugin.LogVerbose($"Ki attack '{attack.Id}': impact effect <none>.");
+                    continue;
+                }
+
+                ParticleSystem[] emitters = effectPrefab.GetComponentsInChildren<ParticleSystem>(true);
+                string[] names = new string[emitters.Length];
+                for (int i = 0; i < emitters.Length; i++)
+                {
+                    names[i] = emitters[i].gameObject.name;
+                }
+
+                string state = effect.m_enabled ? string.Empty : " (disabled)";
+                string emitterList = emitters.Length == 0
+                    ? "no particle emitters"
+                    : $"emitters: {string.Join(", ", names)}";
+
+                // A luz entra no log porque ela e' o que pinta o terreno em volta do impacto — a
+                // cor que mais denuncia o prefab emprestado. Se a contagem for zero e ainda assim
+                // houver cor estranha na tela, ela vem de particula ou material, e o
+                // ImpactColorTarget precisa ser Everything.
+                Light[] lights = effectPrefab.GetComponentsInChildren<Light>(true);
+                string lightList = lights.Length == 0
+                    ? "no lights"
+                    : $"{lights.Length} light(s)";
+
+                SaiyaheimPlugin.LogVerbose(
+                    $"Ki attack '{attack.Id}': impact effect '{effectPrefab.name}'{state} — " +
+                    $"{emitterList}; {lightList}.");
+            }
+        }
+
+        /// <summary>
         /// De onde o tiro sai: a mão direita, se o jogador tiver o esqueleto montado; senão, os
         /// olhos.
         ///
@@ -164,6 +220,198 @@ namespace Saiyaheim.Attacks
             // Arrasto é o que faz um projétil perder velocidade no caminho e, com ela, alcance. Um
             // tiro de energia não desacelera; o que o apaga é o ttl acima.
             projectile.m_drag = 0f;
+
+            ApplyLingerOnHit(projectile, attack);
+            ApplyImpactEffect(projectile, attack);
+        }
+
+        /// <summary>
+        /// Faz o projétil morrer no impacto, em vez de ficar por ali.
+        ///
+        /// <b>O que isto conserta não é o efeito de impacto.</b> É o rastro do próprio projétil:
+        /// um prefab com <c>m_stayAfterHit*</c> continua existindo por <c>m_stayTTL</c> segundos
+        /// depois de acertar — feito para a flecha ficar cravada na parede — e um prefab de
+        /// magia leva junto o sistema de partículas dele. Resultado: o estouro acontece e some,
+        /// e onde ele foi fica uma nuvem parada emitindo. É fumaça que vem do <i>tiro</i>, não do
+        /// <i>impacto</i>, e nenhuma troca de <c>ImpactEffect</c> a alcança.
+        ///
+        /// O <c>m_stopEmittersOnHit</c> junto porque o par é que resolve: um impede novas
+        /// partículas, o outro tira o objeto que as segurava. Sozinho, o primeiro ainda deixa
+        /// terminar de morrer o que já estava no ar.
+        /// </summary>
+        private static void ApplyLingerOnHit(Projectile projectile, KiAttack attack)
+        {
+            SaiyaheimPlugin.LogVerbose(
+                $"Ki attack '{attack.Id}': prefab lingers on hit — " +
+                $"static {projectile.m_stayAfterHitStatic}, dynamic {projectile.m_stayAfterHitDynamic}, " +
+                $"stayTTL {projectile.m_stayTTL:0.##}s, stopEmitters {projectile.m_stopEmittersOnHit}.");
+
+            if (attack.Config.ProjectileLingerOnHit.Value)
+            {
+                return;
+            }
+
+            projectile.m_stayAfterHitStatic = false;
+            projectile.m_stayAfterHitDynamic = false;
+            projectile.m_stopEmittersOnHit = true;
+        }
+
+        /// <summary>
+        /// Troca o que toca no impacto.
+        ///
+        /// <b>Não é o mesmo campo que o <see cref="Defuse"/> zera acima.</b> O
+        /// <c>m_spawnOnHit</c> é o que o projétil <i>deixa no mundo</i> — a poça de fogo, um
+        /// objeto de verdade, com dano. Isto aqui é o <c>m_hitEffects</c>: o estouro puramente
+        /// visual e sonoro. Eram dois campos e o mod só mexia num, que é por que a bola de fogo
+        /// continuava soltando fumaça mesmo já desarmada.
+        ///
+        /// ⚠️ Substituir <b>troca a lista inteira por uma nova</b> em vez de escrever dentro da
+        /// que veio. O <c>EffectList</c> é uma classe <c>[Serializable]</c>, e ainda que o
+        /// <c>Instantiate</c> a copie junto com o componente, escrever no array herdado é o tipo
+        /// de coisa que vaza para o prefab se essa garantia mudar. Lista nova não tem como vazar.
+        /// </summary>
+        private static void ApplyImpactEffect(Projectile projectile, KiAttack attack)
+        {
+            LogImpactEffects(projectile, attack);
+
+            string context = $"Ki attack '{attack.Id}'";
+            string[] strip = StrippedEffect.ParseFilter(attack.Config.ImpactEffectStrip.Value);
+            string tint = ResolveImpactColor(attack);
+            bool lightsOnly = attack.Config.ImpactColorTarget.Value == ImpactTintTarget.Light;
+            string effectName = attack.Config.ImpactEffect.Value?.Trim() ?? string.Empty;
+
+            if (effectName.Equals("none", System.StringComparison.OrdinalIgnoreCase))
+            {
+                projectile.m_hitEffects = new EffectList();
+                return;
+            }
+
+            // Vazio: o prefab manda — mas ainda passa pelo filtro abaixo, que é o ponto. Trocar o
+            // efeito inteiro é a escolha grossa (ou fica tudo, ou não fica nada); o filtro é o que
+            // deixa ficar com o clarão e o som de um estouro e jogar fora só a fumaça dele.
+            if (effectName.Length == 0)
+            {
+                StripImpactEffects(projectile, strip, tint, lightsOnly, context);
+                return;
+            }
+
+            GameObject effectPrefab = ZNetScene.instance.GetPrefab(effectName);
+            if (effectPrefab == null)
+            {
+                // Deixa o do prefab no lugar: um nome errado deve tirar o polimento do jogador, não
+                // o feedback de que o tiro acertou.
+                SaiyaheimPlugin.Log.LogWarning(
+                    $"{context}: impact effect '{effectName}' does not exist. " +
+                    "Keeping the projectile prefab's own effect.");
+                StripImpactEffects(projectile, strip, tint, lightsOnly, context);
+                return;
+            }
+
+            projectile.m_hitEffects = new EffectList
+            {
+                m_effectPrefabs = new[]
+                {
+                    new EffectList.EffectData
+                    {
+                        m_prefab = StrippedEffect.Prepare(effectPrefab, strip, tint, lightsOnly, context),
+                        m_enabled = true,
+                    },
+                },
+            };
+        }
+
+        /// <summary>
+        /// A cor do impacto, resolvida a partir das duas chaves que a governam.
+        ///
+        /// <b>Vazio segue o <c>ProjectileColor</c></b>, e esse é o ponto: o estouro é a mesma bola
+        /// chegando, então pedir a cor duas vezes só criaria a chance de as duas saírem de
+        /// sincronia no dia em que o tiro mudar de cor. Quem quiser um impacto de cor própria escreve
+        /// o hex; quem quiser a cor original do prefab do jogo escreve <c>none</c>.
+        /// </summary>
+        private static string ResolveImpactColor(KiAttack attack)
+        {
+            string configured = attack.Config.ImpactColor.Value?.Trim() ?? string.Empty;
+
+            if (configured.Equals("none", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return configured.Length > 0
+                ? configured
+                : attack.Config.ProjectileColor.Value?.Trim() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Tira do impacto os emissores filtrados, e o item inteiro quando é o <i>efeito</i> que
+        /// tem o nome filtrado.
+        ///
+        /// São os dois lugares onde a fumaça pode estar, e de fora não dá para saber qual: ela
+        /// pode ser um prefab próprio na lista de impacto — caso em que o item some — ou um filho
+        /// do mesmo prefab que traz o clarão e o som, caso em que o que entra na lista é o clone
+        /// sem ela. Cobrir só um dos dois deixaria metade dos efeitos do jogo sem resposta.
+        /// </summary>
+        private static void StripImpactEffects(
+            Projectile projectile, string[] strip, string tint, bool lightsOnly, string context)
+        {
+            EffectList.EffectData[] effects = projectile.m_hitEffects?.m_effectPrefabs;
+            if ((strip == null && string.IsNullOrEmpty(tint)) || effects == null || effects.Length == 0)
+            {
+                return;
+            }
+
+            List<EffectList.EffectData> kept = new List<EffectList.EffectData>(effects.Length);
+            foreach (EffectList.EffectData effect in effects)
+            {
+                if (effect?.m_prefab == null)
+                {
+                    continue;
+                }
+
+                if (StrippedEffect.Matches(effect.m_prefab.name, strip))
+                {
+                    SaiyaheimPlugin.LogVerbose(
+                        $"{context}: dropped impact effect '{effect.m_prefab.name}' — name matches the filter.");
+                    continue;
+                }
+
+                EffectList.EffectData copy = Copy(effect);
+                copy.m_prefab = StrippedEffect.Prepare(effect.m_prefab, strip, tint, lightsOnly, context);
+                kept.Add(copy);
+            }
+
+            projectile.m_hitEffects = new EffectList { m_effectPrefabs = kept.ToArray() };
+        }
+
+        /// <summary>
+        /// Cópia campo a campo de um <c>EffectData</c>.
+        ///
+        /// Feita à mão porque não há alternativa: <c>EffectData</c> não tem construtor de cópia
+        /// nem <c>MemberwiseClone</c> acessível daqui. Escrever no que veio do prefab está fora de
+        /// questão pelo motivo da doc de <see cref="ApplyImpactEffect"/>, e um <c>EffectData</c>
+        /// novo com só o <c>m_prefab</c> preenchido perderia o <c>m_attach</c>, o <c>m_follow</c> e
+        /// o resto — que é o que faz um efeito grudar no alvo em vez de ficar boiando onde o tiro
+        /// bateu.
+        ///
+        /// ⚠️ Campo novo no <c>EffectData</c> numa atualização do Valheim tem que ser adicionado
+        /// aqui, e o compilador não vai avisar.
+        /// </summary>
+        private static EffectList.EffectData Copy(EffectList.EffectData source)
+        {
+            return new EffectList.EffectData
+            {
+                m_prefab = source.m_prefab,
+                m_enabled = source.m_enabled,
+                m_variant = source.m_variant,
+                m_attach = source.m_attach,
+                m_follow = source.m_follow,
+                m_inheritParentRotation = source.m_inheritParentRotation,
+                m_inheritParentScale = source.m_inheritParentScale,
+                m_multiplyParentVisualScale = source.m_multiplyParentVisualScale,
+                m_randomRotation = source.m_randomRotation,
+                m_scale = source.m_scale,
+                m_childTransform = source.m_childTransform,
+            };
         }
 
         /// <summary>

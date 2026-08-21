@@ -4,6 +4,24 @@ using UnityEngine;
 namespace Saiyaheim
 {
     /// <summary>
+    /// Quanto de um efeito de impacto a cor do ataque pinta.
+    ///
+    /// <b>São duas leituras diferentes do mesmo pedido</b>, e só quem está olhando a tela decide
+    /// qual é a certa: a luz sozinha conserta o vazamento de cor do prefab — o estouro do xamã
+    /// goblin acende rosa no terreno em volta — sem tocar no desenho do estouro, enquanto pintar
+    /// tudo faz o impacto inteiro virar cor de ki, o que combina mais mas apaga a variação de tom
+    /// que o efeito trazia de fábrica.
+    /// </summary>
+    public enum ImpactTintTarget
+    {
+        /// <summary>Só a luz dinâmica. É o que tira o rosa do chão sem mexer no resto.</summary>
+        Light,
+
+        /// <summary>Luz, partículas, rastros e materiais — o estouro inteiro na cor do ataque.</summary>
+        Everything,
+    }
+
+    /// <summary>
     /// Toda a configuração do mod em um lugar só.
     ///
     /// Regra do projeto: <b>nenhum número de balanceamento hardcoded no código.</b> Sem isso,
@@ -347,6 +365,34 @@ namespace Saiyaheim
 
             /// <summary>Prefab do projétil, do <c>ZNetScene</c>. Ver [[Prefabs do Jogo]].</summary>
             public ConfigEntry<string> ProjectilePrefab { get; internal set; }
+
+            /// <summary>
+            /// O que toca onde o projétil bate. Vazio mantém o do prefab, <c>none</c> tira, um nome
+            /// de prefab substitui. Ver [[Prefabs do Jogo]].
+            /// </summary>
+            public ConfigEntry<string> ImpactEffect { get; internal set; }
+
+            /// <summary>
+            /// Nomes de emissores de partícula a tirar do efeito de impacto — a fumaça, tipicamente.
+            /// É o corte fino que o <see cref="ImpactEffect"/> não faz. Ver
+            /// <c>Util/StrippedEffect.cs</c>.
+            /// </summary>
+            public ConfigEntry<string> ImpactEffectStrip { get; internal set; }
+
+            /// <summary>
+            /// Cor do efeito de impacto. Vazio segue o <c>ProjectileColor</c>, <c>none</c> mantém a
+            /// do prefab, um hex manda. Ver <c>KiProjectile.ResolveImpactColor</c>.
+            /// </summary>
+            public ConfigEntry<string> ImpactColor { get; internal set; }
+
+            /// <summary>Quanto do efeito de impacto a <see cref="ImpactColor"/> pinta.</summary>
+            public ConfigEntry<ImpactTintTarget> ImpactColorTarget { get; internal set; }
+
+            /// <summary>
+            /// Deixa o projétil sobreviver ao próprio impacto, como o prefab queria. Desligado, ele
+            /// some no acerto e não sobra rastro depois.
+            /// </summary>
+            public ConfigEntry<bool> ProjectileLingerOnHit { get; internal set; }
 
             /// <summary>Velocidade do projétil em m/s.</summary>
             public ConfigEntry<float> ProjectileSpeed { get; internal set; }
@@ -1208,7 +1254,18 @@ namespace Saiyaheim
                 damageFromPower: 0.04f,
                 kiCost: 20f,
                 cooldown: 0.5f,
-                projectilePrefab: "DvergerStaffFire_fireball_projectile",
+                // Escolhido no playtest de 2026-08-20, ganhando do fireball Dvergr e do
+                // staff_greenroots_projectile. O estouro dele traz som e clarao bons e uma fumaca
+                // que nao combina com tiro de energia — dai o Strip abaixo, e nao um none no
+                // ImpactEffect, que levaria os tres juntos.
+                projectilePrefab: "GoblinShaman_projectile_fireball",
+                impactEffect: "",
+                // Confirmado na tela em 2026-08-20: o log listou os emissores smoke, fire e shockwave
+                // dentro do fx_shaman_fireball_expl. Fora os dois primeiros, sobra o clarao, a
+                // onda de choque e o som — que sao a parte boa do estouro.
+                impactEffectStrip: "smoke, fire",
+                // Vazio: o estouro sai na cor do proprio tiro. Ver ImpactColor.
+                impactColor: "",
                 requiredGlobalKey: "defeated_eikthyr");
 
             // --- Voo ---
@@ -2338,7 +2395,8 @@ namespace Saiyaheim
         /// </summary>
         private static KiAttackConfig BindKiAttack(
             ConfigFile config, string section, float damageBase, float damageFromPower,
-            float kiCost, float cooldown, string projectilePrefab, string requiredGlobalKey)
+            float kiCost, float cooldown, string projectilePrefab, string impactEffect,
+            string impactEffectStrip, string impactColor, string requiredGlobalKey)
         {
             return new KiAttackConfig
             {
@@ -2406,9 +2464,98 @@ namespace Saiyaheim
                         "The mod strips whatever the prefab brought with it: its own damage, its " +
                         "status effect (no more setting things on fire) and whatever it spawned " +
                         "on impact. Only the visual and the sound are kept. " +
-                        "Alternatives worth trying: DvergerStaffIce_projectile (blue), " +
-                        "DvergerStaffFire_clusterbomb_projectile, charred_magestaff_fire.",
+                        "Alternatives worth trying: staff_fireball_projectile, Imp_fireball_projectile, " +
+                        "DvergerStaffIce_projectile (blue), charred_fireball_projectile, " +
+                        "DvergerStaffFire_clusterbomb_projectile.",
                         null, AdminOnly(75))),
+
+                // O estouro do impacto e' um EffectList do proprio Projectile, separado do que ele
+                // INSTANCIA no hit — o mod ja' tirava o segundo e nao tocava no primeiro, e era de
+                // la' que vinha a fumaca da bola de fogo. Chave propria e nao parte do prefab
+                // porque voo e impacto sao escolhas independentes: da' para querer o voo de um e o
+                // estouro de outro.
+                ImpactEffect = config.Bind(section, "ImpactEffect", impactEffect,
+                    new ConfigDescription(
+                        "What plays where the projectile lands. Empty keeps whatever the " +
+                        "projectile prefab brought with it — for a fireball, that is a cloud of " +
+                        "smoke. 'none' strips it: the shot lands with no burst and no sound, " +
+                        "which reads as a miss, so it is more useful for telling the smoke apart " +
+                        "from the rest than as a final answer. Anything else is the name of a " +
+                        "prefab to play instead; a name that does not exist logs a warning and " +
+                        "leaves the prefab's own effect alone. " +
+                        "Worth trying: fx_lightningstaffprojectile_hit, fx_DvergerMage_Support_hit, " +
+                        "fx_goblinking_beam_hit, fx_greenroots_projectile_hit.",
+                        null, ClientSide(74))),
+
+                // O corte fino do impacto. Existe porque o ImpactEffect e' grosso demais para o
+                // caso real: o estouro do GoblinShaman tem clarao bom, som bom e uma fumaca que
+                // nao combina com tiro de energia — e 'none' leva os tres juntos. Sao filhos do
+                // mesmo prefab, entao nome de efeito nenhum separa um do outro; o que separa e'
+                // remover o emissor no clone. Ver Util/StrippedEffect.cs.
+                //
+                // Nome INTEIRO, e nao pedaco de nome: 'fire' por pedaco casaria com
+                // fx_shaman_fireball_expl e derrubaria o estouro junto com a chama. Ver a doc do
+                // StrippedEffect.Matches.
+                ImpactEffectStrip = config.Bind(section, "ImpactEffectStrip", impactEffectStrip,
+                    new ConfigDescription(
+                        "Comma-separated names of particle emitters to remove from the impact " +
+                        "effect, so the good half of it can stay. A game effect is a tree of " +
+                        "emitters — the flash, the fire and the smoke are separate objects " +
+                        "inside one prefab — and ImpactEffect can only take or leave the whole " +
+                        "tree. This removes the emitters named here and keeps the rest, sound " +
+                        "included. Empty changes nothing. " +
+                        "Names must match in full, case aside: a partial name like 'fire' would " +
+                        "also match the effect fx_shaman_fireball_expl that contains it, and take " +
+                        "the whole burst with it. " +
+                        "A name that matches a whole impact effect drops that effect from the " +
+                        "list — which is how a prefab that keeps its smoke in a separate effect " +
+                        "is handled. " +
+                        "Turn VerboseLogging on and fire once: the log lists every impact effect " +
+                        "and the name of every emitter inside it, ready to copy from.",
+                        null, ClientSide(73))),
+
+                // A luz do impacto e' a parte do prefab que mais denuncia de onde ele veio: ela
+                // pinta o terreno em volta, e o estouro do xama goblin acende ROSA. Nao ha' chave
+                // do jogo para isso — o efeito e' instanciado pelo EffectList la' dentro do
+                // Projectile e nunca passa pela nossa mao. O que se pinta e' o molde: ver
+                // StrippedEffect.Prepare.
+                //
+                // Vazio segue o ProjectileColor de proposito. Duas chaves de cor para o mesmo tiro
+                // sairiam de sincronia no dia em que a bola mudasse de cor.
+                ImpactColor = config.Bind(section, "ImpactColor", impactColor,
+                    new ConfigDescription(
+                        "Colour of the impact effect, as #RRGGBB. Empty follows ProjectileColor, " +
+                        "so the burst matches the shot that made it without being set twice. " +
+                        "'none' keeps the effect's own colours, whatever the prefab shipped with " +
+                        "— which for the goblin shaman burst means a pink light on the ground " +
+                        "around the hit. Anything else overrides both.",
+                        null, ClientSide(72))),
+
+                // Escolha visual, e por isso config e nao constante: qual das duas leituras esta'
+                // certa so' se sabe olhando a tela. Trocar aqui vale no proximo tiro, sem
+                // reiniciar — a cor faz parte da chave de cache do template.
+                ImpactColorTarget = config.Bind(section, "ImpactColorTarget", ImpactTintTarget.Light,
+                    new ConfigDescription(
+                        "How much of the impact effect ImpactColor paints. 'Light' repaints only " +
+                        "the dynamic light the burst casts on the ground, which is what gives a " +
+                        "borrowed prefab away, and leaves the flash and the shockwave drawn the " +
+                        "way the game drew them. 'Everything' repaints particles, trails and " +
+                        "materials too, so the whole burst reads as the ki that caused it — at " +
+                        "the cost of the shading the effect came with.",
+                        null, ClientSide(71))),
+
+                // Cosmetico e client-side pelo mesmo motivo que o ImpactEffect: o que morre aqui
+                // e' a copia local do projetil, no cliente de quem atirou.
+                ProjectileLingerOnHit = config.Bind(section, "ProjectileLingerOnHit", false,
+                    new ConfigDescription(
+                        "Let the projectile survive its own impact, the way the prefab wanted. " +
+                        "Prefabs meant for arrows use this to stick into the wall they hit, and a " +
+                        "prefab with a particle trail uses it to keep trailing after it lands — " +
+                        "which reads as a puff of smoke sitting where the shot went off, seconds " +
+                        "after the burst is over. Off, the shot is gone the instant it connects " +
+                        "and only the impact effect is left. Turn it on to check whether lingering " +
+                        "smoke is coming from the projectile or from ImpactEffect.",
+                        null, ClientSide(70))),
 
                 ProjectileSpeed = config.Bind(section, "ProjectileSpeed", 30f,
                     new ConfigDescription(

@@ -101,10 +101,29 @@ namespace Saiyaheim.Util
         /// pintaria de amarelo o efeito original para todo mundo que o usa — Dvergr, poções,
         /// qualquer coisa — até reiniciar o jogo.
         ///
-        /// Só a cor base é trocada. O <c>colorOverLifetime</c> das partículas multiplica por
-        /// cima, então o fade original é preservado.
+        /// ⚠️ <b>Trocar a cor base não basta.</b> A premissa antiga aqui era que o
+        /// <c>colorOverLifetime</c> das partículas só multiplicava um fade cinza por cima, e por
+        /// isso podia ficar intacto. Não é verdade em todo prefab: quando esse gradiente é
+        /// <b>colorido</b>, ele multiplica a cor nova pela cor dele e o efeito não muda de cor
+        /// — foi o que o <c>staff_greenroots_projectile</c> cobrou, verde a despeito de qualquer
+        /// <c>ProjectileColor</c>. Ver <see cref="Desaturate"/>.
         /// </summary>
         internal static void ApplyTint(GameObject instance, string colorHex)
+        {
+            ApplyTint(instance, colorHex, false);
+        }
+
+        /// <summary>
+        /// A mesma coisa, com a opção de mexer <b>só na luz dinâmica</b> do efeito.
+        ///
+        /// <b>Por que a luz sozinha é um caso à parte.</b> A luz de um efeito de impacto pinta o
+        /// terreno em volta, e é o que se vê primeiro quando o tiro acerta perto — o estouro do
+        /// xamã goblin acende rosa, o que denuncia o prefab de onde ele veio mesmo depois de tudo
+        /// o mais estar na cor do ki. Trocar só ela conserta isso sem tocar no clarão e na onda de
+        /// choque, que são a parte do efeito que já estava boa. Quem quiser o estouro inteiro na
+        /// cor do ataque passa <c>lightsOnly: false</c>.
+        /// </summary>
+        internal static void ApplyTint(GameObject instance, string colorHex, bool lightsOnly)
         {
             if (string.IsNullOrEmpty(colorHex))
             {
@@ -118,10 +137,52 @@ namespace Saiyaheim.Util
                 return;
             }
 
+            if (lightsOnly)
+            {
+                foreach (Light onlyLight in instance.GetComponentsInChildren<Light>(true))
+                {
+                    onlyLight.color = color;
+                }
+
+                return;
+            }
+
             foreach (ParticleSystem particles in instance.GetComponentsInChildren<ParticleSystem>(true))
             {
                 ParticleSystem.MainModule main = particles.main;
                 main.startColor = color;
+
+                // Os dois módulos que multiplicam POR CIMA da startColor. Se qualquer um deles
+                // trouxer cor própria, a startColor vira só um filtro e o prefab mantém o tom.
+                ParticleSystem.ColorOverLifetimeModule overLifetime = particles.colorOverLifetime;
+                if (overLifetime.enabled)
+                {
+                    overLifetime.color = Desaturate(overLifetime.color);
+                }
+
+                ParticleSystem.TrailModule trails = particles.trails;
+                if (trails.enabled)
+                {
+                    trails.colorOverLifetime = Desaturate(trails.colorOverLifetime);
+                    trails.colorOverTrail = Desaturate(trails.colorOverTrail);
+                }
+            }
+
+            // Rastro e feixe desenham a cor deles por vértice, sem passar pela startColor de
+            // partícula nenhuma. O material já foi tingido abaixo e mesmo assim ficariam da cor
+            // antiga.
+            foreach (TrailRenderer trail in instance.GetComponentsInChildren<TrailRenderer>(true))
+            {
+                trail.colorGradient = Desaturate(trail.colorGradient);
+                trail.startColor *= color;
+                trail.endColor *= color;
+            }
+
+            foreach (LineRenderer line in instance.GetComponentsInChildren<LineRenderer>(true))
+            {
+                line.colorGradient = Desaturate(line.colorGradient);
+                line.startColor *= color;
+                line.endColor *= color;
             }
 
             foreach (Light light in instance.GetComponentsInChildren<Light>(true))
@@ -137,6 +198,77 @@ namespace Saiyaheim.Util
                     TintMaterial(material, color);
                 }
             }
+        }
+
+        /// <summary>
+        /// Tira o <b>tom</b> de um gradiente e mantém o <b>brilho</b> e a <b>transparência</b>.
+        ///
+        /// É a peça que faz o <c>ProjectileColor</c> valer. Esses gradientes multiplicam a cor
+        /// base; um gradiente verde multiplicando um tint vermelho dá quase preto, e um
+        /// multiplicando um tint claro continua verde — de um jeito ou de outro a cor pedida não
+        /// aparece. Zerado por completo (tudo branco opaco) o problema inverte: some o
+        /// nascer-e-morrer que faz a partícula parecer partícula, e sobra um borrão de cor chapada.
+        ///
+        /// O meio-termo é a luminância: cada chave vira o cinza de mesmo brilho. A curva de
+        /// claro-escuro e o fade de alpha continuam idênticos ao do prefab, só o tom sai — que é
+        /// exatamente o que o tint vai repor por cima.
+        ///
+        /// Só é chamado quando há cor configurada: sem <c>ProjectileColor</c>, o prefab passa
+        /// intacto.
+        /// </summary>
+        private static ParticleSystem.MinMaxGradient Desaturate(ParticleSystem.MinMaxGradient source)
+        {
+            switch (source.mode)
+            {
+                case ParticleSystemGradientMode.Color:
+                    return new ParticleSystem.MinMaxGradient(Desaturate(source.color));
+
+                case ParticleSystemGradientMode.TwoColors:
+                    return new ParticleSystem.MinMaxGradient(
+                        Desaturate(source.colorMin), Desaturate(source.colorMax));
+
+                case ParticleSystemGradientMode.TwoGradients:
+                    return new ParticleSystem.MinMaxGradient(
+                        Desaturate(source.gradientMin), Desaturate(source.gradientMax));
+
+                // Gradient e RandomColor leem o mesmo campo.
+                default:
+                    Gradient desaturated = Desaturate(source.gradient);
+
+                    // Modo diz gradiente e não há gradiente: prefab estranho, mas devolver um
+                    // MinMaxGradient nulo quebraria o sistema de partículas. Deixa como estava.
+                    return desaturated == null ? source : new ParticleSystem.MinMaxGradient(desaturated);
+            }
+        }
+
+        private static Gradient Desaturate(Gradient source)
+        {
+            if (source == null)
+            {
+                return null;
+            }
+
+            GradientColorKey[] colorKeys = source.colorKeys;
+            for (int i = 0; i < colorKeys.Length; i++)
+            {
+                colorKeys[i].color = Desaturate(colorKeys[i].color);
+            }
+
+            // Gradiente novo, não escrita no que veio: o `source` pode ser o objeto do asset, e
+            // pintar dentro dele vazaria para todo mundo que usa o mesmo efeito. Mesma armadilha
+            // do sharedMaterial acima.
+            Gradient result = new Gradient { mode = source.mode };
+            result.SetKeys(colorKeys, source.alphaKeys);
+            return result;
+        }
+
+        /// <summary>
+        /// O cinza de mesmo brilho percebido. <c>alpha</c> passa intacto — ele é o fade, não o tom.
+        /// </summary>
+        private static Color Desaturate(Color color)
+        {
+            float luminance = color.grayscale;
+            return new Color(luminance, luminance, luminance, color.a);
         }
 
         /// <summary>
