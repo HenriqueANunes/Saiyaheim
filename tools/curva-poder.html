@@ -1078,15 +1078,19 @@
   function verdictFly(k5) {
     const start = model(0, k5), m100 = model(100, k5);
     const skill100 = model(100, k5, null, { flyLvl: MAXLVL });
-    if (skill100.flycost < 0.15) {
-      return { warn: true, html: `<strong>No topo o voo fica de graça:</strong> ${fmt(skill100.flycost, 2)} ki/s com a skill no 100 são ${fmt(skill100.range, 0)} s de autonomia, o que na prática é voo infinito. Baixe o <code>KiSkillReduction</code> ou o <code>KiPowerReduction</code> se a intenção era que voar continuasse custando alguma coisa.` };
-    }
     // O alerta que faltava em 2026-08-21, quando voar transformado ficou rapido demais: com o
     // FormSpeedShare em 1 as duas formas batiam no MaxSpeed e viravam a mesma linha no grafico —
     // e o grafico e' o modo LENTO, entao no jogo, correndo, o teto morde ainda mais cedo.
     const ssjFly = model(100, k5, SSJ).fly, ssj2Fly = model(100, k5, SSJ2).fly;
-    if (ssjFly >= v("fm") - 0.01 && ssj2Fly >= v("fm") - 0.01) {
-      return { warn: true, html: `<strong>SSJ e SSJ2 voam igual:</strong> as duas formas batem no <code>MaxSpeed ${fmt(v("fm"), 0)}</code> já no modo lento, então o degrau alto não compra velocidade nenhuma — e no jogo o modo rápido ainda multiplica por cima. Baixe o <code>FormSpeedShare</code> (hoje em ${fmt(v("fss"), 2)}) até as duas linhas descolarem do teto.` };
+    if (ssj2Fly >= v("fm") - 0.01) {
+      const both = ssjFly >= v("fm") - 0.01;
+      return { warn: true, html: `<strong>${both ? "SSJ e SSJ2 voam igual" : "O degrau alto não compra velocidade"}:</strong> ` +
+        `${both ? "as duas formas batem" : "o SSJ2 bate"} no <code>MaxSpeed ${fmt(v("fm"), 0)}</code> já no modo lento` +
+        `${both ? "" : ` (o SSJ para em ${fmt(ssjFly, 1)} m/s)`}, e no jogo o modo rápido ainda multiplica por cima — o teto morde antes do que este gráfico mostra. ` +
+        `Baixe o <code>FormSpeedShare</code> (hoje em ${fmt(v("fss"), 2)}) até as linhas descolarem do teto.` };
+    }
+    if (skill100.flycost < 0.15) {
+      return { warn: true, html: `<strong>No topo o voo fica de graça:</strong> ${fmt(skill100.flycost, 2)} ki/s com a skill no 100 são ${fmt(skill100.range, 0)} s de autonomia, o que na prática é voo infinito. Baixe o <code>KiSkillReduction</code> ou o <code>KiPowerReduction</code> se a intenção era que voar continuasse custando alguma coisa.` };
     }
     if (start.range < 15) {
       return { html: `<strong>Voar começa curto e termina longo, que é o desenho.</strong> No nível 0 a barra cheia dá ${fmt(start.range, 0)} s no ar — um pulo, não uma viagem. No 100 são ${fmt(m100.range, 0)} s, e com a skill de voo maxada, ${fmt(skill100.range, 0)} s.` };
