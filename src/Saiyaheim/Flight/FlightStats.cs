@@ -55,11 +55,19 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// Multiplicador da forma ativa, ou 1 fora dela.
+        /// Multiplicador da forma ativa <b>amortecido</b>, ou 1 fora dela:
+        /// <c>1 + (PowerMultiplier - 1) × FormSpeedShare</c>.
         ///
         /// <b>A velocidade é a única coisa do voo que a transformação toca.</b> O custo de ki fica
         /// de fora de propósito: voar transformado já custa o dreno da forma <i>somado</i> ao custo
         /// do voo, e encarecer o voo por cima seria cobrar duas vezes pela mesma decisão.
+        ///
+        /// O <c>PowerMultiplier</c> cru não serve aqui, e o playtest de 2026-08-21 mostrou por quê:
+        /// a forma base ficou boa e a transformada, rápida demais. O número é calibrado para
+        /// combate — dobrar o soco é uma coisa, dobrar a velocidade de voo é outra — e passado
+        /// direto ele jogava a velocidade contra o <c>FlightMaxSpeed</c>, onde poder a mais não
+        /// compra velocidade nenhuma e SSJ e SSJ2 deixam de se distinguir no ar. Amortecer só o
+        /// <i>ganho</i> (e não o fator inteiro) mantém "sem forma = 1" de graça, sem caso especial.
         ///
         /// Vem do <c>TransformationRegistry</c> e não do <c>PowerLevel</c> porque a velocidade lê o
         /// poder <b>linear</b>, e o multiplicador mora no de <b>combate</b> — pegá-lo pelo
@@ -68,7 +76,9 @@ namespace Saiyaheim.Flight
         /// </summary>
         internal static float GetFormSpeedFactor(Player player)
         {
-            return Transformations.TransformationRegistry.GetPowerMultiplier(player);
+            float multiplier = Transformations.TransformationRegistry.GetPowerMultiplier(player);
+
+            return 1f + (multiplier - 1f) * SaiyaheimConfig.FlightFormSpeedShare.Value;
         }
 
         /// <summary>

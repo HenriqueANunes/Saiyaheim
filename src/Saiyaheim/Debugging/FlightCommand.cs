@@ -109,12 +109,16 @@ namespace Saiyaheim.Debugging
                   $"+ {FlightStats.GetSpeedFromPower(player):0.#} from power level " +
                   $"(raw {PowerLevel.GetRaw(player):0.#})");
             // A forma multiplica a velocidade DEPOIS de tudo, entao sem esta linha o "Speed floor"
-            // acima nao explica o "Speed" abaixo enquanto o jogador esta transformado.
+            // acima nao explica o "Speed" abaixo enquanto o jogador esta transformado. O
+            // PowerMultiplier cru vai junto porque o fator de voo e' uma FRACAO dele
+            // (FormSpeedShare) — sem os dois numeros lado a lado o x1,3 do SSJ parece erro.
             float formFactor = FlightStats.GetFormSpeedFactor(player);
             if (formFactor > 1f)
             {
+                float powerMultiplier = Transformations.TransformationRegistry.GetPowerMultiplier(player);
                 Print($"Form speed multiplier: x{formFactor:0.##} " +
-                      $"({Transformations.TransformationRegistry.GetActiveName(player)})");
+                      $"({Transformations.TransformationRegistry.GetActiveName(player)}, " +
+                      $"power x{powerMultiplier:0.##} at {SaiyaheimConfig.FlightFormSpeedShare.Value * 100f:0}% share)");
             }
 
             Print($"Speed: {slow:0.#} normal / {fast:0.#} running  (cap {SaiyaheimConfig.FlightMaxSpeed.Value:0.#})");

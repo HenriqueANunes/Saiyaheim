@@ -329,7 +329,8 @@
         <summary><span class="chev">▶</span>Voo</summary>
         <div class="group-body">
           <p class="hint">A velocidade lê só a parte linear — o termo de fim de jogo não a toca. O que ele barateia é o custo.
-            Custo e autonomia leem também a <b>skill de voo</b>, que sobe por tempo no ar e é um eixo de progressão à parte do battle power.</p>
+            Custo e autonomia leem também a <b>skill de voo</b>, que sobe por tempo no ar e é um eixo de progressão à parte do battle power.
+            O <b>FormSpeedShare</b> decide quanto do <code>PowerMultiplier</code> da forma vira velocidade: em 1 a forma multiplica a velocidade inteira (como era até 2026-08-21), em 0 ela não toca no voo.</p>
           <div class="ctl"><div class="row"><label for="fkp">KiPowerReduction</label><output id="fkp-out"></output></div>
             <input type="range" id="fkp" min="0" max="0.02" step="0.0001" value="0.0033"></div>
           <div class="ctl"><div class="row"><label for="fki">KiPerSecond</label><output id="fki-out"></output></div>
@@ -344,6 +345,8 @@
             <input type="range" id="fp" min="0" max="0.1" step="0.001" value="0.015"></div>
           <div class="ctl"><div class="row"><label for="fs">SpeedSkillBonus</label><output id="fs-out"></output></div>
             <input type="range" id="fs" min="0" max="3" step="0.05" value="0.5"></div>
+          <div class="ctl"><div class="row"><label for="fss">FormSpeedShare</label><output id="fss-out"></output></div>
+            <input type="range" id="fss" min="0" max="1" step="0.05" value="0.3"></div>
           <div class="ctl"><div class="row"><label for="fm">MaxSpeed (teto de engine)</label><output id="fm-out"></output></div>
             <input type="range" id="fm" min="5" max="100" step="1" value="30"></div>
           <div class="ctl"><div class="row"><label for="fl">Nível da skill de voo</label><output id="fl-out"></output></div>
@@ -497,7 +500,7 @@
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "armb", "armp", "blkb", "blkp",
-               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fm", "fl",
+               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fm", "fl",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
@@ -586,7 +589,14 @@
 
     // Velocidade e teto de ki leem o LINEAR: o termo de fim de jogo nao os toca. A forma multiplica
     // a velocidade (depois de tudo, o MaxSpeed continua valendo) e NAO toca no teto nem na carga.
-    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL) * mult;
+    //
+    // Mas o multiplicador da forma entra AMORTECIDO desde 2026-08-21: so' a fracao FormSpeedShare
+    // do ganho vira velocidade, 1 + (mult - 1) * share. O numero cru e' calibrado para combate, e
+    // passado direto ele jogava o voo transformado contra o MaxSpeed — onde poder a mais nao compra
+    // velocidade nenhuma e SSJ e SSJ2 param de se distinguir no ar. Espelha
+    // FlightStats.GetFormSpeedFactor; com share em 1 o grafico volta a ser o de antes.
+    const flyMult = 1 + (mult - 1) * v("fss");
+    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL) * flyMult;
     const kiMax = v("kmax") + v("kper") * L;
     const charge = v("creg") + v("cfp") * lin;
     const refill = charge > 0 ? kiMax / charge : Infinity;
@@ -682,7 +692,7 @@
     range: { btn: "autonomia", label: "Autonomia de voo", mode: "skill", dec: 0, unit: " s",
       sub: "teto de ki ÷ custo — segundos no ar com a barra cheia. Sobe pelos dois eixos: o nível enche a barra, a skill de voo esvazia mais devagar" },
     fly: { btn: "velocidade", label: "Velocidade de voo", mode: "forms", dec: 1, unit: " m/s",
-      sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito. A forma multiplica, e o MaxSpeed corta por cima" },
+      sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito. A forma multiplica, mas só a fração FormSpeedShare do ganho dela, e o MaxSpeed corta por cima" },
     kimax: { btn: "teto de ki", label: "Teto de ki", mode: "solo", dec: 0, unit: "",
       sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra" },
     drain: { btn: "dreno", label: "Dreno da forma", mode: "formonly", dec: 2, unit: " ki/s",
@@ -1006,9 +1016,13 @@
       // no nivel 100 e' o mesmo numero do cartao ao lado, e dois cartoes iguais nao dizem nada.
       { k: "sem a skill de voo", v: fmt(skill0.range, 0) + " s",
         n: `a ${fmt(skill0.flycost, 2)} ki/s — o que o battle power sozinho compra` },
+      // O cartao da forma mostra o fator amortecido junto: sem ele o "x1,6" do SSJ2 parece nao bater
+      // com o PowerMultiplier 3 que o jogador acabou de ajustar no rail ao lado.
       { k: "velocidade no 100", v: fmt(m100.fly, 1) + " m/s",
         n: m100.fly >= v("fm") - 0.01 ? `no teto de engine (MaxSpeed ${fmt(v("fm"), 0)})`
-                                      : `em SSJ2, ${fmt(model(100, k5, SSJ2).fly, 1)} m/s` },
+                                      : `em SSJ2, ${fmt(model(100, k5, SSJ2).fly, 1)} m/s — ` +
+                                        `x${fmt(1 + (Math.max(1, v(SSJ2.m)) - 1) * v("fss"), 2)} de velocidade ` +
+                                        `para x${fmt(Math.max(1, v(SSJ2.m)), 1)} de poder` },
     ];
   }
 
@@ -1066,6 +1080,13 @@
     const skill100 = model(100, k5, null, { flyLvl: MAXLVL });
     if (skill100.flycost < 0.15) {
       return { warn: true, html: `<strong>No topo o voo fica de graça:</strong> ${fmt(skill100.flycost, 2)} ki/s com a skill no 100 são ${fmt(skill100.range, 0)} s de autonomia, o que na prática é voo infinito. Baixe o <code>KiSkillReduction</code> ou o <code>KiPowerReduction</code> se a intenção era que voar continuasse custando alguma coisa.` };
+    }
+    // O alerta que faltava em 2026-08-21, quando voar transformado ficou rapido demais: com o
+    // FormSpeedShare em 1 as duas formas batiam no MaxSpeed e viravam a mesma linha no grafico —
+    // e o grafico e' o modo LENTO, entao no jogo, correndo, o teto morde ainda mais cedo.
+    const ssjFly = model(100, k5, SSJ).fly, ssj2Fly = model(100, k5, SSJ2).fly;
+    if (ssjFly >= v("fm") - 0.01 && ssj2Fly >= v("fm") - 0.01) {
+      return { warn: true, html: `<strong>SSJ e SSJ2 voam igual:</strong> as duas formas batem no <code>MaxSpeed ${fmt(v("fm"), 0)}</code> já no modo lento, então o degrau alto não compra velocidade nenhuma — e no jogo o modo rápido ainda multiplica por cima. Baixe o <code>FormSpeedShare</code> (hoje em ${fmt(v("fss"), 2)}) até as duas linhas descolarem do teto.` };
     }
     if (start.range < 15) {
       return { html: `<strong>Voar começa curto e termina longo, que é o desenho.</strong> No nível 0 a barra cheia dá ${fmt(start.range, 0)} s no ar — um pulo, não uma viagem. No 100 são ${fmt(m100.range, 0)} s, e com a skill de voo maxada, ${fmt(skill100.range, 0)} s.` };
@@ -1131,7 +1152,8 @@
       kv("KiPowerReduction", n("fkp", 4)), kv("KiPerSecond", n("fki", 1)),
       kv("KiSkillReduction", n("fkr", 2)), kv("KiSkillCurve", n("fkc", 2)),
       kv("BaseSpeed", n("fb", 1)), kv("SpeedFromPower", n("fp", 3)),
-      kv("SpeedSkillBonus", n("fs", 2)), kv("MaxSpeed", n("fm", 0))]),
+      kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
+      kv("MaxSpeed", n("fm", 0))]),
     ssj: () => formBlock(SSJ),
     ssj2: () => formBlock(SSJ2),
     ki: () => block("2 - Ki", [
@@ -1148,13 +1170,13 @@
   const FOOTERS = {
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário é zero em toda a página.`,
-    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o battle power (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento.`,
+    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o battle power (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, armb: 0, armp: 3, blkb: 0,
-                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fm: 0, fl: 0,
+                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fm: 0, fl: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
@@ -1207,7 +1229,7 @@
       `<span class="note">O termo dourado é o mod de hoje e continua intacto; o azul é novo e só pesa no fim. ` +
       `<strong>O azul alimenta soco, armadura, block e o número exibido — e o custo de voo.</strong> ` +
       `Velocidade de voo, teto de ki e regeneração leem só o dourado. ` +
-      `A transformação multiplica a soma inteira, mais a velocidade de voo — e não toca no teto nem na regeneração de ki.</span>`;
+      `A transformação multiplica a soma inteira; a velocidade de voo ela multiplica só em parte (<code>FormSpeedShare</code>), e não toca no teto nem na regeneração de ki.</span>`;
 
     drawReadout(k5);
     draw(k5);

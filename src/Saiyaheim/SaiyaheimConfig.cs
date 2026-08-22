@@ -437,6 +437,12 @@ namespace Saiyaheim
         /// <summary>Velocidade somada por ponto de power level bruto.</summary>
         public static ConfigEntry<float> FlightSpeedFromPower { get; private set; }
 
+        /// <summary>
+        /// Quanto do ganho de poder da forma vira velocidade de voo: o fator aplicado é
+        /// <c>1 + (PowerMultiplier - 1) × este valor</c>.
+        /// </summary>
+        public static ConfigEntry<float> FlightFormSpeedShare { get; private set; }
+
         /// <summary>Multiplicador da velocidade com o botão de correr segurado.</summary>
         public static ConfigEntry<float> FlightFastSpeedMultiplier { get; private set; }
 
@@ -1326,6 +1332,21 @@ namespace Saiyaheim
                     "and an additive stat tracks that predictably. " +
                     "Run saiya_fly to see how much this is contributing right now.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(88)));
+
+            FlightFormSpeedShare = config.Bind(SecFlight, "FormSpeedShare", 0.3f,
+                new ConfigDescription(
+                    "How much of a transformation's power gain turns into flight speed: the form " +
+                    "multiplies speed by 1 + (PowerMultiplier - 1) * this. At 0.3, SSJ's x2 power " +
+                    "is x1.3 speed and SSJ2's x3 is x1.6. " +
+                    "Transformations are meant to be felt in combat first; letting the raw " +
+                    "PowerMultiplier through sent flight straight into MaxSpeed, where extra " +
+                    "power buys no actual velocity and SSJ and SSJ2 stop being distinguishable " +
+                    "in the air. " +
+                    "1 restores the old behaviour (form speed = PowerMultiplier), 0 makes forms " +
+                    "not affect flight speed at all. " +
+                    "(Playtest value, 2026-08-21: flying transformed felt too fast while base " +
+                    "form felt right.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(86)));
 
             FlightFastSpeedMultiplier = config.Bind(SecFlight, "FastSpeedMultiplier", 2f,
                 new ConfigDescription(
