@@ -39,6 +39,7 @@ mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 | `combatPower()` | `PowerLevel.GetCombatRaw()` |
 | `lateBonus()` | `PowerLevel.GetLateGameBonus()` |
 | `formMult()` | `TransformationRegistry.GetPowerMultiplier()` |
+| `flyMult` (dentro de `model()`) | `FlightStats.GetFormSpeedFactor()` |
 | `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
 | `applyArmor()` | `HitData.ApplyArmor` do Valheim, copiada da decompilação |
 | `xpCost[]` | `Skills.Skill.GetNextLevelRequirement()` |
@@ -67,6 +68,21 @@ Cartão novo no topo: **transformado no 100**, que mostra o dano recebido dentro
 porque a armadura é o consumidor que menos aguenta multiplicador — foi ela que obrigou a baixar o
 `ArmorFromPower` quando o termo de fim de jogo entrou, e a forma multiplica a armadura junto com o
 resto.
+
+### O `FormSpeedShare` (voo) — feito em 2026-08-21
+
+A forma multiplica a velocidade de voo **em parte**: `1 + (PowerMultiplier − 1) × FormSpeedShare`.
+O slider está no grupo **Voo** e a lente Voo é onde ele se lê — com ele em 1 as linhas SSJ e SSJ2
+sobem até colar no `MaxSpeed`, que é exatamente o defeito que a mudança consertou.
+
+Duas coisas a lembrar ao mexer nessa parte:
+
+- **A página plota o modo lento.** Não há slider de `FastSpeedMultiplier`, e no jogo ele dobra tudo
+  — então o `MaxSpeed` morde antes do que o gráfico mostra. O alerta da lente diz isso em voz alta.
+- **A ordem dos vereditos importa.** O alerta de "voo de graça" dispara com os defaults atuais, então
+  qualquer alerta novo colocado depois dele é código morto. O do teto vem antes de propósito: forma
+  colada no teto é defeito estrutural (SSJ e SSJ2 param de se distinguir), voo barato é calibragem
+  conhecida.
 
 ### Se precisar de uma quarta série
 
