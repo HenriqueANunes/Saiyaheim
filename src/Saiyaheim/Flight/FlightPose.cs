@@ -80,7 +80,13 @@ namespace Saiyaheim.Flight
         /// <summary>Graus de nariz para cima subindo, e para baixo descendo.</summary>
         private const float ClimbPitch = 25f;
 
-        private const float ElbowBend = 0.8f;
+        /// <summary>
+        /// Braço quase reto. O músculo se chama "Forearm Stretch" e +1 é o braço estendido, não
+        /// dobrado — a constante se chamava <c>ElbowBend</c> e mentia sobre a própria direção até
+        /// 2026-08-21. O valor não mudou: 0.8 é o que foi calibrado na tela, e voar de braço reto
+        /// é justamente o que se queria.
+        /// </summary>
+        private const float ElbowStretch = 0.8f;
 
         /// <summary>Pé esticado. Barato, e vende voo melhor que quase tudo aqui.</summary>
         private const float ToePoint = 0.4f;
@@ -377,8 +383,8 @@ namespace Saiyaheim.Flight
             Blend(muscles, MuscleArmSwingL, armSwing, weight);
             Blend(muscles, MuscleArmSwingR, armSwing, weight);
 
-            Blend(muscles, MuscleElbowL, ElbowBend, weight);
-            Blend(muscles, MuscleElbowR, ElbowBend, weight);
+            Blend(muscles, MuscleElbowL, ElbowStretch, weight);
+            Blend(muscles, MuscleElbowR, ElbowStretch, weight);
 
             // Perna esquerda e direita separadas: a pose clássica do gênero tem uma perna recolhida
             // e a outra estendida, e no primeiro playtest o valor único ainda espelhava errado.

@@ -635,9 +635,11 @@ namespace Saiyaheim
 
         public static ConfigEntry<float> BlastPoseArmForward { get; private set; }
         public static ConfigEntry<float> BlastPoseArmHeight { get; private set; }
-        public static ConfigEntry<float> BlastPoseAimFollow { get; private set; }
+        public static ConfigEntry<float> BlastPoseAimFollowPitch { get; private set; }
+        public static ConfigEntry<float> BlastPoseAimFollowYaw { get; private set; }
+        public static ConfigEntry<float> BlastPoseAimYawTorsoShare { get; private set; }
         public static ConfigEntry<float> BlastPoseArmTwist { get; private set; }
-        public static ConfigEntry<float> BlastPoseElbowBend { get; private set; }
+        public static ConfigEntry<float> BlastPoseElbowStretch { get; private set; }
         public static ConfigEntry<float> BlastPoseShoulderPush { get; private set; }
         public static ConfigEntry<float> BlastPoseShoulderLift { get; private set; }
         public static ConfigEntry<float> BlastPoseTorsoTwist { get; private set; }
@@ -1784,10 +1786,14 @@ namespace Saiyaheim
 
             ChargePoseElbowBend = config.Bind(SecChargePose, "ElbowBend", 0.3f,
                 new ConfigDescription(
-                    "How far the elbows are bent. 0 is a straight arm, 1 is the tightest bend the " +
-                    "rig allows. " +
-                    "(Playtest value, 2026-08-07. Started at 0.7 — a tight bend that belonged to " +
-                    "the fists-at-the-hips version of this pose.)",
+                    "How far the elbows are bent — and the name is backwards, kept only because " +
+                    "renaming it would throw away a calibrated .cfg key. The muscle is 'Forearm " +
+                    "Stretch': 1 is a STRAIGHT arm, -1 the tightest bend, 0 the middle. So this " +
+                    "pose's 0.3 is a slightly straightened arm, not a slightly bent one. Found " +
+                    "out on 2026-08-21 calibrating the firing pose, which had the same lie in its " +
+                    "description. " +
+                    "(Playtest value, 2026-08-07. Started at 0.7 — closer to straight, which " +
+                    "belonged to the fists-at-the-hips version of this pose.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(160)));
 
             ChargePoseFistClench = config.Bind(SecChargePose, "FistClench", 1f,
@@ -1855,10 +1861,13 @@ namespace Saiyaheim
 
             // --- A pose de disparo ---
             //
-            // Mesma ordem decrescente da secao acima, e a mesma logica de calibragem: o
-            // interruptor, o envelope, e depois os grupos de cima para baixo. So o braco comeca
-            // ligado — e' o pedido inteiro ("apontar a mao direita para frente"); o resto sobe
-            // um de cada vez.
+            // Mesma ordem decrescente da secao acima: o interruptor, o envelope, e depois os
+            // grupos de cima para baixo.
+            //
+            // Os defaults sao os do playtest de 2026-08-21, e a ordem "um grupo de cada vez" que
+            // este comentario descrevia era o **caminho** ate eles, nao o destino: braco, ombro e
+            // tronco subiram os tres, porque estender o braco sem o ombro para no encaixe do umero
+            // e sem o tronco lê como o boneco apontando em vez de empurrar. So a lombar ficou fora.
             //
             // ⚠️ Calibrar isto SEM o `saiya_blast pose` e' impossivel: a pose dura menos que o
             // tempo de arrastar um slider e olhar o personagem.
@@ -1877,11 +1886,13 @@ namespace Saiyaheim
                     "also fine here.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(199)));
 
-            BlastPoseHoldSeconds = config.Bind(SecBlastPose, "HoldSeconds", 0.18f,
+            BlastPoseHoldSeconds = config.Bind(SecBlastPose, "HoldSeconds", 0.7f,
                 new ConfigDescription(
                     "Seconds the arm stays out at full extension before relaxing. Firing again " +
                     "before it ends just pushes this deadline forward — the arm does not drop and " +
-                    "snap back between shots of a burst.",
+                    "snap back between shots of a burst. Playtest landed on 0.7, four times the " +
+                    "0.18 this was designed with: the shot is still in the air at 0.18, and an " +
+                    "arm already on its way down while the ball flies reads as a flinch.",
                     new AcceptableValueRange<float>(0f, 3f), ClientSide(198)));
 
             BlastPoseFallSeconds = config.Bind(SecBlastPose, "FallSeconds", 0.3f,
@@ -1897,23 +1908,25 @@ namespace Saiyaheim
                     "IS A SWITCH, not an intensity: zero is not 'neutral arm', it is 'do not " +
                     "touch the arm, leave the animation alone'. A target of zero would instead " +
                     "force the muscle to its neutral value, which is itself a pose (a T-pose, in " +
-                    "this case). Same for every other weight below. This is the one group that " +
-                    "starts ON, because it is the whole request.",
+                    "this case). Same for every other weight below. Playtest ended with this, " +
+                    "the shoulder and the torso all on — the arm alone was the request, but not " +
+                    "the gesture.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(196)));
 
-            BlastPoseShoulderWeight = config.Bind(SecBlastPose, "ShoulderWeight", 0f,
+            BlastPoseShoulderWeight = config.Bind(SecBlastPose, "ShoulderWeight", 1f,
                 new ConfigDescription(
                     "How much of the right SHOULDER the pose owns. This is what turns 'arm raised' " +
                     "into 'arm extended' — without it the reach stops at the shoulder socket and " +
-                    "the character looks like he is pointing rather than pushing. Turn it on " +
-                    "second, right after the arm.",
+                    "the character looks like he is pointing rather than pushing. Full on since " +
+                    "the 2026-08-21 playtest, which is where that sentence stopped being a guess.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(195)));
 
-            BlastPoseTorsoWeight = config.Bind(SecBlastPose, "TorsoWeight", 0f,
+            BlastPoseTorsoWeight = config.Bind(SecBlastPose, "TorsoWeight", 1f,
                 new ConfigDescription(
                     "How much of the TORSO TWIST the pose owns — chest and upper chest bringing " +
-                    "the right shoulder around to follow the arm. Turn it on third. Zero leaves " +
-                    "the torso to the animation, including whatever twist the game's aiming does.",
+                    "the right shoulder around to follow the arm. On since the 2026-08-21 " +
+                    "playtest. Zero leaves the torso to the animation, including whatever twist " +
+                    "the game's aiming does.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(194)));
 
             BlastPoseSpineTwistWeight = config.Bind(SecBlastPose, "SpineTwistWeight", 0f,
@@ -1925,29 +1938,58 @@ namespace Saiyaheim
                     "flight pose both keep out for the same reason.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(193)));
 
-            BlastPoseArmForward = config.Bind(SecBlastPose, "ArmForward", 0.9f,
+            BlastPoseArmForward = config.Bind(SecBlastPose, "ArmForward", 0.6f,
                 new ConfigDescription(
                     "How far the upper arm swings FORWARD. This is the gesture: at 0 the arm is " +
                     "out to the side, at 1 it points straight ahead. Negative pulls it behind the " +
-                    "ribs, which is the charging pose, not this one.",
+                    "ribs, which is the charging pose, not this one. Playtest settled at 0.6 and " +
+                    "not the 0.9 this started with, because the shoulder and the torso now carry " +
+                    "part of the reach — the joints add up, and 0.9 on top of them overshot.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(190)));
 
-            BlastPoseArmHeight = config.Bind(SecBlastPose, "ArmHeight", 0f,
+            BlastPoseArmHeight = config.Bind(SecBlastPose, "ArmHeight", 0.3f,
                 new ConfigDescription(
                     "Where the upper arm sits vertically. Raw muscle space, not intent: 0 is a " +
-                    "T-pose, meaning the arm is horizontal — which is already shoulder height, so " +
-                    "0 is the right starting point for aiming straight ahead. About -0.65 is the " +
-                    "arm hanging down. Positive raises it above the shoulder.",
+                    "T-pose, meaning the arm is horizontal — shoulder height, and the obvious " +
+                    "place to aim straight from. About -0.65 is the arm hanging down. Playtest " +
+                    "ended at 0.3, slightly ABOVE the shoulder: the ball is thrown from over the " +
+                    "shoulder, not levelled from it like a gun.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(189)));
 
-            BlastPoseAimFollow = config.Bind(SecBlastPose, "AimFollow", 0.5f,
+            BlastPoseAimFollowPitch = config.Bind(SecBlastPose, "AimFollowPitch", 1f,
                 new ConfigDescription(
-                    "How much the arm follows where you are LOOKING, added on top of ArmHeight. " +
-                    "This matters more than it sounds: the projectile spawns at the right hand and " +
-                    "flies along your look direction, so with a locked arm, aiming at the sky " +
-                    "sends the shot upward out of a hand that is pointing at the horizon. 1 is " +
-                    "full follow, 0 pins the arm to ArmHeight.",
+                    "How much the arm follows where you are LOOKING UP OR DOWN, added on top of " +
+                    "ArmHeight. This matters more than it sounds: the projectile spawns at the " +
+                    "right hand and flies along your look direction, so with a locked arm, aiming " +
+                    "at the sky sends the shot upward out of a hand that is pointing at the " +
+                    "horizon. 1 is full follow, 0 pins the arm to ArmHeight. Playtest went " +
+                    "straight to 1: half a follow is the arm neither locked nor aimed. Renamed " +
+                    "from 'AimFollow' on 2026-08-21, when AimFollowYaw joined it — a leftover " +
+                    "'AimFollow' line in an old .cfg does nothing and can be deleted.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(188)));
+
+            BlastPoseAimFollowYaw = config.Bind(SecBlastPose, "AimFollowYaw", 1f,
+                new ConfigDescription(
+                    "How much the arm follows where you are LOOKING LEFT OR RIGHT, subtracted " +
+                    "from ArmForward. The other half of AimFollowPitch, and the one that is only " +
+                    "visible some of the time: the body usually turns to the camera on its own, " +
+                    "and while it does, the arm is already aimed and this does nothing. It earns " +
+                    "its keep exactly when the two come apart — strafing, running one way while " +
+                    "looking another — which is also when the shot leaves a hand pointing " +
+                    "somewhere else. 1 means the arm reaches the same yaw as the camera, 0 pins " +
+                    "it to ArmForward.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(187)));
+
+            BlastPoseAimYawTorsoShare = config.Bind(SecBlastPose, "AimYawTorsoShare", 0f,
+                new ConfigDescription(
+                    "How much of that horizontal aim the TORSO takes instead of the shoulder " +
+                    "joint, from 0 (all arm) to 1 (all torso). A big sideways angle done entirely " +
+                    "at the shoulder ends with the arm crossing the chest; handing part of it to " +
+                    "the spine turns the character into the shot instead. Needs TorsoWeight above " +
+                    "zero to do anything at all — with the torso group off, this only takes " +
+                    "rotation away from the arm and nothing gives it back. The muscle scales are " +
+                    "not the same, so this is a feel knob, not a split of degrees.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(186)));
 
             BlastPoseArmTwist = config.Bind(SecBlastPose, "ArmTwist", 0f,
                 new ConfigDescription(
@@ -1955,26 +1997,29 @@ namespace Saiyaheim
                     "elbow straight it barely changes the silhouette, but it decides which way the " +
                     "PALM faces — and the ki ball is born in that hand. Change this if the back of " +
                     "the hand ends up facing the target.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(187)));
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(185)));
 
-            BlastPoseElbowBend = config.Bind(SecBlastPose, "ElbowBend", 0f,
+            BlastPoseElbowStretch = config.Bind(SecBlastPose, "ElbowStretch", 1f,
                 new ConfigDescription(
-                    "How far the elbow is bent. Raw muscle space: 0 is a straight arm, which is " +
-                    "what the pose asks for, and 1 is the tightest bend the rig allows. Raise it " +
-                    "slightly if a fully locked elbow reads as stiff.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(186)));
+                    "How STRAIGHT the elbow is. Raw muscle space, and it runs the way the muscle " +
+                    "is named ('Forearm Stretch'): 1 is the straightest the rig goes, -1 the " +
+                    "tightest bend, and 0 is the middle — a visibly bent arm, not a straight one. " +
+                    "Playtest sits at 1, because a thrust with a bend in it reads as a shove. " +
+                    "Was called 'ElbowBend' until 2026-08-21, with the sign backwards in its own " +
+                    "description; that name is why a straight arm looked impossible to get.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(184)));
 
             BlastPoseShoulderPush = config.Bind(SecBlastPose, "ShoulderPush", 0.5f,
                 new ConfigDescription(
                     "How far the right shoulder is pushed FORWARD, when ShoulderWeight is on. This " +
                     "is the extra reach. Negative pulls it back.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(185)));
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(183)));
 
             BlastPoseShoulderLift = config.Bind(SecBlastPose, "ShoulderLift", 0.1f,
                 new ConfigDescription(
                     "How far the right shoulder rides UP, when ShoulderWeight is on. Raw muscle " +
                     "space. Small: a shrugged shoulder on an extended arm reads as flinching.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(184)));
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(182)));
 
             BlastPoseTorsoTwist = config.Bind(SecBlastPose, "TorsoTwist", 0.3f,
                 new ConfigDescription(
@@ -1983,24 +2028,26 @@ namespace Saiyaheim
                     "least at the bottom. Keep it small — the point is the torso following the " +
                     "arm, not the character turning sideways to his own aim. Negative twists the " +
                     "other way, which would pull the firing shoulder back.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(183)));
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(181)));
 
-            BlastPoseHandOpen = config.Bind(SecBlastPose, "HandOpen", 0f,
+            BlastPoseHandOpen = config.Bind(SecBlastPose, "HandOpen", 1f,
                 new ConfigDescription(
                     "How far the right hand opens into a flat palm, independently of ArmWeight — " +
                     "the exact opposite of the charging pose's FistClench, and the contrast is the " +
-                    "point: charging is a closed fist, firing is an open palm. Zero leaves the " +
-                    "hand as the animation had it. Does nothing if the player rig has no mapped " +
-                    "finger bones — no error, just no palm.",
-                    new AcceptableValueRange<float>(0f, 1f), ClientSide(182)));
+                    "point: charging is a closed fist, firing is an open palm. Full on since the " +
+                    "2026-08-21 playtest. Zero leaves the hand as the animation had it. Does " +
+                    "nothing if the player rig has no mapped finger bones — no error, just no palm.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(180)));
 
-            BlastPoseWristBend = config.Bind(SecBlastPose, "WristBend", 0f,
+            BlastPoseWristBend = config.Bind(SecBlastPose, "WristBend", 1f,
                 new ConfigDescription(
                     "How far the wrist bends back, so the palm faces where the shot is going. Raw " +
                     "muscle space, and it rides on HandOpen rather than having a weight of its " +
-                    "own: a pushed palm and an open hand are one gesture. Negative curls the wrist " +
-                    "the other way.",
-                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(181)));
+                    "own: a pushed palm and an open hand are one gesture. Playtest took it to the " +
+                    "limit, 1 — the wrist is what aims the palm, and anything less pointed the " +
+                    "palm at the ground while the shot went forward. Negative curls it the other " +
+                    "way.",
+                    new AcceptableValueRange<float>(-1f, 1f), ClientSide(179)));
 
             // Mesmo emote do carregamento, mas de disparo unico: carregar segura a pose, transformar
             // e' um estouro. O grito replica sozinho pela ZDO — os amigos veem e ouvem.

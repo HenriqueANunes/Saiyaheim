@@ -197,6 +197,11 @@ namespace Saiyaheim.Attacks
             float[] muscles = pose.muscles;
             float weight = state.Weight;
 
+            // Para onde a mira aponta, na horizontal, e quem paga por ela. O tronco leva a fatia
+            // que o braço não leva — nunca as duas coisas, senão o gesto gira duas vezes.
+            float aimYaw = AimYaw(player);
+            float yawToTorso = Mathf.Clamp01(SaiyaheimConfig.BlastPoseAimYawTorsoShare.Value);
+
             // ---------- O braço ----------
             float arm = weight * SaiyaheimConfig.BlastPoseArmWeight.Value;
             if (arm > 0f)
@@ -205,13 +210,20 @@ namespace Saiyaheim.Attacks
                 // o HoverArmSpread do voo: 0 é T-pose, ou seja braço na horizontal — que é
                 // exatamente a altura de quem aponta para frente. Não há nome de intenção honesto
                 // para "onde fica o braço".
-                float height = SaiyaheimConfig.BlastPoseArmHeight.Value + AimOffset(player);
+                float height = SaiyaheimConfig.BlastPoseArmHeight.Value + AimPitchOffset(player);
                 HumanMuscles.Blend(muscles, MuscleArmSpread, Mathf.Clamp(height, -1f, 1f), arm);
 
                 // A que faz o gesto. Da T-pose, girar o braço para frente é o que o aponta para
                 // onde o jogador olha.
-                HumanMuscles.Blend(muscles, MuscleArmSwing,
-                    SaiyaheimConfig.BlastPoseArmForward.Value * ForwardSign, arm);
+                //
+                // A mira horizontal entra aqui, **subtraindo**: com o braço direito, olhar para a
+                // direita é abrir o braço de volta na direção do lado (menos "para frente"), e
+                // olhar para a esquerda é atravessá-lo no peito (mais). Sem clamp de propósito —
+                // atravessar o peito passa de 1, e é uma posição que o braço de verdade alcança.
+                // Quem limita quanto isso anda é o AimFollowYaw.
+                float forward = SaiyaheimConfig.BlastPoseArmForward.Value
+                                - aimYaw * (1f - yawToTorso);
+                HumanMuscles.Blend(muscles, MuscleArmSwing, forward * ForwardSign, arm);
 
                 // A rotação do úmero decide para onde a palma aponta. Com o cotovelo esticado ela
                 // quase não muda a silhueta — mas é ela que separa "mão espalmada para frente" de
@@ -219,10 +231,12 @@ namespace Saiyaheim.Attacks
                 HumanMuscles.Blend(muscles, MuscleArmTwist,
                     SaiyaheimConfig.BlastPoseArmTwist.Value, arm);
 
-                // Alvo absoluto: 0 é braço reto, positivo dobra. O pedido é cotovelo esticado, e o
-                // default é o que a config diz.
+                // Alvo absoluto, e o músculo se chama "Stretch" por um motivo: +1 é o braço reto
+                // e -1 a dobra máxima — 0, que parecia o valor óbvio para "cotovelo esticado", é o
+                // MEIO da faixa, ou seja um braço dobrado. A descrição desta chave dizia o
+                // contrário até 2026-08-21, e foi o que fez o braço reto parecer inalcançável.
                 HumanMuscles.Blend(muscles, MuscleElbow,
-                    SaiyaheimConfig.BlastPoseElbowBend.Value, arm);
+                    SaiyaheimConfig.BlastPoseElbowStretch.Value, arm);
             }
 
             // ---------- O ombro ----------
@@ -248,7 +262,10 @@ namespace Saiyaheim.Attacks
             float torso = weight * SaiyaheimConfig.BlastPoseTorsoWeight.Value;
             if (torso > 0f)
             {
-                float twist = SaiyaheimConfig.BlastPoseTorsoTwist.Value * TwistSign;
+                // A fatia da mira que o braço não levou. Mesmo sinal do braço: girar o tronco para
+                // a direita afasta o ombro direito, que é o contrário da intenção positiva daqui.
+                float twist = (SaiyaheimConfig.BlastPoseTorsoTwist.Value - aimYaw * yawToTorso)
+                              * TwistSign;
 
                 // Escalonado de baixo para cima: a lombar mal se mexe, o peito alto leva o ombro.
                 // Torcer as três igualmente aponta o quadril para o lado junto, e aí o personagem
@@ -313,9 +330,9 @@ namespace Saiyaheim.Attacks
         /// da mão para cima com o braço apontando para o horizonte — e é o tipo de erro que só
         /// aparece quando alguém atira num Draugr numa torre.
         /// </summary>
-        private static float AimOffset(Player player)
+        private static float AimPitchOffset(Player player)
         {
-            float follow = SaiyaheimConfig.BlastPoseAimFollow.Value;
+            float follow = SaiyaheimConfig.BlastPoseAimFollowPitch.Value;
             if (follow <= 0f)
             {
                 return 0f;
@@ -325,6 +342,51 @@ namespace Saiyaheim.Attacks
             // virar grau: o espaço de músculo também é normalizado, e o que se quer aqui é
             // proporção e não ângulo exato.
             return player.GetLookDir().normalized.y * follow;
+        }
+
+        /// <summary>
+        /// Quanto o braço gira na horizontal para acompanhar a mira. Positivo é a câmera olhando à
+        /// <b>direita</b> de para onde o corpo aponta.
+        ///
+        /// <b>Por que não bastava o pitch.</b> A pose é escrita no espaço do <i>corpo</i>, e o
+        /// corpo em geral já está virado para a câmera — daí o braço parecer acompanhar a mira
+        /// sozinho na horizontal e o irmão vertical ter sido o único a nascer. Mas "em geral" não é
+        /// "sempre": correndo para um lado e olhando para outro, o corpo segue o movimento e a
+        /// câmera não, e é justamente aí que o tiro sai numa direção com a mão apontando para
+        /// outra. É a mesma falha do pitch, no eixo que ninguém tinha olhado.
+        ///
+        /// <b>O denominador é 90°</b> porque é o que uma unidade de músculo vale neste swing: do
+        /// braço aberto de lado (0) ao braço apontado para frente (1) vai exatamente um quarto de
+        /// volta. Passar disso é o braço atravessando o peito, e o clamp aqui existe só para o
+        /// jogador olhando para trás — onde não há gesto possível e o certo é parar no limite em
+        /// vez de o braço dar a volta.
+        /// </summary>
+        private static float AimYaw(Player player)
+        {
+            float follow = SaiyaheimConfig.BlastPoseAimFollowYaw.Value;
+            if (follow <= 0f)
+            {
+                return 0f;
+            }
+
+            Vector3 look = player.GetLookDir();
+            Vector3 body = player.transform.forward;
+
+            // Só o plano do chão: a parte vertical do olhar já é problema do AimPitchOffset, e
+            // deixá-la aqui faria mirar no céu contar como girar para o lado.
+            look.y = 0f;
+            body.y = 0f;
+
+            if (look.sqrMagnitude < 0.0001f || body.sqrMagnitude < 0.0001f)
+            {
+                return 0f;
+            }
+
+            // SignedAngle em torno do "para cima" dá positivo quando o alvo está à direita da
+            // referência. Se na tela o braço for para o lado errado, é este sinal que troca.
+            float degrees = Vector3.SignedAngle(body, look, Vector3.up);
+
+            return Mathf.Clamp(degrees / 90f, -1f, 1f) * follow;
         }
 
         /// <summary>
