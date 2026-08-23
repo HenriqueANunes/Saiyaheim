@@ -1014,6 +1014,12 @@ namespace Saiyaheim
             // pelo ApplyArmor do jogo (dano²/4*armadura) um golpe de 90 virava 22 — tanque demais.
             // Em 0.06 o mesmo golpe faz 51, e a curva de armadura fica parecida com a de antes do
             // termo novo, que era o alvo: o fim de jogo compra dano e alcance de voo, nao imunidade.
+            //
+            // ⚠️ Esse 0.06 pressupoe o K5 LIGADO, e ele saiu de default em 2026-08-23. Sem o termo,
+            // o poder de combate no nivel 100 volta a ser a METADE do que esta conta assumiu, e a
+            // armadura de ki no fim de jogo caiu junto — sem ninguem ter decidido isso. Se o
+            // playtest disser que o personagem ficou de papel no late game, e' aqui, e nao no
+            // bloqueio, que o numero precisa subir.
             ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.06f,
                 new ConfigDescription(
                     "Fraction of the power level converted into armor. While ki is on this armor " +
@@ -1071,24 +1077,30 @@ namespace Saiyaheim
                     "Leave this above zero.",
                     new AcceptableValueRange<float>(0f, 200f), AdminOnly(58)));
 
-            // Ancorado na tabela do `saiya_block shields`, com o poder bruto indo de ~61 (skill 10)
-            // a ~327 (skill 100):
-            //   raw  61 -> 15.5   abaixo do ShieldWood (18.5), o pior escudo do jogo
-            //   raw 150 -> 35     entre ShieldBronzeBuckler (28.7) e ShieldIronBuckler (41)
-            //   raw 327 -> 74     ShieldSerpentscale (73.8), longe do ShieldFlametalTower (155.8)
-            // Deliberadamente ABAIXO da escada de escudos: o punho ja ganha em nao quebrar, nao
-            // ocupar a mao e escalar sozinho.
-            BlockPowerFromPower = config.Bind(SecCombat, "BlockPowerFromPower", 0.22f,
+            // Cortado de 0.22 para 0.04 no playtest de 2026-08-23, e o motivo NAO e' a escada de
+            // escudos — e' a curva do ApplyArmor rodando DUAS vezes no mesmo golpe. O bloqueio
+            // barra primeiro e a armadura de ki barra o resto, e a curva do jogo e' dano²/(4*ac):
+            // duas passagens viram uma quarta potencia efetiva. Em 0.22 um golpe de 100 no skill
+            // 100 chegava em ~14 de dano e custava 2% da barra de ki — bloquear anulava o golpe e
+            // era de graca. Em 0.04 o bloqueio volta a ser um desconto sobre o golpe, e a armadura
+            // de ki continua sendo a defesa principal.
+            //
+            // Consequencia aceita: o block power fica ABAIXO do ShieldWood (18.5), o pior escudo
+            // do jogo, em toda a progressao. O punho ja ganha em nao quebrar, nao ocupar a mao e
+            // escalar sozinho; nao precisa tambem ganhar no numero.
+            BlockPowerFromPower = config.Bind(SecCombat, "BlockPowerFromPower", 0.04f,
                 new ConfigDescription(
                     "Fraction of the power level converted into block power. While ki is on this " +
                     "REPLACES the blocker item's value — holding a shield changes nothing, exactly " +
                     "like ArmorFromPower replaces equipment armor. Turning ki off gives the shield " +
                     "back immediately. " +
-                    "Calibrated to sit BELOW the vanilla shield ladder: at power skill 10 it lands " +
-                    "under the wood shield, at 100 around the serpentscale, never near flametal. " +
-                    "Run 'saiya_block shields' for the table and 'saiya_block <damage>' to see " +
-                    "what a given hit does. " +
-                    "(Starting value, 2026-08-01. Not playtested yet.)",
+                    "Kept well BELOW the vanilla shield ladder — under the wood shield across the " +
+                    "whole progression. It has to be: a blocked hit runs through Valheim's " +
+                    "damage/(4*armor) curve TWICE, once against this and again against the ki " +
+                    "armor, so what looks like a modest number compounds into near-immunity. " +
+                    "Run 'saiya_block <damage>' to see what a given hit actually does. " +
+                    "(Playtest value, 2026-08-23. Cut from the 0.22 of 2026-08-01, which made an " +
+                    "endgame block absorb ~86% of a hit for 2% of the ki bar.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(56)));
 
             // Metade do DamageTakenKiCost, e nao o mesmo valor, porque um golpe bloqueado paga as
@@ -1414,6 +1426,12 @@ namespace Saiyaheim
             // logo fator 1/2). Multiplica com o KiSkillReduction, entao um jogador no topo das duas
             // skills paga 15 x 0.5 x 0.5 = 3.75/s. Se o playtest disser que voo ficou barato demais
             // no fim, este e o numero a baixar — nao o KiPerSecond, que calibra o comeco.
+            //
+            // ⚠️ Com o K5 em 0, que e' o default desde 2026-08-23, esta chave nao faz NADA: ela le
+            // o termo de fim de jogo sozinho, e ele vale zero. O desconto de voo no late game
+            // simplesmente deixou de existir, e a unica progressao que sobrou no ar e' a skill de
+            // voo (KiSkillReduction). Nao e' bug — e' o preco de desligar o K5, e esta anotado aqui
+            // para nao virar um misterio de "por que voar nao barateia mais".
             FlightKiPowerReduction = config.Bind(SecFlight, "KiPowerReduction", 0.0033f,
                 new ConfigDescription(
                     "How much the late-game power term (Power Level.K5_LateGameBonus) cheapens " +
@@ -1520,7 +1538,15 @@ namespace Saiyaheim
             // redistribui um total fixo: para render mais no fim ele tira do meio, e o mid-game
             // fica mais fraco do que ja e. Somando um termo separado, o K4 de hoje continua
             // intocado e o novo so pesa onde o grind aperta.
-            PowerK5LateGame = config.Bind(SecPower, "K5_LateGameBonus", 3f,
+            //
+            // DESLIGADO por default desde o playtest de 2026-08-23. O termo dobrava o poder de
+            // combate no nivel 100, e como soco, armadura e block power leem esse mesmo numero,
+            // ele empurrava os tres de uma vez — cada um calibrado contra uma escala diferente do
+            // jogo. A mecanica continua inteira e a um config de distancia; o que mudou e' que ela
+            // nao esta' ligada enquanto nao houver uma calibragem que segure os tres consumidores
+            // juntos. Ver ArmorFromPower e Flight.KiPowerReduction, que foram dimensionados com
+            // ele ligado.
+            PowerK5LateGame = config.Bind(SecPower, "K5_LateGameBonus", 0f,
                 new ConfigDescription(
                     "Power delivered by the late-game term AT LEVEL 100, on top of K4. It exists " +
                     "because levelling gets brutally more expensive but the reward did not: going " +
@@ -1530,7 +1556,9 @@ namespace Saiyaheim
                     "AFFECTS COMBAT ONLY: punch damage, armor, block power and the displayed " +
                     "number. Flight speed and the ki cap deliberately ignore it — see " +
                     "Flight.KiPowerReduction for what late game buys in the air. " +
-                    "0 turns the term off and restores the original linear formula exactly.",
+                    "0 turns the term off and restores the original linear formula exactly — " +
+                    "which is the default since the 2026-08-23 playtest, where doubling combat " +
+                    "power at level 100 dragged punch damage, armor and block power up together.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(65)));
 
             PowerLateGameExponent = config.Bind(SecPower, "LateGameExponent", 5f,

@@ -273,17 +273,17 @@
         <div class="group-body">
           <div class="ctl is-hero">
             <div class="row"><label for="k5">K5 — ganho no nível 100</label><output id="k5-out"></output></div>
-            <input type="range" id="k5" min="0" max="20" step="0.5" value="3">
+            <input type="range" id="k5" min="0" max="20" step="0.5" value="0">
           </div>
-          <p class="hint">Quanto de poder o termo entrega no topo. Em 0 a fórmula volta a ser exatamente a de hoje.</p>
+          <p class="hint">Quanto de poder o termo entrega no topo. Em 0 — o default desde o playtest de 2026-08-23 — a fórmula é a linear original, e a coluna de referência da tabela deixa de ter com o que comparar. Suba para ver o que o termo faria.</p>
           <div class="ctl is-hero">
             <div class="row"><label for="p">Expoente — quão tarde acorda</label><output id="p-out"></output></div>
             <input type="range" id="p" min="1" max="10" step="0.1" value="5">
           </div>
           <p class="hint">Normalizado no 100: mexer aqui nunca muda o valor do topo, só quanto dele chega antes.</p>
           <div class="presets" id="presets">
-            <button type="button" data-k5="0" data-p="5">desligado</button>
-            <button type="button" data-k5="3" data-p="5">implementado</button>
+            <button type="button" data-k5="0" data-p="5">implementado</button>
+            <button type="button" data-k5="3" data-p="5">termo ligado</button>
             <button type="button" data-k5="9" data-p="5">topo 4×</button>
           </div>
         </div>
@@ -293,7 +293,7 @@
         <summary><span class="chev">▶</span>Power level</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="hp">HP acima da base (25)</label><output id="hp-out"></output></div>
-            <input type="range" id="hp" min="0" max="200" step="5" value="60"></div>
+            <input type="range" id="hp" min="0" max="200" step="5" value="120"></div>
           <div class="ctl"><div class="row"><label for="k1">K1_Health</label><output id="k1-out"></output></div>
             <input type="range" id="k1" min="0" max="3" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="k4">K4_PowerSkill (termo linear)</label><output id="k4-out"></output></div>
@@ -321,7 +321,7 @@
           <div class="ctl"><div class="row"><label for="blkb">BlockPowerBase</label><output id="blkb-out"></output></div>
             <input type="range" id="blkb" min="0" max="40" step="1" value="2"></div>
           <div class="ctl"><div class="row"><label for="blkp">BlockPowerFromPower</label><output id="blkp-out"></output></div>
-            <input type="range" id="blkp" min="0" max="0.6" step="0.005" value="0.22"></div>
+            <input type="range" id="blkp" min="0" max="0.3" step="0.002" value="0.04"></div>
         </div>
       </details>
 
@@ -405,7 +405,7 @@
         <summary><span class="chev">▶</span>Ki</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="kmax">MaxKi</label><output id="kmax-out"></output></div>
-            <input type="range" id="kmax" min="10" max="400" step="5" value="50"></div>
+            <input type="range" id="kmax" min="10" max="400" step="5" value="170"></div>
           <div class="ctl"><div class="row"><label for="kper">MaxKiPerPowerLevel</label><output id="kper-out"></output></div>
             <input type="range" id="kper" min="0" max="20" step="0.5" value="3"></div>
           <div class="ctl"><div class="row"><label for="creg">ChargeKiPerSecond</label><output id="creg-out"></output></div>
