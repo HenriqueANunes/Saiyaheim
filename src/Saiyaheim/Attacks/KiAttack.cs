@@ -13,8 +13,8 @@ namespace Saiyaheim.Attacks
     /// nem qual está selecionado.
     ///
     /// <b>Não tem skill própria.</b> Diferente da forma, que tem a maestria dela, o ataque de ki
-    /// paga e é pago pelo <c>PowerSkill</c> (Battle Power) como o soco: o dano sai do power level
-    /// de combate, e acertar dá XP de Battle Power sozinho — o <c>DamageXpPatch</c> credita por
+    /// paga e é pago pelo <c>PowerSkill</c> (Power Level) como o soco: o dano sai do battle power
+    /// de combate, e acertar dá XP de Power Level sozinho — o <c>DamageXpPatch</c> credita por
     /// <c>hit.GetAttacker()</c>, e o projétil carrega o jogador como atacante. Uma skill própria
     /// seria uma quarta curva de progressão para calibrar, e está em [[Em Aberto]] justamente
     /// porque ainda não se sabe se ela é necessária.
@@ -84,10 +84,10 @@ namespace Saiyaheim.Attacks
                 return bossLock;
             }
 
-            float required = Config.MinBattlePower.Value;
+            float required = Config.MinPowerLevel.Value;
             if (required > 0f && PowerSkill.GetLevel(player) < required)
             {
-                return $"Battle Power {required:0} required for {DisplayName}.";
+                return $"Power Level {required:0} required for {DisplayName}.";
             }
 
             return null;
@@ -104,7 +104,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         internal float GetDamage(Player player)
         {
-            return DamageFor(PowerLevel.GetCombatRaw(player));
+            return DamageFor(BattlePower.GetCombatRaw(player));
         }
 
         /// <summary>

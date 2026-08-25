@@ -13,7 +13,7 @@ namespace Saiyaheim.Flight
     {
         /// <summary>
         /// Carga do inventário em 0–1. É o mesmo dado que o <c>SkillXpWeightBonus</c> usa na
-        /// etapa 3, e de propósito: peso paga XP de Battle Power e cobra velocidade de voo.
+        /// etapa 3, e de propósito: peso paga XP de Power Level e cobra velocidade de voo.
         /// A roupa pesada do Goku é exatamente essa troca.
         /// </summary>
         internal static float GetWeightLoad(Player player)
@@ -34,10 +34,10 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// Velocidade somada pelo power level.
+        /// Velocidade somada pelo battle power.
         ///
         /// <b>Aditiva, não multiplicativa</b>, pelo mesmo motivo do dano do soco: o poder cresce
-        /// sem teto (HP acima da base + nível de Battle Power) e multiplicá-lo faria a velocidade
+        /// sem teto (HP acima da base + nível da skill Power Level) e multiplicá-lo faria a velocidade
         /// explodir contra o teto do <c>MaxSpeed</c> cedo demais.
         ///
         /// Efeito colateral desejado: comer melhor faz voar mais rápido, porque HP entra na
@@ -51,7 +51,7 @@ namespace Saiyaheim.Flight
         /// </summary>
         internal static float GetSpeedFromPower(Player player)
         {
-            return Power.PowerLevel.GetRaw(player) * SaiyaheimConfig.FlightSpeedFromPower.Value;
+            return Power.BattlePower.GetRaw(player) * SaiyaheimConfig.FlightSpeedFromPower.Value;
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace Saiyaheim.Flight
         /// compra velocidade nenhuma e SSJ e SSJ2 deixam de se distinguir no ar. Amortecer só o
         /// <i>ganho</i> (e não o fator inteiro) mantém "sem forma = 1" de graça, sem caso especial.
         ///
-        /// Vem do <c>TransformationRegistry</c> e não do <c>PowerLevel</c> porque a velocidade lê o
+        /// Vem do <c>TransformationRegistry</c> e não do <c>BattlePower</c> porque a velocidade lê o
         /// poder <b>linear</b>, e o multiplicador mora no de <b>combate</b> — pegá-lo pelo
         /// <c>GetCombatRaw</c> traria junto o termo de fim de jogo, que a velocidade recusa por
         /// razão própria (ver <see cref="GetSpeedFromPower"/>).
@@ -210,7 +210,7 @@ namespace Saiyaheim.Flight
                 return 1f;
             }
 
-            return 1f / (1f + rate * Power.PowerLevel.GetLateGameBonus(player));
+            return 1f / (1f + rate * Power.BattlePower.GetLateGameBonus(player));
         }
     }
 }

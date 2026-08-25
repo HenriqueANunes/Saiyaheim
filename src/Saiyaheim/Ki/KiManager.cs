@@ -29,7 +29,7 @@ namespace Saiyaheim.Ki
         internal static float Current => _state == null || !_state.Enabled ? 0f : _state.Current;
 
         /// <summary>
-        /// Teto de ki. Cresce com o nível de Battle Power: com um teto fixo a barra teria o
+        /// Teto de ki. Cresce com o nível da skill Power Level: com um teto fixo a barra teria o
         /// mesmo tamanho do primeiro ao último boss e a progressão não apareceria em lugar nenhum
         /// da HUD.
         /// </summary>
@@ -48,11 +48,11 @@ namespace Saiyaheim.Ki
         /// Regeneração passiva por segundo, já escalada pelo poder e pelo descanso.
         ///
         /// Escala com o poder porque o teto não é fixo: <see cref="MaxFor"/> cresce com o nível de
-        /// Battle Power, e uma torneira plena enchendo um reservatório cada vez maior significa que
+        /// Power Level, e uma torneira plena enchendo um reservatório cada vez maior significa que
         /// ficar forte deixa o jogador proporcionalmente <b>mais lento</b> para recuperar ki —
         /// o contrário do que o mod quer dizer.
         ///
-        /// Aditiva no poder, como todo o resto do mod. Lê o power level derivado, a mesma base do
+        /// Aditiva no poder, como todo o resto do mod. Lê o battle power derivado, a mesma base do
         /// <c>FlightSpeedFromPower</c>: se comer melhor faz voar mais rápido, faz recarregar
         /// mais rápido também.
         ///
@@ -62,7 +62,7 @@ namespace Saiyaheim.Ki
         internal static float RegenPerSecondFor(Player player)
         {
             float perSecond = SaiyaheimConfig.KiRegenPerSecond.Value
-                              + SaiyaheimConfig.KiRegenFromPower.Value * PowerLevel.GetRaw(player);
+                              + SaiyaheimConfig.KiRegenFromPower.Value * BattlePower.GetRaw(player);
 
             return IsRested(player)
                 ? perSecond * SaiyaheimConfig.KiRegenRestedMultiplier.Value
@@ -111,7 +111,7 @@ namespace Saiyaheim.Ki
         internal static float ChargePerSecondFor(Player player)
         {
             return SaiyaheimConfig.ChargeKiPerSecond.Value
-                   + SaiyaheimConfig.ChargeKiFromPower.Value * PowerLevel.GetRaw(player);
+                   + SaiyaheimConfig.ChargeKiFromPower.Value * BattlePower.GetRaw(player);
         }
 
         /// <summary>

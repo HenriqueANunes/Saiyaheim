@@ -20,7 +20,7 @@ namespace Saiyaheim.Transformations
     /// graça. Ela é a maestria — sobe segurando a forma e paga em <b>dreno menor</b>, que é a
     /// única moeda dela.
     ///
-    /// <b>Não confundir com Battle Power.</b> Battle Power é uma só, global, e mede quanto o
+    /// <b>Não confundir com Power Level.</b> Power Level é uma só, global, e mede quanto o
     /// jogador treinou lutando; maestria é uma por forma e mede quanto ele domina <i>aquela</i>
     /// forma. As duas sobem por caminhos diferentes e pagam em coisas diferentes.
     /// </summary>
@@ -48,7 +48,7 @@ namespace Saiyaheim.Transformations
         internal int NameHashValue { get; }
 
         /// <summary>
-        /// Ignora as travas <b>desta forma</b>: a global key do boss e o <c>MinBattlePower</c>.
+        /// Ignora as travas <b>desta forma</b>: a global key do boss e o <c>MinPowerLevel</c>.
         /// Ligado só pelo <c>saiya_form &lt;forma&gt; unlock</c>, e só com <c>devcommands</c>.
         ///
         /// <b>Por que existe em vez de mandar usar o <c>setglobalkey</c> do jogo.</b> Aquele
@@ -94,7 +94,7 @@ namespace Saiyaheim.Transformations
                 DisplayName,
                 $"Mastery of the {DisplayName} form. Grows while you hold it — or any form above " +
                 "it — and every level makes holding it cost less ki. It does not make the form " +
-                "stronger — that is Battle Power's job.",
+                "stronger — that is Power Level's job.",
                 increaseStep: 1f);
 
             SaiyaheimPlugin.Log.LogInfo($"Skill '{DisplayName}' (mastery) registered ({SkillType}).");
@@ -104,8 +104,8 @@ namespace Saiyaheim.Transformations
         /// O jogador já destravou esta forma?
         ///
         /// Destravar tem <b>duas</b> travas independentes, e as duas precisam estar abertas:
-        /// o boss (<c>RequiredGlobalKey</c>, a trava da escada) e o nível de Battle Power
-        /// (<c>MinBattlePower</c>, treino). Hoje só a primeira está em uso — a escada é ritmada por
+        /// o boss (<c>RequiredGlobalKey</c>, a trava da escada) e o nível da skill Power Level
+        /// (<c>MinPowerLevel</c>, treino). Hoje só a primeira está em uso — a escada é ritmada por
         /// bosses, e exigir grind por cima ritmaria duas vezes a mesma progressão.
         ///
         /// Ki e estado (morto, dormindo) <b>não</b> entram aqui: aquilo é "não posso agora", isto é
@@ -147,10 +147,10 @@ namespace Saiyaheim.Transformations
                 return bossLock;
             }
 
-            float required = Config.MinBattlePower.Value;
+            float required = Config.MinPowerLevel.Value;
             if (required > 0f && PowerSkill.GetLevel(player) < required)
             {
-                return $"Battle Power {required:0} required for {DisplayName}.";
+                return $"Power Level {required:0} required for {DisplayName}.";
             }
 
             return null;
@@ -174,7 +174,7 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// O multiplicador que a forma aplica sobre o power level de combate.
+        /// O multiplicador que a forma aplica sobre o battle power de combate.
         ///
         /// Piso em 1: um multiplicador abaixo de 1 seria uma transformação que <b>enfraquece</b>,
         /// e o <c>.cfg</c> de um jogador não deve conseguir inverter o sentido da mecânica.

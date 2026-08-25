@@ -6,7 +6,7 @@ namespace Saiyaheim.Power
     /// <summary>
     /// O corpo de ki: o <c>StatusEffect</c> ativo enquanto o ki está ligado.
     ///
-    /// Faz as duas coisas que o [[Power Level]] entrega ao combate:
+    /// Faz as duas coisas que o [[Battle Power]] entrega ao combate:
     /// <list type="number">
     /// <item><b>soma dano cru no soco</b>, via <c>ModifyAttack</c>, que recebe o <c>HitData</c>
     /// por referência antes do golpe sair. É o aditivo que o <c>SE_Stats.m_damageModifier</c>,
@@ -21,7 +21,7 @@ namespace Saiyaheim.Power
     /// multiplicasse noutro SE, o resultado dependeria dessa ordem.
     ///
     /// <b>A transformação resolveu isso indo para outro lugar</b> (etapa 5, 2026-08-02): ela
-    /// multiplica o power level na fonte, dentro do <c>PowerLevel.GetKiCombatRaw</c>, e não o
+    /// multiplica o battle power na fonte, dentro do <c>BattlePower.GetKiCombatRaw</c>, e não o
     /// golpe. Então o <c>GetPunchDamageBonus</c> lido abaixo <b>já vem multiplicado</b>, este
     /// continua sendo o único efeito do mod que mexe no <c>HitData</c>, e a armadilha de ordem
     /// nunca chega a existir. De quebra, armadura, block power e voo ganharam o multiplicador de
@@ -57,7 +57,7 @@ namespace Saiyaheim.Power
             var effect = CreateInstance<SE_KiBody>();
             effect.name = ObjectName;
             effect.m_name = "Ki Body";
-            effect.m_tooltip = "Damage and armor come from your battle power.";
+            effect.m_tooltip = "Damage and armor come from your power level.";
 
             // Sem ícone: SEMan.GetHUDStatusEffects filtra por m_icon, então o efeito não ocupa
             // espaço na barra de status. O ícone de estado do toggle é outra coisa, e vem depois.
@@ -178,7 +178,7 @@ namespace Saiyaheim.Power
             // Atribuição, não soma: a armadura do equipamento é descartada. Quem usa ki abre mão
             // da build vanilla inteira. Desligar o toggle remove este efeito e devolve a armadura
             // das peças na hora.
-            armor = PowerLevel.GetArmor(player);
+            armor = BattlePower.GetArmor(player);
         }
 
         /// <summary>
@@ -217,8 +217,8 @@ namespace Saiyaheim.Power
             // O mesmo desconto do soco, e pelo mesmo motivo: a armadura de ki cresce com o poder,
             // então absorve mais e cobra mais, enquanto a barra parou de crescer no nível 100. Sem
             // isto, apanhar fica progressivamente impagável junto com bater. Ver
-            // PowerLevel.GetKiCostFactor.
-            float cost = absorbed * rate * PowerLevel.GetKiCostFactor(player);
+            // BattlePower.GetKiCostFactor.
+            float cost = absorbed * rate * BattlePower.GetKiCostFactor(player);
 
             // Drain e não TryConsume: a barra vazia não impede o golpe de acontecer, e o
             // que sobrar do custo simplesmente não é cobrado.
@@ -261,7 +261,7 @@ namespace Saiyaheim.Power
         /// </summary>
         private static float EstimateArmorAbsorption(HitData hit, Player player)
         {
-            float armor = PowerLevel.GetArmor(player);
+            float armor = BattlePower.GetArmor(player);
             if (armor <= 0f)
             {
                 return 0f;
@@ -275,7 +275,7 @@ namespace Saiyaheim.Power
             // armadura absorve é o que sobrou do bloqueio, não o golpe inteiro.
             if (WillBlock(hit, player))
             {
-                copy.m_damage.ApplyArmor(PowerLevel.GetBlockPower(player));
+                copy.m_damage.ApplyArmor(BattlePower.GetBlockPower(player));
             }
 
             copy.ApplyResistance(player.GetDamageModifiers(), out _);
@@ -317,7 +317,7 @@ namespace Saiyaheim.Power
         /// ki prestou, e por isso envelhecem bem — um custo fixo faria o soco ficar cada vez mais
         /// barato em relação ao que entrega, já que o bônus cresce com o poder.
         ///
-        /// Proporcional puro ele já não é: o <see cref="PowerLevel.GetPunchKiCost"/> desconta o
+        /// Proporcional puro ele já não é: o <see cref="BattlePower.GetPunchKiCost"/> desconta o
         /// poder por cima, porque proporção pura envelhecia para o outro lado — o bônus cresce sem
         /// teto e a barra de ki não. Ver lá.
         ///
@@ -348,13 +348,13 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            float bonus = PowerLevel.GetPunchDamageBonus(player);
+            float bonus = BattlePower.GetPunchDamageBonus(player);
             if (bonus <= 0f)
             {
                 return 0f;
             }
 
-            float cost = PowerLevel.GetPunchKiCost(player, bonus);
+            float cost = BattlePower.GetPunchKiCost(player, bonus);
             if (cost > 0f && !KiManager.TryConsume(cost))
             {
                 return 0f;
@@ -368,7 +368,7 @@ namespace Saiyaheim.Power
             // saiya_form, com o golpe inteiro em vez de só o bônus.
             // O desconto entra no log porque sem ele a calibração do KiCostPowerReduction é
             // impossível: o custo sozinho não diz de quanto ele já foi abatido.
-            float factor = PowerLevel.GetKiCostFactor(player);
+            float factor = BattlePower.GetKiCostFactor(player);
 
             SaiyaheimPlugin.LogVerbose(
                 $"Punch bonus {bonus:0.#} → {cost:0.#} ki ({KiManager.Current:0.#} left)" +

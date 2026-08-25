@@ -207,18 +207,18 @@ namespace Saiyaheim.Debugging
 
             // O ponto inteiro da mecanica e' o salto de poder. Imprimir os dois lados evita ter que
             // transformar, rodar saiya_power, destransformar e rodar de novo para comparar.
-            float combat = PowerLevel.GetCombatRaw(player);
+            float combat = BattlePower.GetCombatRaw(player);
             float multiplier = form.GetPowerMultiplier();
             float outOfForm = active == null ? combat : combat / multiplier;
 
             float inForm = outOfForm * multiplier;
 
             Print($"Combat power: {outOfForm:0.#} base → {inForm:0.#} in form");
-            Print($"  armor {PowerLevel.ArmorFor(outOfForm):0} → {PowerLevel.ArmorFor(inForm):0}, " +
-                  $"punch bonus {PowerLevel.PunchBonusFor(outOfForm):0.#} → " +
-                  $"{PowerLevel.PunchBonusFor(inForm):0.#}");
+            Print($"  armor {BattlePower.ArmorFor(outOfForm):0} → {BattlePower.ArmorFor(inForm):0}, " +
+                  $"punch bonus {BattlePower.PunchBonusFor(outOfForm):0.#} → " +
+                  $"{BattlePower.PunchBonusFor(inForm):0.#}");
 
-            PrintDamageSplit(form, PowerLevel.PunchBonusFor(inForm));
+            PrintDamageSplit(form, BattlePower.PunchBonusFor(inForm));
             PrintPunchEconomy(outOfForm, inForm);
         }
 
@@ -280,22 +280,22 @@ namespace Saiyaheim.Debugging
             // Dano por barra e' o teste de fogo da forma: dobrar o dano do soco e' inutil se a
             // barra passar a comprar metade dos socos.
             Print($"  punches per full bar ({max:0} ki): {max / costOut:0.#} → {max / costIn:0.#}" +
-                  $"   bonus damage per bar: {max / costOut * PowerLevel.PunchBonusFor(outOfForm):0} → " +
-                  $"{max / costIn * PowerLevel.PunchBonusFor(inForm):0}");
+                  $"   bonus damage per bar: {max / costOut * BattlePower.PunchBonusFor(outOfForm):0} → " +
+                  $"{max / costIn * BattlePower.PunchBonusFor(inForm):0}");
         }
 
         /// <summary>O custo de ki de um soco a um poder de combate hipotético.</summary>
         private static float PunchCostFor(float combatPower)
         {
-            return PowerLevel.PunchBonusFor(combatPower)
+            return BattlePower.PunchBonusFor(combatPower)
                    * SaiyaheimConfig.PunchKiCostPerDamage.Value
-                   * PowerLevel.KiCostFactorFor(combatPower);
+                   * BattlePower.KiCostFactorFor(combatPower);
         }
 
         /// <summary>O desconto por poder no soco em forma, ou string vazia se está desligado.</summary>
         private static string DescribeDiscount(float inForm)
         {
-            float factor = PowerLevel.KiCostFactorFor(inForm);
+            float factor = BattlePower.KiCostFactorFor(inForm);
 
             return factor >= 1f
                 ? ""

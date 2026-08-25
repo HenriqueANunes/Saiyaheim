@@ -19,7 +19,7 @@ namespace Saiyaheim.Attacks
     /// replica sozinho. É o oposto do que <c>AttachedEffect</c> faz, e de propósito: lá o efeito é
     /// visual e local e o <c>m_forceDisableInit</c> impede a ZDO; aqui a ZDO <b>é</b> a
     /// entrega.</item>
-    /// <item><b>XP de Battle Power.</b> O <c>Projectile</c> chama <c>hitData.SetAttacker(m_owner)</c>
+    /// <item><b>XP de Power Level.</b> O <c>Projectile</c> chama <c>hitData.SetAttacker(m_owner)</c>
     /// no impacto, e o <c>DamageXpPatch</c> credita por atacante. Nada a fazer.</item>
     /// <item><b>Não acerta quem atirou.</b> <c>IsValidTarget</c> recusa o próprio dono, e recusa
     /// outros jogadores quando o PvP do jogo está desligado.</item>
@@ -204,7 +204,7 @@ namespace Saiyaheim.Attacks
         {
             // O que o prefab instancia no impacto: a poça de fogo do Dvergr, estilhaços, o que for.
             // Sai por duas razões: o ataque básico não tem área, e o dano daquilo não passa pelo
-            // power level — seria dano fora da fórmula, invisível para qualquer cálculo do mod.
+            // battle power — seria dano fora da fórmula, invisível para qualquer cálculo do mod.
             //
             // ⚠️ E há uma armadilha se ficar: o Setup ZERA o dano do projétil quando o prefab tem
             // m_spawnOnHit e m_onlySpawnedProjectilesDealDamage — ou seja, o tiro sairia sem dano
@@ -438,7 +438,7 @@ namespace Saiyaheim.Attacks
 
             // Nenhuma skill vanilla: sem isto o projétil chamaria RaiseSkill na skill herdada do
             // prefab (Blood Magic, no caso do cajado Dvergr) e o ki treinaria a magia do jogo base.
-            // O eixo de progressão daqui é o Battle Power, e ele já é pago pelo dano causado.
+            // O eixo de progressão daqui é o Power Level, e ele já é pago pelo dano causado.
             hit.m_skill = Skills.SkillType.None;
             hit.m_skillRaiseAmount = 0f;
 

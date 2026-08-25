@@ -7,11 +7,11 @@ namespace Saiyaheim.Transformations
     ///
     /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, paga XP de maestria pelo tempo
     /// segurando a forma e levanta o limite de peso do inventário. O <b>poder</b> da transformação
-    /// não está aqui: é o <c>PowerLevel.GetKiCombatRaw</c> que consulta o
+    /// não está aqui: é o <c>BattlePower.GetKiCombatRaw</c> que consulta o
     /// <see cref="TransformationRegistry"/> e multiplica.
     ///
     /// <b>Por que o multiplicador não mora neste arquivo.</b> Ele não é um modificador de dano —
-    /// é um modificador de <i>power level</i>, e o power level alimenta soco, armadura, block
+    /// é um modificador de <i>battle power</i>, e o battle power alimenta soco, armadura, block
     /// power, velocidade de voo e o número exibido. Multiplicar na fonte faz os cinco andarem
     /// juntos de graça; multiplicar aqui, via <c>ModifyAttack</c>, só alcançaria o dano e ainda
     /// deixaria o resultado dependente da <b>ordem</b> em que os status effects foram adicionados
@@ -24,7 +24,7 @@ namespace Saiyaheim.Transformations
     /// ensinar quando a barra está apertada.
     ///
     /// Herda de <c>SE_Stats</c> sem usar nenhum modificador dele, e de propósito: dano, velocidade
-    /// e regeneração vêm todos do power level agora. O que o <c>SE_Stats</c> ainda tem de útil
+    /// e regeneração vêm todos do battle power agora. O que o <c>SE_Stats</c> ainda tem de útil
     /// para o futuro é o <c>m_mods</c> — resistência elemental por forma, que hoje está em aberto
     /// ([[Dano e Resistências]]) e, se entrar, entra preenchendo uma lista neste arquivo, sem
     /// patch Harmony nenhum.
@@ -54,7 +54,7 @@ namespace Saiyaheim.Transformations
             // e é por ele que o SEMan acha (e o registry reconhece) a forma.
             effect.name = form.ObjectName;
             effect.m_name = form.DisplayName;
-            effect.m_tooltip = "Your power level is multiplied and you carry more. " +
+            effect.m_tooltip = "Your battle power is multiplied and you carry more. " +
                            "Ki drains while you hold the form.";
             effect._form = form;
 
@@ -110,7 +110,7 @@ namespace Saiyaheim.Transformations
         ///
         /// ⚠️ Efeito colateral que o <c>.cfg</c> explica e vale repetir: carga é uma <b>fração do
         /// limite</b> (<c>FlightStats.GetWeightLoad</c>), então um limite maior faz a mesma carga
-        /// pesar menos no voo e pagar menos XP de Battle Power pelo <c>XpWeightBonus</c>.
+        /// pesar menos no voo e pagar menos XP de Power Level pelo <c>XpWeightBonus</c>.
         /// </summary>
         public override void ModifyMaxCarryWeight(float baseLimit, ref float limit)
         {

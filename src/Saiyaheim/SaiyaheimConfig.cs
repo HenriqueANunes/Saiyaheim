@@ -70,8 +70,8 @@ namespace Saiyaheim
         private const string SecKiBlast = "4.1 - Ki Blast";
 
         private const string SecFlight = "5 - Flight";
-        private const string SecPower = "6 - Power Level";
-        private const string SecPowerSkill = "6.1 - Battle Power";
+        private const string SecPower = "6 - Battle Power";
+        private const string SecPowerSkill = "6.1 - Power Level";
         private const string SecHud = "7 - HUD";
         private const string SecEffects = "8 - Effects";
 
@@ -161,12 +161,12 @@ namespace Saiyaheim
         /// <summary>Ki máximo no nível 0 da skill de poder. O teto cresce a partir daqui.</summary>
         public static ConfigEntry<float> MaxKi { get; private set; }
 
-        /// <summary>Ki máximo somado por nível de Battle Power.</summary>
+        /// <summary>Ki máximo somado por nível da skill Power Level.</summary>
         public static ConfigEntry<float> MaxKiPerPowerLevel { get; private set; }
 
         public static ConfigEntry<float> KiRegenPerSecond { get; private set; }
 
-        /// <summary>Regeneração passiva somada por ponto de power level. Mantém a torneira crescendo junto com a barra.</summary>
+        /// <summary>Regeneração passiva somada por ponto de battle power. Mantém a torneira crescendo junto com a barra.</summary>
         public static ConfigEntry<float> KiRegenFromPower { get; private set; }
 
         /// <summary>Intervalo do tick de ki. Regeneração é por tick fixo, nunca por frame.</summary>
@@ -184,7 +184,7 @@ namespace Saiyaheim
         /// <summary>Ki por segundo enquanto a tecla de carregar está segurada.</summary>
         public static ConfigEntry<float> ChargeKiPerSecond { get; private set; }
 
-        /// <summary>Carregamento ativo somado por ponto de power level.</summary>
+        /// <summary>Carregamento ativo somado por ponto de battle power.</summary>
         public static ConfigEntry<float> ChargeKiFromPower { get; private set; }
 
         /// <summary>Se true, andar interrompe o carregamento.</summary>
@@ -197,11 +197,11 @@ namespace Saiyaheim
 
         /// <summary>
         /// Taxa do desconto hiperbólico que o poder de combate dá nos <b>três</b> custos de ki do
-        /// combate: soco, dano recebido e bloqueio. 0 desliga. Ver <c>PowerLevel.KiCostFactorFor</c>.
+        /// combate: soco, dano recebido e bloqueio. 0 desliga. Ver <c>BattlePower.KiCostFactorFor</c>.
         /// </summary>
         public static ConfigEntry<float> KiCostPowerReduction { get; private set; }
 
-        /// <summary>Fração do power level somada ao dano do soco.</summary>
+        /// <summary>Fração do battle power somada ao dano do soco.</summary>
         public static ConfigEntry<float> PunchDamageFromPower { get; private set; }
 
         /// <summary>Armadura garantida com o ki ligado, antes da parcela vinda do poder.</summary>
@@ -213,13 +213,13 @@ namespace Saiyaheim
         /// <summary>Ki gasto por ponto de dano que a armadura de ki absorveu.</summary>
         public static ConfigEntry<float> DamageTakenKiCost { get; private set; }
 
-        /// <summary>Fração do power level convertida em armadura.</summary>
+        /// <summary>Fração do battle power convertida em armadura.</summary>
         public static ConfigEntry<float> ArmorFromPower { get; private set; }
 
         /// <summary>Block power garantido com o ki ligado, antes da parcela vinda do poder.</summary>
         public static ConfigEntry<float> BlockPowerBase { get; private set; }
 
-        /// <summary>Fração do power level convertida em block power. Substitui o do item equipado.</summary>
+        /// <summary>Fração do battle power convertida em block power. Substitui o do item equipado.</summary>
         public static ConfigEntry<float> BlockPowerFromPower { get; private set; }
 
         /// <summary>Ki gasto por ponto de dano que o bloqueio de ki barrou.</summary>
@@ -244,7 +244,7 @@ namespace Saiyaheim
         /// </summary>
         public class TransformationConfig
         {
-            /// <summary>Multiplicador do power level de combate enquanto a forma está ativa.</summary>
+            /// <summary>Multiplicador do battle power de combate enquanto a forma está ativa.</summary>
             public ConfigEntry<float> PowerMultiplier { get; internal set; }
 
             /// <summary>Dreno base por segundo, antes da redução por maestria.</summary>
@@ -275,8 +275,8 @@ namespace Saiyaheim
             /// <summary>XP da skill desta forma por segundo transformado.</summary>
             public ConfigEntry<float> MasteryXpPerSecond { get; internal set; }
 
-            /// <summary>Nível mínimo de Battle Power para entrar na forma. 0 desliga a trava.</summary>
-            public ConfigEntry<float> MinBattlePower { get; internal set; }
+            /// <summary>Nível mínimo de Power Level para entrar na forma. 0 desliga a trava.</summary>
+            public ConfigEntry<float> MinPowerLevel { get; internal set; }
 
             /// <summary>
             /// Global key do boss que destrava a forma. Vazio desliga a trava. Ver
@@ -348,10 +348,10 @@ namespace Saiyaheim
         /// </summary>
         public class KiAttackConfig
         {
-            /// <summary>Dano no power level zero. O piso do ataque, antes da parcela do poder.</summary>
+            /// <summary>Dano no battle power zero. O piso do ataque, antes da parcela do poder.</summary>
             public ConfigEntry<float> DamageBase { get; internal set; }
 
-            /// <summary>Fração do power level de combate somada ao dano.</summary>
+            /// <summary>Fração do battle power de combate somada ao dano.</summary>
             public ConfigEntry<float> DamageFromPower { get; internal set; }
 
             /// <summary>Ki gasto por disparo. Fixo: não escala com nada, de propósito.</summary>
@@ -409,8 +409,8 @@ namespace Saiyaheim
             /// <summary>Cor do projétil, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
             public ConfigEntry<string> ProjectileColor { get; internal set; }
 
-            /// <summary>Nível mínimo de Battle Power para usar o ataque. 0 desliga a trava.</summary>
-            public ConfigEntry<float> MinBattlePower { get; internal set; }
+            /// <summary>Nível mínimo de Power Level para usar o ataque. 0 desliga a trava.</summary>
+            public ConfigEntry<float> MinPowerLevel { get; internal set; }
 
             /// <summary>Global key do boss que destrava o ataque. Vazio desliga a trava.</summary>
             public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
@@ -434,7 +434,7 @@ namespace Saiyaheim
 
         public static ConfigEntry<float> FlightBaseSpeed { get; private set; }
 
-        /// <summary>Velocidade somada por ponto de power level bruto.</summary>
+        /// <summary>Velocidade somada por ponto de battle power bruto.</summary>
         public static ConfigEntry<float> FlightSpeedFromPower { get; private set; }
 
         /// <summary>
@@ -477,8 +477,8 @@ namespace Saiyaheim
         /// <summary>Fração da velocidade perdida com o inventário no peso máximo.</summary>
         public static ConfigEntry<float> FlightWeightPenalty { get; private set; }
 
-        /// <summary>Nível mínimo de Battle Power para decolar. 0 desliga a trava.</summary>
-        public static ConfigEntry<float> FlightMinBattlePower { get; private set; }
+        /// <summary>Nível mínimo de Power Level para decolar. 0 desliga a trava.</summary>
+        public static ConfigEntry<float> FlightMinPowerLevel { get; private set; }
 
         /// <summary>
         /// Teto duro de velocidade. Não é balanceamento: acima de certa velocidade o
@@ -508,7 +508,7 @@ namespace Saiyaheim
         // 2026-07-31 e viraram constantes em <c>FlightPose</c>. São decisão de arte fechada, não
         // balanceamento — não há motivo para outro jogador querer números diferentes.
 
-        // ---------- 6 - Power Level ----------
+        // ---------- 6 - Battle Power ----------
 
         public static ConfigEntry<float> PowerK1Health { get; private set; }
 
@@ -518,19 +518,19 @@ namespace Saiyaheim
         /// <summary>Só entra na fórmula do ki desligado — com ki a armadura é saída, não entrada.</summary>
         public static ConfigEntry<float> PowerK3Armor { get; private set; }
 
-        /// <summary>Peso do nível de Battle Power. Só entra na fórmula do ki ligado.</summary>
+        /// <summary>Peso do nível da skill Power Level. Só entra na fórmula do ki ligado.</summary>
         public static ConfigEntry<float> PowerK4PowerSkill { get; private set; }
 
         /// <summary>
         /// Poder que o termo de fim de jogo entrega no nível 100. 0 desliga o termo e devolve a
-        /// fórmula linear original. Só afeta combate — ver <see cref="Power.PowerLevel"/>.
+        /// fórmula linear original. Só afeta combate — ver <see cref="Power.BattlePower"/>.
         /// </summary>
         public static ConfigEntry<float> PowerK5LateGame { get; private set; }
 
         /// <summary>Quão tarde o termo de fim de jogo acorda. Maior = mais concentrado no topo.</summary>
         public static ConfigEntry<float> PowerLateGameExponent { get; private set; }
 
-        // ---------- 6.1 - Battle Power ----------
+        // ---------- 6.1 - Power Level ----------
 
         public static ConfigEntry<float> SkillXpPerDamageDealt { get; private set; }
         public static ConfigEntry<float> SkillXpPerDamageTaken { get; private set; }
@@ -542,7 +542,7 @@ namespace Saiyaheim
         public static ConfigEntry<float> SkillXpMaxPerEvent { get; private set; }
 
         /// <summary>
-        /// Expoente da compressão aplicada ao power level bruto antes de exibir.
+        /// Expoente da compressão aplicada ao battle power bruto antes de exibir.
         /// 0.5 = raiz quadrada. Menor comprime mais.
         /// </summary>
         public static ConfigEntry<float> PowerCompressionExponent { get; private set; }
@@ -714,7 +714,7 @@ namespace Saiyaheim
                 new KeyboardShortcut(KeyCode.K),
                 new ConfigDescription(
                     "Key that toggles ki on and off. Ki turned off behaves like zero ki: " +
-                    "no damage bonus, no mastery accumulating, no ki term in the power level.",
+                    "no damage bonus, no mastery accumulating, no ki term in the battle power.",
                     null, ClientSide(100)));
 
             KiEnabledByDefault = config.Bind(SecGeral, "KiEnabledByDefault", true,
@@ -812,7 +812,7 @@ namespace Saiyaheim
             // --- Ki ---
             MaxKi = config.Bind(SecKi, "MaxKi", 50f,
                 new ConfigDescription(
-                    "Maximum ki at level 0 of the Battle Power skill. The cap grows from here — " +
+                    "Maximum ki at level 0 of the Power Level skill. The cap grows from here — " +
                     "see MaxKiPerPowerLevel. With a fixed cap the bar would be the same size from " +
                     "the first boss to the last and progression would never show up on the HUD. " +
                     "(Playtest value, 2026-07-31. Still being tuned.)",
@@ -820,7 +820,7 @@ namespace Saiyaheim
 
             MaxKiPerPowerLevel = config.Bind(SecKi, "MaxKiPerPowerLevel", 3f,
                 new ConfigDescription(
-                    "Maximum ki added per level of Battle Power. With the default, level 100 " +
+                    "Maximum ki added per level of Power Level. With the default, level 100 " +
                     "quadruples the bar (100 base + 300).",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(95)));
 
@@ -834,14 +834,14 @@ namespace Saiyaheim
                     "got cheaper and the downtime between flights was the thing being waited on.)",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(90)));
 
-            // Escala pelo power level DERIVADO, nao pelo nivel da skill: e a mesma base do
+            // Escala pelo battle power DERIVADO, nao pelo nivel da skill: e a mesma base do
             // FlightSpeedFromPower, entao comer melhor recarrega mais rapido do mesmo jeito que ja
             // faz voar mais rapido. Trocar para PowerSkill.GetLevel e uma linha, se o playtest
             // disser que a volatilidade da comida incomoda.
             KiRegenFromPower = config.Bind(SecKi, "KiRegenFromPower", 0.0075f,
                 new ConfigDescription(
-                    "Ki per second ADDED to the passive regeneration for each point of raw power " +
-                    "level. Exists because the bar grows with power (MaxKiPerPowerLevel) and a " +
+                    "Ki per second ADDED to the passive regeneration for each point of raw battle power. " +
+                    "Exists because the bar grows with power (MaxKiPerPowerLevel) and a " +
                     "flat tap does not: without this, the stronger the character the SLOWER he " +
                     "fills his own bar, which is the opposite of the intent. The default keeps " +
                     "seconds-to-fill roughly flat across the whole game instead of making the " +
@@ -876,7 +876,7 @@ namespace Saiyaheim
                     "uses for health and stamina regen, so the ki bar reads as one more thing " +
                     "Rested covers instead of a mod-only rule. " +
                     "Multiplicative, unlike the additive bonuses elsewhere in the mod, because it " +
-                    "has to keep up with a tap that already grows with power level. " +
+                    "has to keep up with a tap that already grows with battle power. " +
                     "1 disables it. Does NOT touch active charging: making charging faster at home " +
                     "would only say 'top up before leaving', which is not a decision worth having.",
                     new AcceptableValueRange<float>(0.1f, 5f), AdminOnly(68)));
@@ -907,7 +907,7 @@ namespace Saiyaheim
             // jogo, em vez de fazer uma das duas formas dominar so por causa do nivel.
             ChargeKiFromPower = config.Bind(SecKi, "ChargeKiFromPower", 0.075f,
                 new ConfigDescription(
-                    "Ki per second ADDED to active charging for each point of raw power level. " +
+                    "Ki per second ADDED to active charging for each point of raw battle power. " +
                     "Same reason as KiRegenFromPower: with a flat 5/s, filling the bar goes from " +
                     "10 seconds early on to over a minute late, because only the cap grows. " +
                     "The number that matters when tuning this is NOT ki per second, it is " +
@@ -936,11 +936,11 @@ namespace Saiyaheim
             // dezenas de ki por soco. O nome novo forca o default novo. Apagar a linha orfa.
             PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 3f,
                 new ConfigDescription(
-                    "Ki consumed per point of damage the power level ADDED to the punch — the " +
+                    "Ki consumed per point of damage the battle power ADDED to the punch — the " +
                     "mirror of DamageTakenKiCost, which charges per point the ki armor absorbed. " +
                     "Both measure the service ki rendered, so the cost scales with the payoff " +
                     "instead of aging into irrelevance. The cost is therefore " +
-                    "PunchDamageFromPower * power level * this, and the vanilla unarmed base " +
+                    "PunchDamageFromPower * battle power * this, and the vanilla unarmed base " +
                     "damage is free — ki did not provide it. Insufficient ki does NOT cancel the " +
                     "hit: the punch lands with raw vanilla damage, without the bonus. Missing " +
                     "costs nothing (the charge happens on the hit, not on the swing). Set to zero " +
@@ -964,19 +964,19 @@ namespace Saiyaheim
             // `1 - r * poder` atravessaria o zero e viraria golpe que DEVOLVE ki.
             KiCostPowerReduction = config.Bind(SecCombat, "KiCostPowerReduction", 0.01f,
                 new ConfigDescription(
-                    "How much the combat power level makes the three COMBAT ki costs cheaper — " +
+                    "How much the combat battle power makes the three COMBAT ki costs cheaper — " +
                     "punching (PunchKiCostPerDamage), taking hits (DamageTakenKiCost) and blocking " +
                     "(BlockKiCost) — as 1 / (1 + this * combat power). 0 disables the discount and " +
                     "the costs stay strictly proportional to what ki delivered. " +
-                    "Why it exists: all three costs come from the combat power level, which has no " +
+                    "Why it exists: all three costs come from the combat battle power, which has no " +
                     "ceiling — the late-game term grows forever and a transformation multiplies it " +
-                    "— while the ki bar comes from the Battle Power SKILL level, which stops at " +
+                    "— while the ki bar comes from the Power Level SKILL, which stops at " +
                     "100. Without this, a punch eventually costs more than a full bar and lands " +
                     "with raw vanilla damage, and blocking drains the bar in two hits. \n" +
                     "The shape matters: each cost approaches its own rate divided by this and " +
                     "never passes it, so actions per bar settles instead of falling to zero. For " +
                     "the punch at 0.01 that ceiling is 15 ki, so a full bar always buys a long " +
-                    "fight no matter how far the power level runs. \n" +
+                    "fight no matter how far the battle power runs. \n" +
                     "It also fixes transformations without a key of its own: a form multiplies the " +
                     "power, and it is the power that buys the discount, so the ratio of damage per " +
                     "bar between transformed and not approaches the form's PowerMultiplier " +
@@ -993,7 +993,7 @@ namespace Saiyaheim
 
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
-                    "Fraction of the power level ADDED to punch damage. Additive, not multiplicative: " +
+                    "Fraction of the battle power ADDED to punch damage. Additive, not multiplicative: " +
                     "enemy HP grows roughly linearly across biomes, and an additive stat scales " +
                     "predictably against that. " +
                     "(Playtest value, 2026-08-01. Cut to a third of the 0.15 used on 2026-07-31 — " +
@@ -1022,10 +1022,10 @@ namespace Saiyaheim
             // bloqueio, que o numero precisa subir.
             ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.06f,
                 new ConfigDescription(
-                    "Fraction of the power level converted into armor. While ki is on this armor " +
+                    "Fraction of the battle power converted into armor. While ki is on this armor " +
                     "REPLACES equipment armor — worn pieces stop counting. Turning ki off gives " +
                     "vanilla armor back immediately. " +
-                    "Reads the COMBAT power level, so it grows with K5_LateGameBonus — that is why " +
+                    "Reads the COMBAT battle power, so it grows with K5_LateGameBonus — that is why " +
                     "this is much lower than it looks like it should be. " +
                     "(Playtest value, 2026-08-01. Lowered from 0.15 when the late-game term " +
                     "doubled power at level 100 and armor came along for the ride.)",
@@ -1068,8 +1068,8 @@ namespace Saiyaheim
             BlockPowerBase = config.Bind(SecCombat, "BlockPowerBase", 2f,
                 new ConfigDescription(
                     "Block power guaranteed while ki is on, before the share that comes from power. " +
-                    "The 2 is the vanilla unarmed value, kept as a floor so turning ki on at power " +
-                    "level zero never makes blocking WORSE than vanilla. " +
+                    "The 2 is the vanilla unarmed value, kept as a floor so turning ki on at battle power " +
+                    "zero never makes blocking WORSE than vanilla. " +
                     "Same role ArmorBase plays for armor, with one difference: unlike armor, this " +
                     "SURVIVES an empty ki bar (ArmorFractionWithoutKi only scales the power-derived " +
                     "share). Zero armor is a legal value; zero block power is a division by zero " +
@@ -1090,7 +1090,7 @@ namespace Saiyaheim
             // escalar sozinho; nao precisa tambem ganhar no numero.
             BlockPowerFromPower = config.Bind(SecCombat, "BlockPowerFromPower", 0.04f,
                 new ConfigDescription(
-                    "Fraction of the power level converted into block power. While ki is on this " +
+                    "Fraction of the battle power converted into block power. While ki is on this " +
                     "REPLACES the blocker item's value — holding a shield changes nothing, exactly " +
                     "like ArmorFromPower replaces equipment armor. Turning ki off gives the shield " +
                     "back immediately. " +
@@ -1328,7 +1328,7 @@ namespace Saiyaheim
 
             FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 2f,
                 new ConfigDescription(
-                    "Flight speed floor: skill 0, power level 0, carrying nothing. " +
+                    "Flight speed floor: skill 0, battle power 0, carrying nothing. " +
                     "Everything else is added or multiplied on top of this. " +
                     "CAREFUL: the flight skill bonus MULTIPLIES this floor, so lowering it also " +
                     "shrinks what levelling the skill is worth — at 2, a hundred levels of Flight " +
@@ -1339,8 +1339,8 @@ namespace Saiyaheim
 
             FlightSpeedFromPower = config.Bind(SecFlight, "SpeedFromPower", 0.015f,
                 new ConfigDescription(
-                    "Speed ADDED per point of raw power level. With ki on, power is " +
-                    "k1*HP + k4*BattlePower — so eating better and fighting more both make you " +
+                    "Speed ADDED per point of raw battle power. With ki on, power is " +
+                    "k1*HP + k4*PowerLevel — so eating better and fighting more both make you " +
                     "fly faster, which is the Dragon Ball reading of getting stronger. " +
                     "Additive, like punch damage: enemy scaling is roughly linear across biomes " +
                     "and an additive stat tracks that predictably. " +
@@ -1434,7 +1434,7 @@ namespace Saiyaheim
             // para nao virar um misterio de "por que voar nao barateia mais".
             FlightKiPowerReduction = config.Bind(SecFlight, "KiPowerReduction", 0.0033f,
                 new ConfigDescription(
-                    "How much the late-game power term (Power Level.K5_LateGameBonus) cheapens " +
+                    "How much the late-game power term (Battle Power.K5_LateGameBonus) cheapens " +
                     "flight, hyperbolically: cost is multiplied by 1 / (1 + this * bonus). " +
                     "This is the ONLY thing the late-game term changes about flying — speed is " +
                     "deliberately left out of it, because speed already runs into MaxSpeed, which " +
@@ -1463,9 +1463,9 @@ namespace Saiyaheim
                     "should cost something the player can feel.)",
                     new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(55)));
 
-            FlightMinBattlePower = config.Bind(SecFlight, "MinBattlePower", 0f,
+            FlightMinPowerLevel = config.Bind(SecFlight, "MinPowerLevel", 0f,
                 new ConfigDescription(
-                    "Minimum Battle Power level required to take off. 0 disables the gate. " +
+                    "Minimum Power Level required to take off. 0 disables the gate. " +
                     "A placeholder for the boss gating of step 7 — until that decision is made, " +
                     "this is the only lock available on flight.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(50)));
@@ -1502,15 +1502,15 @@ namespace Saiyaheim
                     "(Confirmed working in the 2026-07-31 playtest.)",
                     null, ClientSide(40)));
 
-            // --- Power Level ---
+            // --- Battle Power ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:
             //   ki desligado: poder = k1*HP + k2*dano_arma + k3*armadura
-            //   ki ligado:    poder = k1*HP + k4*nivel_battle_power
+            //   ki ligado:    poder = k1*HP + k4*nivel_power_level
             // Arma e armadura nao sobrevivem ao modo ki: arma da zero (o jogador soca) e
             // armadura vira laco de realimentacao, porque ela passou a ser DERIVADA do poder.
             PowerK1Health = config.Bind(SecPower, "K1_Health", 1f,
                 new ConfigDescription(
-                    "Weight of HP in the power level. Applies to both formulas. Only HP ABOVE the " +
+                    "Weight of HP in the battle power. Applies to both formulas. Only HP ABOVE the " +
                     "game's minimum (25) counts: those 25 are handed to any new character for free, " +
                     "and counting them would give everyone a floor of power nobody earned. " +
                     "(Fixed in the 2026-07-30 playtest.)",
@@ -1524,12 +1524,12 @@ namespace Saiyaheim
             PowerK3Armor = config.Bind(SecPower, "K3_Armor", 1.5f,
                 new ConfigDescription(
                     "Weight of equipment armor. Only used in the ki-OFF formula — " +
-                    "with ki on, armor is an output of the power level, not an input.",
+                    "with ki on, armor is an output of the battle power, not an input.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(80)));
 
             PowerK4PowerSkill = config.Bind(SecPower, "K4_PowerSkill", 3f,
                 new ConfigDescription(
-                    "Weight of the Battle Power skill level (0-100). Only used in the ki-ON formula. " +
+                    "Weight of the Power Level skill (0-100). Only used in the ki-ON formula. " +
                     "It is the only axis of progression for a ki user — without it, power would be " +
                     "constant from the first boss to the last.",
                     new AcceptableValueRange<float>(0f, 1000f), AdminOnly(70)));
@@ -1572,7 +1572,7 @@ namespace Saiyaheim
 
             PowerCompressionExponent = config.Bind(SecPower, "CompressionExponent", 0.5f,
                 new ConfigDescription(
-                    "Exponent of the compression applied to the raw power level before display. " +
+                    "Exponent of the compression applied to the raw battle power before display. " +
                     "0.5 = square root, 1.0 = no compression. It exists so the number does not " +
                     "become huge and meaningless too early.",
                     new AcceptableValueRange<float>(0.1f, 1f), AdminOnly(60)));
@@ -1581,7 +1581,7 @@ namespace Saiyaheim
                 new ConfigDescription("Multiplier applied after the compression, purely for readability.",
                     new AcceptableValueRange<float>(1f, 10000f), AdminOnly(50)));
 
-            // --- Battle Power ---
+            // --- Power Level ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
             SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.07f,
@@ -2283,7 +2283,7 @@ namespace Saiyaheim
                 // escalada compensaria parte do proprio dreno — a forma se pagando sozinha.
                 PowerMultiplier = config.Bind(section, "PowerMultiplier", powerMultiplier,
                     new ConfigDescription(
-                        "Multiplies the COMBAT power level while this form is active — punch " +
+                        "Multiplies the COMBAT battle power while this form is active — punch " +
                         "damage, armor, block power and the number on screen all scale from it, " +
                         "so this one value is the whole strength of the form. Flight speed is " +
                         "multiplied too. The ki cap, ki regeneration and charging deliberately " +
@@ -2300,7 +2300,7 @@ namespace Saiyaheim
                         "reduction. This is the ONLY cost of the form: there is no activation " +
                         "cost. Hitting zero ki powers you down. " +
                         "Flat per second and not a fraction of the bar, because the bar already " +
-                        "grows with Battle Power (MaxKiPerPowerLevel) — so the form lasts longer " +
+                        "grows with Power Level (MaxKiPerPowerLevel) — so the form lasts longer " +
                         "as the character grows even before mastery, which is the intended " +
                         "reading of getting stronger. " +
                         "(Starting value. Not playtested yet.)",
@@ -2315,8 +2315,8 @@ namespace Saiyaheim
                         "Fraction of the punch's BLUNT damage turned into SLASH while this form is " +
                         "active. 0.5 = half and half. The total damage of the hit does not change: " +
                         "this moves damage between types, it does not add any. " +
-                        "It applies to the whole punch — vanilla unarmed damage plus the Battle " +
-                        "Power bonus — and only to unarmed attacks. " +
+                        "It applies to the whole punch — vanilla unarmed damage plus the Power Level " +
+                        "bonus — and only to unarmed attacks. " +
                         "What it is for: armor is per damage type in Valheim, so a form that hits " +
                         "with two types is less punished by an enemy that resists one of them. " +
                         "Blunt and slash both count toward stagger, so the split does not change " +
@@ -2344,7 +2344,7 @@ namespace Saiyaheim
 
                 // O peso e' o unico numero da forma que NAO passa pelo PowerMultiplier, e de
                 // proposito: multiplicar o limite pelo poder faria a mochila crescer junto com o
-                // grind de Battle Power, e o limite de peso e' logistica, nao combate. Aqui cada
+                // grind de Power Level, e o limite de peso e' logistica, nao combate. Aqui cada
                 // degrau da escada carrega o que o degrau dele carrega, e ponto.
                 //
                 // Somado e nao multiplicado pelo mesmo motivo do bonus de soco: soma convive com o
@@ -2360,7 +2360,7 @@ namespace Saiyaheim
                         "the cost of using the form as a cart. " +
                         "Side effect worth knowing: carry load is a fraction of the LIMIT, so a " +
                         "bigger limit means the same cargo slows flight less and pays less " +
-                        "Battle Power XP (XpWeightBonus). " +
+                        "Power Level XP (XpWeightBonus). " +
                         "Playtested 2026-08-16: started at 300 and came down to 100.",
                         new AcceptableValueRange<float>(0f, 2000f), AdminOnly(83))),
 
@@ -2388,9 +2388,9 @@ namespace Saiyaheim
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
 
-                MinBattlePower = config.Bind(section, "MinBattlePower", 0f,
+                MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(
-                        "Minimum Battle Power level required to enter this form. 0 disables the " +
+                        "Minimum Power Level required to enter this form. 0 disables the " +
                         "gate. This is the TRAINING gate, and it is independent of the boss gate " +
                         "below: with both set, the form needs both. Left at 0 for every form so " +
                         "far, because the ladder is paced by bosses and grinding a skill to reach " +
@@ -2501,8 +2501,8 @@ namespace Saiyaheim
             {
                 DamageBase = config.Bind(section, "DamageBase", damageBase,
                     new ConfigDescription(
-                        "Damage of this attack at power level zero, before the power share below. " +
-                        "It is the floor: a fresh character has almost no power level, and an " +
+                        "Damage of this attack at battle power zero, before the power share below. " +
+                        "It is the floor: a fresh character has almost no battle power, and an " +
                         "attack that did nothing at all until the bar filled would read as broken " +
                         "on the very first shot. All of it is SLASH damage. " +
                         "(Starting value. Not playtested yet.)",
@@ -2514,7 +2514,7 @@ namespace Saiyaheim
                 // sem uma linha de codigo a mais).
                 DamageFromPower = config.Bind(section, "DamageFromPower", damageFromPower,
                     new ConfigDescription(
-                        "Share of the COMBAT power level added to this attack's damage. " +
+                        "Share of the COMBAT battle power added to this attack's damage. " +
                         "Same number the punch reads, so the attack keeps up with the fists " +
                         "instead of falling behind, transforming makes it stronger for free, and " +
                         "the late-game term applies to it as well. " +
@@ -2703,9 +2703,9 @@ namespace Saiyaheim
                 // manda RPC para todo mundo, entao os amigos veem a pose de quem atirou mesmo com
                 // .cfg diferente. Mesmo padrao da cor de cabelo.
                 //
-                MinBattlePower = config.Bind(section, "MinBattlePower", 0f,
+                MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(
-                        "Minimum Battle Power level required to use this attack. 0 disables the " +
+                        "Minimum Power Level required to use this attack. 0 disables the " +
                         "gate. Independent of the boss gate below: with both set, the attack needs " +
                         "both. Left at 0 like the forms, because the ladder is paced by bosses.",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(45))),

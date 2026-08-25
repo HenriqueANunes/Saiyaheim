@@ -196,10 +196,10 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            float required = SaiyaheimConfig.FlightMinBattlePower.Value;
+            float required = SaiyaheimConfig.FlightMinPowerLevel.Value;
             if (required > 0f && PowerSkill.GetLevel(player) < required)
             {
-                Message(player, $"Battle Power {required:0} required to fly.");
+                Message(player, $"Power Level {required:0} required to fly.");
                 return;
             }
 

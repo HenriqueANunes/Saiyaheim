@@ -100,7 +100,7 @@ namespace Saiyaheim.Net
             PowerSkill.RaiseFromDamageDealt(local, applied);
 
             SaiyaheimPlugin.LogVerbose(
-                $"Battle Power XP: dealt {applied:0.#} damage to something owned by {sender}.");
+                $"Power Level XP: dealt {applied:0.#} damage to something owned by {sender}.");
         }
     }
 }

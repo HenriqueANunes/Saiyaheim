@@ -5,10 +5,10 @@ using UnityEngine;
 namespace Saiyaheim.Power
 {
     /// <summary>
-    /// A skill "Battle Power": o eixo de progressão de quem joga com o ki ligado.
+    /// A skill "Power Level": o eixo de progressão de quem joga com o ki ligado.
     ///
     /// Existe porque, no modo ki, o jogador abandona o caminho vanilla — soca em vez de usar
-    /// arma, e a armadura dele passa a vir do power level. Isso apaga dois dos quatro termos da
+    /// arma, e a armadura dele passa a vir do battle power. Isso apaga dois dos quatro termos da
     /// fórmula antiga e deixa só HP e ki; e o componente de ki não progride, porque a maestria
     /// só existe transformado (etapa 6). Sem esta skill, o poder de quem usa ki seria
     /// <b>constante do primeiro ao último boss</b>.
@@ -24,10 +24,17 @@ namespace Saiyaheim.Power
         /// <summary>
         /// Identificador único da skill. Vira o hash que o save usa — <b>não mudar depois de jogar.</b>
         /// Trocar este identificador cria uma skill nova: a antiga fica órfã no save e o nível
-        /// volta a zero. Foi renomeado de "saiyaheim.poder_de_luta" ainda em fase de teste,
-        /// justamente para não ter que fazer isso depois que houver progresso de verdade.
+        /// volta a zero.
+        ///
+        /// <b>Já mudou duas vezes.</b> De "saiyaheim.poder_de_luta" para "saiyaheim.battle_power"
+        /// em 2026-07-31, quando o mod virou inglês — ainda sem progresso de verdade, então saiu
+        /// de graça. E de "saiyaheim.battle_power" para o nome atual em 2026-08-25, quando os
+        /// nomes desinverteram: o que a skill mede é o <i>nível</i>, e quem se chama Battle Power
+        /// agora é o stat derivado (<see cref="BattlePower"/>). Essa segunda troca <b>zerou</b> o
+        /// nível do save do Henrique, restaurado com <c>saiya_power skill</c>. Foi barata porque
+        /// ninguém mais tinha instalado o mod; a partir da etapa 8 não seria.
         /// </summary>
-        private const string Identifier = "saiyaheim.battle_power";
+        private const string Identifier = "saiyaheim.power_level";
 
         /// <summary>Nível máximo de qualquer skill no Valheim.</summary>
         internal const float MaxLevel = 100f;
@@ -42,12 +49,12 @@ namespace Saiyaheim.Power
             // Trocar por um ícone do jogo é polimento da etapa 11, não bloqueia nada.
             Type = SkillManager.Instance.AddSkill(
                 Identifier,
-                "Battle Power",
+                "Power Level",
                 "Grows by fighting with ki turned on: landing blows and taking damage. " +
                 "Determines punch damage, armor and the ki cap.",
                 increaseStep: 1f);
 
-            SaiyaheimPlugin.Log.LogInfo($"Skill 'Battle Power' registered ({Type}).");
+            SaiyaheimPlugin.Log.LogInfo($"Skill 'Power Level' registered ({Type}).");
         }
 
         /// <summary>Nível atual, 0–100. Zero se a skill não existe ou não há jogador.</summary>

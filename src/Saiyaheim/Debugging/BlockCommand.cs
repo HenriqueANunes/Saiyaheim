@@ -169,7 +169,7 @@ namespace Saiyaheim.Debugging
         private void Simulate(Player player, ItemDrop.ItemData blocker, float damage)
         {
             float blockPower = EffectiveBlockPower(player, blocker);
-            float kiArmor = PowerLevel.GetArmor(player);
+            float kiArmor = BattlePower.GetArmor(player);
             float threshold = player.m_staggerDamageFactor > 0f
                 ? player.GetMaxHealth() * player.m_staggerDamageFactor
                 : 0f;
@@ -284,7 +284,7 @@ namespace Saiyaheim.Debugging
         private static float EffectiveBlockPower(Player player, ItemDrop.ItemData blocker)
         {
             return KiManager.IsEnabled
-                ? PowerLevel.GetBlockPower(player)
+                ? BattlePower.GetBlockPower(player)
                 : blocker.GetBlockPower(player.GetSkillFactor(Skills.SkillType.Blocking));
         }
 

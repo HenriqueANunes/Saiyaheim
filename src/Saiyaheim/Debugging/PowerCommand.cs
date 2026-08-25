@@ -7,7 +7,7 @@ using Saiyaheim.Transformations;
 namespace Saiyaheim.Debugging
 {
     /// <summary>
-    /// Inspeção e teste do power level.
+    /// Inspeção e teste do battle power.
     ///
     /// Existe porque o poder é invisível: sem HUD ainda (etapa 10), a única forma de saber se o
     /// dano do soco e a armadura estão saindo dos números certos seria inferir pela sensação de
@@ -15,7 +15,7 @@ namespace Saiyaheim.Debugging
     ///
     /// <code>
     /// saiya_power              mostra os números: fórmula em uso, poder, dano e armadura
-    /// saiya_power skill 50     define o nível de Battle Power (testa o topo da curva sem grind)
+    /// saiya_power skill 50     define o nível da skill Power Level (testa o topo da curva sem grind)
     /// saiya_power xp 10        joga XP na skill
     /// </code>
     ///
@@ -27,7 +27,7 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_power";
 
         public override string Help =>
-            "Inspects the power level. Usage: saiya_power [skill <level> | xp <amount>]";
+            "Inspects the battle power. Usage: saiya_power [skill <level> | xp <amount>]";
 
         public override List<string> CommandOptionList() => new List<string> { "skill", "xp" };
 
@@ -42,7 +42,7 @@ namespace Saiyaheim.Debugging
 
             if (!PowerSkill.IsRegistered)
             {
-                Print("The 'Battle Power' skill was not registered. Check the BepInEx log.");
+                Print("The 'Power Level' skill was not registered. Check the BepInEx log.");
                 return;
             }
 
@@ -95,16 +95,16 @@ namespace Saiyaheim.Debugging
             bool kiOn = KiManager.IsEnabled;
 
             Print($"Ki: {(kiOn ? "on" : "off")} — {(kiOn ? "ki formula (HP + skill)" : "vanilla formula (HP + weapon + armor)")}");
-            Print($"Battle Power: level {PowerSkill.GetLevel(player):0.#}");
+            Print($"Power Level: level {PowerSkill.GetLevel(player):0.#}");
 
             // Os dois numeros aparecem separados de proposito: e a unica forma de ver, no jogo, se
             // o termo de fim de jogo ja acordou — e a diferenca entre eles explica por que o soco
             // cresce sem o voo crescer junto.
-            float linear = PowerLevel.GetRaw(player);
-            float combat = PowerLevel.GetCombatRaw(player);
-            float late = PowerLevel.GetLateGameBonus(player);
+            float linear = BattlePower.GetRaw(player);
+            float combat = BattlePower.GetCombatRaw(player);
+            float late = BattlePower.GetLateGameBonus(player);
 
-            Print($"Power level (combat): {combat:0.#}  (displayed: {PowerLevel.GetDisplayValue(player):0})");
+            Print($"Battle power (combat): {combat:0.#}  (displayed: {BattlePower.GetDisplayValue(player):0})");
             Print($"  linear part: {linear:0.#}  — feeds flight speed, ki cap and ki regen");
             Print($"  late-game term: +{late:0.#}  — feeds punch, armor and block only");
 
@@ -116,7 +116,7 @@ namespace Saiyaheim.Debugging
                 Print($"  {form.DisplayName}: x{form.GetPowerMultiplier():0.##} over the sum above " +
                       "— flight speed included, ki cap and regen excluded");
             }
-            Print($"Damage added to punch: {(kiOn ? PowerLevel.GetPunchDamageBonus(player).ToString("0.#") : "0 (ki off)")}");
+            Print($"Damage added to punch: {(kiOn ? BattlePower.GetPunchDamageBonus(player).ToString("0.#") : "0 (ki off)")}");
             Print($"Armor: {player.GetBodyArmor():0.#} {(kiOn ? "(from power, equipment ignored)" : "(from equipment)")}");
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#}");
         }

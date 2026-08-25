@@ -154,7 +154,7 @@ namespace Saiyaheim.Debugging
                   $"[{(string.IsNullOrEmpty(key) ? "no gate" : key)}]" +
                   $"{(attack.IgnoreLocks ? "  (forced by saiya_blast unlock)" : "")}");
 
-            float combat = PowerLevel.GetCombatRaw(player);
+            float combat = BattlePower.GetCombatRaw(player);
             float damage = attack.DamageFor(combat);
             float cost = attack.GetKiCost();
 
@@ -189,8 +189,8 @@ namespace Saiyaheim.Debugging
                   $"shots per full bar ({max:0} ki): {max / cost:0.#}   " +
                   $"current bar ({KiManager.Current:0} ki): {KiManager.Current / cost:0.#}");
 
-            float punchBonus = PowerLevel.GetPunchDamageBonus(player);
-            float punchCost = PowerLevel.GetPunchKiCost(player, punchBonus);
+            float punchBonus = BattlePower.GetPunchDamageBonus(player);
+            float punchCost = BattlePower.GetPunchKiCost(player, punchBonus);
 
             if (punchCost <= 0f)
             {

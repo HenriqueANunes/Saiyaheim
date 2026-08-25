@@ -4,20 +4,20 @@ using UnityEngine;
 namespace Saiyaheim.Power
 {
     /// <summary>
-    /// O power level: stat derivado que alimenta o dano do soco e a armadura.
+    /// O battle power: stat derivado que alimenta o dano do soco e a armadura.
     ///
     /// <b>São duas fórmulas, porque os dois caminhos de progressão são disjuntos.</b>
     ///
     /// <code>
     /// ki desligado: poder = k1*HP + k2*dano_arma + k3*armadura
-    /// ki ligado:    poder = k1*HP + k4*nivel_battle_power
+    /// ki ligado:    poder = k1*HP + k4*nivel_power_level
     /// combate:      (o de cima + termo de fim de jogo) * multiplicador da forma ativa
     /// </code>
     ///
     /// Arma e armadura não sobrevivem ao modo ki:
     /// <list type="bullet">
     /// <item>arma dá <b>zero</b> — o jogador soca, não tem nada equipado; e o dano do soco vem do
-    /// power level, então incluí-lo seria contar o mesmo número duas vezes;</item>
+    /// battle power, então incluí-lo seria contar o mesmo número duas vezes;</item>
     /// <item>armadura vira <b>laço de realimentação</b>, porque passou a ser derivada do poder:
     /// <c>poder → armadura → poder</c>. Não é escolha de design, o número diverge.</item>
     /// </list>
@@ -50,10 +50,10 @@ namespace Saiyaheim.Power
     /// segundos-para-encher igual mas inchando o número na tela sem significado. O que o fim de
     /// jogo compra no voo é <b>eficiência</b>, via <c>FlightKiPowerReduction</c>, não velocidade.
     /// </summary>
-    internal static class PowerLevel
+    internal static class BattlePower
     {
         /// <summary>
-        /// Power level bruto <b>linear</b>: sem o termo de fim de jogo. É a fórmula original do mod,
+        /// Battle power bruto <b>linear</b>: sem o termo de fim de jogo. É a fórmula original do mod,
         /// intocada, e continua sendo a que alimenta voo e ki.
         /// </summary>
         internal static float GetRaw(Player player)
@@ -67,7 +67,7 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// Power level de <b>combate</b>: o linear mais o termo de fim de jogo. Alimenta dano do
+        /// Battle power de <b>combate</b>: o linear mais o termo de fim de jogo. Alimenta dano do
         /// soco, armadura, block power e o número exibido. Ver a nota na doc da classe.
         /// </summary>
         internal static float GetCombatRaw(Player player)
@@ -145,7 +145,7 @@ namespace Saiyaheim.Power
         /// desejada: soco, armadura, block power, velocidade de voo e o número na tela sobem
         /// juntos, sem nenhum deles saber que formas existem.
         ///
-        /// ⚠️ O <c>GetPowerMultiplier</c> lê config e <c>SEMan</c>, nunca power level. Se um dia
+        /// ⚠️ O <c>GetPowerMultiplier</c> lê config e <c>SEMan</c>, nunca battle power. Se um dia
         /// ele passar a depender do poder — um multiplicador que cresce com a maestria, por
         /// exemplo — a recursão fecha aqui.
         /// </summary>
@@ -224,7 +224,7 @@ namespace Saiyaheim.Power
         /// proporcionais ao serviço que o ki prestou, e esse serviço vem do poder de
         /// <b>combate</b> — que não tem teto. O termo de fim de jogo cresce para sempre e a
         /// transformação multiplica tudo. A barra de ki, do outro lado, vem do <b>nível</b> da
-        /// skill de Battle Power, que para em 100. Um número que cresce sem fim dividido por um que
+        /// skill de Power Level, que para em 100. Um número que cresce sem fim dividido por um que
         /// parou de crescer: mais cedo ou mais tarde um soco custa a barra inteira e sai com o dano
         /// vanilla cru, e dois bloqueios esvaziam a barra. O SSJ apenas antecipou isso, dobrando os
         /// custos hoje em vez de daqui a vinte níveis.

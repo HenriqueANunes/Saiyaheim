@@ -5,7 +5,7 @@ using Saiyaheim.Ki;
 namespace Saiyaheim.Power
 {
     /// <summary>
-    /// Faz o bloqueio escalar com o <see cref="PowerLevel"/>, substituindo o block power do item —
+    /// Faz o bloqueio escalar com o <see cref="BattlePower"/>, substituindo o block power do item —
     /// mesma regra da armadura.
     ///
     /// <b>Por que é patch Harmony, e não hook nativo.</b> A lista de <c>Modify*</c> do
@@ -105,12 +105,12 @@ namespace Saiyaheim.Power
 
                 // O mesmo desconto do soco e do dano recebido, e pelo mesmo motivo: o block power
                 // cresce com o poder, então para mais golpe e cobra mais, enquanto a barra parou de
-                // crescer no nível 100. Ver PowerLevel.GetKiCostFactor.
+                // crescer no nível 100. Ver BattlePower.GetKiCostFactor.
                 //
                 // O jogador local, e não o `__instance`: o Prefix só marca a janela quando os dois
                 // são o mesmo objeto, então aqui já é uma identidade verificada — e o KiManager é
                 // do jogador local de qualquer forma.
-                float cost = blocked * rate * PowerLevel.GetKiCostFactor(Player.m_localPlayer);
+                float cost = blocked * rate * BattlePower.GetKiCostFactor(Player.m_localPlayer);
 
                 // Drain e não TryConsume: quando chegamos aqui o bloqueio já aconteceu e o dano já
                 // foi reduzido. Não há o que cancelar, então a barra vazia simplesmente deixa de
@@ -145,11 +145,11 @@ namespace Saiyaheim.Power
                     return;
                 }
 
-                float blockPower = PowerLevel.GetBlockPower(Player.m_localPlayer);
+                float blockPower = BattlePower.GetBlockPower(Player.m_localPlayer);
 
                 // ⚠️ Rede de segurança contra zero, não checagem defensiva de rotina. O
                 // BlockAttack divide pelo block power sem checar, e 0 vira NaN, que vira stamina
-                // NaN permanente — ver o aviso no PowerLevel.GetBlockPower. O GetBlockPower já
+                // NaN permanente — ver o aviso no BattlePower.GetBlockPower. O GetBlockPower já
                 // garante o piso, mas o BlockPowerBase é config: alguém que ponha 0 lá reabriria
                 // o mesmo bug. Zero aqui significa "não substitui", e o item devolve o valor dele.
                 if (blockPower > 0f)

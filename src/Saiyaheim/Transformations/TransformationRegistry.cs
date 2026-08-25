@@ -7,7 +7,7 @@ namespace Saiyaheim.Transformations
     /// <b>qual está ativa neste jogador e quanto ela multiplica.</b>
     ///
     /// <b>A resposta sai do <c>SEMan</c> do próprio jogador</b>, não de um campo estático do
-    /// mod. Parece rodeio e não é: o <c>PowerLevel</c> é consultado para o jogador que está sendo
+    /// mod. Parece rodeio e não é: o <c>BattlePower</c> é consultado para o jogador que está sendo
     /// atingido tanto quanto para o local, e no multiplayer (etapa 8) o status effect é o que
     /// sincroniza. Um "forma ativa" global mentiria sobre todo mundo menos um.
     /// </summary>
@@ -197,8 +197,8 @@ namespace Saiyaheim.Transformations
         /// Quanto multiplicar o poder de combate deste jogador. 1 quando ele não está transformado,
         /// que é o caso da esmagadora maioria das chamadas.
         ///
-        /// ⚠️ <b>Não pode ler power level nenhum</b>, direta ou indiretamente: é o
-        /// <c>PowerLevel.GetKiCombatRaw</c> quem chama, e uma leitura de volta fecharia recursão
+        /// ⚠️ <b>Não pode ler battle power nenhum</b>, direta ou indiretamente: é o
+        /// <c>BattlePower.GetKiCombatRaw</c> quem chama, e uma leitura de volta fecharia recursão
         /// infinita. Por isso a resposta sai só de config e do <c>SEMan</c>.
         /// </summary>
         internal static float GetPowerMultiplier(Player player)

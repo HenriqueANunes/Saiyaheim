@@ -21,7 +21,7 @@ namespace Saiyaheim.Ki
 
         /// <summary>
         /// Ki ligado/desligado pelo jogador. Desligado se comporta como ki zerado:
-        /// sem bônus, sem maestria acumulando, sem componente de ki no power level.
+        /// sem bônus, sem maestria acumulando, sem componente de ki no battle power.
         /// </summary>
         public bool Enabled;
 
@@ -33,7 +33,7 @@ namespace Saiyaheim.Ki
 
         public static KiState Load(Player player)
         {
-            // O teto cresce com a skill Battle Power, então não dá para usar o valor de
+            // O teto cresce com a skill Power Level, então não dá para usar o valor de
             // config direto: um personagem de nível alto nasceria com a barra pela metade.
             //
             // Depende de as skills já estarem carregadas. Game.SpawnPlayer chama SetLocalPlayer()

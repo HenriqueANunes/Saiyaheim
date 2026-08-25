@@ -9,7 +9,7 @@ namespace Saiyaheim.Attacks
     ///
     /// <b>A seleção é estado do jogador local</b>, e por isso mora aqui num campo estático — ao
     /// contrário da forma ativa, que mora no <c>SEMan</c> de cada jogador porque o mod pergunta a
-    /// forma de <i>outro</i> personagem o tempo todo (o power level do alvo é consultado tanto
+    /// forma de <i>outro</i> personagem o tempo todo (o battle power do alvo é consultado tanto
     /// quanto o do local). Ninguém pergunta qual ataque o vizinho selecionou: no multiplayer cada
     /// cliente dispara o próprio projétil, e o projétil é objeto de rede.
     ///

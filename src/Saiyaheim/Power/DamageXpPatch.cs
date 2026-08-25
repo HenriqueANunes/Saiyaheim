@@ -64,12 +64,12 @@ namespace Saiyaheim.Power
                 // Dano recebido: já depois da armadura e das resistências, porque ApplyDamage é
                 // chamado depois delas. É o que torna inútil apanhar de propósito de bicho fraco.
                 PowerSkill.RaiseFromDamageTaken(local, applied);
-                SaiyaheimPlugin.LogVerbose($"Battle Power XP: took {applied:0.#} damage.");
+                SaiyaheimPlugin.LogVerbose($"Power Level XP: took {applied:0.#} damage.");
             }
             else if (hit.GetAttacker() == local)
             {
                 PowerSkill.RaiseFromDamageDealt(local, applied);
-                SaiyaheimPlugin.LogVerbose($"Battle Power XP: dealt {applied:0.#} damage.");
+                SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {applied:0.#} damage.");
             }
             else if (hit.GetAttacker() is Player attacker)
             {

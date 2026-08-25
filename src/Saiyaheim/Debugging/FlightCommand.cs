@@ -106,8 +106,8 @@ namespace Saiyaheim.Debugging
                   $"— ki cost x{skillFactor:0.###} ({(1f - skillFactor) * 100f:0}% cheaper)");
             Print($"Carry load: {FlightStats.GetWeightLoad(player) * 100f:0}% of max weight");
             Print($"Speed floor: {SaiyaheimConfig.FlightBaseSpeed.Value:0.#} " +
-                  $"+ {FlightStats.GetSpeedFromPower(player):0.#} from power level " +
-                  $"(raw {PowerLevel.GetRaw(player):0.#})");
+                  $"+ {FlightStats.GetSpeedFromPower(player):0.#} from battle power " +
+                  $"(raw {BattlePower.GetRaw(player):0.#})");
             // A forma multiplica a velocidade DEPOIS de tudo, entao sem esta linha o "Speed floor"
             // acima nao explica o "Speed" abaixo enquanto o jogador esta transformado. O
             // PowerMultiplier cru vai junto porque o fator de voo e' uma FRACAO dele
@@ -131,7 +131,7 @@ namespace Saiyaheim.Debugging
             if (costFactor < 1f)
             {
                 Print($"  late-game discount: x{costFactor:0.###} " +
-                      $"({(1f - costFactor) * 100f:0}% cheaper, from +{PowerLevel.GetLateGameBonus(player):0.#} power)");
+                      $"({(1f - costFactor) * 100f:0}% cheaper, from +{BattlePower.GetLateGameBonus(player):0.#} power)");
             }
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#} " +
                   $"— {SecondsOfFlight(slowCost):0} s of normal flight left");

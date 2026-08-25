@@ -6,7 +6,7 @@ pasta.
 
 ## `curva-poder.html`
 
-Calculadora interativa do [[Power Level]]: sliders para todos os coeficientes reais, curva
+Calculadora interativa do [[Battle Power]]: sliders para todos os coeficientes reais, curva
 proposta contra a de hoje, tabela nível a nível e um snippet de `.cfg` pronto para colar.
 
 Feita em 2026-08-01 para decidir o termo de fim de jogo (`K5_LateGameBonus`), e foi ela que
@@ -30,14 +30,14 @@ Também está publicada como Artifact, para abrir do celular ou mandar para algu
 
 ### O que ela modela
 
-O JS espelha, de propósito, as fórmulas reais do C#. Se `PowerLevel.cs` ou `FlightStats.cs`
+O JS espelha, de propósito, as fórmulas reais do C#. Se `BattlePower.cs` ou `FlightStats.cs`
 mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 
 | Na página | No mod |
 |---|---|
-| `linearPower()` | `PowerLevel.GetRaw()` |
-| `combatPower()` | `PowerLevel.GetCombatRaw()` |
-| `lateBonus()` | `PowerLevel.GetLateGameBonus()` |
+| `linearPower()` | `BattlePower.GetRaw()` |
+| `combatPower()` | `BattlePower.GetCombatRaw()` |
+| `lateBonus()` | `BattlePower.GetLateGameBonus()` |
 | `formMult()` | `TransformationRegistry.GetPowerMultiplier()` |
 | `flyMult` (dentro de `model()`) | `FlightStats.GetFormSpeedFactor()` |
 | `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
@@ -50,7 +50,7 @@ A curva de XP e o `ApplyArmor` são do **jogo**, não do mod: só mudam se o Val
 
 O grupo **Transformação** tem `PowerMultiplier`, `KiDrainPerSecond`, a redução de dreno da maestria
 e o nível de maestria (com "acompanha o nível da linha", igual ao voo). O multiplicador entra em
-`model()` **depois** do `combatPower()`, que é onde o `PowerLevel.GetKiCombatRaw` do mod o aplica.
+`model()` **depois** do `combatPower()`, que é onde o `BattlePower.GetKiCombatRaw` do mod o aplica.
 
 Duas coisas de desenho que valem para a próxima extensão:
 

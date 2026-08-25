@@ -290,7 +290,7 @@
       </details>
 
       <details class="card group" id="g-power" data-lens="prog combat fly form">
-        <summary><span class="chev">▶</span>Power level</summary>
+        <summary><span class="chev">▶</span>Battle power</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="hp">HP acima da base (25)</label><output id="hp-out"></output></div>
             <input type="range" id="hp" min="0" max="200" step="5" value="120"></div>
@@ -329,7 +329,7 @@
         <summary><span class="chev">▶</span>Voo</summary>
         <div class="group-body">
           <p class="hint">A velocidade lê só a parte linear — o termo de fim de jogo não a toca. O que ele barateia é o custo.
-            Custo e autonomia leem também a <b>skill de voo</b>, que sobe por tempo no ar e é um eixo de progressão à parte do battle power.
+            Custo e autonomia leem também a <b>skill de voo</b>, que sobe por tempo no ar e é um eixo de progressão à parte do power level.
             O <b>FormSpeedShare</b> decide quanto do <code>PowerMultiplier</code> da forma vira velocidade: em 1 a forma multiplica a velocidade inteira (como era até 2026-08-21), em 0 ela não toca no voo.</p>
           <div class="ctl"><div class="row"><label for="fkp">KiPowerReduction</label><output id="fkp-out"></output></div>
             <input type="range" id="fkp" min="0" max="0.02" step="0.0001" value="0.0033"></div>
@@ -355,7 +355,7 @@
             <input type="checkbox" id="fl-track" checked>
             skill Flight acompanha o nível da linha
           </label>
-          <p class="hint">Marcado, o slider acima é ignorado e a skill anda junto com a linha — o jogador que subiu as duas coisas ao mesmo tempo. Desmarque para congelar a skill e ler só o efeito do battle power.</p>
+          <p class="hint">Marcado, o slider acima é ignorado e a skill anda junto com a linha — o jogador que subiu as duas coisas ao mesmo tempo. Desmarque para congelar a skill e ler só o efeito do power level.</p>
         </div>
       </details>
 
@@ -394,7 +394,7 @@
             <input type="checkbox" id="mst-track">
             maestria acompanha o nível da linha
           </label>
-          <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do battle power — que é o caso real de quem acabou de destravar a forma.</p>
+          <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
           <div class="ctl"><div class="row"><label for="xps">MasteryXpPerSecond</label><output id="xps-out"></output></div>
             <input type="range" id="xps" min="0.25" max="5" step="0.25" value="1"></div>
           <p class="hint">Segurar a forma é o único jeito de treinar a skill dela. A curva do Valheim cobra ~20.000 de XP do 0 ao 100 — a 1/s são ~5,5 h <b>dentro</b> da forma, e as recargas de ki entram por cima.</p>
@@ -535,7 +535,7 @@
   const SSJ = FORMS[0], SSJ2 = FORMS[1];
 
   // ── o modelo ──────────────────────────────────────────────────────────────
-  // Espelha PowerLevel.cs. Sao DOIS numeros de poder, e cada consumidor le um deles:
+  // Espelha BattlePower.cs. Sao DOIS numeros de poder, e cada consumidor le um deles:
   //   linear  -> velocidade de voo, teto de ki, regen/carga  (GetRaw)
   //   combate -> soco, armadura, block, numero exibido       (GetCombatRaw)
   const lateBonus = (L, k5) => k5 * MAXLVL * Math.pow(L / MAXLVL, v("p"));
@@ -550,7 +550,7 @@
   }
 
   // Nivel da skill de voo / da maestria em vigor. As duas sobem por TEMPO usando a coisa, nao por
-  // battle power: sao eixos independentes, e o checkbox escolhe se o grafico os anda junto com a
+  // power level: sao eixos independentes, e o checkbox escolhe se o grafico os anda junto com a
   // linha ou congela um deles.
   const flightLevel = L => (flTrack.checked ? L : v("fl"));
   const masteryLevel = (form, L, over) =>
@@ -560,7 +560,7 @@
   const formDrain = (form, L, over) =>
     Math.max(0, v(form.d) * (1 - v(form.r) * masteryLevel(form, L, over) / MAXLVL));
 
-  // Horas de RELOGIO ate maxar a maestria desta forma, partindo do zero, com o battle power
+  // Horas de RELOGIO ate maxar a maestria desta forma, partindo do zero, com o power level
   // parado em L. Nao e' XP_TOTAL/xp por segundo: so' se treina dentro da forma, a forma acaba
   // quando o ki acaba, e recarregar a barra e' tempo que nao conta XP nenhum. O dreno tambem
   // encolhe conforme a propria maestria sobe, entao a conta e' nivel a nivel e nao uma divisao.
@@ -611,7 +611,7 @@
     // Custo do soco: proporcional ao bonus, e o poder de combate desconta por cima. Mesma forma
     // hiperbolica do voo, mas lendo o poder INTEIRO e nao so' o termo de fim de jogo — o custo do
     // soco ja' e' proporcional ao poder, entao o desconto so' corrige um crescimento que ja'
-    // existia. Espelha PowerLevel.GetPunchKiCost.
+    // existia. Espelha BattlePower.GetPunchKiCost.
     const punch = power * v("dmg");
     const punchcost = Math.max(0, punch * v("pkc") / (1 + v("pkr") * power));
 
@@ -671,9 +671,9 @@
       sub: "é esta a linha que você quer subindo: cada nível vale mais que o anterior" },
     eff: { btn: "ganho ÷ custo", label: "Ganho ÷ custo de XP do nível", mode: "solo", dec: 3, unit: "",
       sub: "poder comprado por unidade de esforço. Plana = cada hora de jogo vale o mesmo" },
-    power: { btn: "poder", label: "Power level de combate", mode: "solo", dec: 0, unit: "",
+    power: { btn: "poder", label: "Battle power de combate", mode: "solo", dec: 0, unit: "",
       sub: "k1 × HP + k4 × nível + o termo de fim de jogo" },
-    powerform: { btn: "poder", label: "Power level de combate", mode: "forms", dec: 0, unit: "", of: "power",
+    powerform: { btn: "poder", label: "Battle power de combate", mode: "forms", dec: 0, unit: "", of: "power",
       sub: "a forma multiplica a soma inteira — é o único número que ela mexe, e todo o resto do combate sai daqui" },
     armor: { btn: "armadura", label: "Armadura", mode: "forms", dec: 0, unit: "",
       sub: "ArmorBase + poder de combate × ArmorFromPower, arredondada" },
@@ -747,7 +747,7 @@
     },
     fly: {
       title: "Voar é o segundo eixo de progressão",
-      sub: "A skill de voo sobe por tempo no ar, não por battle power. O nível enche a barra de ki; a skill esvazia ela mais devagar. Custo e autonomia leem os dois, e a velocidade lê só o battle power — de propósito.",
+      sub: "A skill de voo sobe por tempo no ar, não por power level. O nível enche a barra de ki; a skill esvazia ela mais devagar. Custo e autonomia leem os dois, e a velocidade lê só o power level — de propósito.",
       stats: ["flycost", "range", "fly", "kimax"],
       open: ["g-fly"],
       today: false,
@@ -840,7 +840,7 @@
       svg.appendChild(t);
     }
     const ax = mk("text", { class: "axis-name", x: M.l + PW / 2, y: M.t + PH + 34, "text-anchor": "middle" });
-    ax.textContent = axis === "level" ? "nível de battle power" : "xp acumulado gasto";
+    ax.textContent = axis === "level" ? "nível da skill" : "xp acumulado gasto";
     svg.appendChild(ax);
 
     const path = vals => vals.map((val, L) => (L ? "L" : "M") + xOf(L).toFixed(2) + " " + yOf(val).toFixed(2)).join(" ");
@@ -1015,7 +1015,7 @@
       // O contraste util e' com a skill de voo ZERADA: com ela acompanhando a linha, "skill no 100"
       // no nivel 100 e' o mesmo numero do cartao ao lado, e dois cartoes iguais nao dizem nada.
       { k: "sem a skill de voo", v: fmt(skill0.range, 0) + " s",
-        n: `a ${fmt(skill0.flycost, 2)} ki/s — o que o battle power sozinho compra` },
+        n: `a ${fmt(skill0.flycost, 2)} ki/s — o que o power level sozinho compra` },
       // O cartao da forma mostra o fator amortecido junto: sem ele o "x1,6" do SSJ2 parece nao bater
       // com o PowerMultiplier 3 que o jogador acabou de ajustar no rail ao lado.
       { k: "velocidade no 100", v: fmt(m100.fly, 1) + " m/s",
@@ -1144,7 +1144,7 @@
   ]);
 
   const CFG = {
-    power: () => block("6 - Power Level", [
+    power: () => block("6 - Battle Power", [
       kv("K1_Health", n("k1", 2)), kv("K4_PowerSkill", n("k4", 1)),
       kv("K5_LateGameBonus", n("k5", 1)), kv("LateGameExponent", n("p", 1))]),
     combat: () => block("2.1 - Combat", [
@@ -1174,7 +1174,7 @@
   const FOOTERS = {
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário é zero em toda a página.`,
-    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o battle power (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha.`,
+    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
   };
 

@@ -116,7 +116,7 @@ namespace Saiyaheim.Debugging
             float regen = KiManager.RegenPerSecondFor(player);
             float charge = KiManager.ChargePerSecondFor(player);
 
-            Print($"Power level: {PowerLevel.GetRaw(player):0.#} raw");
+            Print($"Battle power: {BattlePower.GetRaw(player):0.#} raw");
             Print($"Regen: {regen:0.##}/s  ({SecondsToFill(regen)} to fill)");
             Print($"Charge: {charge:0.##}/s  ({SecondsToFill(charge)} to fill)");
 
