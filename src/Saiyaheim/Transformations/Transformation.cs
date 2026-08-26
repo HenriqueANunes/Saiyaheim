@@ -258,9 +258,14 @@ namespace Saiyaheim.Transformations
         ///
         /// É a curva inteira da progressão da forma: no começo o jogador mal segura, depois vai
         /// dominando. A redução é linear porque a entrada é limitada — o fator de skill vive em
-        /// 0–1 e o config em 0–0,95, então o resultado nunca chega a zero sozinho. (O voo precisa
-        /// de uma forma hiperbólica para a redução vinda do poder justamente porque lá a entrada
-        /// não tem teto; aqui tem.)
+        /// 0–1 e o config em 0–1, então a conta é fechada nas duas pontas. (O voo precisa de uma
+        /// forma hiperbólica para a redução vinda do poder justamente porque lá a entrada não tem
+        /// teto; aqui tem.)
+        ///
+        /// <b>Com o config em 1, o nível 100 devolve exatamente zero</b> — a forma para de custar
+        /// ki e a regeneração passiva volta a correr por baixo dela (o <c>KiManager.Drain</c>
+        /// ignora dreno zero de propósito). É o default e o ponto de chegada da maestria: maxar
+        /// uma forma é passar a vestir ela de graça, não a pagar menos por ela.
         /// </summary>
         internal float GetKiDrainPerSecond(Player player)
         {

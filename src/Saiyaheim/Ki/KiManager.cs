@@ -267,10 +267,15 @@ namespace Saiyaheim.Ki
         /// combate foi tentado em 2026-08-16 e revertido no mesmo dia: com a regeneração correndo
         /// por baixo, o que a barra sente é o dreno líquido, e segurar a forma e voar ficaram
         /// fáceis demais. Ver Decisões Tomadas, "Manutenção também desliga a regeneração".
+        ///
+        /// <b>Dreno zero não é gasto</b>, e por isso sai daqui sem tocar no bloqueio. Não é
+        /// exceção à regra acima: aquela decisão é sobre a regeneração pagar parte de uma conta
+        /// que existe, e quando a maestria zera o dreno não sobra conta nenhuma para pagar. É o
+        /// que faz a forma maxada devolver a regeneração passiva em vez de só congelar a barra.
         /// </summary>
         internal static void Drain(float amount)
         {
-            if (_state == null || !_state.Enabled)
+            if (_state == null || !_state.Enabled || amount <= 0f)
             {
                 return;
             }

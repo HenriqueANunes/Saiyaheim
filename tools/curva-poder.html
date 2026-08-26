@@ -367,7 +367,7 @@
           <div class="ctl"><div class="row"><label for="d1">KiDrainPerSecond</label><output id="d1-out"></output></div>
             <input type="range" id="d1" min="0.5" max="40" step="0.5" value="5"></div>
           <div class="ctl"><div class="row"><label for="r1">MasteryDrainReduction</label><output id="r1-out"></output></div>
-            <input type="range" id="r1" min="0" max="0.95" step="0.05" value="0.8"></div>
+            <input type="range" id="r1" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv1">Maestria de SSJ</label><output id="lv1-out"></output></div>
             <input type="range" id="lv1" min="0" max="100" step="1" value="0"></div>
         </div>
@@ -381,7 +381,7 @@
           <div class="ctl"><div class="row"><label for="d2">KiDrainPerSecond</label><output id="d2-out"></output></div>
             <input type="range" id="d2" min="0.5" max="40" step="0.5" value="10"></div>
           <div class="ctl"><div class="row"><label for="r2">MasteryDrainReduction</label><output id="r2-out"></output></div>
-            <input type="range" id="r2" min="0" max="0.95" step="0.05" value="0.85"></div>
+            <input type="range" id="r2" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv2">Maestria de SSJ2</label><output id="lv2-out"></output></div>
             <input type="range" id="lv2" min="0" max="100" step="1" value="0"></div>
         </div>
@@ -621,6 +621,9 @@
 
     // O dreno bloqueia a regeneracao de fundo a cada tick (KiManager, "Manutencao tambem desliga
     // a regeneracao"), entao a barra cheia divide pelo dreno limpo — nao ha regen abatendo nada.
+    // Dreno ZERO e' o outro extremo e nao um caso degenerado: o KiManager ignora gasto nulo, a
+    // regeneracao volta a correr e a forma nao cai sozinha nunca. Infinity aqui e' literal, e e'
+    // onde a maestria maxada chega com o MasteryDrainReduction em 1.
     const drain = form ? formDrain(form, L, opt.mastery) : 0;
     const formtime = drain > 0 ? kiMax / drain : Infinity;
 
@@ -1030,14 +1033,28 @@
     const a = model(100, k5, SSJ), b = model(100, k5, SSJ2);
     const ratio = isFinite(a.powertime) && a.powertime > 0 ? b.powertime / a.powertime : Infinity;
     const mst = f => (mstTrack.checked ? MAXLVL : v(f.lv));
+
+    // Dreno zero nas duas: "poder x tempo por barra" nao existe, porque nao ha barra sendo gasta.
+    // Comparar infinito com infinito daria um alerta de letra morta que nao diz nada — o que
+    // separa os degraus aqui e' o custo ANTES da maestria, entao o card passa a mostrar isso.
+    const bothFree = a.drain <= 0 && b.drain <= 0;
+    const raw = { a: model(100, k5, SSJ, { mastery: 0 }), b: model(100, k5, SSJ2, { mastery: 0 }) };
+    const rawRatio = raw.a.powertime > 0 ? raw.b.powertime / raw.a.powertime : Infinity;
+
     return [
       { k: "SSJ no nível 100", v: fmt(a.formtime, 0) + " s", cls: "ssj",
         n: `${fmt(a.drain, 1)} ki/s com a maestria em ${fmt(mst(SSJ), 0)} · ${fmt(a.uptime, 0)}% do tempo transformado` },
       { k: "SSJ2 no nível 100", v: fmt(b.formtime, 0) + " s", cls: "ssj2",
         n: `${fmt(b.drain, 1)} ki/s com a maestria em ${fmt(mst(SSJ2), 0)} · ${fmt(b.uptime, 0)}% do tempo transformado` },
-      { k: "SSJ2 por barra de ki", v: fmt(ratio, 2) + "×", cls: ratio >= 1 ? "warn" : "",
-        n: ratio >= 1 ? "o degrau alto entrega mais poder×tempo pelo mesmo ki: o SSJ vira letra morta"
-                      : "de poder×tempo contra o SSJ — abaixo de 1 é o que mantém o degrau baixo vivo" },
+      bothFree
+        ? { k: "SSJ2 por barra, sem maestria", v: fmt(rawRatio, 2) + "×",
+            cls: rawRatio >= 1 ? "warn" : "",
+            n: "as duas formas saem de graça no 100, então a escada só custa antes de maxar — " +
+               (rawRatio >= 1 ? "e nem cru o degrau alto custa mais: o SSJ nasce letra morta"
+                              : "é aqui que o degrau baixo tem vez") }
+        : { k: "SSJ2 por barra de ki", v: fmt(ratio, 2) + "×", cls: ratio >= 1 ? "warn" : "",
+            n: ratio >= 1 ? "o degrau alto entrega mais poder×tempo pelo mesmo ki: o SSJ vira letra morta"
+                          : "de poder×tempo contra o SSJ — abaixo de 1 é o que mantém o degrau baixo vivo" },
       { k: "maestria 100 em SSJ2", v: fmt(masteryHours(SSJ2, 100), 1) + " h",
         n: `de relógio, contando as recargas. Em SSJ são ${fmt(masteryHours(SSJ, 100), 1)} h` },
     ];
@@ -1104,6 +1121,20 @@
     const a = model(100, k5, SSJ, { mastery: MAXLVL }), b = model(100, k5, SSJ2, { mastery: MAXLVL });
     const raw = { a: model(100, k5, SSJ, { mastery: 0 }), b: model(100, k5, SSJ2, { mastery: 0 }) };
     const ratio = a.powertime > 0 ? b.powertime / a.powertime : Infinity;
+
+    // Maxado sem dreno e' o desenho a partir de 2026-08-25, nao um descuido de config: a maestria
+    // termina em "a forma sai de graca". Os dois alertas abaixo pressupoem uma forma que ainda
+    // custa ki no 100 — soltos aqui, eles mandariam desfazer a decisao. Entao o veredito muda de
+    // pergunta: com o fim da escada de graca, o que resta julgar e' o caminho ate la.
+    if (a.drain <= 0 && b.drain <= 0) {
+      const rawRatio = raw.a.powertime > 0 ? raw.b.powertime / raw.a.powertime : Infinity;
+      const hours = masteryHours(SSJ2, 100);
+      if (rawRatio >= 1) {
+        return { warn: true, html: `<strong>O SSJ vira letra morta antes mesmo da maestria:</strong> recém-destravado, uma barra de ki compra ${fmt(rawRatio, 2)}× mais poder×tempo em SSJ2 que em SSJ. Como as duas formas terminam de graça no 100, o dreno cru é a única janela em que o degrau baixo existe — e ela está fechada. Suba o <code>KiDrainPerSecond</code> do SSJ2 ou baixe o <code>PowerMultiplier</code> dele.` };
+      }
+      return { html: `<strong>A maestria termina de graça, e é isso que ela compra.</strong> No 100 as duas formas não drenam nada e o ki volta a regenerar por baixo delas — a forma vira permanente até o jogador soltar. O preço todo está no caminho: cru, o SSJ2 segura ${fmt(raw.b.formtime, 0)} s por barra contra ${fmt(raw.a.formtime, 0)} s do SSJ (${fmt(rawRatio, 2)}× de poder×tempo), e maxá-lo custa ${fmt(hours, 1)} h de relógio contra ${fmt(masteryHours(SSJ, 100), 1)} h do SSJ.` };
+    }
+
     if (ratio >= 1) {
       return { warn: true, html: `<strong>O SSJ vira letra morta:</strong> com as duas maestrias maxadas, uma barra de ki compra ${fmt(b.powertime, 0)} de poder×tempo em SSJ2 contra ${fmt(a.powertime, 0)} em SSJ — ${fmt(ratio, 2)}× a favor do degrau alto. Quem destravou o segundo nunca mais tem motivo para usar o primeiro. Suba o <code>KiDrainPerSecond</code> do SSJ2 ou baixe o <code>PowerMultiplier</code> dele.` };
     }

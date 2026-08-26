@@ -1183,12 +1183,15 @@ namespace Saiyaheim
             //     calibragem. Se o dreno dobrasse junto com o poder, o degrau alto seria
             //     estritamente melhor por ki gasto e o SSJ viraria letra morta — a escolha entre
             //     os dois degraus tem que custar alguma coisa. Saiu em 12.
-            //   MasteryDrainReduction 0,85 contra os 0,8 do SSJ: a intencao e' que maxar a
-            //     maestria aproxime o custo do degrau alto do custo do degrau baixo. Segurar o
-            //     SSJ2 sai de 2x o dreno do SSJ (cru) para 1,5x (maxado) — encolhe com o treino
-            //     sem nunca fechar, e o "sem nunca fechar" foi decidido: 0,90 igualaria os dois
-            //     em 1,0/s, e ao mesmo preco o SSJ2 entrega 3x contra 2x. O SSJ perderia toda
-            //     razao de existir para quem treinou os dois. Ver [[Transformacoes]].
+            //   MasteryDrainReduction fica no default (1), igual ao do SSJ, e o degrau alto
+            //     tambem sai de graca no nivel 100. Ate 2026-08-25 era 0,85 contra 0,8 justamente
+            //     para os dois nunca fecharem: com o SSJ2 entregando 3x contra 2x ao mesmo preco,
+            //     o SSJ perderia a razao de existir. Isso continua verdade, e e' o preco aceito
+            //     de "maxar uma forma e' passar a vestir ela de graca" — o que separa os degraus
+            //     no fim do jogo passa a ser o caminho ate la, nao o custo de manter. Note que a
+            //     escada de maestria e' por forma: chegar ao 100 do SSJ2 e' um investimento
+            //     proprio, e ate ele fechar o dreno maior continua sendo a escolha que o jogador
+            //     paga. Ver [[Transformacoes]].
             //   CarryWeightBonus 200 = o dobro do SSJ, pela mesma leitura de "forma mais alta
             //     carrega mais". Nao passa pelo multiplicador, como no SSJ.
             //   O soco reparte em contusao e RAIO, sem corte: o tipo de dano e' o sabor do degrau,
@@ -1209,10 +1212,7 @@ namespace Saiyaheim
                 lightning: true,
                 // Azul, contra o amarelo do cabelo e da aura. Playtest de 2026-08-16: com a cor da
                 // aura o raio virava parte do brilho e sumia dentro dele.
-                lightningColor: "#66D9FF",
-                // 0,85 contra os 0,8 do SSJ. Ver o bloco de comentario acima: e' o que faz a
-                // maestria aproximar o dreno do SSJ2 do dreno do SSJ sem igualar os dois.
-                masteryDrainReduction: 0.85f);
+                lightningColor: "#66D9FF");
 
             // --- Ataques de ki ---
             KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
@@ -2273,7 +2273,7 @@ namespace Saiyaheim
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
-            float masteryDrainReduction = 0.8f)
+            float masteryDrainReduction = 1f)
         {
             return new TransformationConfig
             {
@@ -2368,12 +2368,14 @@ namespace Saiyaheim
                     new ConfigDescription(
                         "Fraction of the drain removed at level 100 of THIS form's skill. " +
                         "drain = KiDrainPerSecond * (1 - level/100 * this). " +
-                        "0.8 = at level 100 the form costs a fifth of what it costs at level 0, " +
-                        "which is the whole progression of mastery: at first you barely hold the " +
-                        "form, later you own it. " +
-                        "Careful: too high and the form becomes permanent and ki stops being a " +
-                        "source of tension.",
-                        new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(80))),
+                        "1 = at level 100 the form is FREE: no drain at all, and passive ki " +
+                        "regeneration runs again while transformed, so a maxed form is permanent " +
+                        "until you drop it yourself. That is the intended end of the mastery " +
+                        "curve — at first you barely hold the form, in the end you wear it. " +
+                        "Lower it if you want the form to keep costing something forever: 0.8 " +
+                        "means level 100 still pays a fifth of the level 0 drain, and ki stays a " +
+                        "source of tension all game.",
+                        new AcceptableValueRange<float>(0f, 1f), AdminOnly(80))),
 
                 // Referencia para calibrar: a curva do Valheim ((nivel+1)^1.5 * 0.5 + 0.5 por
                 // nivel) cobra ~20.000 de XP para ir do 0 ao 100, e ~1.600 para chegar ao 30.
