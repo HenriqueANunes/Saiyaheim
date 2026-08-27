@@ -235,6 +235,38 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Quanto esta forma brilha, como multiplicador da regulagem compartilhada
+        /// (<c>FormGlowIntensity</c>). 0 apaga o brilho só nesta forma.
+        ///
+        /// <b>É intensidade por forma e não só um booleano</b>, ao contrário do raio, porque aqui
+        /// a escada tem um degrau contínuo a subir: o raio ou estala ou não estala, mas o brilho
+        /// de um degrau alto é o mesmo brilho <i>mais forte</i>. Deixar a diferença em uma chave
+        /// numérica é o que permite ver de longe em que forma alguém está sem contar raios.
+        ///
+        /// Piso em zero: brilho negativo não existe, e uma luz de intensidade negativa <b>escurece
+        /// o cenário</b> em vez de não fazer nada.
+        /// </summary>
+        internal float GetGlowIntensity()
+        {
+            return Mathf.Max(0f, Config.GlowIntensity.Value);
+        }
+
+        /// <summary>
+        /// A cor do brilho desta forma. Vazio na chave própria cai na cor da aura, que é o caso
+        /// normal — mesma regra do <see cref="GetLightningColor"/>, e pelo mesmo motivo: a forma
+        /// tem uma cor só, e repeti-la em três chaves seria mais coisa a manter em sincronia.
+        ///
+        /// A diferença é o que acontece quando as <b>duas</b> estão vazias: lá isso vira "não
+        /// tinja o prefab", aqui não há prefab a preservar. Quem decide é o <c>FormGlow</c>.
+        /// </summary>
+        internal string GetGlowColor()
+        {
+            string own = Config.GlowColor.Value;
+
+            return string.IsNullOrEmpty(own) ? Config.AuraColor.Value : own;
+        }
+
+        /// <summary>
         /// Quanto peso a mais o inventário aguenta enquanto esta forma está ativa.
         ///
         /// <b>Não passa pelo <see cref="GetPowerMultiplier"/>, e não escala com maestria.</b> A

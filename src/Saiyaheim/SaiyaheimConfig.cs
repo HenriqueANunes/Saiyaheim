@@ -305,6 +305,18 @@ namespace Saiyaheim
             /// o caso normal — a forma tem uma cor só.
             /// </summary>
             public ConfigEntry<string> LightningColor { get; internal set; }
+
+            /// <summary>
+            /// Quanto esta forma brilha, como multiplicador da regulagem compartilhada da seção 8
+            /// (<c>FormGlow*</c>). 0 apaga o brilho só nesta forma.
+            /// </summary>
+            public ConfigEntry<float> GlowIntensity { get; internal set; }
+
+            /// <summary>
+            /// Cor do brilho desta forma, em #RRGGBB. Vazio cai na <see cref="AuraColor"/>, que é
+            /// o caso normal — mesma regra da <see cref="LightningColor"/>.
+            /// </summary>
+            public ConfigEntry<string> GlowColor { get; internal set; }
         }
 
         /// <summary>
@@ -694,6 +706,30 @@ namespace Saiyaheim
 
         /// <summary>Multiplicador da luz dinâmica de cada estalo. 0 apaga e deixa só as partículas.</summary>
         public static ConfigEntry<float> FormLightningLightIntensity { get; private set; }
+
+        // O brilho das formas. Mesma divisão de sempre — a regulagem é compartilhada e mora aqui;
+        // quanto cada forma brilha e de que cor é por forma (GlowIntensity/GlowColor).
+
+        /// <summary>Intensidade da luz da forma, antes do multiplicador dela. 0 desliga em todas.</summary>
+        public static ConfigEntry<float> FormGlowIntensity { get; private set; }
+
+        /// <summary>Até onde a luz alcança, em metros.</summary>
+        public static ConfigEntry<float> FormGlowRange { get; private set; }
+
+        /// <summary>Altura da luz acima dos pés, em metros.</summary>
+        public static ConfigEntry<float> FormGlowHeight { get; private set; }
+
+        /// <summary>Amplitude da respiração da luz, em fração da intensidade. 0 vira lâmpada.</summary>
+        public static ConfigEntry<float> FormGlowPulseAmount { get; private set; }
+
+        /// <summary>Velocidade da respiração, em ciclos por segundo.</summary>
+        public static ConfigEntry<float> FormGlowPulseSpeed { get; private set; }
+
+        /// <summary>Segundos que a luz leva para acender e para apagar. 0 é instantâneo.</summary>
+        public static ConfigEntry<float> FormGlowFade { get; private set; }
+
+        /// <summary>A luz projeta sombras. Caro: são seis mapas de sombra por quadro.</summary>
+        public static ConfigEntry<bool> FormGlowShadows { get; private set; }
 
         // ---------- 10 - Multiplayer ----------
 
@@ -1212,7 +1248,11 @@ namespace Saiyaheim
                 lightning: true,
                 // Azul, contra o amarelo do cabelo e da aura. Playtest de 2026-08-16: com a cor da
                 // aura o raio virava parte do brilho e sumia dentro dele.
-                lightningColor: "#66D9FF");
+                lightningColor: "#66D9FF",
+                // Brilha metade de novo que o SSJ. E' o unico numero visual da forma que sobe
+                // junto com a forca dela — de longe e a noite, quem esta' em SSJ2 acende mais
+                // chao. Chute inicial: o degrau precisa ser visivel sem virar holofote.
+                glowIntensity: 1.5f);
 
             // --- Ataques de ki ---
             KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
@@ -2244,6 +2284,92 @@ namespace Saiyaheim
                     "(Starting value. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 2f), ClientSide(27)));
 
+            // --- Brilho das formas ---
+            //
+            // Uma luz nua presa ao jogador, sem prefab e sem particula nenhuma. E' o contrario
+            // exato da TransformAuraLightIntensity logo acima: la' a luz e' herdada de um prefab
+            // de ESTOURO e o aviso e' para nao deixa-la acesa por engano; aqui ela e' o pedido, e
+            // por isso tem regulagem propria e discreta. Ver a cabeca do FormGlow.
+            FormGlowIntensity = config.Bind(SecEffects, "FormGlowIntensity", 0.8f,
+                new ConfigDescription(
+                    "How brightly a transformed body lights up the ground around it, before each " +
+                    "form's own GlowIntensity multiplier. 0 turns the glow off for every form at " +
+                    "once. " +
+                    "Deliberately well under a torch (~1.5): this is meant to be noticed at " +
+                    "night and to barely register at noon, not to light your way. " +
+                    "This is a plain point light, not a particle effect — it is the one sustained " +
+                    "effect that cannot turn into the cloud that looping a burst prefab did. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 5f), ClientSide(26)));
+
+            FormGlowRange = config.Bind(SecEffects, "FormGlowRange", 6f,
+                new ConfigDescription(
+                    "How far the glow reaches, in meters. Small on purpose: the point is a pool " +
+                    "of light around the character, so you can tell someone is transformed from " +
+                    "the ground under them. Large values light up half a clearing and stop " +
+                    "reading as coming from the body. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(25)));
+
+            FormGlowHeight = config.Bind(SecEffects, "FormGlowHeight", 1.1f,
+                new ConfigDescription(
+                    "Height of the light above the feet, in meters. 1.1 is about chest height on " +
+                    "a Valheim character, which lights the character and the ground at once. " +
+                    "Lower puts more light on the ground and less on the body. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(-1f, 4f), ClientSide(24)));
+
+            // Sem pulso a luz le como lampada — cenario, nao energia. E' o mesmo motivo pelo qual
+            // os estalos sao sorteados em vez de bater em compasso.
+            FormGlowPulseAmount = config.Bind(SecEffects, "FormGlowPulseAmount", 0.15f,
+                new ConfigDescription(
+                    "How much the glow breathes, as a fraction of its intensity. 0.15 means it " +
+                    "swings between 85% and 115%, with the configured intensity as the AVERAGE " +
+                    "rather than the ceiling. " +
+                    "0 leaves it perfectly steady, which reads as a lamp bolted to the character " +
+                    "instead of energy he is barely holding in. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(23)));
+
+            // Calibrado no playtest de 2026-08-27, o primeiro do brilho: saiu em 1,2 — "um ciclo
+            // por segundo e' o ritmo de uma respiracao" — e desceu para 0,3, quatro vezes mais
+            // lento. A analogia estava errada: o corpo transformado nao respira no ritmo de quem
+            // esta' em repouso, e a cadencia de respiracao literal lida de fora le como a luz
+            // piscando. Devagar o bastante para o olho nao contar os ciclos, a luz volta a parecer
+            // instavel em vez de pulsante.
+            FormGlowPulseSpeed = config.Bind(SecEffects, "FormGlowPulseSpeed", 0.3f,
+                new ConfigDescription(
+                    "Speed of that breathing, in full cycles per second. Slow on purpose: 0.3 is " +
+                    "one swell every three seconds or so, slow enough that the eye reads it as " +
+                    "energy shifting rather than counting the cycles. " +
+                    "Anything near 1 — the rate of actual breathing — reads as the light " +
+                    "flickering, which is a playtest result (2026-08-27) and not what it sounds " +
+                    "like on paper. " +
+                    "Ignored when FormGlowPulseAmount is 0.",
+                    new AcceptableValueRange<float>(0f, 10f), ClientSide(22)));
+
+            FormGlowFade = config.Bind(SecEffects, "FormGlowFade", 0.4f,
+                new ConfigDescription(
+                    "Seconds the glow takes to come up when you transform and to go out when you " +
+                    "drop back. 0 snaps it on and off, which pops — especially on the way out, " +
+                    "where nothing else is happening on screen to cover it. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 5f), ClientSide(21)));
+
+            // Desligada de proposito: luz pontual com sombra custa SEIS mapas de sombra por
+            // quadro, e esta luz vive minutos, nao frames — e uma por jogador transformado na
+            // cena. A chave existe porque sombra projetada de um corpo brilhante e' bonita, e a
+            // decisao de pagar por ela e' de quem olha a tela.
+            FormGlowShadows = config.Bind(SecEffects, "FormGlowShadows", false,
+                new ConfigDescription(
+                    "Let the glow cast shadows. Off by default and deliberately: a point light " +
+                    "with shadows renders six shadow maps per frame, this light stays on for as " +
+                    "long as the form does, and there is one per transformed player in the scene. " +
+                    "On, the character throws his own shadow outward, which looks great and costs " +
+                    "real frames. " +
+                    "(Starting value. Not playtested yet.)",
+                    null, ClientSide(20)));
+
             // --- Debug ---
             ShowRemotePoses = config.Bind(SecMultiplayer, "ShowRemotePoses", true,
                 new ConfigDescription(
@@ -2273,7 +2399,7 @@ namespace Saiyaheim
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
-            float masteryDrainReduction = 1f)
+            float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "")
         {
             return new TransformationConfig
             {
@@ -2482,7 +2608,31 @@ namespace Saiyaheim
                         "read; white also works. " +
                         "Applies to the next bolt, so you can retune it with the game open. " +
                         "Ignored when LightningEnabled is off.",
-                        null, ClientSide(35)))
+                        null, ClientSide(35))),
+
+                // Um numero e nao um booleano, ao contrario do raio: o raio ou estala ou nao
+                // estala, mas o brilho de um degrau alto e' o mesmo brilho MAIS FORTE, e e' esse
+                // eixo continuo que deixa a escada legivel de longe.
+                GlowIntensity = config.Bind(section, "GlowIntensity", glowIntensity,
+                    new ConfigDescription(
+                        "How brightly this form lights up its surroundings, as a multiplier on " +
+                        "Effects.FormGlowIntensity. 0 turns the glow off for this form only. " +
+                        "Higher forms are meant to be brighter — this is the one visual key that " +
+                        "reads as a LADDER rather than as an identity, and at a distance it is " +
+                        "what tells two forms apart at night. " +
+                        "Applies immediately, so you can retune it with the game open.",
+                        new AcceptableValueRange<float>(0f, 5f), ClientSide(34))),
+
+                GlowColor = config.Bind(section, "GlowColor", glowColor,
+                    new ConfigDescription(
+                        "Color of this form's glow, #RRGGBB format. Empty falls back to " +
+                        "AuraColor, which is the normal case — the form has one color. " +
+                        "Worth splitting only if the aura tone washes out as light on terrain: " +
+                        "a saturated hue that reads well on particles can turn muddy once it is " +
+                        "lighting grass and stone. " +
+                        "Unlike LightningColor, this one is meant to MATCH the rest of the form. " +
+                        "Ignored when the glow is off.",
+                        null, ClientSide(33)))
             };
         }
 

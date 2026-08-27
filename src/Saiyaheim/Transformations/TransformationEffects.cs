@@ -99,10 +99,11 @@ namespace Saiyaheim.Transformations
         /// A regra é a mesma que o <see cref="OnStepDown"/> já aplicava; agora ela vale para quem
         /// está olhando de fora também.
         ///
-        /// <b>O raio é a exceção à regra do instante</b>, e o único efeito daqui que responde ao
-        /// <i>estado</i> em vez do evento: por isso o <see cref="FormLightning"/> é chamado em todo
-        /// frame e fora do desvio de "mudou de forma". Ver a cabeça daquela classe para por que ele
-        /// pode durar onde a aura não podia.
+        /// <b>O raio e o brilho são as exceções à regra do instante</b>, e os únicos efeitos daqui
+        /// que respondem ao <i>estado</i> em vez do evento: por isso <see cref="FormLightning"/> e
+        /// <see cref="FormGlow"/> são chamados em todo frame e fora do desvio de "mudou de forma".
+        /// Ver a cabeça daquelas classes para por que os dois podem durar onde a aura não podia —
+        /// um porque é intermitente por natureza, o outro porque não tem partícula para acumular.
         /// </summary>
         internal static void Observe(Player player)
         {
@@ -129,7 +130,13 @@ namespace Saiyaheim.Transformations
                 }
             }
 
-            Run(() => FormLightning.Tick(player, TransformationRegistry.At(index)));
+            Run(() =>
+            {
+                Transformation form = TransformationRegistry.At(index);
+
+                FormLightning.Tick(player, form);
+                FormGlow.Tick(player, form);
+            });
         }
 
         /// <summary>Este jogador deixou de existir: descarta o que era lembrado dele.</summary>
@@ -138,6 +145,7 @@ namespace Saiyaheim.Transformations
             Bursts.Remove(player);
             LastSeenForm.Remove(player);
             FormLightning.Forget(player);
+            FormGlow.Forget(player);
         }
 
         /// <summary>
@@ -207,6 +215,7 @@ namespace Saiyaheim.Transformations
             Bursts.Clear();
             LastSeenForm.Clear();
             FormLightning.Reset();
+            FormGlow.Reset();
         }
 
         /// <summary>
