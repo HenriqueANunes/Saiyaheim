@@ -1236,19 +1236,22 @@ namespace Saiyaheim
                     "this key and the Y one below are what actually place it.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(48)));
 
-            PowerHudOffsetY = config.Bind(SecHud, "PowerHudOffsetY", -28f,
+            PowerHudOffsetY = config.Bind(SecHud, "PowerHudOffsetY", -200f,
                 new ConfigDescription(
                     "Vertical offset of the text, in pixels, relative to the biome label. Negative " +
-                    "moves down. The default puts it one line below, which is a guess: the minimap " +
-                    "layout is Unity asset data and cannot be read from code.",
+                    "moves down. (Playtest value, 2026-09-05. The first guess was -28, one line " +
+                    "below the label; on screen the minimap needs a lot more clearance than that. " +
+                    "Its layout is Unity asset data and cannot be read from code, so the number " +
+                    "could only come from looking.)",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(46)));
 
-            PowerHudFontSize = config.Bind(SecHud, "PowerHudFontSize", 14f,
+            PowerHudFontSize = config.Bind(SecHud, "PowerHudFontSize", 20f,
                 new ConfigDescription(
                     "Font size, in canvas units — the same units the game's own UI uses, so it " +
                     "already follows resolution and UI scale. The clone has TMP auto-sizing turned " +
                     "off, which is what makes this key work at all: the biome label it is cloned " +
-                    "from recomputes its own size every layout pass and would overwrite this.",
+                    "from recomputes its own size every layout pass and would overwrite this. " +
+                    "(Playtest value, 2026-09-05.)",
                     new AcceptableValueRange<float>(4f, 60f), ClientSide(44)));
 
             PowerHudLabel = config.Bind(SecHud, "PowerHudLabel", "PB: ",
