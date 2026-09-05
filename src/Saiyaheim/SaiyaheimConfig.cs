@@ -1241,7 +1241,10 @@ namespace Saiyaheim
                 powerMultiplier: 3f,
                 kiDrainPerSecond: 10f,
                 punchSlashFraction: 0f,
-                punchLightningFraction: 0.5f,
+                // Desceu de 0,5 para 0,2 em playtest posterior a 2026-08-17 — motivo nao
+                // registrado na hora. O soco do SSJ2 passa a ser contusao com sabor de raio,
+                // e nao meio a meio.
+                punchLightningFraction: 0.2f,
                 carryWeightBonus: 200f,
                 hairColor: "#FFF08A",
                 requiredGlobalKey: "defeated_gdking",
