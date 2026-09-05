@@ -233,6 +233,24 @@ namespace Saiyaheim
         public static ConfigEntry<string> KiBarColor { get; private set; }
         public static ConfigEntry<bool> KiBarAlwaysVisible { get; private set; }
 
+        /// <summary>Mostra o poder de luta na HUD, abaixo do minimapa.</summary>
+        public static ConfigEntry<bool> ShowPowerOnHud { get; private set; }
+
+        /// <summary>Deslocamento X do texto, relativo ao rótulo do bioma no minimapa.</summary>
+        public static ConfigEntry<float> PowerHudOffsetX { get; private set; }
+
+        /// <summary>Deslocamento Y do texto, relativo ao rótulo do bioma no minimapa.</summary>
+        public static ConfigEntry<float> PowerHudOffsetY { get; private set; }
+
+        /// <summary>Tamanho da fonte, em unidades de canvas.</summary>
+        public static ConfigEntry<float> PowerHudFontSize { get; private set; }
+
+        /// <summary>Texto antes do número.</summary>
+        public static ConfigEntry<string> PowerHudLabel { get; private set; }
+
+        /// <summary>Cor do texto.</summary>
+        public static ConfigEntry<string> PowerHudColor { get; private set; }
+
         // ---------- 3.x - Transformations ----------
 
         /// <summary>
@@ -553,13 +571,26 @@ namespace Saiyaheim
         /// <summary>Trava de segurança: XP máximo de um único golpe.</summary>
         public static ConfigEntry<float> SkillXpMaxPerEvent { get; private set; }
 
-        /// <summary>
-        /// Expoente da compressão aplicada ao battle power bruto antes de exibir.
-        /// 0.5 = raiz quadrada. Menor comprime mais.
-        /// </summary>
-        public static ConfigEntry<float> PowerCompressionExponent { get; private set; }
+        /// <summary>Peso da vida efetiva no poder de luta escaneável. Vale para jogador e inimigo.</summary>
+        public static ConfigEntry<float> RatingK1Health { get; private set; }
 
-        /// <summary>Multiplicador aplicado depois da compressão, só para o número exibido ficar legível.</summary>
+        /// <summary>Quanta armadura dobra a vida efetiva. Inimigo tem 0, então não é afetado.</summary>
+        public static ConfigEntry<float> RatingArmorScale { get; private set; }
+
+        /// <summary>Peso do dano por segundo no poder de luta. Vale para jogador e inimigo.</summary>
+        public static ConfigEntry<float> RatingK2Damage { get; private set; }
+
+        /// <summary>
+        /// Segundos entre dois golpes do jogador. É a única entrada do poder de luta que não sai
+        /// do jogo: a cadência do jogador vive na animação, não no item.
+        /// </summary>
+        public static ConfigEntry<float> RatingPlayerHitInterval { get; private set; }
+
+        // Aqui morava o PowerCompressionExponent, removido no playtest da etapa 10: um expoente
+        // sobre o valor vira o mesmo expoente sobre a razao, e ele achatava justamente as
+        // diferencas que o numero existe para mostrar. Ver PowerRating.GetDisplay.
+
+        /// <summary>Multiplicador linear do número exibido. Só escolhe o tamanho, não distorce razão.</summary>
         public static ConfigEntry<float> PowerDisplayScale { get; private set; }
 
         // ---------- 8 - Effects ----------
@@ -1188,6 +1219,49 @@ namespace Saiyaheim
                     "With ki turned OFF the bar hides in both cases.",
                     null, ClientSide(60)));
 
+            // --- Poder de luta na HUD (etapa 10) ---
+            // Abaixo do minimapa, clonado do rotulo do bioma. Todas as chaves sao client-side —
+            // sao posicao e gosto de quem esta na frente da tela, nao balanceamento.
+            ShowPowerOnHud = config.Bind(SecHud, "ShowPowerOnHud", true,
+                new ConfigDescription(
+                    "Shows your battle power on the HUD, under the minimap. It follows the small " +
+                    "minimap: it hides with the big map open, and with the minimap turned off in " +
+                    "the game options — where it would otherwise float in an empty corner.",
+                    null, ClientSide(50)));
+
+            PowerHudOffsetX = config.Bind(SecHud, "PowerHudOffsetX", 0f,
+                new ConfigDescription(
+                    "Horizontal offset of the text, in pixels, RELATIVE to the minimap's biome " +
+                    "label. Positive moves right. Zero puts it exactly on top of that label, so " +
+                    "this key and the Y one below are what actually place it.",
+                    new AcceptableValueRange<float>(-500f, 500f), ClientSide(48)));
+
+            PowerHudOffsetY = config.Bind(SecHud, "PowerHudOffsetY", -28f,
+                new ConfigDescription(
+                    "Vertical offset of the text, in pixels, relative to the biome label. Negative " +
+                    "moves down. The default puts it one line below, which is a guess: the minimap " +
+                    "layout is Unity asset data and cannot be read from code.",
+                    new AcceptableValueRange<float>(-500f, 500f), ClientSide(46)));
+
+            PowerHudFontSize = config.Bind(SecHud, "PowerHudFontSize", 14f,
+                new ConfigDescription(
+                    "Font size, in canvas units — the same units the game's own UI uses, so it " +
+                    "already follows resolution and UI scale. The clone has TMP auto-sizing turned " +
+                    "off, which is what makes this key work at all: the biome label it is cloned " +
+                    "from recomputes its own size every layout pass and would overwrite this.",
+                    new AcceptableValueRange<float>(4f, 60f), ClientSide(44)));
+
+            PowerHudLabel = config.Bind(SecHud, "PowerHudLabel", "PB: ",
+                new ConfigDescription(
+                    "Text printed before the number. Keep the trailing space, there is none added. " +
+                    "Empty shows the bare number.",
+                    null, ClientSide(43)));
+
+            PowerHudColor = config.Bind(SecHud, "PowerHudColor", "#FFFFFF",
+                new ConfigDescription(
+                    "Text colour, as hex. Defaults to white, which is what the biome label uses.",
+                    null, ClientSide(42)));
+
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir
             // esta linha com outra secao, outros numeros e a global key do boss dele.
@@ -1613,16 +1687,56 @@ namespace Saiyaheim
                     "half the total grind. Lower spreads it out, higher concentrates it further.",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(64)));
 
-            PowerCompressionExponent = config.Bind(SecPower, "CompressionExponent", 0.5f,
+            // --- Poder de luta escaneável (etapa 10) ---
+            // Duas entradas, e só duas, porque são as únicas grandezas que jogador e bicho têm em
+            // comum. Defesa ficou de fora de propósito: Character.GetBodyArmor() devolve 0 para
+            // todo inimigo do jogo, então um termo de armadura só pesaria de um lado da
+            // comparação — e a comparação é a razão de o número existir. Ver PowerRating.
+            RatingK1Health = config.Bind(SecPower, "RatingHealthWeight", 1f,
                 new ConfigDescription(
-                    "Exponent of the compression applied to the raw battle power before display. " +
-                    "0.5 = square root, 1.0 = no compression. It exists so the number does not " +
-                    "become huge and meaningless too early.",
-                    new AcceptableValueRange<float>(0.1f, 1f), AdminOnly(60)));
+                    "Weight of EFFECTIVE health — max health stretched by armor — in the scannable " +
+                    "power rating. Applies to players and creatures alike; that shared scale is the " +
+                    "whole point of the number, so this is deliberately NOT a per-side knob. Star " +
+                    "variants come included for free: the game already multiplies max health by the " +
+                    "creature level.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(48)));
 
-            PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 100f,
-                new ConfigDescription("Multiplier applied after the compression, purely for readability.",
-                    new AcceptableValueRange<float>(1f, 10000f), AdminOnly(50)));
+            RatingArmorScale = config.Bind(SecPower, "RatingArmorScale", 50f,
+                new ConfigDescription(
+                    "How much armor DOUBLES effective health: at 50, an armor of 50 makes you count " +
+                    "as twice your max health. This is what makes a transformation show up on the " +
+                    "defensive side — forms grant no health, they grant armor, and without this term " +
+                    "base form and SSJ2 read within 10% of each other. Creatures have zero armor in " +
+                    "Valheim (only Player overrides GetBodyArmor), so their factor is exactly 1 and " +
+                    "this key does not touch them. Lower makes armor count for more.",
+                    new AcceptableValueRange<float>(0f, 1000f), AdminOnly(47)));
+
+            RatingK2Damage = config.Bind(SecPower, "RatingDamageWeight", 1f,
+                new ConfigDescription(
+                    "Weight of damage PER SECOND in the scannable power rating. Same scale for " +
+                    "players and creatures. Per second, not per hit: a troll hits for 70 every ~4 " +
+                    "seconds and you punch about once a second, so per-hit made the troll look " +
+                    "stronger than a fully maxed player, which the actual fight denies. This is " +
+                    "the knob that decides whether the number reads as offence or as bulk.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
+
+            RatingPlayerHitInterval = config.Bind(SecPower, "RatingPlayerHitInterval", 1f,
+                new ConfigDescription(
+                    "Seconds between two of YOUR hits, used to turn your damage into damage per " +
+                    "second. Creatures carry their own cadence in the weapon item, so this key is " +
+                    "only about you — the player's swing rate lives in the animation and cannot " +
+                    "be read from the item. Lower makes your rating climb against everything.",
+                    new AcceptableValueRange<float>(0.1f, 10f), AdminOnly(44)));
+
+            PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 1f,
+                new ConfigDescription(
+                    "Linear multiplier on the displayed power rating, purely cosmetic. Linear is " +
+                    "the point: it changes how big the number looks without touching any ratio " +
+                    "between two characters. At 1 you read the raw rating (a boar around 55, a " +
+                    "troll around 800, Fader around 25000); raise it if you want Dragon Ball sized " +
+                    "numbers on screen. There used to be a square root here as well — it was " +
+                    "removed because it flattened the very differences the number exists to show.",
+                    new AcceptableValueRange<float>(0.01f, 10000f), AdminOnly(50)));
 
             // --- Power Level ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo

@@ -375,27 +375,12 @@ namespace Saiyaheim.Power
             return SaiyaheimConfig.BlockPowerBase.Value + fromPower;
         }
 
-        /// <summary>
-        /// Número para exibir. Comprimido para não virar um valor gigante e vazio cedo demais.
-        ///
-        /// Lê o poder de <b>combate</b>: é o número que o jogador associa a "ficar mais forte", e
-        /// esconder dele justamente a parcela que dispara no fim do jogo tiraria da tela o momento
-        /// que o termo novo existe para criar.
-        ///
-        /// ⚠️ Só exibição. Se a compressão entrasse no cálculo, dobrar o poder deixaria de dobrar
-        /// o dano e o balanceamento viraria outra coisa.
-        /// </summary>
-        internal static float GetDisplayValue(Player player)
-        {
-            float raw = GetCombatRaw(player);
-            if (raw <= 0f)
-            {
-                return 0f;
-            }
-
-            return Mathf.Pow(raw, SaiyaheimConfig.PowerCompressionExponent.Value)
-                   * SaiyaheimConfig.PowerDisplayScale.Value;
-        }
+        // Aqui morava o GetDisplayValue, removido na etapa 10. Ele comprimia o poder de combate
+        // — o stat INTERNO — e o mandava para a tela. O número exibido passou a sair do
+        // PowerRating, em termos vanilla (HP e dano), porque um número que só o jogador tem não
+        // se compara com inimigo nenhum, e comparar é a razão de o scan existir. O que esta
+        // classe calcula continua sendo o que alimenta dano, armadura e block power, e nada
+        // disso mudou.
 
         /// <summary>
         /// Dano total da arma equipada. Só usado na fórmula do ki desligado.

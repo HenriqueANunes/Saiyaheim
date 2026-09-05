@@ -65,6 +65,7 @@ namespace Saiyaheim
             {
                 Log.LogInfo("Config reloaded from disk.");
                 KiHud.OnConfigReloaded();
+                PowerHud.OnConfigReloaded();
             };
 
             PowerSkill.Register();
@@ -114,6 +115,7 @@ namespace Saiyaheim
             RemoteEffects.Update();
 
             KiHud.Update();
+            PowerHud.Update();
         }
 
         /// <summary>
