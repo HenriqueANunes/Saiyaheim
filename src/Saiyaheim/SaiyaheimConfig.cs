@@ -4,6 +4,19 @@ using UnityEngine;
 namespace Saiyaheim
 {
     /// <summary>
+    /// Alinhamento horizontal de um texto da HUD. Três valores em vez do
+    /// <c>HorizontalAlignmentOptions</c> do TMP, que traz junto <c>Justified</c>, <c>Flush</c> e
+    /// <c>Geometry Center</c> — opções que não querem dizer nada para uma linha de texto curta e
+    /// que só sujariam a lista de valores aceitos no <c>.cfg</c>.
+    /// </summary>
+    public enum HudTextAlign
+    {
+        Left,
+        Center,
+        Right,
+    }
+
+    /// <summary>
     /// Quanto de um efeito de impacto a cor do ataque pinta.
     ///
     /// <b>São duas leituras diferentes do mesmo pedido</b>, e só quem está olhando a tela decide
@@ -250,6 +263,27 @@ namespace Saiyaheim
 
         /// <summary>Cor do texto.</summary>
         public static ConfigEntry<string> PowerHudColor { get; private set; }
+
+        /// <summary>Mostra o poder de luta do inimigo abaixo da barra de vida dele.</summary>
+        public static ConfigEntry<bool> ShowEnemyPowerOnHud { get; private set; }
+
+        /// <summary>Deslocamento X do texto, relativo ao nome do inimigo.</summary>
+        public static ConfigEntry<float> EnemyPowerOffsetX { get; private set; }
+
+        /// <summary>Deslocamento Y do texto, relativo ao nome do inimigo.</summary>
+        public static ConfigEntry<float> EnemyPowerOffsetY { get; private set; }
+
+        /// <summary>Tamanho da fonte do texto do inimigo, em unidades de canvas.</summary>
+        public static ConfigEntry<float> EnemyPowerFontSize { get; private set; }
+
+        /// <summary>Texto antes do numero, no rotulo do inimigo.</summary>
+        public static ConfigEntry<string> EnemyPowerLabel { get; private set; }
+
+        /// <summary>Cor do texto do inimigo.</summary>
+        public static ConfigEntry<string> EnemyPowerColor { get; private set; }
+
+        /// <summary>Alinhamento horizontal do texto do inimigo dentro da largura do hud.</summary>
+        public static ConfigEntry<HudTextAlign> EnemyPowerAlign { get; private set; }
 
         // ---------- 3.x - Transformations ----------
 
@@ -1226,7 +1260,9 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Shows your battle power on the HUD, under the minimap. It follows the small " +
                     "minimap: it hides with the big map open, and with the minimap turned off in " +
-                    "the game options — where it would otherwise float in an empty corner.",
+                    "the game options — where it would otherwise float in an empty corner. It " +
+                    "also hides while ki is turned off, same as the ki bar and the enemy's " +
+                    "number: with the toggle off there is no battle power to read.",
                     null, ClientSide(50)));
 
             PowerHudOffsetX = config.Bind(SecHud, "PowerHudOffsetX", 0f,
@@ -1254,9 +1290,11 @@ namespace Saiyaheim
                     "(Playtest value, 2026-09-05.)",
                     new AcceptableValueRange<float>(4f, 60f), ClientSide(44)));
 
-            PowerHudLabel = config.Bind(SecHud, "PowerHudLabel", "PB: ",
+            PowerHudLabel = config.Bind(SecHud, "PowerHudLabel", "PB:",
                 new ConfigDescription(
-                    "Text printed before the number. Keep the trailing space, there is none added. " +
+                    "Text printed before the number. The separating space is added for you, and " +
+                    "surrounding whitespace here is ignored - BepInEx trims this file's values on " +
+                    "the way in and out, so a space typed at the end would never survive anyway. " +
                     "Empty shows the bare number.",
                     null, ClientSide(43)));
 
@@ -1264,6 +1302,65 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Text colour, as hex. Defaults to white, which is what the biome label uses.",
                     null, ClientSide(42)));
+
+            // --- Poder de luta do inimigo (etapa 10) ---
+            // O outro lado do bloco acima: o mesmo numero, na mesma escala, escrito embaixo da
+            // barra de vida do inimigo. Tambem client-side, pelo mesmo motivo — e' posicao na
+            // tela, nao balanceamento. Ver EnemyPowerHud.
+            ShowEnemyPowerOnHud = config.Bind(SecHud, "ShowEnemyPowerOnHud", true,
+                new ConfigDescription(
+                    "Shows the enemy's battle power under its health bar. Same scale as your own " +
+                    "number, so the two can be compared directly - that comparison is the whole " +
+                    "point of the stat. Only shows while YOUR ki is turned on: reading an enemy's " +
+                    "power is something the ki lets you do, so it goes away with the toggle, just " +
+                    "like the ki bar. Does NOT show on other players: their skill levels and " +
+                    "status effects are not replicated to this machine, so the number would come " +
+                    "out too low. Applies live.",
+                    null, ClientSide(40)));
+
+            EnemyPowerOffsetX = config.Bind(SecHud, "EnemyPowerOffsetX", 0f,
+                new ConfigDescription(
+                    "Horizontal offset of the text, in pixels, RELATIVE to the enemy's name " +
+                    "label. Positive moves right. Zero keeps it centred like the name.",
+                    new AcceptableValueRange<float>(-300f, 300f), ClientSide(39)));
+
+            EnemyPowerOffsetY = config.Bind(SecHud, "EnemyPowerOffsetY", -34f,
+                new ConfigDescription(
+                    "Vertical offset of the text, in pixels, relative to the enemy's name label. " +
+                    "Negative moves down. The name sits ABOVE the health bar, so this has to " +
+                    "clear the bar's height to land under it - the default is a first guess, " +
+                    "since the hud's layout is Unity asset data and cannot be read from code.",
+                    new AcceptableValueRange<float>(-300f, 300f), ClientSide(38)));
+
+            EnemyPowerFontSize = config.Bind(SecHud, "EnemyPowerFontSize", 14f,
+                new ConfigDescription(
+                    "Font size, in canvas units. Smaller than the player's own number on purpose: " +
+                    "this one is drawn in the world, over the enemy, and several can be on screen " +
+                    "at once. TMP auto-sizing is turned off on the clone, which is what makes " +
+                    "this key work at all.",
+                    new AcceptableValueRange<float>(4f, 40f), ClientSide(37)));
+
+            EnemyPowerLabel = config.Bind(SecHud, "EnemyPowerLabel", "PB:",
+                new ConfigDescription(
+                    "Text printed before the number. The separating space is added for you, and " +
+                    "surrounding whitespace here is ignored. Empty shows the bare number, which " +
+                    "is the tidier option when several enemies are on screen.",
+                    null, ClientSide(36)));
+
+            EnemyPowerColor = config.Bind(SecHud, "EnemyPowerColor", "#FFFFFF",
+                new ConfigDescription(
+                    "Text colour, as hex. Defaults to white, matching the enemy's name above it.",
+                    null, ClientSide(35)));
+
+            EnemyPowerAlign = config.Bind(SecHud, "EnemyPowerAlign", HudTextAlign.Right,
+                new ConfigDescription(
+                    "Horizontal alignment of the text INSIDE the hud's own width - the same box " +
+                    "the enemy name is centred in, which is about as wide as the health bar. " +
+                    "Right (default) puts the number at the bar's right end, Center keeps it under " +
+                    "the middle like the name. Only the horizontal alignment is touched, so the " +
+                    "vertical one stays as the cloned name label had it. Combine with " +
+                    "EnemyPowerOffsetX to nudge it past the edge.",
+                    null, ClientSide(34)));
 
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir

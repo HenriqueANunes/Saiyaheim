@@ -103,16 +103,22 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// Some junto com o minimapa pequeno.
+        /// Some junto com o minimapa pequeno — e junto com o ki.
         ///
         /// <b>Seguir o minimapa e não a config</b> resolve dois casos de uma vez sem código
         /// próprio: o mapa grande aberto (que cobre a tela inteira, e um texto por cima dele seria
         /// lixo visual) e o jogador que desligou o minimapa nas opções do jogo — nesse segundo
         /// caso o número ficaria flutuando sozinho num canto vazio, ancorado em nada.
+        ///
+        /// <b>E some com o ki desligado</b>, pela mesma regra do <see cref="EnemyPowerHud"/> e da
+        /// barra de ki: com o toggle desligado o mod sai da frente e o que sobra é Valheim, que
+        /// não tem poder de luta. Sem isto o número continuaria na tela sozinho, sem o do inimigo
+        /// para comparar — que é a única coisa que ele existe para fazer.
         /// </summary>
         private static bool ShouldBeVisible(Minimap map)
         {
             return SaiyaheimConfig.ShowPowerOnHud.Value
+                   && Ki.KiManager.IsEnabled
                    && map.m_smallRoot != null
                    && map.m_smallRoot.activeSelf;
         }
@@ -192,7 +198,7 @@ namespace Saiyaheim.Power
             }
 
             _lastValue = value;
-            _text.text = SaiyaheimConfig.PowerHudLabel.Value + value;
+            _text.text = Util.HudText.Prefix(SaiyaheimConfig.PowerHudLabel.Value) + value;
         }
 
         private static void ApplyColor()

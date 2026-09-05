@@ -66,6 +66,7 @@ namespace Saiyaheim
                 Log.LogInfo("Config reloaded from disk.");
                 KiHud.OnConfigReloaded();
                 PowerHud.OnConfigReloaded();
+                EnemyPowerHud.OnConfigReloaded();
             };
 
             PowerSkill.Register();
@@ -74,7 +75,7 @@ namespace Saiyaheim
             // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
             TransformationRegistry.Register();
 
-            // Seis patches, todos mínimos e nenhum em física: Character.ApplyDamage para
+            // Sete patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
             // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch),
             // CharacterAnimEvent.CustomLateUpdate para as poses procedurais — voo, carregamento de
@@ -82,6 +83,8 @@ namespace Saiyaheim
             // Humanoid.BlockAttack + ItemData.GetBlockPower para o bloqueio escalar com o poder
             // (ver BlockPowerPatch — é o único stat sem hook nativo de StatusEffect) e o construtor
             // do ZRoutedRpc, que é só onde o RPC de XP do coop se registra (ver DamageReport).
+            // Some a esses o EnemyHud.ShowHud, que é onde o poder de luta do inimigo se pendura
+            // na barra de vida dele (ver EnemyPowerHud — o EnemyHud não expõe hook nenhum).
             // Dano, armadura e o voo em si saem de StatusEffect.
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(SaiyaheimPlugin).Assembly);
