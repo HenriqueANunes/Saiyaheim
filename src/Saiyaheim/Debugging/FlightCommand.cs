@@ -104,7 +104,11 @@ namespace Saiyaheim.Debugging
             float skillFactor = FlightStats.GetSkillCostFactor(player);
             Print($"Flight skill: level {FlightSkill.GetLevel(player):0.#} " +
                   $"— ki cost x{skillFactor:0.###} ({(1f - skillFactor) * 100f:0}% cheaper)");
-            Print($"Carry load: {FlightStats.GetWeightLoad(player) * 100f:0}% of max weight");
+            // O peso desconta em curva, nao em reta: sem o fator ao lado da carga o jogador le'
+            // "70% do peso" e espera 70% da penalidade, que nao e' o que a formula faz.
+            float weightFactor = FlightStats.GetWeightSpeedFactor(player);
+            Print($"Carry load: {FlightStats.GetWeightLoad(player) * 100f:0}% of max weight " +
+                  $"— speed x{weightFactor:0.###} ({(1f - weightFactor) * 100f:0}% slower)");
             Print($"Speed floor: {SaiyaheimConfig.FlightBaseSpeed.Value:0.#} " +
                   $"+ {FlightStats.GetSpeedFromPower(player):0.#} from battle power " +
                   $"(raw {BattlePower.GetRaw(player):0.#})");

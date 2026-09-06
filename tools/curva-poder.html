@@ -165,6 +165,7 @@
     font-family: var(--f-mono); font-size: 11px; letter-spacing: .04em; color: var(--ink-2);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 2px; padding: 5px 9px; cursor: pointer;
   }
+  button:disabled { opacity: .4; cursor: default; }
   button:hover { color: var(--ink); border-color: var(--ink-3); }
   button:focus-visible { outline: 2px solid var(--ki); outline-offset: 2px; }
   button[aria-pressed="true"] { background: var(--ki); border-color: var(--ki); color: #fff; }
@@ -330,7 +331,8 @@
         <div class="group-body">
           <p class="hint">A velocidade lê só a parte linear — o termo de fim de jogo não a toca. O que ele barateia é o custo.
             Custo e autonomia leem também a <b>skill de voo</b>, que sobe por tempo no ar e é um eixo de progressão à parte do power level.
-            O <b>FormSpeedShare</b> decide quanto do <code>PowerMultiplier</code> da forma vira velocidade: em 1 a forma multiplica a velocidade inteira (como era até 2026-08-21), em 0 ela não toca no voo.</p>
+            O <b>FormSpeedShare</b> decide quanto do <code>PowerMultiplier</code> da forma vira velocidade: em 1 a forma multiplica a velocidade inteira (como era até 2026-08-21), em 0 ela não toca no voo.
+            O peso é a única coisa que <b>desconta</b> velocidade, e desde 2026-09-06 em curva: <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>. Acima de 1 o expoente empurra a penalidade para perto do limite — carga leve não se sente, inventário cheio se sente inteiro.</p>
           <div class="ctl"><div class="row"><label for="fkp">KiPowerReduction</label><output id="fkp-out"></output></div>
             <input type="range" id="fkp" min="0" max="0.02" step="0.0001" value="0.0033"></div>
           <div class="ctl"><div class="row"><label for="fki">KiPerSecond</label><output id="fki-out"></output></div>
@@ -347,6 +349,10 @@
             <input type="range" id="fs" min="0" max="3" step="0.05" value="0.5"></div>
           <div class="ctl"><div class="row"><label for="fss">FormSpeedShare</label><output id="fss-out"></output></div>
             <input type="range" id="fss" min="0" max="1" step="0.05" value="0.3"></div>
+          <div class="ctl"><div class="row"><label for="fwp">WeightPenalty</label><output id="fwp-out"></output></div>
+            <input type="range" id="fwp" min="0" max="0.95" step="0.05" value="0.6"></div>
+          <div class="ctl"><div class="row"><label for="fwc">WeightCurve</label><output id="fwc-out"></output></div>
+            <input type="range" id="fwc" min="0.25" max="5" step="0.25" value="5"></div>
           <div class="ctl"><div class="row"><label for="fm">MaxSpeed (teto de engine)</label><output id="fm-out"></output></div>
             <input type="range" id="fm" min="5" max="100" step="1" value="30"></div>
           <div class="ctl"><div class="row"><label for="fl">Nível da skill de voo</label><output id="fl-out"></output></div>
@@ -356,6 +362,9 @@
             skill Flight acompanha o nível da linha
           </label>
           <p class="hint">Marcado, o slider acima é ignorado e a skill anda junto com a linha — o jogador que subiu as duas coisas ao mesmo tempo. Desmarque para congelar a skill e ler só o efeito do power level.</p>
+          <div class="ctl"><div class="row"><label for="fw">Carga do inventário</label><output id="fw-out"></output></div>
+            <input type="range" id="fw" min="0" max="100" step="5" value="0"></div>
+          <p class="hint">Em 0 (o padrão) o resto da página lê o jogador de mãos vazias, como sempre leu. Subindo daqui, toda velocidade de voo da página passa a ser a do jogador carregado — o eixo <b>por carga</b> do gráfico mostra a curva inteira de uma vez.</p>
         </div>
       </details>
 
@@ -437,6 +446,7 @@
             <div class="seg" id="axis-seg" role="group" aria-label="Eixo horizontal">
               <button type="button" data-axis="level">por nível</button>
               <button type="button" data-axis="xp">por XP gasto</button>
+              <button type="button" data-axis="load" id="axis-load">por carga</button>
             </div>
           </div>
         </div>
@@ -500,7 +510,7 @@
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "armb", "armp", "blkb", "blkp",
-               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fm", "fl",
+               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
@@ -596,7 +606,17 @@
     // velocidade nenhuma e SSJ e SSJ2 param de se distinguir no ar. Espelha
     // FlightStats.GetFormSpeedFactor; com share em 1 o grafico volta a ser o de antes.
     const flyMult = 1 + (mult - 1) * v("fss");
-    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL) * flyMult;
+
+    // Peso: 1 - penalidade * carga^curva. Expoente e NAO hiperbolica, e a diferenca importa —
+    // 1/(1 + r*x) tem a forma OPOSTA (desaba na entrada, achata no fim). O hiperbolico existe no
+    // custo de ki porque a entrada dele nao tem teto; a carga vive em 0-1, entao aqui da' para
+    // escolher a forma. Com o expoente acima de 1 a penalidade fica encostada no limite: levar
+    // meia duzia de peças nao se sente, voltar com o inventario cheio se sente inteiro.
+    // Espelha FlightStats.GetWeightSpeedFactor.
+    const load = opt.load === undefined || opt.load === null ? v("fw") / 100 : opt.load;
+    const weightf = 1 - v("fwp") * Math.pow(load, v("fwc"));
+
+    const flyRaw = (v("fb") + lin * v("fp")) * (1 + v("fs") * flyLvl / MAXLVL) * flyMult * weightf;
     const kiMax = v("kmax") + v("kper") * L;
     const charge = v("creg") + v("cfp") * lin;
     const refill = charge > 0 ? kiMax / charge : Infinity;
@@ -695,7 +715,7 @@
     range: { btn: "autonomia", label: "Autonomia de voo", mode: "skill", dec: 0, unit: " s",
       sub: "teto de ki ÷ custo — segundos no ar com a barra cheia. Sobe pelos dois eixos: o nível enche a barra, a skill de voo esvazia mais devagar" },
     fly: { btn: "velocidade", label: "Velocidade de voo", mode: "forms", dec: 1, unit: " m/s",
-      sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito. A forma multiplica, mas só a fração FormSpeedShare do ganho dela, e o MaxSpeed corta por cima" },
+      sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito. A forma multiplica, mas só a fração FormSpeedShare do ganho dela; o peso desconta em curva e o MaxSpeed corta por cima" },
     kimax: { btn: "teto de ki", label: "Teto de ki", mode: "solo", dec: 0, unit: "",
       sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra" },
     drain: { btn: "dreno", label: "Dreno da forma", mode: "formonly", dec: 2, unit: " ki/s",
@@ -754,6 +774,9 @@
       stats: ["flycost", "range", "fly", "kimax"],
       open: ["g-fly"],
       today: false,
+      // O eixo por carga so' existe aqui: peso e' a unica entrada da pagina que nao e' nivel, e
+      // e' o unico jeito de ver a FORMA da curva de peso em vez de um ponto dela.
+      loadAxis: true,
       cfg: ["flight", "ki"],
       caption: "Voo nível a nível, com a skill de voo acompanhando",
       cols: [cmp("Voo ki/s", "flycost", 2), cmp("Autonomia", "range", 0, " s"), cmp("Voo m/s", "fly", 1),
@@ -781,6 +804,17 @@
   function seriesFor(k5) {
     const mode = STATS[stat].mode, key = statKey(stat);
     const out = [];
+
+    // Eixo por carga: o indice 0-100 passa a ser a carga em %, e o nivel e' que fica fixo. Duas
+    // linhas e nao uma porque a penalidade e' proporcional — o inicio e o fim do jogo perdem a
+    // mesma FRACAO, e ver as duas curvas cair juntas e' o que mostra isso.
+    if (axis === "load") {
+      out.push({ color: "var(--ki)", label: "nível 100", short: "n100",
+                 of: i => model(MAXLVL, k5, null, { load: i / 100 })[key] });
+      out.push({ color: "var(--alt)", label: "nível 0", short: "n0",
+                 of: i => model(0, k5, null, { load: i / 100 })[key] });
+      return out;
+    }
     if (mode === "formonly") {
       FORMS.forEach(f => out.push({ color: f.color, label: f.name, short: f.name, of: L => model(L, k5, f)[key] }));
       return out;
@@ -824,7 +858,8 @@
 
     const all = series.flatMap(s => s.vals).filter(isFinite);
     const yMax = niceMax(Math.max(...all, 1));
-    const xOf = L => M.l + (axis === "level" ? L / MAXLVL : xpTo[L] / XP_TOTAL) * PW;
+    // No eixo por carga o indice ja' e' a porcentagem, entao a escala e' a mesma do "por nível".
+    const xOf = L => M.l + (axis === "xp" ? xpTo[L] / XP_TOTAL : L / MAXLVL) * PW;
     const yOf = val => M.t + PH - (Math.min(val, yMax) / yMax) * PH;
 
     for (let i = 0; i <= 5; i++) {
@@ -843,7 +878,9 @@
       svg.appendChild(t);
     }
     const ax = mk("text", { class: "axis-name", x: M.l + PW / 2, y: M.t + PH + 34, "text-anchor": "middle" });
-    ax.textContent = axis === "level" ? "nível da skill" : "xp acumulado gasto";
+    ax.textContent = axis === "level" ? "nível da skill"
+                   : axis === "load" ? "carga do inventário (% do peso máximo)"
+                   : "xp acumulado gasto";
     svg.appendChild(ax);
 
     const path = vals => vals.map((val, L) => (L ? "L" : "M") + xOf(L).toFixed(2) + " " + yOf(val).toFixed(2)).join(" ");
@@ -901,7 +938,9 @@
 
     const d = hot.spec.dec, u = hot.spec.unit;
     tip.innerHTML =
-      `<div class="th">nível ${bestL} · ${fmt(xpTo[bestL] / XP_TOTAL * 100, 1)}% do xp</div>` +
+      (axis === "load"
+        ? `<div class="th">carga ${bestL}% · velocidade x${fmt(1 - v("fwp") * Math.pow(bestL / 100, v("fwc")), 3)}</div>`
+        : `<div class="th">nível ${bestL} · ${fmt(xpTo[bestL] / XP_TOTAL * 100, 1)}% do xp</div>`) +
       hot.series.map(s =>
         `<div class="tr"><span class="lbl"><span class="dot" style="background: ${s.color}"></span>${s.short}</span>` +
         `<span class="num">${fmtc(s.vals[bestL], d)}${u}</span></div>`).join("");
@@ -1005,6 +1044,10 @@
     ];
   }
 
+  // Perda de velocidade numa carga qualquer, em %. E' a curva do peso lida do jeito que o jogador
+  // sente: nao o fator, mas "quanto mais devagar eu fico com a mochila assim".
+  const weightLoss = load => v("fwp") * Math.pow(load, v("fwc")) * 100;
+
   function cardsFly(k5) {
     const m100 = model(100, k5), b100 = model(100, 0);
     const skill100 = model(100, k5, null, { flyLvl: MAXLVL });
@@ -1026,6 +1069,11 @@
                                       : `em SSJ2, ${fmt(model(100, k5, SSJ2).fly, 1)} m/s — ` +
                                         `x${fmt(1 + (Math.max(1, v(SSJ2.m)) - 1) * v("fss"), 2)} de velocidade ` +
                                         `para x${fmt(Math.max(1, v(SSJ2.m)), 1)} de poder` },
+      // Tres pontos da curva de peso num cartao so': o meio e' o que o expoente move, as pontas
+      // sao fixas (0% nao custa nada, 100% custa a WeightPenalty inteira, em qualquer curva).
+      { k: "peso, do meio ao limite", v: fmt(weightLoss(1), 0) + "% mais lento",
+        n: `com o inventário cheio. Meia carga tira ${fmt(weightLoss(0.5), 0)}%, 75% tira ` +
+           `${fmt(weightLoss(0.75), 0)}% — curva ${fmt(v("fwc"), 2)}` },
     ];
   }
 
@@ -1109,6 +1157,14 @@
     if (skill100.flycost < 0.15) {
       return { warn: true, html: `<strong>No topo o voo fica de graça:</strong> ${fmt(skill100.flycost, 2)} ki/s com a skill no 100 são ${fmt(skill100.range, 0)} s de autonomia, o que na prática é voo infinito. Baixe o <code>KiSkillReduction</code> ou o <code>KiPowerReduction</code> se a intenção era que voar continuasse custando alguma coisa.` };
     }
+    // A forma da curva de peso e' a decisao de 2026-09-06, e ela tem os dois extremos ruins: reta
+    // cobra pedagio por qualquer pedra recolhida, expoente alto some com o peso ate' o limite.
+    if (v("fwp") > 0 && v("fwc") <= 1 && weightLoss(0.25) >= 10) {
+      return { warn: true, html: `<strong>O peso morde desde a primeira pedra:</strong> a um quarto da carga o jogador já voa ${fmt(weightLoss(0.25), 0)}% mais devagar, e no meio, ${fmt(weightLoss(0.5), 0)}%. Com a <code>WeightCurve</code> em ${fmt(v("fwc"), 2)} a penalidade é quase uma reta — recolher qualquer coisa no caminho vira pedágio. Suba a curva para empurrar o custo para perto do limite.` };
+    }
+    if (v("fwp") > 0 && weightLoss(0.75) < 5) {
+      return { html: `<strong>O peso só existe no fim da barra:</strong> com a <code>WeightCurve</code> em ${fmt(v("fwc"), 2)} três quartos de carga custam ${fmt(weightLoss(0.75), 1)}% de velocidade, e só o inventário cheio cobra os ${fmt(weightLoss(1), 0)}% inteiros. Se a intenção era que carregar coisa fosse uma decisão, ela está acontecendo tarde demais para o jogador perceber.` };
+    }
     if (start.range < 15) {
       return { html: `<strong>Voar começa curto e termina longo, que é o desenho.</strong> No nível 0 a barra cheia dá ${fmt(start.range, 0)} s no ar — um pulo, não uma viagem. No 100 são ${fmt(m100.range, 0)} s, e com a skill de voo maxada, ${fmt(skill100.range, 0)} s.` };
     }
@@ -1188,6 +1244,7 @@
       kv("KiSkillReduction", n("fkr", 2)), kv("KiSkillCurve", n("fkc", 2)),
       kv("BaseSpeed", n("fb", 1)), kv("SpeedFromPower", n("fp", 3)),
       kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
+      kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
     ssj: () => formBlock(SSJ),
     ssj2: () => formBlock(SSJ2),
@@ -1204,14 +1261,14 @@
 
   const FOOTERS = {
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
-    combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário é zero em toda a página.`,
-    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha.`,
+    combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero.`,
+    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, armb: 0, armp: 3, blkb: 0,
-                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fm: 0, fl: 0,
+                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
@@ -1220,6 +1277,11 @@
     const L = LENSES[id];
     if (!L.stats.includes(stat)) stat = L.stats[0];
     cmpToday.checked = !!L.today;
+
+    // O eixo por carga so' existe na lente de voo; sair dela sem devolver o eixo deixaria as
+    // outras lentes desenhando um dominio que os stats delas nem leem.
+    document.getElementById("axis-load").style.display = L.loadAxis ? "" : "none";
+    if (!L.loadAxis && axis === "load") axis = "level";
 
     document.querySelectorAll(".rail details.group").forEach(d => {
       const on = d.dataset.lens.split(" ").includes(id);
@@ -1240,10 +1302,17 @@
   function render() {
     const k5 = v("k5");
     ids.forEach(i => { el[i + "_out"].textContent = fmt(v(i), OUT_DEC[i]); });
+    el.fw_out.textContent += "%";
+
+    // No eixo por carga o unico stat que se mexe e' a velocidade — peso nao toca custo, teto nem
+    // autonomia. Deixar os outros selecionaveis desenharia retas horizontais que parecem bug.
+    if (axis === "load") stat = "fly";
 
     const mode = STATS[stat].mode;
     document.getElementById("plot-title").textContent = STATS[stat].label;
-    document.getElementById("plot-sub").textContent = STATS[stat].sub;
+    document.getElementById("plot-sub").textContent = axis === "load"
+      ? "a curva do peso inteira, do inventário vazio ao limite. As duas linhas são o mesmo desconto: a penalidade é uma fração, então o nível 100 e o nível 0 perdem a mesma porcentagem"
+      : STATS[stat].sub;
     // display e nao o atributo `hidden`: `.check` declara display proprio, e regra de autor ganha
     // do `[hidden] { display: none }` da folha do navegador.
     document.getElementById("cmp-today-wrap").style.display = mode === "formonly" ? "none" : "";
@@ -1254,7 +1323,10 @@
     ).join("");
 
     document.querySelectorAll("#lenses button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lens === lens)));
-    document.querySelectorAll("#stat-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.stat === stat)));
+    document.querySelectorAll("#stat-seg button").forEach(b => {
+      b.setAttribute("aria-pressed", String(b.dataset.stat === stat));
+      b.disabled = axis === "load" && b.dataset.stat !== "fly";
+    });
     document.querySelectorAll("#axis-seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.axis === axis)));
     document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed",
       String(Math.abs(parseFloat(b.dataset.k5) - k5) < 0.01 && Math.abs(parseFloat(b.dataset.p) - v("p")) < 0.01)));

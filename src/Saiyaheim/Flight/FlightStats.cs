@@ -82,6 +82,27 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
+        /// Fator pelo qual o peso multiplica a velocidade:
+        /// <c>1 - WeightPenalty × carga^WeightCurve</c>.
+        ///
+        /// <b>Curva de potência, não hiperbólica.</b> O hiperbólico <c>1/(1 + r×x)</c> que o custo
+        /// de ki usa tem a forma <i>oposta</i> à que se quer aqui: ele desaba logo na entrada e
+        /// depois achata. Lá ele é obrigatório porque a entrada não tem teto; aqui a carga vive em
+        /// 0–1, então o expoente é a ferramenta certa — a mesma do <see cref="GetSkillCostFactor"/>.
+        ///
+        /// Com o expoente acima de 1 a penalidade fica quase toda encostada no limite: levar
+        /// algumas peças a mais não se sente, e é encher o inventário que pesa no voo. Preserva a
+        /// leitura de "a roupa pesada do Goku é uma troca" sem cobrar por cada pedra recolhida no
+        /// caminho. Em 1 a forma volta a ser a reta antiga.
+        /// </summary>
+        internal static float GetWeightSpeedFactor(Player player)
+        {
+            float load = Mathf.Pow(GetWeightLoad(player), SaiyaheimConfig.FlightWeightCurve.Value);
+
+            return 1f - SaiyaheimConfig.FlightWeightPenalty.Value * load;
+        }
+
+        /// <summary>
         /// Velocidade base, já com poder, skill, peso e forma. É o valor que vai para
         /// <c>Character.m_flySlowSpeed</c>.
         ///
@@ -91,7 +112,7 @@ namespace Saiyaheim.Flight
         internal static float GetSlowSpeed(Player player)
         {
             float skillFactor = 1f + SaiyaheimConfig.FlightSpeedSkillBonus.Value * FlightSkill.GetLevelFactor(player);
-            float weightFactor = 1f - SaiyaheimConfig.FlightWeightPenalty.Value * GetWeightLoad(player);
+            float weightFactor = GetWeightSpeedFactor(player);
 
             float baseSpeed = SaiyaheimConfig.FlightBaseSpeed.Value + GetSpeedFromPower(player);
             float speed = baseSpeed * skillFactor * weightFactor * GetFormSpeedFactor(player);

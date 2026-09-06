@@ -541,6 +541,12 @@ namespace Saiyaheim
         /// <summary>Fração da velocidade perdida com o inventário no peso máximo.</summary>
         public static ConfigEntry<float> FlightWeightPenalty { get; private set; }
 
+        /// <summary>
+        /// Expoente com que a carga chega à penalidade do <see cref="FlightWeightPenalty"/>.
+        /// 1 = linear; acima disso o peso quase não pesa até o inventário encher.
+        /// </summary>
+        public static ConfigEntry<float> FlightWeightCurve { get; private set; }
+
         /// <summary>Nível mínimo de Power Level para decolar. 0 desliga a trava.</summary>
         public static ConfigEntry<float> FlightMinPowerLevel { get; private set; }
 
@@ -1324,20 +1330,24 @@ namespace Saiyaheim
                     "label. Positive moves right. Zero keeps it centred like the name.",
                     new AcceptableValueRange<float>(-300f, 300f), ClientSide(39)));
 
-            EnemyPowerOffsetY = config.Bind(SecHud, "EnemyPowerOffsetY", -34f,
+            EnemyPowerOffsetY = config.Bind(SecHud, "EnemyPowerOffsetY", -30f,
                 new ConfigDescription(
                     "Vertical offset of the text, in pixels, relative to the enemy's name label. " +
                     "Negative moves down. The name sits ABOVE the health bar, so this has to " +
-                    "clear the bar's height to land under it - the default is a first guess, " +
-                    "since the hud's layout is Unity asset data and cannot be read from code.",
+                    "clear the bar's height to land under it. " +
+                    "(Playtest value, 2026-09-06. The -34 first guess sat a touch low; -30 tucks " +
+                    "the number right under the bar. The hud's layout is Unity asset data and " +
+                    "cannot be read from code, so this had to be found on screen.)",
                     new AcceptableValueRange<float>(-300f, 300f), ClientSide(38)));
 
-            EnemyPowerFontSize = config.Bind(SecHud, "EnemyPowerFontSize", 14f,
+            EnemyPowerFontSize = config.Bind(SecHud, "EnemyPowerFontSize", 16f,
                 new ConfigDescription(
                     "Font size, in canvas units. Smaller than the player's own number on purpose: " +
                     "this one is drawn in the world, over the enemy, and several can be on screen " +
                     "at once. TMP auto-sizing is turned off on the clone, which is what makes " +
-                    "this key work at all.",
+                    "this key work at all. " +
+                    "(Playtest value, 2026-09-06. Raised from 14: at that size the number was " +
+                    "unreadable at the distance you actually scan an enemy from.)",
                     new AcceptableValueRange<float>(4f, 40f), ClientSide(37)));
 
             EnemyPowerLabel = config.Bind(SecHud, "EnemyPowerLabel", "PB:",
@@ -1352,14 +1362,16 @@ namespace Saiyaheim
                     "Text colour, as hex. Defaults to white, matching the enemy's name above it.",
                     null, ClientSide(35)));
 
-            EnemyPowerAlign = config.Bind(SecHud, "EnemyPowerAlign", HudTextAlign.Right,
+            EnemyPowerAlign = config.Bind(SecHud, "EnemyPowerAlign", HudTextAlign.Center,
                 new ConfigDescription(
                     "Horizontal alignment of the text INSIDE the hud's own width - the same box " +
                     "the enemy name is centred in, which is about as wide as the health bar. " +
-                    "Right (default) puts the number at the bar's right end, Center keeps it under " +
-                    "the middle like the name. Only the horizontal alignment is touched, so the " +
+                    "Right puts the number at the bar's right end, Center (default) keeps it " +
+                    "under the middle like the name. Only the horizontal alignment is touched, so the " +
                     "vertical one stays as the cloned name label had it. Combine with " +
-                    "EnemyPowerOffsetX to nudge it past the edge.",
+                    "EnemyPowerOffsetX to nudge it past the edge. " +
+                    "(Playtest value, 2026-09-06. Centred beats right-aligned: stacked under the " +
+                    "name, the two lines read as one label instead of two loose bits of text.)",
                     null, ClientSide(34)));
 
             // --- Transformacoes ---
@@ -1680,6 +1692,24 @@ namespace Saiyaheim
                     "should cost something the player can feel.)",
                     new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(55)));
 
+            // Expoente e nao hiperbolico. O 1/(1 + r*x) do custo de ki tem a forma OPOSTA a esta:
+            // ele desaba na entrada e achata no fim. La ele e obrigatorio porque a entrada nao tem
+            // teto; aqui a carga vive em 0-1, entao da' para escolher a forma pelo expoente.
+            // Em 5, com a penalidade em 0.6: 50% de carga -> -2%, 75% -> -14%, 90% -> -35%,
+            // 100% -> -60%. Praticamente so' o inventario cheio pesa, que e' o pedido: recolher
+            // coisa no caminho nao pode virar pedagio de voo.
+            FlightWeightCurve = config.Bind(SecFlight, "WeightCurve", 5f,
+                new ConfigDescription(
+                    "Shape of the weight penalty: speed loss = WeightPenalty * " +
+                    "(carried/max)^this. 1 is a straight line, so half loaded costs half the " +
+                    "penalty. Above 1 the penalty is back-loaded — light and medium loads barely " +
+                    "register and the speed falls off sharply as the inventory fills, which is " +
+                    "what keeps casual looting from feeling taxed. Below 1 front-loads it. " +
+                    "(Playtest value, 2026-09-06. Went straight to the top of the range: at 3 the " +
+                    "penalty was still noticeable at half load, and the whole point of the curve " +
+                    "was that only a full inventory should slow you down.)",
+                    new AcceptableValueRange<float>(0.25f, 5f), AdminOnly(54)));
+
             FlightMinPowerLevel = config.Bind(SecFlight, "MinPowerLevel", 0f,
                 new ConfigDescription(
                     "Minimum Power Level required to take off. 0 disables the gate. " +
@@ -1792,40 +1822,51 @@ namespace Saiyaheim
             // comum. Defesa ficou de fora de propósito: Character.GetBodyArmor() devolve 0 para
             // todo inimigo do jogo, então um termo de armadura só pesaria de um lado da
             // comparação — e a comparação é a razão de o número existir. Ver PowerRating.
-            RatingK1Health = config.Bind(SecPower, "RatingHealthWeight", 1f,
+            RatingK1Health = config.Bind(SecPower, "RatingHealthWeight", 0.8f,
                 new ConfigDescription(
                     "Weight of EFFECTIVE health — max health stretched by armor — in the scannable " +
                     "power rating. Applies to players and creatures alike; that shared scale is the " +
                     "whole point of the number, so this is deliberately NOT a per-side knob. Star " +
                     "variants come included for free: the game already multiplies max health by the " +
-                    "creature level.",
+                    "creature level. " +
+                    "(Playtest value, 2026-09-06. Lowered from 1 together with RatingDamageWeight " +
+                    "going up: read side by side, bulk was drowning out offence, and a boss that " +
+                    "only had a big health pool scanned like a boss that could actually kill you.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(48)));
 
-            RatingArmorScale = config.Bind(SecPower, "RatingArmorScale", 50f,
+            RatingArmorScale = config.Bind(SecPower, "RatingArmorScale", 40f,
                 new ConfigDescription(
                     "How much armor DOUBLES effective health: at 50, an armor of 50 makes you count " +
                     "as twice your max health. This is what makes a transformation show up on the " +
                     "defensive side — forms grant no health, they grant armor, and without this term " +
                     "base form and SSJ2 read within 10% of each other. Creatures have zero armor in " +
                     "Valheim (only Player overrides GetBodyArmor), so their factor is exactly 1 and " +
-                    "this key does not touch them. Lower makes armor count for more.",
+                    "this key does not touch them. Lower makes armor count for more. " +
+                    "(Playtest value, 2026-09-06. Lowered from 50 so the forms show up harder on " +
+                    "the defensive side, which is the only side they touch.)",
                     new AcceptableValueRange<float>(0f, 1000f), AdminOnly(47)));
 
-            RatingK2Damage = config.Bind(SecPower, "RatingDamageWeight", 1f,
+            RatingK2Damage = config.Bind(SecPower, "RatingDamageWeight", 10f,
                 new ConfigDescription(
                     "Weight of damage PER SECOND in the scannable power rating. Same scale for " +
                     "players and creatures. Per second, not per hit: a troll hits for 70 every ~4 " +
                     "seconds and you punch about once a second, so per-hit made the troll look " +
                     "stronger than a fully maxed player, which the actual fight denies. This is " +
-                    "the knob that decides whether the number reads as offence or as bulk.",
+                    "the knob that decides whether the number reads as offence or as bulk. " +
+                    "(Playtest value, 2026-09-06. Raised from 1: at parity with the health weight " +
+                    "the rating was almost pure bulk, and the number is supposed to answer 'can " +
+                    "this thing hurt me', not 'how long does it take to chew through it'.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
 
-            RatingPlayerHitInterval = config.Bind(SecPower, "RatingPlayerHitInterval", 1f,
+            RatingPlayerHitInterval = config.Bind(SecPower, "RatingPlayerHitInterval", 5f,
                 new ConfigDescription(
                     "Seconds between two of YOUR hits, used to turn your damage into damage per " +
                     "second. Creatures carry their own cadence in the weapon item, so this key is " +
                     "only about you — the player's swing rate lives in the animation and cannot " +
-                    "be read from the item. Lower makes your rating climb against everything.",
+                    "be read from the item. Lower makes your rating climb against everything. " +
+                    "(Playtest value, 2026-09-06. Raised from 1: one punch per second is the " +
+                    "animation's rate, not the fight's — between approach, block and recovery the " +
+                    "real cadence is far slower, and at 1 the player outscanned everything.)",
                     new AcceptableValueRange<float>(0.1f, 10f), AdminOnly(44)));
 
             PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 1f,
