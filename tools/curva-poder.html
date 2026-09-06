@@ -315,6 +315,10 @@
             <input type="range" id="pkc" min="0" max="10" step="0.1" value="3"></div>
           <div class="ctl"><div class="row"><label for="pkr">KiCostPowerReduction</label><output id="pkr-out"></output></div>
             <input type="range" id="pkr" min="0" max="0.02" step="0.0001" value="0.01"></div>
+          <p class="hint">Mas o desconto acima cresce <b>junto com a forma</b>, porque é ela que multiplica o poder que compra o desconto — então subir de degrau quase não encarece o soco, e o degrau velho fica sem nicho. O de baixo é a resposta: a maestria é <b>por forma</b> e nasce em zero a cada degrau.</p>
+          <div class="ctl"><div class="row"><label for="mkr">MasteryFormCostReduction</label><output id="mkr-out"></output></div>
+            <input type="range" id="mkr" min="0" max="3" step="0.05" value="1"></div>
+          <p class="hint">Quanto do <b>acréscimo</b> que a forma cobra a maestria dela devolve: <code>1 / (1 + pkr × poder + (mult − 1) × (maestria/100) × isto)</code>. Escrito contra o multiplicador, não como taxa fixa — o acréscimo <i>é</i> o multiplicador, então taxa fixa precisaria de um número por degrau. <b>0</b> é a conta de antes; <b>1</b> é a forma maxada custando o mesmo que a base, com o multiplicador de dano de graça; acima de 1 ela fica mais barata que a base, que é onde o degrau velho ganha nicho.</p>
           <div class="ctl"><div class="row"><label for="armb">ArmorBase</label><output id="armb-out"></output></div>
             <input type="range" id="armb" min="0" max="40" step="1" value="1"></div>
           <div class="ctl"><div class="row"><label for="armp">ArmorFromPower</label><output id="armp-out"></output></div>
@@ -368,7 +372,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj" id="g-ssj" data-lens="form" open>
+      <details class="card group g-ssj" id="g-ssj" data-lens="combat form" open>
         <summary><span class="chev">▶</span>SSJ<span class="tag ssj">3.1</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m1">PowerMultiplier</label><output id="m1-out"></output></div>
@@ -382,7 +386,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj2" id="g-ssj2" data-lens="form" open>
+      <details class="card group g-ssj2" id="g-ssj2" data-lens="combat form" open>
         <summary><span class="chev">▶</span>SSJ2<span class="tag ssj2">3.2</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m2">PowerMultiplier</label><output id="m2-out"></output></div>
@@ -396,7 +400,7 @@
         </div>
       </details>
 
-      <details class="card group" id="g-mastery" data-lens="form">
+      <details class="card group" id="g-mastery" data-lens="combat form">
         <summary><span class="chev">▶</span>Maestria</summary>
         <div class="group-body">
           <label class="check">
@@ -509,7 +513,7 @@
   const XP_TOTAL = xpTo[MAXLVL];
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
-  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "armb", "armp", "blkb", "blkp",
+  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps",
                "kmax", "kper", "creg", "cfp"];
@@ -632,8 +636,20 @@
     // hiperbolica do voo, mas lendo o poder INTEIRO e nao so' o termo de fim de jogo — o custo do
     // soco ja' e' proporcional ao poder, entao o desconto so' corrige um crescimento que ja'
     // existia. Espelha BattlePower.GetPunchKiCost.
+    //
+    // Segundo termo no MESMO divisor: quanto do acrescimo da forma a maestria dela ja devolveu.
+    // Ele existe porque o primeiro termo cresce junto com a forma — ela multiplica o poder que
+    // compra o desconto —, entao subir de degrau quase nao encarece o soco.
+    //
+    // (mult - 1) e nao uma taxa fixa por nivel: o acrescimo que a forma cobra E' o multiplicador
+    // dela, entao a devolucao escala junto e todo degrau pousa no proprio custo base com o config
+    // em 1, sem numero por forma. Somado e nao multiplicado — e' o que faz a conta fechar exata.
+    // Fora de forma nao ha maestria e o divisor volta a ser so' o do poder.
+    // Espelha BattlePower.FormCostPayback.
+    const mst = form ? masteryLevel(form, L, opt.mastery) : 0;
+    const payback = form ? (mult - 1) * Math.min(1, mst / MAXLVL) * v("mkr") : 0;
     const punch = power * v("dmg");
-    const punchcost = Math.max(0, punch * v("pkc") / (1 + v("pkr") * power));
+    const punchcost = Math.max(0, punch * v("pkc") / (1 + v("pkr") * power + payback));
 
     const armor = Math.round(v("armb") + power * v("armp"));
     const nxt = Math.min(L + 1, MAXLVL);
@@ -705,7 +721,7 @@
     punch: { btn: "dano do soco", label: "Dano do soco", mode: "forms", dec: 1, unit: "",
       sub: "bônus somado ao soco desarmado" },
     punchcost: { btn: "custo do soco", label: "Custo do soco", mode: "forms", dec: 1, unit: " ki",
-      sub: "ki por soco, já com o desconto do poder. Satura em PunchDamageFromPower × PunchKiCostPerDamage ÷ KiCostPowerReduction — nunca passa disso" },
+      sub: "ki por soco, já com os dois descontos: o do poder e o da maestria da forma. Sem maestria satura em PunchDamageFromPower × PunchKiCostPerDamage ÷ KiCostPowerReduction; a maestria puxa abaixo desse teto" },
     punches: { btn: "socos por barra", label: "Socos por barra cheia", mode: "forms", dec: 1, unit: "",
       sub: "teto de ki ÷ custo do soco. Cair não é problema; cair abaixo de 2 é — um soco que não cabe na barra sai com o dano vanilla cru" },
     block: { btn: "block", label: "Block power", mode: "forms", dec: 1, unit: "",
@@ -758,9 +774,9 @@
     },
     combat: {
       title: "O que o poder vira quando alguém bate em você",
-      sub: "Armadura, block e o soco leem o poder de <b>combate</b> — o mesmo número que a transformação multiplica. Os três estouram por motivos diferentes, e é por isso que eles moram na mesma tela: mexer no multiplicador para o soco ficar bom costuma quebrar a armadura.",
+      sub: "Armadura, block e o soco leem o poder de <b>combate</b> — o mesmo número que a transformação multiplica. Os três estouram por motivos diferentes, e é por isso que eles moram na mesma tela: mexer no multiplicador para o soco ficar bom costuma quebrar a armadura. O <code>MasteryFormCostReduction</code> é a segunda alavanca do custo, e a única que separa um degrau do outro.",
       stats: ["powerform", "armor", "taken", "punch", "punchcost", "punches", "block"],
-      open: ["g-combat"],
+      open: ["g-combat", "g-mastery"],
       today: false,
       forms: true,
       cfg: ["power", "combat"],
@@ -1041,7 +1057,28 @@
         n: `em SSJ2 são ${fmt(f100.punches, 1)} — a forma multiplica o custo junto com o dano` },
       { k: "dano do soco no 100", v: fmt(m100.punch, 1),
         n: `SSJ ${fmt(model(100, k5, SSJ).punch / m100.punch, 1)}× · SSJ2 ${fmt(f100.punch / m100.punch, 1)}×` },
+      nicheCard(k5),
     ];
+  }
+
+  // Os DOIS alvos do MasteryFormCostReduction, que sao pontos diferentes do mesmo dial e nao a
+  // mesma coisa. (1) "a forma maxada nao cobra a mais para lutar": custo em forma igual ao de fora
+  // dela, e o config em 1 acerta isso exato em qualquer degrau. (2) "o degrau velho tem nicho": o
+  // SSJ dominado render mais dano por ki que um SSJ2 recem-destravado, e para isso 1 NAO basta —
+  // o cruzamento fica bem acima. O cartao mostra o alvo (1) e o veredito cuida do (2).
+  function nicheCard(k5) {
+    const base = model(100, k5);
+    const oldMax = model(100, k5, SSJ, { mastery: MAXLVL });
+    const newMax = model(100, k5, SSJ2, { mastery: MAXLVL });
+    const off = c => Math.abs(c.punchcost / base.punchcost - 1);
+
+    return {
+      k: "forma maxada vs fora da forma", v: fmt(newMax.punchcost / base.punchcost, 2) + "×",
+      cls: off(newMax) < 0.01 ? "ssj2" : "",
+      n: off(newMax) < 0.01 && off(oldMax) < 0.01
+        ? `custo do soco em ${fmt(base.punchcost, 1)} ki nos três, com o multiplicador de dano de graça — é o alvo do slider em 1`
+        : `SSJ maxado ${fmt(oldMax.punchcost, 1)} ki · SSJ2 maxado ${fmt(newMax.punchcost, 1)} ki · fora da forma ${fmt(base.punchcost, 1)} ki`,
+    };
   }
 
   // Perda de velocidade numa carga qualquer, em %. E' a curva do peso lida do jeito que o jogador
@@ -1137,7 +1174,16 @@
     if (f100.taken < v("hit") * 0.06) {
       return { warn: true, html: `<strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> em SSJ2 o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(f100.taken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.` };
     }
-    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em SSJ2 ainda sobram ${fmt(f100.punches, 1)}.` };
+    // Ultimo dos alertas de proposito: os de cima sao quebras (o soco nao cabe na barra, a
+    // armadura virou invulnerabilidade), este e' um problema de DESENHO — tudo funciona, so' que
+    // o degrau baixo nao tem razao de existir. Vale a pena ler depois que o resto esta' no lugar.
+    const oldMax = model(100, k5, SSJ, { mastery: MAXLVL });
+    const newRaw = model(100, k5, SSJ2, { mastery: 0 });
+    if (oldMax.punch / oldMax.punchcost <= newRaw.punch / newRaw.punchcost) {
+      return { warn: true, html: `<strong>O degrau baixo não tem nicho:</strong> o SSJ maxado rende ${fmt(oldMax.punch / oldMax.punchcost, 2)} de dano por ki e o SSJ2 recém-destravado rende ${fmt(newRaw.punch / newRaw.punchcost, 2)} — não há motivo nenhum para voltar ao SSJ depois de subir. O <code>KiCostPowerReduction</code> não separa os degraus, porque a forma multiplica o poder que compra o desconto; quem separa é o <code>MasteryFormCostReduction</code>, que lê a maestria da forma ativa e nasce em zero a cada degrau novo. Em <b>1</b> ele só zera o acréscimo da forma, o que ainda não basta — o cruzamento fica mais para cima no slider.` };
+    }
+
+    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em SSJ2 ainda sobram ${fmt(f100.punches, 1)}. O SSJ maxado rende ${fmt(oldMax.punch / oldMax.punchcost, 2)} de dano por ki contra ${fmt(newRaw.punch / newRaw.punchcost, 2)} do SSJ2 cru, então o degrau baixo tem para que servir.` };
   }
 
   function verdictFly(k5) {
@@ -1236,7 +1282,8 @@
       kv("K5_LateGameBonus", n("k5", 1)), kv("LateGameExponent", n("p", 1))]),
     combat: () => block("2.1 - Combat", [
       kv("PunchDamageFromPower", n("dmg", 3)), kv("PunchKiCostPerDamage", n("pkc", 1)),
-      kv("KiCostPowerReduction", n("pkr", 4)), kv("ArmorBase", n("armb", 0)),
+      kv("KiCostPowerReduction", n("pkr", 4)), kv("MasteryFormCostReduction", n("mkr", 2)),
+      kv("ArmorBase", n("armb", 0)),
       kv("ArmorFromPower", n("armp", 3)), kv("BlockPowerBase", n("blkb", 0)),
       kv("BlockPowerFromPower", n("blkp", 3))]),
     flight: () => block("5 - Flight", [
@@ -1261,13 +1308,13 @@
 
   const FOOTERS = {
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
-    combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero.`,
+    combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
     fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
-  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, armb: 0, armp: 3, blkb: 0,
+  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };

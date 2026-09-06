@@ -251,10 +251,77 @@ namespace Saiyaheim.Power
         /// <c>FlightKiPerSecond</c> alto. Aqui os custos <b>já</b> são proporcionais ao poder,
         /// então o hiperbólico só corrige um crescimento que já existe — e no começo do jogo, com o
         /// poder pequeno, o desconto é de poucos por cento.
+        ///
+        /// <b>Um segundo termo no mesmo divisor: a maestria da forma ativa</b>
+        /// (<see cref="FormCostPayback"/>, desligada com o config em 0). O termo do poder acima
+        /// resolveu o crescimento sem teto, mas produziu um efeito colateral: a forma multiplica o
+        /// poder, e é o poder que compra o desconto, então <b>subir de degrau quase não encarece o
+        /// soco</b> — no meio do jogo o SSJ2 dá 50% mais dano por soco que o SSJ e custa 6% a
+        /// mais.
+        ///
+        /// A maestria é <b>por forma</b> e nasce em zero a cada degrau, então o degrau dominado
+        /// fica mais barato de lutar do que o recém-destravado — sem nenhum dial novo de força, só
+        /// a curva de maestria que já existe.
         /// </summary>
         internal static float GetKiCostFactor(Player player)
         {
-            return player == null ? 1f : KiCostFactorFor(GetKiCombatRaw(player));
+            return player == null
+                ? 1f
+                : KiCostFactorFor(GetKiCombatRaw(player), GetActiveFormCostPayback(player));
+        }
+
+        /// <summary>
+        /// A devolução que a maestria da forma <b>ativa</b> paga, ou 0 fora de forma — o segundo
+        /// termo do divisor do <see cref="KiCostFactorFor"/>.
+        ///
+        /// <b>Da forma ativa, e não da mais alta destravada</b>: é isso que faz o degrau que o
+        /// jogador dominou ser o barato e o recém-destravado ser o caro. Trocar de forma troca o
+        /// desconto junto.
+        ///
+        /// ⚠️ Segue a mesma regra do <c>GetPowerMultiplier</c> e pelo mesmo motivo: <b>não pode
+        /// ler battle power</b>, direta ou indiretamente. Quem chama é o
+        /// <see cref="GetKiCostFactor"/>, que já recebeu o poder pronto — uma leitura de volta
+        /// fecharia recursão. Nível de skill, config e <c>SEMan</c> não passam nem perto disso.
+        /// </summary>
+        private static float GetActiveFormCostPayback(Player player)
+        {
+            Transformations.Transformation active =
+                Transformations.TransformationRegistry.GetActive(player);
+
+            return active == null
+                ? 0f
+                : FormCostPayback(active.GetPowerMultiplier(), active.GetSkillLevel(player));
+        }
+
+        /// <summary>
+        /// Quanto do acréscimo de custo que a forma cobra já foi devolvido pela maestria dela.
+        /// Entra somado no divisor do <see cref="KiCostFactorFor"/>.
+        ///
+        /// <code>(multiplicador - 1) × (maestria / 100) × MasteryFormCostReduction</code>
+        ///
+        /// <b>Por que contra o multiplicador.</b> O acréscimo que a forma cobra <i>é</i> o
+        /// multiplicador dela — ela multiplica o poder, e os três custos de combate são
+        /// proporcionais ao poder. Então a devolução tem que escalar junto. Com o config em 1 a
+        /// conta fecha exata: o divisor vira <c>multiplicador × (1 + taxa × poder_base)</c>, que é
+        /// o divisor de fora de forma multiplicado pelo mesmo fator que multiplicou o numerador —
+        /// e o soco da forma maxada custa <b>exatamente</b> o soco de fora dela, entregando o
+        /// multiplicador em dano. Vale para qualquer degrau, sem recalibrar.
+        ///
+        /// Público-interno porque o <c>saiya_form</c> precisa dele para uma forma
+        /// <b>hipotética</b>, do mesmo jeito que já precisa do <see cref="PunchBonusFor"/>.
+        /// </summary>
+        internal static float FormCostPayback(float powerMultiplier, float masteryLevel)
+        {
+            float rate = SaiyaheimConfig.MasteryFormCostReduction.Value;
+            if (rate <= 0f)
+            {
+                return 0f;
+            }
+
+            float premium = Mathf.Max(0f, powerMultiplier - 1f);
+            float mastery = Mathf.Clamp01(masteryLevel / 100f);
+
+            return premium * mastery * rate;
         }
 
         /// <summary>
@@ -262,15 +329,24 @@ namespace Saiyaheim.Power
         /// que o <see cref="PunchBonusFor"/>: o <c>saiya_form</c> mostra o antes e o depois da
         /// transformação sem transformar o jogador nem copiar a fórmula.
         /// </summary>
-        internal static float KiCostFactorFor(float combatPower)
+        internal static float KiCostFactorFor(float combatPower, float formCostPayback = 0f)
         {
             float rate = SaiyaheimConfig.KiCostPowerReduction.Value;
-            if (rate <= 0f)
+
+            if (rate <= 0f && formCostPayback <= 0f)
             {
                 return 1f;
             }
 
-            return 1f / (1f + rate * Mathf.Max(0f, combatPower));
+            // Os dois descontos SOMADOS no divisor, e nao multiplicados um pelo outro: somar
+            // mantem a saturacao da hiperbolica (cada custo tende a taxa dele dividida pelo total
+            // e nunca passa disso) e deixa cada termo legivel sozinho no .cfg. E' tambem o que faz
+            // a conta do FormCostPayback fechar exata em 1 — com produto ela nao fecharia.
+            float divisor = 1f
+                            + rate * Mathf.Max(0f, combatPower)
+                            + Mathf.Max(0f, formCostPayback);
+
+            return 1f / divisor;
         }
 
         /// <summary>

@@ -219,7 +219,12 @@ namespace Saiyaheim.Debugging
                   $"{BattlePower.PunchBonusFor(inForm):0.#}");
 
             PrintDamageSplit(form, BattlePower.PunchBonusFor(inForm));
-            PrintPunchEconomy(outOfForm, inForm);
+
+            // A maestria DESTA forma, e nao a da ativa: o saiya_form fala de um degrau por vez, e
+            // "saiya_form ssj2" rodado em SSJ tem que responder o que o SSJ2 custaria, nao o que o
+            // SSJ custa agora. Fora de forma o lado esquerdo e' devolucao zero por definicao.
+            float payback = BattlePower.FormCostPayback(multiplier, form.GetSkillLevel(player));
+            PrintPunchEconomy(outOfForm, inForm, payback);
         }
 
         /// <summary>
@@ -263,14 +268,14 @@ namespace Saiyaheim.Debugging
         /// se transformar melhora ou piora a luta. Se o valor em forma for menor que fora dela, a
         /// forma está cobrando mais do que entrega.
         /// </summary>
-        private void PrintPunchEconomy(float outOfForm, float inForm)
+        private void PrintPunchEconomy(float outOfForm, float inForm, float payback)
         {
-            float costOut = PunchCostFor(outOfForm);
-            float costIn = PunchCostFor(inForm);
+            float costOut = PunchCostFor(outOfForm, 0f);
+            float costIn = PunchCostFor(inForm, payback);
             float max = KiManager.Max;
 
             Print($"  punch cost {costOut:0.#} → {costIn:0.#} ki" +
-                  $"{DescribeDiscount(inForm)}");
+                  $"{DescribeDiscount(inForm, payback)}");
 
             if (costOut <= 0f || costIn <= 0f || max <= 0f)
             {
@@ -284,22 +289,44 @@ namespace Saiyaheim.Debugging
                   $"{max / costIn * BattlePower.PunchBonusFor(inForm):0}");
         }
 
-        /// <summary>O custo de ki de um soco a um poder de combate hipotético.</summary>
-        private static float PunchCostFor(float combatPower)
+        /// <summary>
+        /// O custo de ki de um soco a um poder de combate e um nível de maestria hipotéticos.
+        /// </summary>
+        private static float PunchCostFor(float combatPower, float payback)
         {
             return BattlePower.PunchBonusFor(combatPower)
                    * SaiyaheimConfig.PunchKiCostPerDamage.Value
-                   * BattlePower.KiCostFactorFor(combatPower);
+                   * BattlePower.KiCostFactorFor(combatPower, payback);
         }
 
-        /// <summary>O desconto por poder no soco em forma, ou string vazia se está desligado.</summary>
-        private static string DescribeDiscount(float inForm)
+        /// <summary>
+        /// O desconto no soco em forma, ou string vazia se está desligado.
+        ///
+        /// <b>As duas parcelas aparecem separadas</b> quando a maestria está pagando alguma: são
+        /// duas chaves diferentes do <c>.cfg</c>, e sem separá-las não dá para saber qual delas
+        /// mexer quando o número na tela estiver errado. É a mesma razão pela qual esta linha
+        /// existe desde 2026-08-04 — o custo do soco não aparece em lugar nenhum do jogo.
+        /// </summary>
+        private static string DescribeDiscount(float inForm, float payback)
         {
-            float factor = BattlePower.KiCostFactorFor(inForm);
+            float factor = BattlePower.KiCostFactorFor(inForm, payback);
+            if (factor >= 1f)
+            {
+                return "";
+            }
 
-            return factor >= 1f
-                ? ""
-                : $"   (power discount in form: x{factor:0.###}, {(1f - factor) * 100f:0}% off)";
+            string parts = $"   (discount in form: x{factor:0.###}, {(1f - factor) * 100f:0}% off";
+
+            // Sem maestria treinada a segunda parcela vale zero, e imprimir "+0" so' polui a linha
+            // que ja' existia. Com ela treinada, o que interessa e' quanto de cada lado.
+            if (payback > 0f)
+            {
+                float fromPower = SaiyaheimConfig.KiCostPowerReduction.Value * Math.Max(0f, inForm);
+
+                parts += $" — power {fromPower:0.##} + mastery payback {payback:0.##}";
+            }
+
+            return parts + ")";
         }
 
         /// <summary>

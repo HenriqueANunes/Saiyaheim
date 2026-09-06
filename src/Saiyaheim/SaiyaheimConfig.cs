@@ -214,6 +214,13 @@ namespace Saiyaheim
         /// </summary>
         public static ConfigEntry<float> KiCostPowerReduction { get; private set; }
 
+        /// <summary>
+        /// Quanto do <b>acréscimo</b> de custo de combate que a forma cobra é devolvido pela
+        /// maestria dela. Em 1, a forma maxada cobra pelo soco exatamente o que a base cobra.
+        /// 0 desliga. Ver <c>BattlePower.KiCostFactorFor</c>.
+        /// </summary>
+        public static ConfigEntry<float> MasteryFormCostReduction { get; private set; }
+
         /// <summary>Fração do battle power somada ao dano do soco.</summary>
         public static ConfigEntry<float> PunchDamageFromPower { get; private set; }
 
@@ -1097,6 +1104,61 @@ namespace Saiyaheim
                     "that the transformed fight lived on the edge of the bar; 0.01 is what made " +
                     "the combat read as combat instead of bar management.)",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(95)));
+
+            // A segunda moeda da maestria, e a resposta ao que a chave acima produziu: o desconto
+            // por poder cresce JUNTO com a forma (ela multiplica o poder que compra o desconto),
+            // entao subir de degrau quase nao encarece o soco — 12,3 para 13,1 de ki no meio do
+            // jogo, contra 50% a mais de dano.
+            //
+            // Escrito contra o MULTIPLICADOR e nao como taxa fixa por nivel de maestria, e a
+            // diferenca nao e' de estilo: o acrescimo que a forma cobra E' o multiplicador dela,
+            // entao a devolucao tem que escalar junto. Taxa fixa precisaria de 0,01 numa forma x2 e
+            // 0,02 numa x3 — nenhum numero unico acerta os dois, e cada degrau novo da escada
+            // exigiria recalibrar. Assim todo degrau pousa no proprio custo base no nivel 100,
+            // inclusive os que ainda nao existem.
+            //
+            // SOMADO ao termo do poder, e nao no lugar dele. Substituir tiraria o HP e a forma de
+            // dentro do desconto, e os dois estao no numerador — o caso "HP alto, Power Level
+            // baixo" que o [[Em Aberto]] ja lista como risco passaria de ~6 socos por barra para
+            // menos de 3, e comer bem encareceria o soco sem nada compensando.
+            //
+            // ⚠️ Em 1 o alvo atingido e' "a forma maxada nao cobra a mais para lutar", que NAO e' o
+            // mesmo que "o degrau velho tem nicho": a 1, o SSJ2 recem-destravado ainda rende mais
+            // dano por ki (2,58) que o SSJ maxado (2,17). O cruzamento fica perto de 2,5. Sao dois
+            // alvos no mesmo dial e a escolha e' de playtest — por isso o teto da faixa e' 3.
+            MasteryFormCostReduction = config.Bind(SecCombat, "MasteryFormCostReduction", 1f,
+                new ConfigDescription(
+                    "How much of the EXTRA combat ki cost that a transformation adds is paid back " +
+                    "by that form's mastery. Full formula for the discount on the three combat " +
+                    "costs: 1 / (1 + KiCostPowerReduction * combat power + (PowerMultiplier - 1) * " +
+                    "(mastery level / 100) * this). 0 disables it and the formula is exactly what " +
+                    "it was before this key existed. \n" +
+                    "1 is the meaningful point: at mastery 100 a punch in the form costs EXACTLY " +
+                    "what the same punch costs out of form, while still landing PowerMultiplier " +
+                    "times the damage. Mastering a form stops it from charging extra to fight in. \n" +
+                    "Why it is written against the multiplier and not as a flat rate per mastery " +
+                    "level: the premium a form charges IS its multiplier, so the payback has to " +
+                    "scale with it. A flat rate would need 0.01 for a x2 form and 0.02 for a x3 " +
+                    "one, and no single number could hit both. This way every rung of the ladder, " +
+                    "including ones that do not exist yet, lands on its own base cost at " +
+                    "mastery 100 with no retuning. \n" +
+                    "Above 1 the maxed form costs LESS than the base, which is the dial for the " +
+                    "other problem: at 1 the freshly unlocked higher rung is still more ki " +
+                    "efficient than the mastered lower one, so there is no reason to step back " +
+                    "down. Around 2.5 the mastered SSJ overtakes a fresh SSJ2 in damage per ki " +
+                    "and the lower rung gets a niche of its own. Which of the two targets is " +
+                    "right is a playtest question, and this key is the whole answer to it. \n" +
+                    "Exact only for the punch: taking hits and blocking are charged per point the " +
+                    "ki armor absorbed, and absorption does not scale linearly with the " +
+                    "multiplier, so those two land near the base cost rather than on it. \n" +
+                    "It reads the mastery of the ACTIVE form, which starts at zero on every new " +
+                    "rung. Out of form there is no mastery to read and only the power discount " +
+                    "applies. \n" +
+                    "Note this gives mastery a SECOND payoff next to the drain reduction. It stays " +
+                    "on the economy axis, not the power axis, so a form still never hits harder " +
+                    "for being trained. \n" +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 3f), AdminOnly(94)));
 
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
