@@ -409,8 +409,13 @@
           </label>
           <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
           <div class="ctl"><div class="row"><label for="xps">MasteryXpPerSecond</label><output id="xps-out"></output></div>
-            <input type="range" id="xps" min="0.25" max="5" step="0.25" value="1"></div>
-          <p class="hint">Segurar a forma é o único jeito de treinar a skill dela. A curva do Valheim cobra ~20.000 de XP do 0 ao 100 — a 1/s são ~5,5 h <b>dentro</b> da forma, e as recargas de ki entram por cima.</p>
+            <input type="range" id="xps" min="0.25" max="8" step="0.25" value="1"></div>
+          <p class="hint">Segurar a forma é o único jeito de treinar a skill dela. A curva do Valheim cobra ~20.000 de XP do 0 ao 100 — a 1/s são ~5,5 h <b>dentro</b> da forma, e as recargas de ki entram por cima. Este número regula a <b>velocidade da escada inteira</b>.</p>
+          <div class="ctl"><div class="row"><label for="bxp">MasteryXpPerBossBonus</label><output id="bxp-out"></output></div>
+            <input type="range" id="bxp" min="0" max="5" step="0.25" value="2"></div>
+          <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
+            <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
+          <p class="hint">O XP de cada forma é multiplicado por <code>1 + isto × (bosses derrotados − degrau da forma)</code>, com piso em 1. O SSJ é o degrau 1 e o SSJ2 o degrau 2, então no default 2, com três bosses no chão, o SSJ paga x5 e o SSJ2 x3. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -515,7 +520,7 @@
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
-               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps",
+               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps", "bxp", "boss",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -543,8 +548,8 @@
   // Uma entrada por degrau, na ordem do .cfg. Um degrau novo (SSJ3, etapa 7) e' outra linha
   // aqui mais um bloco de sliders no rail — nada mais do resto da pagina muda.
   const FORMS = [
-    { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1" },
-    { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2" },
+    { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1", rung: 0 },
+    { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2", rung: 1 },
   ];
   const SSJ = FORMS[0], SSJ2 = FORMS[1];
 
@@ -570,6 +575,14 @@
   const masteryLevel = (form, L, over) =>
     (over === undefined || over === null) ? (mstTrack.checked ? L : v(form.lv)) : over;
 
+  // Quanto o XP desta forma esta' acelerado pelo que o mundo ja' derrubou depois do boss dela.
+  // Piso em 1 e sem estado: e' funcao pura do numero de bosses e do degrau da forma, igual ao
+  // Transformation.GetBossXpMultiplier. O degrau e' base zero, a contagem e' base um — dai o +1.
+  const bossXp = form => Math.max(1, 1 + v("bxp") * (v("boss") - (form.rung + 1)));
+
+  // XP por segundo que ESTA forma recebe agora, ja com o bonus de boss.
+  const xpRate = form => v("xps") * bossXp(form);
+
   // Dreno da forma ja com a maestria descontada. Espelha Transformation.GetKiDrainPerSecond.
   const formDrain = (form, L, over) =>
     Math.max(0, v(form.d) * (1 - v(form.r) * masteryLevel(form, L, over) / MAXLVL));
@@ -579,7 +592,7 @@
   // quando o ki acaba, e recarregar a barra e' tempo que nao conta XP nenhum. O dreno tambem
   // encolhe conforme a propria maestria sobe, entao a conta e' nivel a nivel e nao uma divisao.
   function masteryHours(form, L) {
-    const xps = v("xps");
+    const xps = xpRate(form);
     if (xps <= 0) return Infinity;
     const kiMax = v("kmax") + v("kper") * L;
     const charge = v("creg") + v("cfp") * linearPower(L);
@@ -1274,6 +1287,7 @@
     kv("KiDrainPerSecond", n(f.d, 1)),
     kv("MasteryDrainReduction", n(f.r, 2)),
     kv("MasteryXpPerSecond", n("xps", 2)),
+    kv("MasteryXpPerBossBonus", n("bxp", 2)),
   ]);
 
   const CFG = {
@@ -1316,7 +1330,7 @@
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
-                    m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2,
+                    m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2, bxp: 2, boss: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
   function setLens(id) {

@@ -334,6 +334,12 @@ namespace Saiyaheim
             /// <summary>XP da skill desta forma por segundo transformado.</summary>
             public ConfigEntry<float> MasteryXpPerSecond { get; internal set; }
 
+            /// <summary>
+            /// Quanto o ganho de XP desta forma sobe por boss derrotado <b>depois</b> do boss que
+            /// a destravou. 0 desliga. Ver <c>Transformation.GetBossXpMultiplier</c>.
+            /// </summary>
+            public ConfigEntry<float> MasteryXpPerBossBonus { get; internal set; }
+
             /// <summary>Nível mínimo de Power Level para entrar na forma. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinPowerLevel { get; internal set; }
 
@@ -2832,9 +2838,56 @@ namespace Saiyaheim
                         "XP for this form's skill per second transformed. Holding the form is the " +
                         "only way to train it, the same way flying is the only way to train Flight. " +
                         "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
-                        "30 costs about 1600 XP and level 100 about 20000. " +
-                        "(Starting value. Not playtested yet.)",
+                        "30 costs about 1600 XP and level 100 about 20000. \n" +
+                        "(Kept at 1 after the 2026-09-06 run, deliberately. That run read SSJ " +
+                        "mastery at level 52 with the third boss about to fall, where 80-90 was " +
+                        "the target, and raising this key was the obvious fix — it was rejected " +
+                        "because it speeds up the whole ladder from the first minute, including " +
+                        "the rung the player has just unlocked, which is exactly where the slow " +
+                        "climb is supposed to be felt. MasteryXpPerBossBonus below carries the " +
+                        "correction instead: the deficit is on the OLD rung and only in the last " +
+                        "stretch of play. This key sets the overall pace, that one sets the shape.)",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
+
+                // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
+                // derrotado DEPOIS do boss que o destravou, entao o SSJ acelera enquanto o SSJ2
+                // ainda engatinha. Nao e' a mesma pergunta que o MasteryXpPerSecond acima — aquele
+                // regula a velocidade da escada inteira, este regula a diferenca entre os degraus.
+                //
+                // Global key e nao estado do jogador, pelas mesmas tres razoes do BossGate: o
+                // servidor sincroniza de graca, persiste no save do MUNDO e vale para todo mundo do
+                // mundo. E' funcao pura do mundo + config, sem nenhum estado novo para serializar —
+                // nao ha evento de "boss morreu" para escutar nem nada que se perca offline.
+                //
+                // Por forma e nao global, seguindo a regra da secao: nenhum numero e' compartilhado
+                // entre degraus, e um degrau distante do inicio pode querer passo proprio.
+                MasteryXpPerBossBonus = config.Bind(section, "MasteryXpPerBossBonus", 2f,
+                    new ConfigDescription(
+                        "How much this form's mastery XP speeds up for each boss defeated AFTER " +
+                        "the one that unlocked it. The multiplier is 1 + this * (bosses defeated " +
+                        "- this form's rung), floored at 1. 0 disables it. \n" +
+                        "With the default 2: the form pays x1 while its own boss is the newest " +
+                        "kill, x3 after the next boss falls, x5 after the one after that. A form " +
+                        "unlocked at the second boss is one rung behind, so at the third boss it " +
+                        "is still on x3 while the first form is already on x5. \n" +
+                        "What it is for: the mastery curve is the same for every rung, so the form " +
+                        "unlocked first is always the one furthest up the expensive end of " +
+                        "Valheim's XP curve, and it crawls exactly when a stronger form has just " +
+                        "made it look useless. This makes the older rung train faster the further " +
+                        "the world has moved past it, which is also the reading that makes sense " +
+                        "in fiction: the form is trivial to you now. \n" +
+                        "It reads the world's global keys, so a server syncs it for free and " +
+                        "someone joining late arrives with whatever the group has already killed " +
+                        "— the same rule the unlock gate itself follows. \n" +
+                        "Only the five classic bosses count. A form tied to a key this build does " +
+                        "not know, which today means the Queen and the Fader, gets no bonus at " +
+                        "all rather than a wrong one. \n" +
+                        "(2 rather than 1, sized against the 2026-09-06 run: SSJ mastery was at " +
+                        "level 52 with the third boss about to fall, where 80-90 was the target. " +
+                        "At 2 that stretch pays the SSJ x5 instead of x3, which is what closes " +
+                        "the gap without touching MasteryXpPerSecond. Sized on paper, not read " +
+                        "off a run yet.)",
+                        new AcceptableValueRange<float>(0f, 5f), AdminOnly(69))),
 
                 MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(

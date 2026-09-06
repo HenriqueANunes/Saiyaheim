@@ -324,13 +324,70 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            float xp = seconds * Config.MasteryXpPerSecond.Value;
+            float xp = seconds * Config.MasteryXpPerSecond.Value * GetBossXpMultiplier();
             if (xp <= 0f)
             {
                 return;
             }
 
             player.RaiseSkill(SkillType, xp);
+        }
+
+        /// <summary>
+        /// Quanto o XP de maestria desta forma está acelerado <b>agora</b>, pelo que o mundo já
+        /// derrubou depois do boss que a destravou.
+        ///
+        /// <code>1 + passo × (bosses derrotados − degrau desta forma)</code>
+        ///
+        /// <b>Por que existe.</b> A curva de XP do Valheim é a mesma para todo degrau, então a
+        /// forma destravada primeiro é sempre a que está mais longe na ponta cara da curva — e ela
+        /// engatinha exatamente quando uma forma mais forte acabou de fazê-la parecer inútil.
+        /// Aqui o degrau velho treina mais rápido quanto mais o mundo andou além dele, que também
+        /// é a leitura que faz sentido na ficção: aquela forma é trivial para você agora.
+        ///
+        /// <b>Sem estado novo.</b> É função pura do mundo (as global keys) mais config, recalculada
+        /// a cada pagamento. Não há evento de "boss morreu" para escutar, nada para serializar e
+        /// nada que se perca por estar offline na hora — e o servidor sincroniza a entrada de
+        /// graça, que é a mesma razão pela qual a trava de desbloqueio usa global key.
+        ///
+        /// <b>Piso em 1</b>: enquanto o boss desta forma é a morte mais recente, ela paga a taxa
+        /// cheia e nada mais. Chave desconhecida (Rainha, Fader) também fica em 1, e não no bônus
+        /// máximo — errar para menos numa chave que este build não sabe posicionar é o lado seguro.
+        /// </summary>
+        internal float GetBossXpMultiplier()
+        {
+            // ⚠️ Entrada não ligada devolve 1 em vez de estourar, e isto não é paranoia: quem chama
+            // é o RaiseMastery, que roda dentro do SEMan.Update a cada FixedUpdate. Uma exceção
+            // aqui aborta o Humanoid.CustomFixedUpdate inteiro e o jogador para de andar, de voar e
+            // de trocar de forma — foi exatamente o que aconteceu em 2026-09-06, quando a
+            // propriedade existia mas o config.Bind dela tinha ficado de fora. O compilador não
+            // pega isso: ConfigEntry nulo só falha em runtime.
+            //
+            // Perder o multiplicador é invisível e recuperável; travar o personagem, não. Quando as
+            // duas falhas são desse tamanho, a silenciosa é a certa — e o saiya_form imprime o
+            // multiplicador justamente para que ela não fique escondida.
+            if (Config.MasteryXpPerBossBonus == null || Config.RequiredGlobalKey == null)
+            {
+                return 1f;
+            }
+
+            float step = Config.MasteryXpPerBossBonus.Value;
+            if (step <= 0f)
+            {
+                return 1f;
+            }
+
+            int rung = BossGate.LadderIndex(Config.RequiredGlobalKey.Value);
+            if (rung < 0)
+            {
+                return 1f;
+            }
+
+            // O degrau é índice base zero e a contagem é base um: a forma do primeiro boss está no
+            // índice 0 e vale x1 com um boss morto, x2 com dois. Daí o "rung + 1".
+            int ahead = BossGate.DefeatedCount() - (rung + 1);
+
+            return ahead <= 0 ? 1f : 1f + step * ahead;
         }
     }
 }

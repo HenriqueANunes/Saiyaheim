@@ -195,7 +195,17 @@ namespace Saiyaheim.Debugging
             Print($"{form.DisplayName}: {(lockReason == null ? "unlocked" : "LOCKED — " + lockReason)}" +
                   "   (saiya_form gate for the whole ladder)");
 
-            Print($"{form.DisplayName} mastery: level {form.GetSkillLevel(player):0.#}");
+            // O multiplicador de boss e' invisivel em jogo — a barra de XP nao existe e o nivel
+            // sobe devagar demais para se notar a diferenca olhando. Sem esta linha nao ha como
+            // saber se a chave ligou, muito menos calibrar o passo dela.
+            float bossXp = form.GetBossXpMultiplier();
+            float xpRate = form.Config.MasteryXpPerSecond.Value * bossXp;
+
+            Print($"{form.DisplayName} mastery: level {form.GetSkillLevel(player):0.#}   " +
+                  $"gaining {xpRate:0.##} xp/s" +
+                  $"{(bossXp > 1f ? $" (base {form.Config.MasteryXpPerSecond.Value:0.##} x{bossXp:0.##} " +
+                                    $"from {BossGate.DefeatedCount()} bosses down)" : "")}");
+            PrintMasteryEta(player, form, xpRate);
             Print($"Power multiplier: x{form.GetPowerMultiplier():0.##}");
             PrintCarryWeight(player, form, active);
             Print($"Ki drain: {drain:0.##}/s " +
@@ -472,6 +482,126 @@ namespace Saiyaheim.Debugging
             return drainPerSecond <= 0f ? float.PositiveInfinity : KiManager.Current / drainPerSecond;
         }
 
+        /// <summary>
+        /// Quanto tempo de forma ainda falta para a maestria bater 100 — e para o próximo nível.
+        ///
+        /// <b>Existe porque "0,5 xp/s" não responde a pergunta que se está fazendo ao ler a linha
+        /// de cima.</b> A curva de XP do Valheim custa <c>(nível + 1)^1,5 / 2 + 0,5</c> por degrau,
+        /// então o topo vale umas trinta vezes o primeiro nível: a mesma taxa que parece rápida no
+        /// começo pode significar vinte horas de forma no fim, e não havia como saber disso sem
+        /// esperar o playtest chegar lá. É o mesmo motivo do <c>saiya_form skill 100</c> — ver o
+        /// fim da curva sem ter que fazer o grind dela.
+        ///
+        /// <b>A conta imita o pagamento real, e não a integral da curva.</b> O XP é creditado uma
+        /// vez por segundo (<c>SE_Transformation.FlushXp</c>) e o <c>Skill.Raise</c> do jogo
+        /// <b>zera o acumulador ao subir de nível</b>, jogando fora o excesso da chamada que subiu.
+        /// Daí o arredondamento para cima em cada degrau: com XP por segundo alto, esse desperdício
+        /// é justamente a diferença entre a estimativa e o que o jogador vive.
+        ///
+        /// Assume a taxa de agora e a forma segurada sem parar, e as duas coisas mentem um pouco: o
+        /// multiplicador de boss sobe quando o mundo anda, e ki nenhum segura uma forma por horas
+        /// seguidas. É número de calibragem, não previsão.
+        /// </summary>
+        private void PrintMasteryEta(Player player, Transformation form, float xpPerSecond)
+        {
+            Skills.Skill skill = FindSkill(player, form);
+            float level = skill == null ? 0f : skill.m_level;
+
+            if (level >= 100f)
+            {
+                Print("  mastery maxed — the drain above is as cheap as this form gets");
+                return;
+            }
+
+            // Os dois multiplicadores que o Skill.Raise aplica por fora do que o mod paga: o
+            // increaseStep da skill e o skillGainRate do mundo. O segundo é global key — um servidor
+            // pode ter mexido nele, e a estimativa feita só com o número do .cfg erraria por um
+            // fator inteiro sem nada na tela denunciando.
+            float step = skill == null || skill.m_info == null ? 1f : skill.m_info.m_increseStep;
+            float gain = xpPerSecond * step * Game.m_skillGainRate;
+
+            if (gain <= 0f)
+            {
+                Print("  mastery gains nothing at this rate — level 100 is unreachable");
+                return;
+            }
+
+            float accumulator = skill == null ? 0f : skill.m_accumulator;
+
+            Print($"  next level in {DescribeDuration(SecondsToLevel(level, level + 1f, accumulator, gain))}, " +
+                  $"level 100 in {DescribeDuration(SecondsToLevel(level, 100f, accumulator, gain))} " +
+                  "holding this form (or any above it), at the rate above");
+        }
+
+        /// <summary>
+        /// Segundos de forma para ir do nível <paramref name="from"/> ao <paramref name="to"/>, no
+        /// ritmo de um pagamento por segundo — com o excesso perdido em cada subida de nível.
+        /// </summary>
+        private static float SecondsToLevel(float from, float to, float accumulator, float gainPerSecond)
+        {
+            float start = (float)Math.Floor(from);
+            float seconds = 0f;
+
+            for (float level = start; level < to; level += 1f)
+            {
+                float required = (float)Math.Pow(Math.Floor(level + 1f), 1.5) * 0.5f + 0.5f;
+
+                // O acumulador só desconta do degrau em que o jogador está: os seguintes começam do
+                // zero, porque o Raise zera o acumulador ao subir.
+                float missing = required - (level == start ? accumulator : 0f);
+
+                seconds += (float)Math.Ceiling(Math.Max(0f, missing) / gainPerSecond);
+            }
+
+            return seconds;
+        }
+
+        /// <summary>
+        /// Duração em unidade legível. "15130 s" é exatamente o número que esta linha existe para
+        /// traduzir — em segundos ninguém lê horas.
+        /// </summary>
+        private static string DescribeDuration(float seconds)
+        {
+            if (seconds < 60f)
+            {
+                return $"{seconds:0} s";
+            }
+
+            if (seconds < 3600f)
+            {
+                return $"{seconds / 60f:0} min";
+            }
+
+            return $"{Math.Floor(seconds / 3600f):0} h {seconds % 3600f / 60f:0} min";
+        }
+
+        /// <summary>
+        /// A entrada de skill desta forma, ou null se ela nunca subiu — uma skill nunca usada não
+        /// aparece em <c>GetSkillList()</c>.
+        ///
+        /// O nível cru daqui não é o mesmo do <c>Player.GetSkillLevel</c>: aquele passa pelo
+        /// <c>SEMan.ModifySkillLevel</c> e arredonda para baixo. Para estimar tempo é o cru que
+        /// serve, e o acumulador só faz sentido junto do nível a que ele pertence.
+        /// </summary>
+        private static Skills.Skill FindSkill(Player player, Transformation form)
+        {
+            Skills skills = player == null ? null : player.GetSkills();
+            if (skills == null || form == null || !form.IsRegistered)
+            {
+                return null;
+            }
+
+            foreach (Skills.Skill skill in skills.GetSkillList())
+            {
+                if (skill.m_info != null && skill.m_info.m_skill == form.SkillType)
+                {
+                    return skill;
+                }
+            }
+
+            return null;
+        }
+
         private static float SafeRatio(float value, float reference)
         {
             return reference <= 0f ? 1f : value / reference;
@@ -486,27 +616,17 @@ namespace Saiyaheim.Debugging
         /// </summary>
         private static bool TrySetLevel(Player player, Transformation form, float level)
         {
-            Skills skills = player.GetSkills();
-            if (skills == null)
+            player.RaiseSkill(form.SkillType, 0.0001f);
+
+            Skills.Skill skill = FindSkill(player, form);
+            if (skill == null)
             {
                 return false;
             }
 
-            player.RaiseSkill(form.SkillType, 0.0001f);
-
-            foreach (Skills.Skill skill in skills.GetSkillList())
-            {
-                if (skill.m_info == null || skill.m_info.m_skill != form.SkillType)
-                {
-                    continue;
-                }
-
-                skill.m_level = level;
-                skill.m_accumulator = 0f;
-                return true;
-            }
-
-            return false;
+            skill.m_level = level;
+            skill.m_accumulator = 0f;
+            return true;
         }
     }
 }

@@ -51,8 +51,77 @@ namespace Saiyaheim.Util
                 { "defeated_goblinking", "Yagluth" },
             };
 
+        /// <summary>
+        /// As mesmas chaves acima, <b>na ordem dos biomas</b> e num array de verdade.
+        ///
+        /// <b>Existe separado do dicionário porque ordem de dicionário não é garantia de
+        /// linguagem</b> — o C# devolve a ordem de inserção na prática, e nada no contrato promete
+        /// isso. Aqui a ordem <i>é</i> o dado: ela responde "quantos bosses caíram depois deste",
+        /// que é como a maestria sabe o quanto acelerar. Um array errado não daria erro nenhum,
+        /// daria uma escada com o degrau acelerando na hora errada.
+        ///
+        /// O dicionário de nomes é construído a partir daqui pelo mesmo motivo — uma fonte só.
+        /// </summary>
+        private static readonly string[] Ladder =
+        {
+            "defeated_eikthyr",
+            "defeated_gdking",
+            "defeated_bonemass",
+            "defeated_dragon",
+            "defeated_goblinking",
+        };
+
         /// <summary>As chaves que este código sabe nomear, na ordem dos biomas.</summary>
-        internal static IEnumerable<KeyValuePair<string, string>> Known => BossNames;
+        internal static IEnumerable<KeyValuePair<string, string>> Known
+        {
+            get
+            {
+                foreach (string key in Ladder)
+                {
+                    yield return new KeyValuePair<string, string>(key, BossNames[key]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Posição desta chave na escada de bosses, ou <c>-1</c> se ela não está nela.
+        ///
+        /// Chave <b>vazia</b> devolve 0, não -1: forma sem trava é uma forma disponível desde o
+        /// começo, ou seja, o degrau mais antigo que existe — e o mais antigo é o que mais
+        /// acelera. Chave <b>preenchida mas desconhecida</b> (a da Rainha, a do Fader) devolve -1,
+        /// e quem chama trata isso como "sem bônus". Conservador de propósito: o contrário seria
+        /// dar o bônus máximo a uma forma cujo lugar na escada este código não sabe.
+        /// </summary>
+        internal static int LadderIndex(string globalKey)
+        {
+            if (string.IsNullOrEmpty(globalKey))
+            {
+                return 0;
+            }
+
+            return System.Array.IndexOf(Ladder, globalKey.ToLowerInvariant());
+        }
+
+        /// <summary>
+        /// Quantos bosses da escada já caíram neste mundo.
+        ///
+        /// Conta a escada inteira e não para no primeiro que faltar: matar bosses fora de ordem é
+        /// possível no Valheim, e quem pulou o Bonemass para ir na Moder progrediu do mesmo jeito.
+        /// </summary>
+        internal static int DefeatedCount()
+        {
+            int count = 0;
+
+            foreach (string key in Ladder)
+            {
+                if (IsOpen(key))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
 
         /// <summary>
         /// Todas as global keys deste mundo, inclusive as que não são de boss. É o caminho para
