@@ -44,7 +44,11 @@ namespace Saiyaheim.Attacks
         /// ki depois de o projétil existir, para que um nome de prefab errado no <c>.cfg</c> não
         /// coma a barra do jogador em silêncio.
         /// </summary>
-        internal static bool Fire(Player player, KiAttack attack)
+        /// <param name="chargeRatio">
+        /// A carga com que o disparo saiu, de 0 a 1. Mexe só na <b>escala</b> do projétil — a
+        /// grossura do feixe —, nunca no dano. 1 num ataque sem carregamento, que é o ki blast.
+        /// </param>
+        internal static bool Fire(Player player, KiAttack attack, float chargeRatio = 1f)
         {
             if (player == null || attack == null || ZNetScene.instance == null)
             {
@@ -90,11 +94,10 @@ namespace Saiyaheim.Attacks
 
             Defuse(projectile, attack);
 
-            float scale = attack.Config.ProjectileScale.Value;
-            if (!Mathf.Approximately(scale, 1f))
-            {
-                instance.transform.localScale *= scale;
-            }
+            // Pelo EffectScale e nao pelo transform: escrever no localScale de um prefab de
+            // efeito nao muda nada na tela — as particulas dele sao filhas e ignoram a escala do
+            // pai, e a largura de um rastro nao e' afetada por escala nenhuma. Ver EffectScale.
+            EffectScale.Apply(instance, attack.GetProjectileScale(chargeRatio));
 
             AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor.Value);
 
@@ -106,7 +109,8 @@ namespace Saiyaheim.Attacks
             projectile.Setup(player, aim * speed, -1f, BuildHit(player, attack, damage), null, null);
 
             SaiyaheimPlugin.LogVerbose(
-                $"Ki attack '{attack.Id}': {damage:0.#} slash, {attack.GetKiCost():0.#} ki, " +
+                $"Ki attack '{attack.Id}': {damage:0.#} slash, " +
+                $"{attack.GetKiCostPerProjectile():0.#} ki, " +
                 $"{speed:0.#} m/s for {attack.Config.ProjectileLifetime.Value:0.##}s " +
                 $"({speed * attack.Config.ProjectileLifetime.Value:0} m range).");
 

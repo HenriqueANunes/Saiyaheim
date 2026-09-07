@@ -32,9 +32,16 @@ namespace Saiyaheim.Util
         /// corpo — um offset em espaço de mundo escorregaria para as costas ao virar.
         /// <c>Vector3.zero</c> é o comportamento de sempre, no chão sob o jogador.
         /// </param>
+        /// <param name="parent">
+        /// Onde prender. Null é o transform do jogador, que é o de sempre — o efeito no chão sob os
+        /// pés. Passar o osso de uma mão faz o efeito ser <b>carregado pela animação</b> em vez de
+        /// medido a partir dos pés, e aí o <paramref name="localOffset"/> passa a ser medido a
+        /// partir da palma. Ver <see cref="BodyAnchor"/>.
+        /// </param>
         internal static GameObject Spawn(
             Player player, string prefabName, string colorHex, float scale, bool forceLoop,
-            float lightIntensity = 1f, float burstDuration = 0f, Vector3 localOffset = default)
+            float lightIntensity = 1f, float burstDuration = 0f, Vector3 localOffset = default,
+            Transform parent = null)
         {
             if (player == null || string.IsNullOrEmpty(prefabName) || ZNetScene.instance == null)
             {
@@ -57,8 +64,10 @@ namespace Saiyaheim.Util
             GameObject instance;
             try
             {
+                Transform attachTo = parent != null ? parent : player.transform;
+
                 instance = Object.Instantiate(
-                    prefab, player.transform.position, player.transform.rotation, player.transform);
+                    prefab, attachTo.position, attachTo.rotation, attachTo);
             }
             finally
             {
@@ -345,7 +354,7 @@ namespace Saiyaheim.Util
         ///
         /// Quem quer estouro vai para <see cref="PrepareForBurst"/>.
         /// </summary>
-        private static void PrepareForSustainedUse(GameObject instance)
+        internal static void PrepareForSustainedUse(GameObject instance)
         {
             foreach (TimedDestruction timed in instance.GetComponentsInChildren<TimedDestruction>(true))
             {

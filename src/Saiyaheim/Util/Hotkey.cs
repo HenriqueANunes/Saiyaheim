@@ -60,6 +60,27 @@ namespace Saiyaheim.Util
                    && ModifiersMatch(shortcut);
         }
 
+        /// <summary>
+        /// Tecla principal ainda segurada, <b>ignorando os modificadores</b>.
+        ///
+        /// Existe para soltar um gesto que já começou, e não para começá-lo: quem decide se o
+        /// gesto vale é o <see cref="IsDown"/>, com os modificadores exigidos. Depois disso a
+        /// pergunta muda — não é mais "o jogador quer isto?", é "ele ainda está segurando?" — e
+        /// aí exigir os modificadores é um bug: encostar no Shift no meio de um Kamehameha
+        /// carregado faria o <see cref="IsPressed"/> virar false e o tiro sair sozinho.
+        /// </summary>
+        internal static bool IsMainKeyHeld(ConfigEntry<KeyboardShortcut> entry)
+        {
+            if (entry == null)
+            {
+                return false;
+            }
+
+            KeyCode main = entry.Value.MainKey;
+
+            return main != KeyCode.None && Input.GetKey(main);
+        }
+
         private static bool ModifiersMatch(KeyboardShortcut shortcut)
         {
             foreach (KeyCode modifier in ModifierKeys)

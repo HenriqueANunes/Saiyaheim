@@ -156,13 +156,26 @@ namespace Saiyaheim.Debugging
 
             float combat = BattlePower.GetCombatRaw(player);
             float damage = attack.DamageFor(combat);
+            int beam = attack.GetBeamCount();
+            float total = damage * beam;
             float cost = attack.GetKiCost();
 
             Print($"Damage: {damage:0.#} slash " +
                   $"(base {attack.Config.DamageBase.Value:0.#} + " +
-                  $"{attack.Config.DamageFromPower.Value:0.###} x {combat:0.#} combat power)");
+                  $"{attack.Config.DamageFromPower.Value:0.###} x {combat:0.#} combat power)" +
+                  $"{(beam > 1 ? " per projectile" : "")}");
 
-            PrintEconomy(player, attack, damage, cost);
+            // O total sai numa linha propria e so' quando ha' feixe. Sem isso o numero acima
+            // mente por um fator de doze — e' o dano de um projetil de um feixe, e nao o que o
+            // jogador ve acontecer ao apertar a tecla, que e' o numero que se calibra.
+            if (beam > 1)
+            {
+                Print($"  beam of {beam} = {total:0.#} slash total, if all of it connects" +
+                      $"{(attack.IsCharged ? " (at a full charge)" : "")}");
+            }
+
+            PrintEconomy(player, attack, total, cost);
+            PrintCharge(player, attack, damage);
             PrintCadence(attack, cost);
             PrintProjectile(attack);
         }
@@ -185,9 +198,23 @@ namespace Saiyaheim.Debugging
                 return;
             }
 
-            Print($"Ki cost: {cost:0.#} fixed   " +
-                  $"shots per full bar ({max:0} ki): {max / cost:0.#}   " +
-                  $"current bar ({KiManager.Current:0} ki): {KiManager.Current / cost:0.#}");
+            int beam = attack.GetBeamCount();
+            string breakdown = beam > 1
+                ? $" ({attack.GetKiCostPerProjectile():0.#} x {beam} projectiles)"
+                : " fixed";
+
+            if (attack.IsCharged)
+            {
+                Print($"Ki cost: {cost:0.#} for a full charge{breakdown}, spent AS IT GROWS   " +
+                      $"full charges per bar ({max:0} ki): {max / cost:0.#}   " +
+                      $"current bar ({KiManager.Current:0} ki): {KiManager.Current / cost:0.#}");
+            }
+            else
+            {
+                Print($"Ki cost: {cost:0.#}{breakdown}   " +
+                      $"shots per full bar ({max:0} ki): {max / cost:0.#}   " +
+                      $"current bar ({KiManager.Current:0} ki): {KiManager.Current / cost:0.#}");
+            }
 
             float punchBonus = BattlePower.GetPunchDamageBonus(player);
             float punchCost = BattlePower.GetPunchKiCost(player, punchBonus);
@@ -203,8 +230,61 @@ namespace Saiyaheim.Debugging
         }
 
         /// <summary>
+        /// O carregamento nas duas pontas: o que sai da carga mínima e o que sai da cheia.
+        ///
+        /// As duas juntas, e não só a cheia, porque a pergunta do playtest é <b>se a carga curta
+        /// vale a pena</b> — se ela não valer, o ataque tem um só modo e o carregamento vira um
+        /// atraso obrigatório em vez de uma escolha. É a mesma pergunta que a linha de dano por ki
+        /// faz entre o tiro e o soco, uma escala abaixo.
+        /// </summary>
+        private void PrintCharge(Player player, KiAttack attack, float perProjectile)
+        {
+            if (!attack.IsCharged)
+            {
+                Print("Charge: none — this attack fires on the key press.");
+                return;
+            }
+
+            float minRatio = attack.GetMinChargeRatio();
+            int minBeam = attack.GetBeamCount(minRatio);
+            int fullBeam = attack.GetBeamCount();
+
+            float perSecond = attack.GetChargeKiPerSecond();
+
+            Print($"Charge: {attack.GetChargeTime():0.##} s to full, " +
+                  $"fires from {minRatio:0.##} of it ({minRatio * attack.GetChargeTime():0.##} s)");
+
+            // O ki/s e' o numero que importa desde 2026-09-07, quando o gasto passou para DENTRO do
+            // carregamento: e' a velocidade com que a barra desce enquanto se segura, e nao esta'
+            // em chave nenhuma — sai de KiCost x BeamCount / ChargeTime.
+            Print($"  {perSecond:0.#} ki/s while the charge GROWS — free once full, " +
+                  "nothing on release   " +
+                  $"bar lasts {(perSecond > 0f ? KiManager.Current / perSecond : 0f):0.##} s " +
+                  $"of charging ({KiManager.Current:0} ki now)");
+
+            Print($"  shortest: {minBeam} projectiles, {perProjectile * minBeam:0.#} slash, " +
+                  $"{attack.GetKiCost(minBeam):0.#} ki" +
+                  $"   full: {fullBeam} projectiles, {perProjectile * fullBeam:0.#} slash, " +
+                  $"{attack.GetKiCost(fullBeam):0.#} ki");
+
+            // O que a carga NAO faz e' tao importante quanto o que ela faz: o dano por projetil e'
+            // o mesmo nas duas pontas, de proposito, e sem dizer isso a linha acima parece mostrar
+            // um ataque que fica mais forte por acerto — que e' exatamente a curva quadratica que
+            // a decisao de 2026-09-07 recusou.
+            Print($"  each projectile hits for {perProjectile:0.#} at any charge; " +
+                  $"the charge buys length and thickness only " +
+                  $"({attack.Config.ChargeMinScale.Value:0.##}x to 1x thickness)");
+
+            if (KiBeamCharge.Current == attack)
+            {
+                Print($"  *** charging now: {KiBeamCharge.Ratio:0.00} " +
+                      $"= {attack.GetBeamCount(KiBeamCharge.Ratio)} projectiles ***");
+            }
+        }
+
+        /// <summary>
         /// Cadência e o que ela custa por segundo se o jogador segurar o gatilho. O ki por segundo
-        /// sustentado é o número que diz se o ataque esvazia a barra em uma rajada.
+        /// sustentado é o número que diz se o ataque esvazia a barra em um feixe.
         /// </summary>
         private void PrintCadence(KiAttack attack, float cost)
         {
@@ -235,6 +315,22 @@ namespace Saiyaheim.Debugging
             Print($"  {speed:0.#} m/s for {life:0.##} s = {speed * life:0} m range, " +
                   $"gravity {attack.Config.ProjectileGravity.Value:0.##}, " +
                   $"knockback {attack.Config.Knockback.Value:0}");
+
+            int beam = attack.GetBeamCount();
+            if (beam <= 1)
+            {
+                return;
+            }
+
+            // O espacamento e' o numero que decide se sai feixe ou fila de bolinhas, e e' o unico
+            // dos tres que nao esta' em nenhuma chave: ele e' velocidade x intervalo. Imprimi-lo
+            // aqui e' o que permite calibrar o feixe sem fazer a conta de cabeca entre um playtest
+            // e o seguinte.
+            float interval = attack.GetBeamInterval();
+            Print($"  Beam: {beam} projectiles every {interval:0.###} s = " +
+                  $"{attack.GetBeamDuration():0.##} s of beam, " +
+                  $"{speed * interval:0.#} m apart in the air" +
+                  $"{(attack.IsCharged ? "  (at a full charge)" : "")}");
         }
 
         private static string DescribeRemaining(KiAttack attack)

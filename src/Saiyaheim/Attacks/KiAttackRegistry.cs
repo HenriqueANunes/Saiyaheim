@@ -22,13 +22,18 @@ namespace Saiyaheim.Attacks
         /// <summary>
         /// A escada, do primeiro ao último. A ordem é a que a tecla de ciclar percorre.
         ///
-        /// Um ataque só, por enquanto. O seguinte é uma linha aqui e uma chamada de
-        /// <c>BindKiAttack</c> na config — a mesma aposta que a escada de formas fez e que se
-        /// pagou: adicionar o SSJ2 custa uma linha.
+        /// A aposta se pagou: o Kamehameha entrou em 2026-09-07 por uma linha aqui e uma chamada de
+        /// <c>BindKiAttack</c> na config, exatamente como o SSJ2 tinha entrado na escada de formas.
+        ///
+        /// <b>A escada de ataques não anda mais junto com a de bosses.</b> O blast sai no Eikthyr,
+        /// o Kamehameha no Bonemass, e os dois bosses do meio não entregam ataque nenhum — não há
+        /// cinco ataques que valham a pena, e inventá-los para preencher a tabela encheria a escada
+        /// de degraus mornos. Decidido em 2026-09-07, ver [[Ataques de Ki]].
         /// </summary>
         internal static readonly KiAttack[] All =
         {
-            new KiAttack("blast", "Ki Blast", SaiyaheimConfig.KiBlast)
+            new KiAttack("blast", "Ki Blast", SaiyaheimConfig.KiBlast),
+            new KiAttack("kamehameha", "Kamehameha", SaiyaheimConfig.Kamehameha)
         };
 
         /// <summary>O ataque escolhido pelo jogador, ou null se ele nunca escolheu nesta sessão.</summary>

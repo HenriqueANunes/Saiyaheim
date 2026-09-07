@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Saiyaheim.Attacks;
 using Saiyaheim.Ki;
 using Saiyaheim.Transformations;
 using UnityEngine;
@@ -59,12 +60,23 @@ namespace Saiyaheim.Net
                     // Desligado no meio de uma sessão: o que já estava aceso precisa apagar, senão
                     // a chave só valeria para quem ainda não tinha começado a carregar.
                     KiChargeEffects.Update(player, charging: false);
+                    KiBeamChargeEffects.Update(player, charging: false, charged: false, ratio: 0f);
                     continue;
                 }
 
                 Known.Add(player);
 
                 KiChargeEffects.Update(player, NetState.IsCharging(player));
+
+                // A carga do Kamehameha. O ratio só é verdade para o jogador local — a ZDO leva a
+                // bandeira, não o relógio da carga —, então nos outros a bola nasce cheia. Ver
+                // KiBeamChargeEffects.
+                KiBeamChargeEffects.Update(
+                    player,
+                    NetState.IsChargingBeam(player),
+                    NetState.IsBeamCharged(player),
+                    ReferenceEquals(player, local) ? KiBeamCharge.Ratio : 1f);
+
                 TransformationEffects.Observe(player);
             }
 
@@ -103,6 +115,7 @@ namespace Saiyaheim.Net
             for (int i = 0; i < Gone.Count; i++)
             {
                 KiChargeEffects.Forget(Gone[i]);
+                KiBeamChargeEffects.Forget(Gone[i]);
                 TransformationEffects.Forget(Gone[i]);
                 Known.Remove(Gone[i]);
             }

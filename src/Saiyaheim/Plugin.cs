@@ -111,7 +111,7 @@ namespace Saiyaheim
             KiBodyManager.Update(Player.m_localPlayer);
             FlightManager.Update(Player.m_localPlayer);
             TransformationManager.Update(Player.m_localPlayer);
-            KiAttackManager.Update(Player.m_localPlayer);
+            KiAttackManager.Update(Player.m_localPlayer, dt);
 
             // Publicar antes de aplicar: o que os efeitos leem neste frame é o estado deste frame.
             PublishNetState(Player.m_localPlayer);
@@ -143,6 +143,8 @@ namespace Saiyaheim
                 KiManager.IsEnabled,
                 FlightManager.IsFlying(player),
                 KiManager.IsCharging,
+                KiBeamCharge.IsCharging(player),
+                KiBeamCharge.IsFull(player),
                 TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)));
         }
 

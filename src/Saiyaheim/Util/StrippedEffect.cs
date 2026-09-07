@@ -142,6 +142,81 @@ namespace Saiyaheim.Util
             return template;
         }
 
+        /// <summary>
+        /// Tira de <paramref name="root"/> os emissores cujo nome casa com o filtro. Devolve os
+        /// nomes removidos, para quem chamou poder dizer no log o que de fato saiu.
+        ///
+        /// <b>Serve tanto ao template quanto a um objeto já instanciado</b>, e é por isso que é
+        /// método próprio: a bola de carregamento do Kamehameha é um clone de projétil que nunca
+        /// passa por template nenhum, e duplicar o laço aqui embaixo significaria duplicar também
+        /// o caso do emissor-raiz — que é a parte que não é óbvia.
+        ///
+        /// ⚠️ <c>DestroyImmediate</c>, e não <c>Destroy</c>: o comum só acontece no fim do frame, e
+        /// um objeto que vai ser instanciado ou aceso antes disso nasceria com a fumaça dentro.
+        /// </summary>
+        internal static List<string> StripEmitters(GameObject root, string[] filter)
+        {
+            List<string> removed = new List<string>();
+
+            if (root == null || filter == null)
+            {
+                return removed;
+            }
+
+            foreach (ParticleSystem particles in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (particles == null || !Matches(particles.gameObject.name, filter))
+                {
+                    continue;
+                }
+
+                removed.Add(particles.gameObject.name);
+
+                if (particles.gameObject == root)
+                {
+                    // O emissor é o objeto raiz: destruí-lo levaria junto o som e o clarão que são
+                    // filhos dele. Tira-se só a peça que emite.
+                    UnityEngine.Object.DestroyImmediate(particles.GetComponent<ParticleSystemRenderer>());
+                    UnityEngine.Object.DestroyImmediate(particles);
+                    continue;
+                }
+
+                UnityEngine.Object.DestroyImmediate(particles.gameObject);
+            }
+
+            return removed;
+        }
+
+        /// <summary>
+        /// Os nomes dos emissores de <paramref name="root"/>, em uma linha, prontos para copiar
+        /// para uma chave de filtro.
+        ///
+        /// Existe porque "tirar a fumaça" é impossível sem saber o nome dela, e nome de emissor não
+        /// aparece em lugar nenhum da tela. Mesmo papel do <c>KiProjectile.LogImpactEffects</c>,
+        /// para os efeitos que não passam por uma <c>EffectList</c>.
+        /// </summary>
+        internal static string DescribeEmitters(GameObject root)
+        {
+            if (root == null)
+            {
+                return "no particle emitters";
+            }
+
+            ParticleSystem[] emitters = root.GetComponentsInChildren<ParticleSystem>(true);
+            if (emitters.Length == 0)
+            {
+                return "no particle emitters";
+            }
+
+            string[] names = new string[emitters.Length];
+            for (int i = 0; i < emitters.Length; i++)
+            {
+                names[i] = emitters[i].gameObject.name;
+            }
+
+            return $"emitters: {string.Join(", ", names)}";
+        }
+
         private static bool HasMatch(GameObject source, string[] filter)
         {
             foreach (ParticleSystem particles in source.GetComponentsInChildren<ParticleSystem>(true))
@@ -171,29 +246,7 @@ namespace Saiyaheim.Util
             // próxima sessão, como se fosse outro efeito.
             template.name = source.name;
 
-            List<string> removed = new List<string>();
-            foreach (ParticleSystem particles in template.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                if (particles == null || !Matches(particles.gameObject.name, filter))
-                {
-                    continue;
-                }
-
-                removed.Add(particles.gameObject.name);
-
-                if (particles.gameObject == template)
-                {
-                    // O emissor é o objeto raiz: destruí-lo levaria junto o som e o clarão que são
-                    // filhos dele. Tira-se só a peça que emite.
-                    UnityEngine.Object.DestroyImmediate(particles.GetComponent<ParticleSystemRenderer>());
-                    UnityEngine.Object.DestroyImmediate(particles);
-                    continue;
-                }
-
-                // Immediate, e não Destroy: o Destroy comum só acontece no fim do frame, e um
-                // template que vai ser instanciado antes disso nasceria com a fumaça ainda dentro.
-                UnityEngine.Object.DestroyImmediate(particles.gameObject);
-            }
+            List<string> removed = StripEmitters(template, filter);
 
             // Depois de remover, e nao antes: pintar o que vai ser destruido e trabalho jogado fora,
             // e o material instanciado do emissor apagado sobraria na memoria sem dono.

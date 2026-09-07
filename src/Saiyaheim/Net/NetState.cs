@@ -65,6 +65,24 @@ namespace Saiyaheim.Net
         private const int FlagCharging = 1 << 2;
 
         /// <summary>
+        /// Carregando um ataque de ki — o Kamehameha. <b>Não é o mesmo que o
+        /// <see cref="FlagCharging"/></b>, que é o carregamento da barra: um enche o recurso, o
+        /// outro gasta. Os dois podem ser lidos ao mesmo tempo por engano se virarem um bit só, e
+        /// aí o vizinho veria a pose errada.
+        /// </summary>
+        private const int FlagBeamCharging = 1 << 3;
+
+        /// <summary>
+        /// A carga do ataque de ki chegou ao topo.
+        ///
+        /// <b>Bandeira e não contador</b>, ao contrário do disparo. Encher a carga <i>parece</i> um
+        /// evento, mas o que o jogador precisa saber é um estado que dura: <i>segurar mais não
+        /// compra mais</i>. Como estado, ele também responde certo para quem chega perto no meio de
+        /// uma carga já cheia — um contador não teria o que contar para esse alguém.
+        /// </summary>
+        private const int FlagBeamCharged = 1 << 4;
+
+        /// <summary>
         /// Onde começa o índice da forma. Os oito bits baixos ficam para as bandeiras — hoje
         /// sobram cinco, o que dá folga para a etapa 11 sem mexer no leiaute.
         /// </summary>
@@ -80,7 +98,9 @@ namespace Saiyaheim.Net
         /// Recebe tudo pronto em vez de ir buscar: assim este arquivo não conhece nem o ki, nem o
         /// voo, nem as formas, e a ordem em que o estado é montado fica visível num lugar só.
         /// </summary>
-        internal static void Publish(Player player, bool kiEnabled, bool flying, bool charging, int formIndex)
+        internal static void Publish(
+            Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
+            bool beamCharged, int formIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -105,6 +125,16 @@ namespace Saiyaheim.Net
                 value |= FlagCharging;
             }
 
+            if (beamCharging)
+            {
+                value |= FlagBeamCharging;
+            }
+
+            if (beamCharged)
+            {
+                value |= FlagBeamCharged;
+            }
+
             // +1 porque zero precisa significar "forma base": um jogador sem o mod, ou que ainda
             // não publicou nada, lê zero na ZDO e não pode ser confundido com o primeiro degrau.
             value |= ((formIndex + 1) & FormMask) << FormShift;
@@ -117,6 +147,12 @@ namespace Saiyaheim.Net
         internal static bool IsFlying(Player player) => HasFlag(player, FlagFlying);
 
         internal static bool IsCharging(Player player) => HasFlag(player, FlagCharging);
+
+        /// <summary>Este jogador está segurando um ataque de ki carregado.</summary>
+        internal static bool IsChargingBeam(Player player) => HasFlag(player, FlagBeamCharging);
+
+        /// <summary>A carga deste jogador chegou ao topo.</summary>
+        internal static bool IsBeamCharged(Player player) => HasFlag(player, FlagBeamCharged);
 
         /// <summary>Índice da forma ativa na escada do <c>TransformationRegistry</c>, ou -1 na base.</summary>
         internal static int GetFormIndex(Player player)

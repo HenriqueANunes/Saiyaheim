@@ -35,6 +35,21 @@ namespace Saiyaheim
     }
 
     /// <summary>
+    /// Onde no corpo do jogador um efeito se prende. Ver <c>Util/BodyAnchor.cs</c>.
+    /// </summary>
+    public enum EffectAnchor
+    {
+        /// <summary>O transform do jogador. O offset é medido a partir dos pés.</summary>
+        Body,
+
+        /// <summary>O osso da mão direita. O offset é medido a partir da palma.</summary>
+        RightHand,
+
+        /// <summary>O osso da mão esquerda.</summary>
+        LeftHand,
+    }
+
+    /// <summary>
     /// Toda a configuração do mod em um lugar só.
     ///
     /// Regra do projeto: <b>nenhum número de balanceamento hardcoded no código.</b> Sem isso,
@@ -87,6 +102,12 @@ namespace Saiyaheim
         /// ataques ([[Ataques de Ki]]) precisa que cada um seja calibrável sozinho.
         /// </summary>
         private const string SecKiBlast = "4.1 - Ki Blast";
+
+        /// <summary>
+        /// O segundo degrau da escada, atrás do Bonemass. Seção própria pelo mesmo motivo do
+        /// <see cref="SecKiBlast"/>: nenhum número é compartilhado entre ataques.
+        /// </summary>
+        private const string SecKamehameha = "4.2 - Kamehameha";
 
         private const string SecFlight = "5 - Flight";
         private const string SecPower = "6 - Battle Power";
@@ -501,6 +522,88 @@ namespace Saiyaheim
             /// <summary>Cor do projétil, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
             public ConfigEntry<string> ProjectileColor { get; internal set; }
 
+            /// <summary>
+            /// Quantos projéteis um disparo solta. 1 é o tiro único do ki blast.
+            ///
+            /// É o que faz um feixe existir sem o jogo ter feixe: o próprio Yagluth encadeia
+            /// <c>projectile_beam</c> em sequência, e o que se lê como raio contínuo é a fila de
+            /// projéteis próximos demais para o olho separar. Ver <c>Attacks/KiBeam.cs</c>.
+            /// </summary>
+            public ConfigEntry<int> BeamCount { get; internal set; }
+
+            /// <summary>Segundos entre um projétil e o seguinte do mesmo feixe.</summary>
+            public ConfigEntry<float> BeamInterval { get; internal set; }
+
+            /// <summary>
+            /// Segundos de tecla segurada até a carga cheia. 0 desliga o carregamento: o ataque
+            /// dispara no toque, com o feixe inteiro, que é o ki blast.
+            /// </summary>
+            public ConfigEntry<float> ChargeTime { get; internal set; }
+
+            /// <summary>Fração mínima de carga que dispara. Abaixo dela, soltar cancela de graça.</summary>
+            public ConfigEntry<float> MinChargeRatio { get; internal set; }
+
+            /// <summary>Escala do projétil na carga mínima, como fração da escala na carga cheia.</summary>
+            public ConfigEntry<float> ChargeMinScale { get; internal set; }
+
+            /// <summary>Efeito preso ao jogador enquanto ele carrega. Vazio não mostra nada.</summary>
+            public ConfigEntry<string> ChargeEffectPrefab { get; internal set; }
+
+            /// <summary>Cor do efeito de carregamento. Vazio segue o <see cref="ProjectileColor"/>.</summary>
+            public ConfigEntry<string> ChargeEffectColor { get; internal set; }
+
+            /// <summary>Escala do efeito de carregamento na carga cheia.</summary>
+            public ConfigEntry<float> ChargeEffectScale { get; internal set; }
+
+            /// <summary>Altura do efeito de carregamento, a partir dos pés.</summary>
+            public ConfigEntry<float> ChargeEffectHeight { get; internal set; }
+
+            /// <summary>Deslocamento lateral do efeito. Positivo é para a direita do jogador.</summary>
+            public ConfigEntry<float> ChargeEffectSide { get; internal set; }
+
+            /// <summary>Deslocamento para frente do efeito.</summary>
+            public ConfigEntry<float> ChargeEffectForward { get; internal set; }
+
+            /// <summary>
+            /// Onde os efeitos de carregamento se prendem. Preso na mão, a animação os carrega.
+            /// </summary>
+            public ConfigEntry<EffectAnchor> ChargeEffectAnchor { get; internal set; }
+
+            /// <summary>
+            /// A bola que junta na mão. Prefab de <b>projétil</b>, parado — ver
+            /// <c>Util/StaticProp.cs</c>. Vazio não mostra nada.
+            /// </summary>
+            public ConfigEntry<string> ChargeBallPrefab { get; internal set; }
+
+            /// <summary>Cor da bola. Vazio segue o <see cref="ProjectileColor"/>.</summary>
+            public ConfigEntry<string> ChargeBallColor { get; internal set; }
+
+            /// <summary>Tamanho da bola na carga cheia. Ela cresce da <see cref="ChargeMinScale"/> até aqui.</summary>
+            public ConfigEntry<float> ChargeBallScale { get; internal set; }
+
+            /// <summary>Emissores a tirar da bola — o rastro que o projétil deixava ao voar.</summary>
+            public ConfigEntry<string> ChargeBallStrip { get; internal set; }
+
+            /// <summary>Efeito que marca a carga cheia. Vazio não mostra nada.</summary>
+            public ConfigEntry<string> ChargeFullEffectPrefab { get; internal set; }
+
+            /// <summary>Cor do efeito de carga cheia. Vazio segue o <see cref="ProjectileColor"/>.</summary>
+            public ConfigEntry<string> ChargeFullEffectColor { get; internal set; }
+
+            /// <summary>Escala do efeito de carga cheia.</summary>
+            public ConfigEntry<float> ChargeFullEffectScale { get; internal set; }
+
+            /// <summary>
+            /// Segura o efeito de carga cheia enquanto o jogador continuar segurando, em vez de
+            /// tocá-lo uma vez no instante em que a carga enche.
+            /// </summary>
+            public ConfigEntry<bool> ChargeFullEffectLoop { get; internal set; }
+
+            /// <summary>
+            /// A carga cheia <b>substitui</b> o efeito de carregamento em vez de somar-se a ele.
+            /// </summary>
+            public ConfigEntry<bool> ChargeFullEffectReplaces { get; internal set; }
+
             /// <summary>Nível mínimo de Power Level para usar o ataque. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinPowerLevel { get; internal set; }
 
@@ -513,6 +616,9 @@ namespace Saiyaheim
         /// — ver <see cref="BindKiAttack"/>.
         /// </summary>
         public static KiAttackConfig KiBlast { get; private set; }
+
+        /// <summary>O segundo ataque da escada. Mesma forma do <see cref="KiBlast"/>, em feixe.</summary>
+        public static KiAttackConfig Kamehameha { get; private set; }
 
         // ---------- 5 - Flight ----------
 
@@ -1305,7 +1411,7 @@ namespace Saiyaheim
                     "Unlike the punch, an empty bar does not cancel anything — the block already " +
                     "happened when the charge lands, so it drains what is there, like the armor does. " +
                     "This is the most expensive thing in the mod by design: blocking stops far more " +
-                    "damage than armor absorbs, so it should be a burst, not a stance. Lower it if " +
+                    "damage than armor absorbs, so it should be a beam, not a stance. Lower it if " +
                     "holding block for two hits empties the bar. Set to zero to make blocking free. " +
                     "(Starting value, 2026-08-01. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
@@ -1642,6 +1748,99 @@ namespace Saiyaheim
                 // Amarelo de ki, aprovado na tela em 2026-08-20.
                 projectileColor: "#FFFF00",
                 requiredGlobalKey: "defeated_eikthyr");
+
+            // O segundo degrau, atras do Bonemass — e a escada de ataques deixa de andar junto com
+            // a de bosses aqui. O blast saiu no Eikthyr, este sai no terceiro boss, e os dois do
+            // meio nao entregam ataque nenhum: um ataque por boss encheria a escada de degraus
+            // mornos so' para preencher a tabela, e nao ha' cinco ataques que valham a pena.
+            // Decidido em 2026-09-07. Ver [[Ataques de Ki]].
+            //
+            // Feixe, e nao um feixe: o projectile_beam do Yagluth foi validado na tela em
+            // 2026-09-07 e NAO e' um raio sustentado — o boss dispara varios em sequencia, e o que
+            // se le como feixe e' a fila. O mod faz o mesmo, e o feixe vira BeamCount +
+            // BeamInterval em vez de um sistema de renderizacao novo. Ver Attacks/KiBeam.cs.
+            //
+            // Os numeros de partida, ancorados no ki blast e nao chutados:
+            //   24 projeteis x 0,025 s = 0,6 s de feixe, com 1,25 m entre um e o seguinte a 50 m/s.
+            //   O espacamento comecou em 2,5 m e caiu pela metade no playtest de 2026-09-07: a
+            //   fila ficava visivel como fila. O que desceu foi o INTERVALO e nao a velocidade —
+            //   espacamento e' velocidade x intervalo, e baixar a velocidade encurtaria o alcance
+            //   e faria o feixe viajar devagar, que e' o oposto do que um Kamehameha parece.
+            //   Dobrar a contagem para manter os 0,6 s obrigou a METADE do dano e do custo por
+            //   projetil: contagem e' knob visual E de balanceamento ao mesmo tempo, porque as duas
+            //   coisas sao por projetil. Os totais abaixo sao os mesmos de antes.
+            //   Dano 1,75 + 0,00625 x poder POR PROJETIL = 42 + 0,15 x poder no feixe inteiro,
+            //   contra os 10 + 0,04 do blast. Custo 2,5 por projetil = 60 por disparo, tres blasts.
+            //   Da' ~1,3x o dano por ki do blast — o premio por ser o ataque do terceiro boss, por
+            //   custar 2 s de carregamento e por so' entregar tudo se o feixe inteiro acertar.
+            //   Empurrao 3, e nao os 30 do blast: com 12 acertos seguidos, o empurrao do blast
+            //   jogaria o alvo para fora do proprio feixe no segundo projetil.
+            // O saiya_blast imprime os totais do feixe — e' por ali que a calibracao sai.
+            Kamehameha = BindKiAttack(config, SecKamehameha,
+                damageBase: 1.75f,
+                damageFromPower: 0.00625f,
+                kiCost: 2.5f,
+                // 2 s, e nao os 4 de antes: com o carregamento, quem limita a cadencia passou a
+                // ser o dedo do jogador na tecla. Cooldown longo em cima de carga longa e' o mesmo
+                // castigo cobrado duas vezes.
+                cooldown: 2f,
+                projectilePrefab: "projectile_beam",
+                // Vazio: o estouro que vem com o prefab e' o fx_goblinking_beam_hit, feito para
+                // este feixe. Ligar o VerboseLogging e atirar uma vez lista os emissores dele, que
+                // e' de onde sai um ImpactEffectStrip se sobrar fumaca. Mesmo caminho do blast.
+                impactEffect: "",
+                impactEffectStrip: "",
+                impactColor: "",
+                // Azul claro. O blast e' amarelo; o Kamehameha precisa se distinguir dele na tela
+                // antes de qualquer outra coisa, e azul e' a cor da cena no anime.
+                projectileColor: "#66CCFF",
+                requiredGlobalKey: "defeated_bonemass",
+                // Teto, e nao valor fixo: 24 e' o feixe da carga CHEIA. Com 2 s de carregamento
+                // sao 12 projeteis por segundo segurado, e o custo e o dano acompanham em linha
+                // reta — segurar metade do tempo entrega metade de tudo.
+                beamCount: 24,
+                beamInterval: 0.025f,
+                knockback: 3f,
+                projectileSpeed: 50f,
+                projectileLifetime: 2f,
+                // 2 s ate' a carga cheia. E' longo de proposito: o Kamehameha tem que ser uma
+                // aposta, uma janela em que o jogador esta' parado com o inimigo vindo. Curto
+                // demais e ele vira um ki blast mais caro.
+                chargeTime: 2f,
+                // 0,15 x 24 = ~4 projeteis no minimo. Encostar na tecla sem querer nao gasta nada.
+                minChargeRatio: 0.15f,
+                chargeMinScale: 0.4f,
+                // O carregamento de cajado dos Charred: particulas convergindo para um ponto, que
+                // e' o gesto certo. Catalogado em [[Prefabs do Jogo]] justamente para isto.
+                chargeEffectPrefab: "fx_charred_firestaff_chargeup",
+                // Vazio: a bola na mao sai da cor do que vai sair dela. Ver ChargeEffectColor.
+                chargeEffectColor: "",
+                chargeEffectScale: 1f,
+                // Zerados porque o ponto de fixacao passou a ser a PALMA: a altura 1 e o lado 0,35
+                // de antes eram a mao medida a partir dos pes, e repeti-los aqui poria o efeito um
+                // metro acima da mao. Ver ChargeEffectAnchor.
+                chargeEffectHeight: 0f,
+                chargeEffectSide: 0f,
+                chargeEffectForward: 0f,
+                chargeEffectAnchor: EffectAnchor.RightHand,
+                // A bola de ki do xama goblin: a mesma esfera do ki blast, ja' aprovada na tela em
+                // 2026-08-20. Junta na mao a bola que vai sair dela.
+                chargeBallPrefab: "GoblinShaman_projectile_fireball",
+                chargeBallColor: "",
+                chargeBallScale: 1f,
+                // Palpite, e nao medido: 'smoke' e' o nome que a maioria dos prefabs de projetil do
+                // jogo usa para o rastro, e e' o mesmo que o estouro do ki blast cobrou. Se o nome
+                // for outro neste prefab, isto nao faz nada e nao quebra nada — o log lista os
+                // nomes de verdade, e a chave se corrige em uma linha.
+                chargeBallStrip: "smoke",
+                // Escolhido em 2026-09-07. Estouro curto e branco: le como "encheu" sem competir
+                // com a bola azul que ja' esta' na mao.
+                chargeFullEffectPrefab: "vfx_blocked",
+                // Vazio: a mesma cor do tiro, como a bola. Ver ChargeFullEffectColor.
+                chargeFullEffectColor: "",
+                chargeFullEffectScale: 1f,
+                chargeFullEffectLoop: false,
+                chargeFullEffectReplaces: true);
 
             // --- Voo ---
             FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 5f,
@@ -2073,7 +2272,7 @@ namespace Saiyaheim
             ChargeEffectForceLoop = config.Bind(SecEffects, "ChargeEffectForceLoop", true,
                 new ConfigDescription(
                     "Forces the effect's particles and audio to repeat. Game prefabs are built for " +
-                    "a quick burst; without this the effect disappears on its own after a second. " +
+                    "a quick beam; without this the effect disappears on its own after a second. " +
                     "Turn it off if some prefab looks wrong when repeating.",
                     null, ClientSide(60)));
 
@@ -2340,7 +2539,7 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Seconds the arm stays out at full extension before relaxing. Firing again " +
                     "before it ends just pushes this deadline forward — the arm does not drop and " +
-                    "snap back between shots of a burst. Playtest landed on 0.7, four times the " +
+                    "snap back between shots of a beam. Playtest landed on 0.7, four times the " +
                     "0.18 this was designed with: the shot is still in the air at 0.18, and an " +
                     "arm already on its way down while the ball flies reads as a flinch.",
                     new AcceptableValueRange<float>(0f, 3f), ClientSide(198)));
@@ -2504,7 +2703,7 @@ namespace Saiyaheim
             TransformEmote = config.Bind(SecEffects, "TransformEmote", "roar",
                 new ConfigDescription(
                     "One-shot emote played when you power up into a form. Empty disables it. " +
-                    "Not played when stepping DOWN a form: coming down is relief, not a burst. " +
+                    "Not played when stepping DOWN a form: coming down is relief, not a beam. " +
                     "Any emote the player Animator knows works — the same names the /emote chat " +
                     "command lists.",
                     null, ClientSide(55)));
@@ -2515,7 +2714,7 @@ namespace Saiyaheim
             TransformAuraPrefab = config.Bind(SecEffects, "TransformAuraPrefab",
                 "fx_DvergerMage_Support_start",
                 new ConfigDescription(
-                    "Effect burst when you power up into a form. Empty disables it. " +
+                    "Effect beam when you power up into a form. Empty disables it. " +
                     "It fires once and fades — see TransformAuraForceLoop for why it is not kept " +
                     "alive while the form lasts. Not played when stepping DOWN a form, same as " +
                     "the emote. The color comes from each form's own AuraColor, not from here. " +
@@ -2525,7 +2724,7 @@ namespace Saiyaheim
 
             TransformAuraScale = config.Bind(SecEffects, "TransformAuraScale", 2.5f,
                 new ConfigDescription(
-                    "Scale of the burst. Slightly larger than the charging effect on purpose: " +
+                    "Scale of the beam. Slightly larger than the charging effect on purpose: " +
                     "transforming should read bigger than charging up to it.",
                     new AcceptableValueRange<float>(0.1f, 5f), ClientSide(45)));
 
@@ -2535,7 +2734,7 @@ namespace Saiyaheim
             // forma inteira (2026-08-02).
             TransformAuraDuration = config.Bind(SecEffects, "TransformAuraDuration", 2f,
                 new ConfigDescription(
-                    "How long the burst lasts, in seconds, before it is removed from the player. " +
+                    "How long the beam lasts, in seconds, before it is removed from the player. " +
                     "This is enforced by the mod and does not depend on the prefab cleaning up " +
                     "after itself — some of them never do, which is what used to leave the " +
                     "effect burning for the whole transformation. " +
@@ -2550,11 +2749,11 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Keeps the effect alive for as long as the form lasts, by forcing its " +
                     "particles and audio to repeat. OFF by default, and that is a playtest " +
-                    "result, not an oversight: game prefabs are built for a half-second burst, " +
+                    "result, not an oversight: game prefabs are built for a half-second beam, " +
                     "and looping one does not make it last longer — it makes it a permanent " +
                     "cloud stuck to the player. The particles never get to disperse. " +
                     "Turning this on with a prefab designed for a sustained aura is fine; " +
-                    "turning it on with a burst prefab is what produced the smoke. " +
+                    "turning it on with a beam prefab is what produced the smoke. " +
                     "(Playtest value, 2026-08-02.)",
                     null, ClientSide(40)));
 
@@ -2564,7 +2763,7 @@ namespace Saiyaheim
             TransformAuraLightIntensity = config.Bind(SecEffects, "TransformAuraLightIntensity", 1f,
                 new ConfigDescription(
                     "Multiplier for the effect's dynamic light. 1 leaves the prefab as it came, " +
-                    "which is right for a burst — the flash is most of the punch. " +
+                    "which is right for a beam — the flash is most of the punch. " +
                     "0 removes the light entirely and keeps only the particles. " +
                     "That matters if you turn TransformAuraForceLoop on: a light that follows " +
                     "you for minutes lights up the terrain around you and gets tiring, while " +
@@ -2583,7 +2782,7 @@ namespace Saiyaheim
                     "Prefab of a single lightning crackle, spawned over and over around the body " +
                     "while a form with LightningEnabled is active. Empty disables the crackles " +
                     "for every form at once — the per-form key only says WHICH forms crackle. " +
-                    "Alternatives: fx_chainlightning_spread (spreads wider), fx_redlightning_burst " +
+                    "Alternatives: fx_chainlightning_spread (spreads wider), fx_redlightning_beam " +
                     "(red variant, for a form of another color), vfx_HitSparks (small sparks).",
                     null, ClientSide(36)));
 
@@ -2612,7 +2811,7 @@ namespace Saiyaheim
 
             FormLightningScale = config.Bind(SecEffects, "FormLightningScale", 0.5f,
                 new ConfigDescription(
-                    "Scale of each bolt. Well under the transformation burst on purpose: these " +
+                    "Scale of each bolt. Well under the transformation beam on purpose: these " +
                     "are sparks around the body, not an explosion. " +
                     "(Starting value. Not playtested yet.)",
                     new AcceptableValueRange<float>(0.05f, 5f), ClientSide(32)));
@@ -2648,7 +2847,7 @@ namespace Saiyaheim
                     "How long each bolt lasts, in seconds. Short on purpose: a crackle that " +
                     "lingers stops reading as lightning. " +
                     "Enforced by the mod and not left to the prefab, which matters more here " +
-                    "than for the transformation burst — this spawns dozens of objects a minute, " +
+                    "than for the transformation beam — this spawns dozens of objects a minute, " +
                     "and one that forgets to clean itself up would pile up on the player. " +
                     "0 hands the decision back to the prefab. " +
                     "(Starting value. Not playtested yet.)",
@@ -2680,7 +2879,7 @@ namespace Saiyaheim
                     "Deliberately well under a torch (~1.5): this is meant to be noticed at " +
                     "night and to barely register at noon, not to light your way. " +
                     "This is a plain point light, not a particle effect — it is the one sustained " +
-                    "effect that cannot turn into the cloud that looping a burst prefab did. " +
+                    "effect that cannot turn into the cloud that looping a beam prefab did. " +
                     "(Starting value. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 5f), ClientSide(26)));
 
@@ -2760,7 +2959,7 @@ namespace Saiyaheim
 
             ShowRemoteEffects = config.Bind(SecMultiplayer, "ShowRemoteEffects", true,
                 new ConfigDescription(
-                    "Draw the mod effects (transformation burst, ki charge glow) on other players.",
+                    "Draw the mod effects (transformation beam, ki charge glow) on other players.",
                     null, ClientSide(1)));
 
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
@@ -3047,9 +3246,9 @@ namespace Saiyaheim
                     new ConfigDescription(
                         "Crackle bolts of lightning around the body for as long as this form is " +
                         "active. It is the visual signature of the higher forms, and unlike the " +
-                        "transformation burst it lasts the whole time — lightning is intermittent " +
+                        "transformation beam it lasts the whole time — lightning is intermittent " +
                         "by nature, so repeating it does not turn into the permanent cloud that " +
-                        "looping a burst prefab did. " +
+                        "looping a beam prefab did. " +
                         "Everything about HOW the crackles look lives in Effects " +
                         "(FormLightning*), shared by every form; this key only says which forms " +
                         "get them.",
@@ -3109,7 +3308,18 @@ namespace Saiyaheim
             ConfigFile config, string section, float damageBase, float damageFromPower,
             float kiCost, float cooldown, string projectilePrefab, string impactEffect,
             string impactEffectStrip, string impactColor, string projectileColor,
-            string requiredGlobalKey)
+            string requiredGlobalKey, int beamCount = 1, float beamInterval = 0.05f,
+            float knockback = 30f, float projectileSpeed = 30f, float projectileLifetime = 3f,
+            float projectileScale = 1f, float chargeTime = 0f, float minChargeRatio = 0.15f,
+            float chargeMinScale = 0.4f, string chargeEffectPrefab = "",
+            string chargeEffectColor = "", float chargeEffectScale = 1f,
+            float chargeEffectHeight = 1f, float chargeEffectSide = 0.35f,
+            string chargeFullEffectPrefab = "", string chargeFullEffectColor = "",
+            float chargeFullEffectScale = 1f, bool chargeFullEffectLoop = false,
+            bool chargeFullEffectReplaces = true, float chargeEffectForward = 0f,
+            EffectAnchor chargeEffectAnchor = EffectAnchor.RightHand,
+            string chargeBallPrefab = "", string chargeBallColor = "", float chargeBallScale = 1f,
+            string chargeBallStrip = "")
         {
             return new KiAttackConfig
             {
@@ -3143,9 +3353,15 @@ namespace Saiyaheim
                 // em que nivel isso acontece, e se mata o soco quando acontecer.
                 KiCost = config.Bind(section, "KiCost", kiCost,
                     new ConfigDescription(
-                        "Ki spent per shot, charged when you fire — hit or miss. Charging on " +
+                        "Ki spent per projectile, charged when you fire — hit or miss. Charging on " +
                         "impact instead would reward aim and punish fighting anything fast, which " +
                         "is the opposite of what a ranged attack should teach. " +
+                        "On a charged attack (ChargeTime above 0) this is spent WHILE THE CHARGE " +
+                        "GROWS, as it produces each projectile, and letting go costs nothing. " +
+                        "A full charge stops costing, however long the key is held after that: " +
+                        "what is paid for is projectiles, and at the top there are no more coming. " +
+                        "The rate per second is this times BeamCount divided by ChargeTime — " +
+                        "saiya_blast prints it. " +
                         "FLAT on purpose, unlike the punch, which costs per point of damage: this " +
                         "is the starting shape and it is expected to get cheap late, when the bar " +
                         "has grown and this number has not. Watch it with saiya_blast, which " +
@@ -3160,12 +3376,275 @@ namespace Saiyaheim
                         "between the player and emptying the bar in one second.",
                         new AcceptableValueRange<float>(0f, 30f), AdminOnly(85))),
 
-                Knockback = config.Bind(section, "Knockback", 30f,
+                Knockback = config.Bind(section, "Knockback", knockback,
                     new ConfigDescription(
                         "Push applied to whatever is hit. It is what makes the shot read as an " +
                         "impact rather than a scratch, and it buys back the distance the attack " +
                         "exists to keep.",
                         new AcceptableValueRange<float>(0f, 500f), AdminOnly(80))),
+
+                // A peca que faz o Kamehameha existir sem o jogo ter feixe. Descoberta no playtest
+                // de 2026-09-07: o projectile_beam do Yagluth NAO e' um raio sustentado — o boss
+                // dispara varios seguidos, e o que se le como feixe e' a fila. Entao o mod faz o
+                // mesmo, e o "feixe" e' um numero de config em vez de um sistema novo.
+                //
+                // Dano, empurrao e custo continuam sendo POR PROJETIL. E' o que mantem a formula
+                // igual a' do tiro unico — o feixe nao e' um caso especial da conta, e' N vezes a
+                // mesma conta — e e' o que faz meio feixe que erra bater metade. O saiya_blast
+                // imprime o total, que e' o numero que se calibra.
+                BeamCount = config.Bind(section, "BeamCount", beamCount,
+                    new ConfigDescription(
+                        "How many projectiles one press fires. 1 is a single shot. Higher turns " +
+                        "the attack into a stream: fired close enough together, a line of " +
+                        "projectiles reads as one continuous beam, which is exactly how the game " +
+                        "itself draws Yagluth's beam. " +
+                        "Damage, ki cost and knockback below are PER PROJECTILE, so this multiplies " +
+                        "all three — saiya_blast prints the totals. " +
+                        "Raise it for a longer beam, and lower BeamInterval to close the gaps.",
+                        new AcceptableValueRange<int>(1, 60), AdminOnly(84))),
+
+                BeamInterval = config.Bind(section, "BeamInterval", beamInterval,
+                    new ConfigDescription(
+                        "Seconds between one projectile of a beam and the next. It sets both how " +
+                        "long the beam lasts (BeamCount x this) and how far apart the projectiles " +
+                        "sit in the air (ProjectileSpeed x this) — and that spacing is what " +
+                        "decides whether the eye reads a beam or a row of pellets. " +
+                        "Ignored when BeamCount is 1. " +
+                        "Aim is recomputed for every projectile, so a long beam follows the " +
+                        "crosshair instead of pointing where it started.",
+                        new AcceptableValueRange<float>(0.01f, 1f), AdminOnly(83))),
+
+                // O carregamento e' o que separa o Kamehameha do ki blast: nao a cor nem o prefab,
+                // mas a decisao de quanto gastar, tomada com o dedo na tecla e o inimigo vindo.
+                // Zero devolve o ataque ao toque simples, que e' como o blast continua.
+                //
+                // O que a carga escala e' o COMPRIMENTO do feixe e a GROSSURA dele — nao o dano
+                // por projetil. Escalar os dois faria o dano total crescer com o QUADRADO do tempo
+                // segurado, e no fim do jogo isso e' um pico que nenhuma outra chave alcanca.
+                // Decidido em 2026-09-07.
+                ChargeTime = config.Bind(section, "ChargeTime", chargeTime,
+                    new ConfigDescription(
+                        "Seconds of holding the fire key to reach a full charge. 0 turns charging " +
+                        "off and the attack fires on the key press, with the whole beam at once — " +
+                        "which is what the ki blast does. " +
+                        "Holding longer fires MORE projectiles, up to BeamCount, and makes them " +
+                        "thicker; it does NOT make each projectile hit harder. So the ki spent " +
+                        "and the damage dealt both grow with the hold, in a straight line. " +
+                        "The ki is spent WHILE THE CHARGE GROWS, not on release: you pay for each " +
+                        "projectile the moment the charge produces it, so the bar going down is " +
+                        "the charge meter, and it stops going down the instant the charge is full " +
+                        "— holding a finished charge is free, because there is nothing left to buy. " +
+                        "Running the bar dry fires the attack immediately with whatever was paid " +
+                        "for: holding a key that has stopped doing anything would only be found " +
+                        "out on release.",
+                        new AcceptableValueRange<float>(0f, 30f), AdminOnly(88))),
+
+                MinChargeRatio = config.Bind(section, "MinChargeRatio", minChargeRatio,
+                    new ConfigDescription(
+                        "Smallest fraction of a full charge that still fires, from 0 to 1. " +
+                        "Letting go below it drops the charge instead of firing, so brushing the " +
+                        "key does not throw a single projectile the player never meant to fire. " +
+                        "The ki that fraction of a second already drained does NOT come back — " +
+                        "refunding it would mean tracking the spend tick by tick, for a few points " +
+                        "of a bar measured in hundreds. " +
+                        "It is ignored when the bar runs dry mid-charge: that fires whatever was " +
+                        "paid for, however short, because refusing there would charge for nothing. " +
+                        "Ignored entirely when ChargeTime is 0.",
+                        new AcceptableValueRange<float>(0f, 1f), AdminOnly(87))),
+
+                // Visual, e por isso config: o quanto um feixe carregado deve parecer mais grosso
+                // que um curto so' se sabe olhando. 1 tira a diferenca sem tirar a mecanica.
+                ChargeMinScale = config.Bind(section, "ChargeMinScale", chargeMinScale,
+                    new ConfigDescription(
+                        "How thick the projectiles are at the smallest charge, as a fraction of " +
+                        "ProjectileScale — the size they reach at a full one. 1 makes charge " +
+                        "change only the length of the beam, never its thickness. " +
+                        "Visual only: it does NOT change what the projectiles hit, nor the damage.",
+                        new AcceptableValueRange<float>(0.05f, 1f), ClientSide(54))),
+
+                // Prefab do jogo, nao asset novo. O vault e' explicito sobre este ser o pedaco que
+                // vende a cena: segundo [[Animacoes]], o carregamento se le pelas particulas nas
+                // maos, nao pela pose — e por isso ele vem antes da pose de duas maos.
+                ChargeEffectPrefab = config.Bind(section, "ChargeEffectPrefab", chargeEffectPrefab,
+                    new ConfigDescription(
+                        "Game prefab attached to the player while the attack charges. Empty shows " +
+                        "nothing, which leaves the player with no way to tell a charge is running. " +
+                        "Worth trying: fx_charred_firestaff_chargeup, fx_DvergerMage_Support, " +
+                        "vfx_blocked, fx_Potion_stamina_medium.",
+                        null, ClientSide(53))),
+
+                ChargeEffectColor = config.Bind(section, "ChargeEffectColor", chargeEffectColor,
+                    new ConfigDescription(
+                        "Colour of the charge effect, as #RRGGBB. Empty follows ProjectileColor, " +
+                        "so what gathers in the hand is the colour of what comes out of it — " +
+                        "asking twice would only create the chance of the two drifting apart.",
+                        null, ClientSide(52))),
+
+                ChargeEffectScale = config.Bind(section, "ChargeEffectScale", chargeEffectScale,
+                    new ConfigDescription(
+                        "Size of the charge effect at a full charge, 1 being the prefab as it came. " +
+                        "It grows from ChargeMinScale x this up to this as the charge fills, so " +
+                        "the ball in the hand reads as filling up.",
+                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(51))),
+
+                // Duas chaves e nao um vetor: o .cfg do BepInEx nao tem tipo de vetor, e as tres
+                // coordenadas viriam de uma string parseada a mao. A profundidade ficou de fora
+                // porque o gesto e' ao LADO do corpo — se ela fizer falta, e' a terceira chave.
+                ChargeEffectHeight = config.Bind(section, "ChargeEffectHeight", chargeEffectHeight,
+                    new ConfigDescription(
+                        "Height of the charge effect above the player's feet, in metres. About 1 " +
+                        "is hand height on a standing character.",
+                        new AcceptableValueRange<float>(0f, 3f), ClientSide(50))),
+
+                ChargeEffectSide = config.Bind(section, "ChargeEffectSide", chargeEffectSide,
+                    new ConfigDescription(
+                        "Sideways offset of the charge effect, in metres. Positive is the " +
+                        "player's right, which is the side the hands cup on for a Kamehameha. " +
+                        "It follows the body, so turning around does not leave it behind.",
+                        new AcceptableValueRange<float>(-2f, 2f), ClientSide(49))),
+
+                ChargeEffectForward = config.Bind(
+                    section, "ChargeEffectForward", chargeEffectForward,
+                    new ConfigDescription(
+                        "Forward offset of the charge effects, in metres. Anchored to a hand, this " +
+                        "is what pushes the ball off the palm instead of leaving it inside it.",
+                        new AcceptableValueRange<float>(-2f, 2f), ClientSide(42))),
+
+                // A chave que faz a pose futura valer de graca. Presos ao OSSO da mao, os efeitos
+                // vao para onde a animacao levar a mao; medidos a partir dos pes, ficam boiando
+                // onde a mao estava antes. Enquanto nao ha' pose os dois parecem iguais, e e' por
+                // isso que vale decidir agora e nao depois.
+                //
+                // ⚠️ Trocar isto muda o SIGNIFICADO das tres chaves de offset acima: na mao elas
+                // sao medidas a partir da palma (numeros perto de zero), no corpo a partir dos pes
+                // (a altura da mao e' ~1). Um conjunto de numeros no outro modo poe o efeito a um
+                // metro de onde deveria.
+                ChargeEffectAnchor = config.Bind(
+                    section, "ChargeEffectAnchor", chargeEffectAnchor,
+                    new ConfigDescription(
+                        "What the charge effects are pinned to. RightHand and LeftHand pin them to " +
+                        "the hand BONE, so they are carried by whatever the character does — a " +
+                        "future charging pose moves them with it, at no cost. Body pins them to " +
+                        "the character root, which is steady but has to be re-measured by hand " +
+                        "every time the pose changes. " +
+                        "This changes what the three offsets above MEAN: from a hand they are " +
+                        "measured from the palm, and near zero; from the body they are measured " +
+                        "from the feet, where hand height is about 1. " +
+                        "Falls back to the body while the skeleton is not built yet.",
+                        null, ClientSide(41))),
+
+                // Prefab de PROJETIL, e nao de efeito, e e' o ponto: o Valheim nao tem um "fx_" que
+                // seja uma esfera de energia parada, mas tem varias que voam. O StaticProp arranca
+                // o comportamento e deixa o visual. Ver Util/StaticProp.cs.
+                ChargeBallPrefab = config.Bind(section, "ChargeBallPrefab", chargeBallPrefab,
+                    new ConfigDescription(
+                        "The ball of ki that gathers in the hand while charging. This is the name " +
+                        "of a PROJECTILE prefab, not an effect one: the game has no effect that is " +
+                        "a ball of energy sitting still, but it has several that fly, and the mod " +
+                        "strips the flying part. It grows from ChargeMinScale to ChargeBallScale " +
+                        "as the charge fills. Empty shows no ball. " +
+                        "Worth trying: GoblinShaman_projectile_fireball, " +
+                        "DvergerStaffBlocker_projectile (a denser sphere), " +
+                        "DvergerStaffIce_projectile, staff_greenroots_projectile.",
+                        null, ClientSide(39))),
+
+                ChargeBallColor = config.Bind(section, "ChargeBallColor", chargeBallColor,
+                    new ConfigDescription(
+                        "Colour of the charge ball, as #RRGGBB. Empty follows ProjectileColor, so " +
+                        "what gathers in the hand is the colour of what comes out of it.",
+                        null, ClientSide(38))),
+
+                ChargeBallScale = config.Bind(section, "ChargeBallScale", chargeBallScale,
+                    new ConfigDescription(
+                        "Size of the charge ball at a full charge, 1 being the projectile prefab " +
+                        "as it came. It starts at ChargeMinScale times this and grows to it, which " +
+                        "is the same curve the projectiles themselves follow — so the ball in the " +
+                        "hand is the size of what is about to leave it.",
+                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(37))),
+
+                // O rastro e' a peca do projetil que so' faz sentido em movimento: parado na mao,
+                // ele vira uma nuvem crescendo em volta dela. Mesmo mecanismo e mesmas regras do
+                // ImpactEffectStrip — nome INTEIRO, e o log lista os nomes disponiveis.
+                ChargeBallStrip = config.Bind(section, "ChargeBallStrip", chargeBallStrip,
+                    new ConfigDescription(
+                        "Comma-separated names of particle emitters to remove from the charge " +
+                        "ball. A projectile prefab carries the trail it left while flying, and a " +
+                        "trail on something STANDING STILL reads as a cloud of smoke growing " +
+                        "around the hand — which is the one part of the projectile that only makes " +
+                        "sense in motion. Empty removes nothing. " +
+                        "Names must match in full, case aside, exactly like ImpactEffectStrip. " +
+                        "Turn VerboseLogging on and start a charge: the log prints " +
+                        "'Static prop <prefab>: emitters: ...' with every name inside the ball, " +
+                        "ready to copy from.",
+                        null, ClientSide(36))),
+
+                // O aviso de carga cheia. Sem ele o jogador nao tem como saber que parou de ganhar
+                // coisa por continuar segurando — a bola para de crescer, mas "parou de crescer" e'
+                // dificil de ler numa particula que ja' esta' se mexendo sozinha.
+                //
+                // Sai no MESMO ponto do corpo que a bola, pelo ChargeEffectSide/Height: sao dois
+                // sinais sobre a mesma coisa, e separa-los em dois lugares da tela leria como duas
+                // coisas acontecendo.
+                ChargeFullEffectPrefab = config.Bind(
+                    section, "ChargeFullEffectPrefab", chargeFullEffectPrefab,
+                    new ConfigDescription(
+                        "Game prefab played when the charge reaches full, on top of the charge " +
+                        "effect that is already there. It is the only sign that holding longer has " +
+                        "stopped buying anything. Empty shows nothing. " +
+                        "It appears where ChargeEffectSide and ChargeEffectHeight put it — the " +
+                        "same spot as the charge effect, because the two are one signal. " +
+                        "Worth trying: vfx_blocked, fx_DvergerMage_Support_hit, " +
+                        "fx_lightningstaffprojectile_hit, vfx_HealthUpgrade.",
+                        null, ClientSide(48))),
+
+                ChargeFullEffectColor = config.Bind(
+                    section, "ChargeFullEffectColor", chargeFullEffectColor,
+                    new ConfigDescription(
+                        "Colour of the full-charge effect, as #RRGGBB. Empty follows " +
+                        "ProjectileColor, like the charge effect does.",
+                        null, ClientSide(47))),
+
+                ChargeFullEffectScale = config.Bind(
+                    section, "ChargeFullEffectScale", chargeFullEffectScale,
+                    new ConfigDescription(
+                        "Size of the full-charge effect, 1 being the prefab as it came. " +
+                        "It does not grow: the charge is done, and something still growing would " +
+                        "say the opposite of what this exists to say.",
+                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(46))),
+
+                // Duas leituras possiveis do mesmo pedido, e so' a tela decide: um estalo no
+                // instante em que enche, ou um sinal aceso enquanto o jogador segura. A primeira e'
+                // o default porque vfx_blocked e' um prefab de estouro — po-lo em loop pisca.
+                ChargeFullEffectLoop = config.Bind(
+                    section, "ChargeFullEffectLoop", chargeFullEffectLoop,
+                    new ConfigDescription(
+                        "Hold the full-charge effect for as long as the player keeps holding, " +
+                        "instead of playing it once the moment the charge fills. " +
+                        "Off suits a burst prefab such as vfx_blocked, which loops as a flicker. " +
+                        "On suits a prefab meant to sit there, and keeps telling the player the " +
+                        "charge is done however long they hold — which a one-off flash stops " +
+                        "doing a second after it fires.",
+                        null, ClientSide(44))),
+
+                // Substituir e' o default porque os dois juntos ficaram ruins na tela — playtest de
+                // 2026-09-07. A bola de carregamento diz "enchendo", e ela continuar ali depois de
+                // cheia diz a coisa errada; o aviso de carga cheia e' que passa a ser a resposta.
+                //
+                // Chave e nao regra fixa: qual das duas leituras esta' certa e' julgamento visual,
+                // e o codigo nao pode ser o lugar onde ele mora. Desligar devolve os dois somados.
+                ChargeFullEffectReplaces = config.Bind(
+                    section, "ChargeFullEffectReplaces", chargeFullEffectReplaces,
+                    new ConfigDescription(
+                        "Take the charge effect away the moment the charge fills, leaving only " +
+                        "ChargeFullEffectPrefab. On, the two never share the screen: the ball " +
+                        "means 'filling up', and leaving it there once it is full says the " +
+                        "opposite of what the full-charge effect is for. Off keeps both. " +
+                        "Ignored when ChargeFullEffectPrefab is empty or names a prefab that does " +
+                        "not exist — a broken name should cost the polish, not the only sign the " +
+                        "player has that a charge is running. " +
+                        "It never touches ChargeBallPrefab: the ball is what is about to be " +
+                        "thrown, and it belongs on screen right up to the moment it leaves.",
+                        null, ClientSide(43))),
 
                 // Prefab do jogo, nao asset novo — a regra de [[Efeitos Visuais]]. Trocar o nome
                 // aqui troca o visual inteiro sem recompilar, que e' o ponto de ser config.
@@ -3191,7 +3670,7 @@ namespace Saiyaheim
                     new ConfigDescription(
                         "What plays where the projectile lands. Empty keeps whatever the " +
                         "projectile prefab brought with it — for a fireball, that is a cloud of " +
-                        "smoke. 'none' strips it: the shot lands with no burst and no sound, " +
+                        "smoke. 'none' strips it: the shot lands with no beam and no sound, " +
                         "which reads as a miss, so it is more useful for telling the smoke apart " +
                         "from the rest than as a final answer. Anything else is the name of a " +
                         "prefab to play instead; a name that does not exist logs a warning and " +
@@ -3219,7 +3698,7 @@ namespace Saiyaheim
                         "included. Empty changes nothing. " +
                         "Names must match in full, case aside: a partial name like 'fire' would " +
                         "also match the effect fx_shaman_fireball_expl that contains it, and take " +
-                        "the whole burst with it. " +
+                        "the whole beam with it. " +
                         "A name that matches a whole impact effect drops that effect from the " +
                         "list — which is how a prefab that keeps its smoke in a separate effect " +
                         "is handled. " +
@@ -3238,9 +3717,9 @@ namespace Saiyaheim
                 ImpactColor = config.Bind(section, "ImpactColor", impactColor,
                     new ConfigDescription(
                         "Colour of the impact effect, as #RRGGBB. Empty follows ProjectileColor, " +
-                        "so the burst matches the shot that made it without being set twice. " +
+                        "so the beam matches the shot that made it without being set twice. " +
                         "'none' keeps the effect's own colours, whatever the prefab shipped with " +
-                        "— which for the goblin shaman burst means a pink light on the ground " +
+                        "— which for the goblin shaman beam means a pink light on the ground " +
                         "around the hit. Anything else overrides both.",
                         null, ClientSide(72))),
 
@@ -3250,10 +3729,10 @@ namespace Saiyaheim
                 ImpactColorTarget = config.Bind(section, "ImpactColorTarget", ImpactTintTarget.Light,
                     new ConfigDescription(
                         "How much of the impact effect ImpactColor paints. 'Light' repaints only " +
-                        "the dynamic light the burst casts on the ground, which is what gives a " +
+                        "the dynamic light the beam casts on the ground, which is what gives a " +
                         "borrowed prefab away, and leaves the flash and the shockwave drawn the " +
                         "way the game drew them. 'Everything' repaints particles, trails and " +
-                        "materials too, so the whole burst reads as the ki that caused it — at " +
+                        "materials too, so the whole beam reads as the ki that caused it — at " +
                         "the cost of the shading the effect came with.",
                         null, ClientSide(71))),
 
@@ -3265,12 +3744,12 @@ namespace Saiyaheim
                         "Prefabs meant for arrows use this to stick into the wall they hit, and a " +
                         "prefab with a particle trail uses it to keep trailing after it lands — " +
                         "which reads as a puff of smoke sitting where the shot went off, seconds " +
-                        "after the burst is over. Off, the shot is gone the instant it connects " +
+                        "after the beam is over. Off, the shot is gone the instant it connects " +
                         "and only the impact effect is left. Turn it on to check whether lingering " +
                         "smoke is coming from the projectile or from ImpactEffect.",
                         null, ClientSide(70))),
 
-                ProjectileSpeed = config.Bind(section, "ProjectileSpeed", 30f,
+                ProjectileSpeed = config.Bind(section, "ProjectileSpeed", projectileSpeed,
                     new ConfigDescription(
                         "Projectile speed in metres per second. For reference, a player runs at " +
                         "about 5 and flies at up to 30. Too slow and anything mobile walks out of " +
@@ -3278,7 +3757,7 @@ namespace Saiyaheim
                         "target.",
                         new AcceptableValueRange<float>(1f, 200f), AdminOnly(70))),
 
-                ProjectileLifetime = config.Bind(section, "ProjectileLifetime", 3f,
+                ProjectileLifetime = config.Bind(section, "ProjectileLifetime", projectileLifetime,
                     new ConfigDescription(
                         "Seconds the projectile lives before vanishing. Range is this times " +
                         "ProjectileSpeed — saiya_blast prints the result in metres. Overrides the " +
@@ -3291,7 +3770,7 @@ namespace Saiyaheim
                         "reads as energy rather than as a thrown rock. Raise it for an arc.",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(60))),
 
-                ProjectileScale = config.Bind(section, "ProjectileScale", 1f,
+                ProjectileScale = config.Bind(section, "ProjectileScale", projectileScale,
                     new ConfigDescription(
                         "Size of the projectile, 1 being the prefab as it came. " +
                         "Visual only: it does NOT change what the projectile hits.",
@@ -3310,7 +3789,7 @@ namespace Saiyaheim
                         "Projectile color, #RRGGBB format. Empty keeps the prefab's own colors. " +
                         "Tinting touches particles, lights and this clone's own materials only — " +
                         "never the game's shared assets. " +
-                        "The impact burst follows this colour unless ImpactColor says otherwise.",
+                        "The impact beam follows this colour unless ImpactColor says otherwise.",
                         null, ClientSide(50))),
 
                 // Cosmetico, entao ClientSide — mas note que ele replica: o ZSyncAnimation.SetTrigger
