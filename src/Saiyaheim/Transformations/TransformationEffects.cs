@@ -66,6 +66,9 @@ namespace Saiyaheim.Transformations
         /// <summary>True enquanto a cor do cabelo estiver trocada por nós.</summary>
         private static bool _hairTinted;
 
+        /// <summary>True enquanto o penteado estiver trocado por nós.</summary>
+        private static bool _hairSwapped;
+
         private static bool _disabled;
 
         /// <summary>
@@ -84,6 +87,7 @@ namespace Saiyaheim.Transformations
             {
                 PlayEmote(player, SaiyaheimConfig.TransformEmote.Value);
                 SetHairColor(player, form);
+                SetHairStyle(player, form);
             });
         }
 
@@ -158,7 +162,11 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal static void OnStepDown(Player player, Transformation form)
         {
-            Run(() => SetHairColor(player, form));
+            Run(() =>
+            {
+                SetHairColor(player, form);
+                SetHairStyle(player, form);
+            });
         }
 
         /// <summary>
@@ -170,11 +178,15 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal static void OnPowerDown(Player player)
         {
-            Run(() => RestoreHairColor(player));
+            Run(() =>
+            {
+                RestoreHairColor(player);
+                RestoreHairStyle(player);
+            });
         }
 
         /// <summary>
-        /// Repinta o cabelo com a forma que o jogador já tem, se tiver alguma.
+        /// Repõe cor e penteado da forma que o jogador já tem, se tiver alguma.
         ///
         /// Existe porque o jogo apaga a nossa tinta sozinho a cada mudança de equipamento — ver
         /// <see cref="HairColorPatch"/>, que é quem chama. Não é um evento do mod: é um conserto
@@ -189,7 +201,7 @@ namespace Saiyaheim.Transformations
         /// e antes de o estado ter sido publicado. O <c>SEMan</c> é a autoridade na máquina do
         /// dono, que é a única onde a escrita de ZDO vale.
         /// </summary>
-        internal static void ReapplyHairColor(Player player)
+        internal static void ReapplyHair(Player player)
         {
             Transformation form = TransformationRegistry.GetActive(player);
             if (form == null)
@@ -197,7 +209,11 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            Run(() => SetHairColor(player, form));
+            Run(() =>
+            {
+                SetHairColor(player, form);
+                SetHairStyle(player, form);
+            });
         }
 
         /// <summary>
@@ -212,6 +228,7 @@ namespace Saiyaheim.Transformations
             _visEquipment = null;
             _trackedPlayer = null;
             _hairTinted = false;
+            _hairSwapped = false;
             Bursts.Clear();
             LastSeenForm.Clear();
             FormLightning.Reset();
@@ -331,6 +348,92 @@ namespace Saiyaheim.Transformations
             // guardado aqui ficaria errado se o jogador trocasse de cabelo no espelho transformado.
             vis.SetHairColor(player.GetHairColor());
             _hairTinted = false;
+        }
+
+        /// <summary>
+        /// Troca o <b>penteado</b> pelo da forma.
+        ///
+        /// <b>É a primeira mudança de silhueta da escada</b>, e é ela que faz o SSJ3 se ler como
+        /// SSJ3: até o SSJ2 os degraus se distinguiam só por cor, e dois amarelos parecidos a
+        /// dez metros de distância são o mesmo amarelo. O cabelo comprido se reconhece de longe e
+        /// de costas.
+        ///
+        /// ⚠️ <b>Pela mesma porta da cor, e pelo mesmo motivo.</b> O <c>Humanoid.SetHair</c>
+        /// escreve em <c>m_hairItem</c>, que é serializado no <b>perfil do personagem</b> — um
+        /// autosave em forma gravaria o penteado da transformação como o penteado de verdade, e
+        /// ele sobreviveria ao mod ser desinstalado. O <c>VisEquipment.SetHairItem</c> só escreve
+        /// na ZDO: estado de sessão, replicado de graça para os outros jogadores, e que some
+        /// sozinho se o jogo fechar com o jogador transformado. Ver <see cref="SetHairColor"/>,
+        /// que resolveu a mesma armadilha para a cor.
+        ///
+        /// O <c>Humanoid.GetHair()</c> intocado é a fonte para restaurar — nada de cache, pelo
+        /// mesmo motivo da cor: um valor guardado aqui ficaria errado se o jogador passasse no
+        /// barbeiro transformado.
+        /// </summary>
+        private static void SetHairStyle(Player player, Transformation form)
+        {
+            ApplyHairStyle(player, form == null ? "" : form.Config.HairItem.Value);
+        }
+
+        /// <summary>
+        /// Veste este penteado, pelo nome do item de customização do jogo. Nome vazio devolve o do
+        /// personagem. Devolve false se o nome não existe no <c>ObjectDB</c>.
+        ///
+        /// <b>Valida antes de escrever</b>, e essa é a razão de o método existir separado do
+        /// <see cref="SetHairStyle"/>: o <c>VisEquipment</c> aceita qualquer string, guarda o hash
+        /// dela e não acha prefab nenhum na hora de montar a cabeça — o resultado de um
+        /// <c>Hair99</c> no <c>.cfg</c> seria o jogador <b>careca</b> em forma, sem erro em lugar
+        /// nenhum. Careca silencioso é pior que a chave ser ignorada.
+        ///
+        /// Público para o <c>saiya_form hair</c>, que experimenta penteado sem transformar: os
+        /// nomes são numerados (<c>Hair1</c>..<c>Hair37</c>) e escolher um sem ver na tela é
+        /// escolher no escuro.
+        /// </summary>
+        internal static bool ApplyHairStyle(Player player, string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                RestoreHairStyle(player);
+                return true;
+            }
+
+            if (ObjectDB.instance == null || ObjectDB.instance.GetItemPrefab(name) == null)
+            {
+                SaiyaheimPlugin.Log.LogWarning(
+                    $"HairItem '{name}' does not exist. Valid names are the game's own hair items " +
+                    "(Hair1..Hair37, HairNone) — run 'saiya_form hair' to list them.");
+                return false;
+            }
+
+            VisEquipment vis = GetVisEquipment(player);
+            if (vis == null)
+            {
+                return false;
+            }
+
+            vis.SetHairItem(name);
+            _hairSwapped = true;
+
+            return true;
+        }
+
+        /// <summary>Devolve o penteado do personagem, se estivermos com ele trocado.</summary>
+        internal static void RestoreHairStyle(Player player)
+        {
+            if (!_hairSwapped)
+            {
+                return;
+            }
+
+            VisEquipment vis = GetVisEquipment(player);
+            if (vis == null)
+            {
+                _hairSwapped = false;
+                return;
+            }
+
+            vis.SetHairItem(player.GetHair());
+            _hairSwapped = false;
         }
 
         /// <summary>

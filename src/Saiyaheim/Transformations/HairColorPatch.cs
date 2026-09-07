@@ -3,7 +3,7 @@ using HarmonyLib;
 namespace Saiyaheim.Transformations
 {
     /// <summary>
-    /// Devolve a cor da forma ao cabelo depois que o jogo a apaga.
+    /// Devolve a cor <b>e o penteado</b> da forma ao cabelo depois que o jogo os apaga.
     ///
     /// <b>O bug (playtest de 2026-08-16).</b> Equipar ou desequipar qualquer coisa — picareta,
     /// martelo, elmo — devolvia o cabelo à cor original enquanto o jogador continuava
@@ -18,6 +18,12 @@ namespace Saiyaheim.Transformations
     /// e ele escreve a cor original na mesma chave de ZDO que nós usamos. O
     /// <c>VisEquipment.UpdateColors</c> lê essa chave todo frame, então a tinta some no frame
     /// seguinte.
+    ///
+    /// <b>O penteado da forma sofre do mesmo mal</b>, e por isso entrou por aqui em vez de ganhar
+    /// patch próprio: a linha <c>visEq.SetHairItem(m_hairItem)</c> do
+    /// <c>Humanoid.SetupVisEquipment</c> — a base deste mesmo método — reescreve o penteado do
+    /// personagem na ZDO exatamente como a de baixo reescreve a cor. Ver
+    /// <c>TransformationEffects.SetHairStyle</c>.
     ///
     /// <b>Por que é patch Harmony, contra a regra do projeto.</b> Não há caminho nativo: o jogo
     /// não expõe hook nenhum de mudança de equipamento, e o único jeito de não perder a corrida é
@@ -39,7 +45,7 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            TransformationEffects.ReapplyHairColor(__instance);
+            TransformationEffects.ReapplyHair(__instance);
         }
     }
 }

@@ -18,10 +18,13 @@
     --ink-3: #766D5B;
     --ki: #0481b3;
     --today: #ae6700;
-    /* Uma cor por forma. O SSJ leva o dourado do cabelo; o SSJ2, o roxo — os dois nunca dividem
-       a tela com o dourado de "hoje", que so' aparece na lente de progressao. */
+    /* Uma cor por forma. O SSJ leva o dourado do cabelo; o SSJ2, o roxo; o SSJ3, o magenta —
+       nenhum deles divide a tela com o dourado de "hoje", que so' aparece na lente de progressao.
+       O magenta do SSJ3 e' o que sobrou de longe do azul do ki, do verde do "outro eixo" e do
+       vermelho do alerta: com tres formas plotadas ao mesmo tempo, cor parecida e' linha perdida. */
     --ssj: #9a6b00;
     --ssj2: #7a4fc4;
+    --ssj3: #A31E68;
     /* A serie "outro eixo": skill de voo no 100. Verde porque ela nunca e' uma forma. */
     --alt: #2c7a5c;
     --ki-wash: rgba(4, 129, 179, 0.12);
@@ -38,7 +41,7 @@
       --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
       --line: #3A342B; --line-soft: #2F2A22;
       --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --alt: #4fb98a;
+      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
       --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
@@ -48,7 +51,7 @@
     --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
     --line: #3A342B; --line-soft: #2F2A22;
     --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --alt: #4fb98a;
+    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
     --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
@@ -106,6 +109,7 @@
   .stat .v.warn { color: var(--warn); }
   .stat .v.ssj { color: var(--ssj); }
   .stat .v.ssj2 { color: var(--ssj2); }
+  .stat .v.ssj3 { color: var(--ssj3); }
 
   .verdict { border-left: 2px solid var(--ki); padding: 2px 0 2px 16px; max-width: 78ch; color: var(--ink-2); font-size: 15px; }
   .verdict strong { color: var(--ink); font-weight: 600; }
@@ -134,6 +138,7 @@
   summary .tag { margin-left: auto; letter-spacing: .02em; text-transform: none; font-size: 10px; color: var(--ink-3); }
   summary .tag.ssj { color: var(--ssj); }
   summary .tag.ssj2 { color: var(--ssj2); }
+  summary .tag.ssj3 { color: var(--ssj3); }
   .group-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 11px; }
 
   .ctl { display: flex; flex-direction: column; gap: 5px; }
@@ -159,6 +164,8 @@
   .g-ssj input[type="range"]::-moz-range-thumb { background: var(--ssj); }
   .g-ssj2 input[type="range"]::-webkit-slider-thumb { background: var(--ssj2); }
   .g-ssj2 input[type="range"]::-moz-range-thumb { background: var(--ssj2); }
+  .g-ssj3 input[type="range"]::-webkit-slider-thumb { background: var(--ssj3); }
+  .g-ssj3 input[type="range"]::-moz-range-thumb { background: var(--ssj3); }
 
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
   button {
@@ -220,6 +227,7 @@
   thead tr.groups th { border-bottom: 0; padding-bottom: 0; text-align: center; letter-spacing: .14em; }
   thead tr.groups th.ssj { color: var(--ssj); }
   thead tr.groups th.ssj2 { color: var(--ssj2); }
+  thead tr.groups th.ssj3 { color: var(--ssj3); }
   tbody td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
   tbody tr:last-child td { border-bottom: 0; }
   tbody tr.milestone td { background: var(--ki-wash); }
@@ -400,6 +408,20 @@
         </div>
       </details>
 
+      <details class="card group g-ssj3" id="g-ssj3" data-lens="combat form" open>
+        <summary><span class="chev">▶</span>SSJ3<span class="tag ssj3">3.3</span></summary>
+        <div class="group-body">
+          <div class="ctl"><div class="row"><label for="m3">PowerMultiplier</label><output id="m3-out"></output></div>
+            <input type="range" id="m3" min="1" max="10" step="0.1" value="4"></div>
+          <div class="ctl"><div class="row"><label for="d3">KiDrainPerSecond</label><output id="d3-out"></output></div>
+            <input type="range" id="d3" min="0.5" max="60" step="0.5" value="15"></div>
+          <div class="ctl"><div class="row"><label for="r3">MasteryDrainReduction</label><output id="r3-out"></output></div>
+            <input type="range" id="r3" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="lv3">Maestria de SSJ3</label><output id="lv3-out"></output></div>
+            <input type="range" id="lv3" min="0" max="100" step="1" value="0"></div>
+        </div>
+      </details>
+
       <details class="card group" id="g-mastery" data-lens="combat form">
         <summary><span class="chev">▶</span>Maestria</summary>
         <div class="group-body">
@@ -415,7 +437,7 @@
             <input type="range" id="bxp" min="0" max="5" step="0.25" value="2"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>1 + isto × (bosses derrotados − degrau da forma)</code>, com piso em 1. O SSJ é o degrau 1 e o SSJ2 o degrau 2, então no default 2, com três bosses no chão, o SSJ paga x5 e o SSJ2 x3. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>1 + isto × (bosses derrotados − degrau da forma)</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então no default 2, com três bosses no chão, o SSJ paga x5, o SSJ2 x3 e o SSJ3 — destravado por esse terceiro boss — x1. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -520,7 +542,7 @@
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
-               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "xps", "bxp", "boss",
+               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "boss",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -544,14 +566,24 @@
   // do que com quatro digitos e virgula.
   const fmtc = (n, d = 1) => (isFinite(n) && Math.abs(n) >= 10000 ? fmt(n / 1000, 1) + "k" : fmt(n, d));
 
-  // ── as duas formas da escada ──────────────────────────────────────────────
-  // Uma entrada por degrau, na ordem do .cfg. Um degrau novo (SSJ3, etapa 7) e' outra linha
-  // aqui mais um bloco de sliders no rail — nada mais do resto da pagina muda.
+  // ── as formas da escada ───────────────────────────────────────────────────
+  // Uma entrada por degrau, na ordem do .cfg. Um degrau novo e' outra linha aqui, um bloco de
+  // sliders no rail, uma cor no :root e uma linha no CFG — nada mais da pagina muda: cartoes,
+  // veredito, tabela e series varrem esta lista. O SSJ3 entrou em 2026-09-06 e custou exatamente
+  // isso, o que era a promessa.
   const FORMS = [
     { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1", rung: 0 },
     { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2", rung: 1 },
+    { id: "ssj3", name: "SSJ3", sec: "3.3 - SSJ3", color: "var(--ssj3)", cls: "ssj3", m: "m3", d: "d3", r: "r3", lv: "lv3", rung: 2 },
   ];
-  const SSJ = FORMS[0], SSJ2 = FORMS[1];
+  // O primeiro e o ULTIMO degrau, e nao SSJ/SSJ2 nomeados: os cartoes e os alertas que falam de
+  // "a forma" querem o topo da escada, que muda quando ela cresce. Os que comparam dois degraus
+  // varrem os pares consecutivos — ver stepPairs.
+  const SSJ = FORMS[0], TOP = FORMS[FORMS.length - 1];
+  // Os pares vizinhos da escada, de baixo para cima: [SSJ, SSJ2], [SSJ2, SSJ3]. E' onde as
+  // perguntas de "o degrau de baixo continua tendo razao de existir?" moram — comparar o SSJ
+  // direto com o SSJ3 responderia a pergunta errada, porque ninguem escolhe entre eles dois.
+  const stepPairs = () => FORMS.slice(1).map((hi, i) => ({ lo: FORMS[i], hi }));
 
   // ── o modelo ──────────────────────────────────────────────────────────────
   // Espelha BattlePower.cs. Sao DOIS numeros de poder, e cada consumidor le um deles:
@@ -754,7 +786,7 @@
     uptime: { btn: "% transformado", label: "Fatia do tempo transformado", mode: "formonly", dec: 1, unit: "%",
       sub: "um ciclo é segurar a forma até a barra zerar mais recarregar do zero. 50% = metade do tempo transformado, metade carregando" },
     powertime: { btn: "poder × tempo", label: "Poder × segundos por barra", mode: "formonly", dec: 0, unit: "",
-      sub: "quanta força uma barra cheia de ki compra. É o número que decide se o degrau alto vale o ki — se o SSJ2 passar o SSJ aqui, o SSJ vira letra morta" },
+      sub: "quanta força uma barra cheia de ki compra. É o número que decide se o degrau alto vale o ki — se um degrau passar o de baixo aqui, o de baixo vira letra morta" },
     masteryhours: { btn: "horas até maestria", label: "Horas até maestria 100", mode: "formonly", dec: 1, unit: " h",
       sub: "tempo de relógio, não de forma: soma o tempo dentro da forma e as recargas entre uma e outra, nível a nível, com o dreno encolhendo pelo caminho" },
     refill: { btn: "recarga", label: "Recarga da barra", mode: "solo", dec: 0, unit: " s",
@@ -815,15 +847,18 @@
       title: "Quanto custa segurar a forma, e por quanto tempo",
       sub: "A forma não tem custo de ativação: o preço inteiro é o dreno por segundo, e ele bloqueia a regeneração de fundo a cada tick. Então a pergunta de calibragem é <b>quanto tempo a barra cheia segura</b> — e se o degrau alto entrega, por barra de ki, mais do que o degrau baixo.",
       stats: ["formtime", "uptime", "drain", "powertime", "powerform", "masteryhours"],
-      open: ["g-ssj", "g-ssj2"],
+      open: FORMS.map(f => "g-" + f.id),
       today: false,
-      cfg: ["ssj", "ssj2", "ki"],
-      caption: "Os dois degraus lado a lado, nível a nível",
-      cols: [col("Teto ki", c => c.m.kimax, 0),
-             fcol("Dreno", 0, "drain", 2, "", { sep: true }), fcol("Tempo", 0, "formtime", 0, " s"),
-             fcol("Transf.", 0, "uptime", 0, "%"), fcol("Poder×t", 0, "powertime", 0),
-             fcol("Dreno", 1, "drain", 2, "", { sep: true }), fcol("Tempo", 1, "formtime", 0, " s"),
-             fcol("Transf.", 1, "uptime", 0, "%"), fcol("Poder×t", 1, "powertime", 0)],
+      cfg: FORMS.map(f => f.id).concat(["ki"]),
+      caption: "Os degraus lado a lado, nível a nível",
+      // Tres colunas por degrau e nao quatro: com o terceiro degrau, "Transf." levava a tabela a
+      // quinze colunas e o scroll horizontal virava o jeito normal de le-la. A fatia do tempo
+      // transformado continua na tela — e' um dos stats plotaveis e um dos cartoes de cima.
+      cols: [col("Teto ki", c => c.m.kimax, 0)].concat(
+        ...FORMS.map((f, i) => [
+          fcol("Dreno", i, "drain", 2, "", { sep: true }),
+          fcol("Tempo", i, "formtime", 0, " s"),
+          fcol("Poder×t", i, "powertime", 0)])),
     },
   };
 
@@ -1057,19 +1092,22 @@
     ];
   }
 
+  // Os cartoes de combate leem o TOPO da escada e nao um degrau nomeado: o caso extremo — a
+  // armadura que vira invulnerabilidade, o soco que nao cabe na barra — mora sempre no degrau
+  // mais alto, e e' ele que muda quando a escada cresce.
   function cardsCombat(k5) {
     const m100 = model(100, k5), b100 = model(100, 0);
-    const f100 = model(100, k5, SSJ2);
+    const f100 = model(100, k5, TOP);
     const takenMult = m100.taken > 0 ? b100.taken / m100.taken : 1;
     return [
       { k: "dano recebido no 100", v: fmt(m100.taken, 1), cls: m100.taken < v("hit") * 0.06 ? "warn" : "",
         n: `hoje é ${fmt(b100.taken, 1)} — leva ${fmt(takenMult, 1)}× menos` },
-      { k: "o mesmo golpe em SSJ2", v: fmt(f100.taken, 1), cls: f100.taken < v("hit") * 0.06 ? "warn" : "ssj2",
+      { k: `o mesmo golpe em ${TOP.name}`, v: fmt(f100.taken, 1), cls: f100.taken < v("hit") * 0.06 ? "warn" : TOP.cls,
         n: `${fmt(v("hit"), 0)} de golpe contra ${fmt(f100.armor, 0)} de armadura` },
       { k: "socos por barra no 100", v: fmt(m100.punches, 1), cls: m100.punches < 2 ? "warn" : "",
-        n: `em SSJ2 são ${fmt(f100.punches, 1)} — a forma multiplica o custo junto com o dano` },
+        n: `em ${TOP.name} são ${fmt(f100.punches, 1)} — a forma multiplica o custo junto com o dano` },
       { k: "dano do soco no 100", v: fmt(m100.punch, 1),
-        n: `SSJ ${fmt(model(100, k5, SSJ).punch / m100.punch, 1)}× · SSJ2 ${fmt(f100.punch / m100.punch, 1)}×` },
+        n: FORMS.map(f => `${f.name} ${fmt(model(100, k5, f).punch / m100.punch, 1)}×`).join(" · ") },
       nicheCard(k5),
     ];
   }
@@ -1081,16 +1119,18 @@
   // o cruzamento fica bem acima. O cartao mostra o alvo (1) e o veredito cuida do (2).
   function nicheCard(k5) {
     const base = model(100, k5);
-    const oldMax = model(100, k5, SSJ, { mastery: MAXLVL });
-    const newMax = model(100, k5, SSJ2, { mastery: MAXLVL });
+    const maxed = FORMS.map(f => model(100, k5, f, { mastery: MAXLVL }));
+    const top = maxed[maxed.length - 1];
     const off = c => Math.abs(c.punchcost / base.punchcost - 1);
+    const allOn = maxed.every(c => off(c) < 0.01);
 
     return {
-      k: "forma maxada vs fora da forma", v: fmt(newMax.punchcost / base.punchcost, 2) + "×",
-      cls: off(newMax) < 0.01 ? "ssj2" : "",
-      n: off(newMax) < 0.01 && off(oldMax) < 0.01
-        ? `custo do soco em ${fmt(base.punchcost, 1)} ki nos três, com o multiplicador de dano de graça — é o alvo do slider em 1`
-        : `SSJ maxado ${fmt(oldMax.punchcost, 1)} ki · SSJ2 maxado ${fmt(newMax.punchcost, 1)} ki · fora da forma ${fmt(base.punchcost, 1)} ki`,
+      k: "forma maxada vs fora da forma", v: fmt(top.punchcost / base.punchcost, 2) + "×",
+      cls: off(top) < 0.01 ? TOP.cls : "",
+      n: allOn
+        ? `custo do soco em ${fmt(base.punchcost, 1)} ki em todos os degraus e fora deles, com o multiplicador de dano de graça — é o alvo do slider em 1`
+        : FORMS.map((f, i) => `${f.name} maxado ${fmt(maxed[i].punchcost, 1)} ki`).join(" · ") +
+          ` · fora da forma ${fmt(base.punchcost, 1)} ki`,
     };
   }
 
@@ -1116,9 +1156,9 @@
       // com o PowerMultiplier 3 que o jogador acabou de ajustar no rail ao lado.
       { k: "velocidade no 100", v: fmt(m100.fly, 1) + " m/s",
         n: m100.fly >= v("fm") - 0.01 ? `no teto de engine (MaxSpeed ${fmt(v("fm"), 0)})`
-                                      : `em SSJ2, ${fmt(model(100, k5, SSJ2).fly, 1)} m/s — ` +
-                                        `x${fmt(1 + (Math.max(1, v(SSJ2.m)) - 1) * v("fss"), 2)} de velocidade ` +
-                                        `para x${fmt(Math.max(1, v(SSJ2.m)), 1)} de poder` },
+                                      : `em ${TOP.name}, ${fmt(model(100, k5, TOP).fly, 1)} m/s — ` +
+                                        `x${fmt(1 + (Math.max(1, v(TOP.m)) - 1) * v("fss"), 2)} de velocidade ` +
+                                        `para x${fmt(Math.max(1, v(TOP.m)), 1)} de poder` },
       // Tres pontos da curva de peso num cartao so': o meio e' o que o expoente move, as pontas
       // sao fixas (0% nao custa nada, 100% custa a WeightPenalty inteira, em qualquer curva).
       { k: "peso, do meio ao limite", v: fmt(weightLoss(1), 0) + "% mais lento",
@@ -1127,35 +1167,51 @@
     ];
   }
 
+  // Um cartao por degrau, mais o par mais apertado da escada, mais as horas de maestria do topo.
+  // Varre FORMS em vez de nomear duas formas: com tres degraus, "SSJ2 por barra de ki" ja nao e'
+  // a pergunta — a pergunta e' se ALGUM degrau apagou o de baixo dele.
   function cardsForm(k5) {
-    const a = model(100, k5, SSJ), b = model(100, k5, SSJ2);
-    const ratio = isFinite(a.powertime) && a.powertime > 0 ? b.powertime / a.powertime : Infinity;
+    const at = f => model(100, k5, f);
     const mst = f => (mstTrack.checked ? MAXLVL : v(f.lv));
+    const raw = f => model(100, k5, f, { mastery: 0 });
 
-    // Dreno zero nas duas: "poder x tempo por barra" nao existe, porque nao ha barra sendo gasta.
-    // Comparar infinito com infinito daria um alerta de letra morta que nao diz nada — o que
-    // separa os degraus aqui e' o custo ANTES da maestria, entao o card passa a mostrar isso.
-    const bothFree = a.drain <= 0 && b.drain <= 0;
-    const raw = { a: model(100, k5, SSJ, { mastery: 0 }), b: model(100, k5, SSJ2, { mastery: 0 }) };
-    const rawRatio = raw.a.powertime > 0 ? raw.b.powertime / raw.a.powertime : Infinity;
+    // A razao de poder x tempo entre dois degraus vizinhos. Acima de 1 o de baixo perdeu a razao
+    // de existir: o de cima entrega mais forca pela MESMA barra de ki.
+    const ratioOf = (lo, hi, opt) => {
+      const a = model(100, k5, lo, opt), b = model(100, k5, hi, opt);
+      return a.powertime > 0 ? b.powertime / a.powertime : Infinity;
+    };
 
-    return [
-      { k: "SSJ no nível 100", v: fmt(a.formtime, 0) + " s", cls: "ssj",
-        n: `${fmt(a.drain, 1)} ki/s com a maestria em ${fmt(mst(SSJ), 0)} · ${fmt(a.uptime, 0)}% do tempo transformado` },
-      { k: "SSJ2 no nível 100", v: fmt(b.formtime, 0) + " s", cls: "ssj2",
-        n: `${fmt(b.drain, 1)} ki/s com a maestria em ${fmt(mst(SSJ2), 0)} · ${fmt(b.uptime, 0)}% do tempo transformado` },
-      bothFree
-        ? { k: "SSJ2 por barra, sem maestria", v: fmt(rawRatio, 2) + "×",
-            cls: rawRatio >= 1 ? "warn" : "",
-            n: "as duas formas saem de graça no 100, então a escada só custa antes de maxar — " +
-               (rawRatio >= 1 ? "e nem cru o degrau alto custa mais: o SSJ nasce letra morta"
-                              : "é aqui que o degrau baixo tem vez") }
-        : { k: "SSJ2 por barra de ki", v: fmt(ratio, 2) + "×", cls: ratio >= 1 ? "warn" : "",
-            n: ratio >= 1 ? "o degrau alto entrega mais poder×tempo pelo mesmo ki: o SSJ vira letra morta"
-                          : "de poder×tempo contra o SSJ — abaixo de 1 é o que mantém o degrau baixo vivo" },
-      { k: "maestria 100 em SSJ2", v: fmt(masteryHours(SSJ2, 100), 1) + " h",
-        n: `de relógio, contando as recargas. Em SSJ são ${fmt(masteryHours(SSJ, 100), 1)} h` },
-    ];
+    // Com toda a escada de graca no 100, poder x tempo e' infinito em todo degrau e comparar
+    // infinitos nao diz nada — a comparacao passa a ser a do dreno CRU, que e' a unica janela em
+    // que o degrau de baixo ainda existe.
+    const allFree = FORMS.every(f => at(f).drain <= 0);
+    const opt = allFree ? { mastery: 0 } : undefined;
+    const pairs = stepPairs().map(pr => Object.assign({ ratio: ratioOf(pr.lo, pr.hi, opt) }, pr));
+    const worst = pairs.reduce((w, pr) => (pr.ratio > w.ratio ? pr : w), pairs[0]);
+
+    const cards = FORMS.map(f => {
+      const c = at(f);
+      return { k: `${f.name} no nível 100`, v: fmt(c.formtime, 0) + " s", cls: f.cls,
+               n: `${fmt(c.drain, 1)} ki/s com a maestria em ${fmt(mst(f), 0)} · ${fmt(c.uptime, 0)}% do tempo transformado` };
+    });
+
+    cards.push({
+      k: allFree ? `${worst.hi.name} por barra, sem maestria` : `${worst.hi.name} por barra de ki`,
+      v: fmt(worst.ratio, 2) + "×", cls: worst.ratio >= 1 ? "warn" : "",
+      n: allFree
+        ? `contra o ${worst.lo.name} cru — é o par mais apertado da escada. Toda forma sai de graça no 100, ` +
+          (worst.ratio >= 1 ? `então o dreno cru era a única janela do ${worst.lo.name}, e ela está fechada`
+                            : "então é antes de maxar que os degraus se separam")
+        : `de poder×tempo contra o ${worst.lo.name}, o par mais apertado da escada — ` +
+          (worst.ratio >= 1 ? `o ${worst.lo.name} virou letra morta` : "abaixo de 1 é o que mantém o degrau baixo vivo"),
+    });
+
+    cards.push({ k: `maestria 100 em ${TOP.name}`, v: fmt(masteryHours(TOP, 100), 1) + " h",
+      n: `de relógio, contando as recargas. ` +
+         FORMS.slice(0, -1).map(f => `${f.name} ${fmt(masteryHours(f, 100), 1)} h`).join(" · ") });
+
+    return cards;
   }
 
   function verdictProg(k5) {
@@ -1171,7 +1227,7 @@
   }
 
   function verdictCombat(k5) {
-    const m100 = model(100, k5), f100 = model(100, k5, SSJ2);
+    const m100 = model(100, k5), f100 = model(100, k5, TOP);
     // O alerta que faltava em 2026-08-04, quando o SSJ pareceu bugado no playtest: a forma dobrava
     // o dano do soco E o custo dele, sem dobrar a barra, entao o dano total por barra ficava
     // IGUAL — e o segundo soco nao cabia, saindo com o dano vanilla cru.
@@ -1179,24 +1235,32 @@
       return { warn: true, html: `<strong>O soco não cabe na barra:</strong> no nível 100 são ${fmt(m100.punches, 1)} socos com a barra cheia, e abaixo de 1 o golpe sai com o dano vanilla cru — o bônus simplesmente não é cobrado. Suba o <code>KiCostPowerReduction</code>.` };
     }
     if (f100.punchbar <= m100.punchbar * 1.05) {
-      return { warn: true, html: `<strong>A transformação cobra o que entrega:</strong> no nível 100 o SSJ2 dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco, mas o dano total por barra de ki fica em ${fmt(f100.punchbar / m100.punchbar, 2)}× — a forma multiplica o custo junto com o dano e o teto de ki não acompanha. Suba o <code>KiCostPowerReduction</code>: é o poder que compra o desconto, então a forma passa a se pagar.` };
+      return { warn: true, html: `<strong>A transformação cobra o que entrega:</strong> no nível 100 o ${TOP.name} dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco, mas o dano total por barra de ki fica em ${fmt(f100.punchbar / m100.punchbar, 2)}× — a forma multiplica o custo junto com o dano e o teto de ki não acompanha. Suba o <code>KiCostPowerReduction</code>: é o poder que compra o desconto, então a forma passa a se pagar.` };
     }
     if (m100.taken < v("hit") * 0.06) {
       return { warn: true, html: `<strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.` };
     }
     if (f100.taken < v("hit") * 0.06) {
-      return { warn: true, html: `<strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> em SSJ2 o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(f100.taken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.` };
+      return { warn: true, html: `<strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> em ${TOP.name} o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(f100.taken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.` };
     }
     // Ultimo dos alertas de proposito: os de cima sao quebras (o soco nao cabe na barra, a
     // armadura virou invulnerabilidade), este e' um problema de DESENHO — tudo funciona, so' que
     // o degrau baixo nao tem razao de existir. Vale a pena ler depois que o resto esta' no lugar.
-    const oldMax = model(100, k5, SSJ, { mastery: MAXLVL });
-    const newRaw = model(100, k5, SSJ2, { mastery: 0 });
-    if (oldMax.punch / oldMax.punchcost <= newRaw.punch / newRaw.punchcost) {
-      return { warn: true, html: `<strong>O degrau baixo não tem nicho:</strong> o SSJ maxado rende ${fmt(oldMax.punch / oldMax.punchcost, 2)} de dano por ki e o SSJ2 recém-destravado rende ${fmt(newRaw.punch / newRaw.punchcost, 2)} — não há motivo nenhum para voltar ao SSJ depois de subir. O <code>KiCostPowerReduction</code> não separa os degraus, porque a forma multiplica o poder que compra o desconto; quem separa é o <code>MasteryFormCostReduction</code>, que lê a maestria da forma ativa e nasce em zero a cada degrau novo. Em <b>1</b> ele só zera o acréscimo da forma, o que ainda não basta — o cruzamento fica mais para cima no slider.` };
+    // Um par vizinho por vez: a pergunta e' "vale voltar ao degrau de baixo?", e ninguem escolhe
+    // entre o primeiro e o ultimo degrau da escada.
+    const perKi = c => c.punch / c.punchcost;
+    const nicheOf = pr => ({
+      lo: perKi(model(100, k5, pr.lo, { mastery: MAXLVL })),
+      hi: perKi(model(100, k5, pr.hi, { mastery: 0 })),
+      pr,
+    });
+    const niches = stepPairs().map(nicheOf);
+    const broken = niches.find(x => x.lo <= x.hi);
+    if (broken) {
+      return { warn: true, html: `<strong>O ${broken.pr.lo.name} não tem nicho:</strong> maxado, ele rende ${fmt(broken.lo, 2)} de dano por ki, e o ${broken.pr.hi.name} recém-destravado rende ${fmt(broken.hi, 2)} — não há motivo nenhum para voltar ao ${broken.pr.lo.name} depois de subir. O <code>KiCostPowerReduction</code> não separa os degraus, porque a forma multiplica o poder que compra o desconto; quem separa é o <code>MasteryFormCostReduction</code>, que lê a maestria da forma ativa e nasce em zero a cada degrau novo. Em <b>1</b> ele só zera o acréscimo da forma, o que ainda não basta — o cruzamento fica mais para cima no slider.` };
     }
 
-    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em SSJ2 ainda sobram ${fmt(f100.punches, 1)}. O SSJ maxado rende ${fmt(oldMax.punch / oldMax.punchcost, 2)} de dano por ki contra ${fmt(newRaw.punch / newRaw.punchcost, 2)} do SSJ2 cru, então o degrau baixo tem para que servir.` };
+    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em ${TOP.name} ainda sobram ${fmt(f100.punches, 1)}. Todo degrau maxado ainda rende mais dano por ki que o degrau acima recém-destravado (${niches.map(x => `${x.pr.lo.name} ${fmt(x.lo, 2)} contra ${x.pr.hi.name} cru ${fmt(x.hi, 2)}`).join(" · ")}), então nenhum deles vira letra morta.` };
   }
 
   function verdictFly(k5) {
@@ -1205,12 +1269,15 @@
     // O alerta que faltava em 2026-08-21, quando voar transformado ficou rapido demais: com o
     // FormSpeedShare em 1 as duas formas batiam no MaxSpeed e viravam a mesma linha no grafico —
     // e o grafico e' o modo LENTO, entao no jogo, correndo, o teto morde ainda mais cedo.
-    const ssjFly = model(100, k5, SSJ).fly, ssj2Fly = model(100, k5, SSJ2).fly;
-    if (ssj2Fly >= v("fm") - 0.01) {
-      const both = ssjFly >= v("fm") - 0.01;
-      return { warn: true, html: `<strong>${both ? "SSJ e SSJ2 voam igual" : "O degrau alto não compra velocidade"}:</strong> ` +
-        `${both ? "as duas formas batem" : "o SSJ2 bate"} no <code>MaxSpeed ${fmt(v("fm"), 0)}</code> já no modo lento` +
-        `${both ? "" : ` (o SSJ para em ${fmt(ssjFly, 1)} m/s)`}, e no jogo o modo rápido ainda multiplica por cima — o teto morde antes do que este gráfico mostra. ` +
+    // Quantos degraus ja' estao encostados no teto. Dois ou mais colados sao duas formas que
+    // viraram a mesma linha no ar, que e' o defeito que este alerta existe para pegar.
+    const capped = FORMS.filter(f => model(100, k5, f).fly >= v("fm") - 0.01);
+    const free = FORMS.filter(f => model(100, k5, f).fly < v("fm") - 0.01);
+    if (capped.length) {
+      const many = capped.length > 1;
+      return { warn: true, html: `<strong>${many ? capped.map(f => f.name).join(" e ") + " voam igual" : "O degrau alto não compra velocidade"}:</strong> ` +
+        `${many ? "essas formas batem" : `o ${capped[0].name} bate`} no <code>MaxSpeed ${fmt(v("fm"), 0)}</code> já no modo lento` +
+        `${free.length ? ` (${free.map(f => `o ${f.name} para em ${fmt(model(100, k5, f).fly, 1)} m/s`).join(", ")})` : ""}, e no jogo o modo rápido ainda multiplica por cima — o teto morde antes do que este gráfico mostra. ` +
         `Baixe o <code>FormSpeedShare</code> (hoje em ${fmt(v("fss"), 2)}) até as linhas descolarem do teto.` };
     }
     if (skill100.flycost < 0.15) {
@@ -1231,32 +1298,44 @@
   }
 
   function verdictForm(k5) {
-    // A escada e' julgada com as duas maestrias no mesmo lugar: comparar SSJ maxado com SSJ2 cru
-    // nao diz nada sobre o desenho, so' sobre quem treinou o que.
-    const a = model(100, k5, SSJ, { mastery: MAXLVL }), b = model(100, k5, SSJ2, { mastery: MAXLVL });
-    const raw = { a: model(100, k5, SSJ, { mastery: 0 }), b: model(100, k5, SSJ2, { mastery: 0 }) };
-    const ratio = a.powertime > 0 ? b.powertime / a.powertime : Infinity;
+    // A escada e' julgada com TODAS as maestrias no mesmo lugar: comparar um degrau maxado com o
+    // de cima recem-destravado nao diz nada sobre o desenho, so' sobre quem treinou o que.
+    const at = (f, m) => model(100, k5, f, { mastery: m });
+    const ratio = (lo, hi, m) => {
+      const a = at(lo, m), b = at(hi, m);
+      return a.powertime > 0 ? b.powertime / a.powertime : Infinity;
+    };
+    const worstAt = m => {
+      const pairs = stepPairs().map(pr => Object.assign({ r: ratio(pr.lo, pr.hi, m) }, pr));
+      return pairs.reduce((w, pr) => (pr.r > w.r ? pr : w), pairs[0]);
+    };
 
     // Maxado sem dreno e' o desenho a partir de 2026-08-25, nao um descuido de config: a maestria
     // termina em "a forma sai de graca". Os dois alertas abaixo pressupoem uma forma que ainda
     // custa ki no 100 — soltos aqui, eles mandariam desfazer a decisao. Entao o veredito muda de
     // pergunta: com o fim da escada de graca, o que resta julgar e' o caminho ate la.
-    if (a.drain <= 0 && b.drain <= 0) {
-      const rawRatio = raw.a.powertime > 0 ? raw.b.powertime / raw.a.powertime : Infinity;
-      const hours = masteryHours(SSJ2, 100);
-      if (rawRatio >= 1) {
-        return { warn: true, html: `<strong>O SSJ vira letra morta antes mesmo da maestria:</strong> recém-destravado, uma barra de ki compra ${fmt(rawRatio, 2)}× mais poder×tempo em SSJ2 que em SSJ. Como as duas formas terminam de graça no 100, o dreno cru é a única janela em que o degrau baixo existe — e ela está fechada. Suba o <code>KiDrainPerSecond</code> do SSJ2 ou baixe o <code>PowerMultiplier</code> dele.` };
+    if (FORMS.every(f => at(f, MAXLVL).drain <= 0)) {
+      const w = worstAt(0);
+      if (w.r >= 1) {
+        return { warn: true, html: `<strong>O ${w.lo.name} vira letra morta antes mesmo da maestria:</strong> recém-destravado, uma barra de ki compra ${fmt(w.r, 2)}× mais poder×tempo em ${w.hi.name} que em ${w.lo.name}. Como toda a escada termina de graça no 100, o dreno cru é a única janela em que o degrau baixo existe — e ela está fechada. Suba o <code>KiDrainPerSecond</code> do ${w.hi.name} ou baixe o <code>PowerMultiplier</code> dele.` };
       }
-      return { html: `<strong>A maestria termina de graça, e é isso que ela compra.</strong> No 100 as duas formas não drenam nada e o ki volta a regenerar por baixo delas — a forma vira permanente até o jogador soltar. O preço todo está no caminho: cru, o SSJ2 segura ${fmt(raw.b.formtime, 0)} s por barra contra ${fmt(raw.a.formtime, 0)} s do SSJ (${fmt(rawRatio, 2)}× de poder×tempo), e maxá-lo custa ${fmt(hours, 1)} h de relógio contra ${fmt(masteryHours(SSJ, 100), 1)} h do SSJ.` };
+      return { html: `<strong>A maestria termina de graça, e é isso que ela compra.</strong> No 100 nenhum degrau drena nada e o ki volta a regenerar por baixo deles — a forma vira permanente até o jogador soltar. O preço todo está no caminho: crus, os degraus seguram ` +
+        FORMS.map(f => `${fmt(at(f, 0).formtime, 0)} s (${f.name})`).join(" · ") +
+        ` por barra, o par mais apertado é ${w.hi.name} contra ${w.lo.name} em ${fmt(w.r, 2)}× de poder×tempo, e maxar o ${TOP.name} custa ${fmt(masteryHours(TOP, 100), 1)} h de relógio contra ${fmt(masteryHours(SSJ, 100), 1)} h do ${SSJ.name}.` };
     }
 
-    if (ratio >= 1) {
-      return { warn: true, html: `<strong>O SSJ vira letra morta:</strong> com as duas maestrias maxadas, uma barra de ki compra ${fmt(b.powertime, 0)} de poder×tempo em SSJ2 contra ${fmt(a.powertime, 0)} em SSJ — ${fmt(ratio, 2)}× a favor do degrau alto. Quem destravou o segundo nunca mais tem motivo para usar o primeiro. Suba o <code>KiDrainPerSecond</code> do SSJ2 ou baixe o <code>PowerMultiplier</code> dele.` };
+    const w = worstAt(MAXLVL);
+    if (w.r >= 1) {
+      return { warn: true, html: `<strong>O ${w.lo.name} vira letra morta:</strong> com as maestrias maxadas, uma barra de ki compra ${fmt(at(w.hi, MAXLVL).powertime, 0)} de poder×tempo em ${w.hi.name} contra ${fmt(at(w.lo, MAXLVL).powertime, 0)} em ${w.lo.name} — ${fmt(w.r, 2)}× a favor do degrau alto. Quem destravou o de cima nunca mais tem motivo para usar o de baixo. Suba o <code>KiDrainPerSecond</code> do ${w.hi.name} ou baixe o <code>PowerMultiplier</code> dele.` };
     }
-    if (b.uptime > 90) {
-      return { warn: true, html: `<strong>A forma virou permanente:</strong> maxado, o SSJ2 fica ${fmt(b.uptime, 0)}% do tempo de pé — ${fmt(b.formtime, 0)} s de forma contra ${fmt(b.refill, 0)} s de recarga. O ki deixa de ser tensão e a transformação deixa de ser uma decisão. Baixe o <code>MasteryDrainReduction</code>.` };
+    const permanent = FORMS.filter(f => at(f, MAXLVL).uptime > 90);
+    if (permanent.length) {
+      const f = permanent[permanent.length - 1], c = at(f, MAXLVL);
+      return { warn: true, html: `<strong>A forma virou permanente:</strong> maxado, o ${f.name} fica ${fmt(c.uptime, 0)}% do tempo de pé — ${fmt(c.formtime, 0)} s de forma contra ${fmt(c.refill, 0)} s de recarga. O ki deixa de ser tensão e a transformação deixa de ser uma decisão. Baixe o <code>MasteryDrainReduction</code>.` };
     }
-    return { html: `<strong>A escada custa o que deve custar.</strong> Uma barra de ki compra ${fmt(ratio, 2)}× mais poder×tempo em SSJ que em SSJ2 — o degrau alto bate mais forte e por menos tempo, então escolher entre eles é uma decisão de verdade. Recém-destravado, no nível 100, o SSJ2 segura ${fmt(raw.b.formtime, 0)} s; maxado, ${fmt(b.formtime, 0)} s, ${fmt(b.uptime, 0)}% do tempo.` };
+    return { html: `<strong>A escada custa o que deve custar.</strong> Em cada par vizinho, uma barra de ki compra mais poder×tempo no degrau de BAIXO (` +
+      stepPairs().map(pr => `${pr.lo.name}→${pr.hi.name} ${fmt(ratio(pr.lo, pr.hi, MAXLVL), 2)}×`).join(" · ") +
+      `) — o degrau alto bate mais forte e por menos tempo, então escolher entre eles é uma decisão de verdade. Recém-destravado, no nível 100, o ${TOP.name} segura ${fmt(at(TOP, 0).formtime, 0)} s; maxado, ${fmt(at(TOP, MAXLVL).formtime, 0)} s, ${fmt(at(TOP, MAXLVL).uptime, 0)}% do tempo.` };
   }
 
   const LENS_FN = {
@@ -1307,13 +1386,13 @@
       kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
-    ssj: () => formBlock(SSJ),
-    ssj2: () => formBlock(SSJ2),
     ki: () => block("2 - Ki", [
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
   };
-  const CFG_ORDER = ["power", "combat", "flight", "ssj", "ssj2", "ki"];
+  // Uma entrada por forma, montada da escada: o degrau novo entra no snippet sem tocar aqui.
+  FORMS.forEach(f => { CFG[f.id] = () => formBlock(f); });
+  const CFG_ORDER = ["power", "combat", "flight"].concat(FORMS.map(f => f.id), ["ki"]);
 
   function drawSnippet() {
     const want = cfgAll.checked ? CFG_ORDER : LENSES[lens].cfg;
@@ -1330,7 +1409,8 @@
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
-                    m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, xps: 2, bxp: 2, boss: 0,
+                    m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
+                    xps: 2, bxp: 2, boss: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
   function setLens(id) {

@@ -69,6 +69,12 @@ namespace Saiyaheim
         private const string SecSsj2 = "3.2 - SSJ2";
 
         /// <summary>
+        /// O terceiro degrau. Seção própria pelo mesmo motivo dos anteriores. Ver
+        /// <see cref="SecSsj"/>.
+        /// </summary>
+        private const string SecSsj3 = "3.3 - SSJ3";
+
+        /// <summary>
         /// O que vale para <b>todos</b> os ataques de ki: as duas teclas moram na seção 1, com as
         /// outras, e aqui fica o que é da mecânica e não de um ataque específico. Hoje é só o
         /// tempo mínimo entre disparos de ataques diferentes — ver <c>MinimumInterval</c>.
@@ -349,6 +355,12 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
 
+            /// <summary>
+            /// Penteado usado enquanto a forma está ativa, pelo nome do item de customização do
+            /// jogo (<c>Hair1</c>..<c>Hair37</c>, <c>HairNone</c>). Vazio mantém o do personagem.
+            /// </summary>
+            public ConfigEntry<string> HairItem { get; internal set; }
+
             /// <summary>Cor do cabelo enquanto a forma está ativa, em #RRGGBB. Vazio não pinta.</summary>
             public ConfigEntry<string> HairColor { get; internal set; }
 
@@ -392,6 +404,9 @@ namespace Saiyaheim
 
         /// <summary>O segundo degrau. Ver <see cref="Ssj"/>.</summary>
         public static TransformationConfig Ssj2 { get; private set; }
+
+        /// <summary>O terceiro degrau. Ver <see cref="Ssj"/>.</summary>
+        public static TransformationConfig Ssj3 { get; private set; }
 
         // ---------- 4.x - Ki Attacks ----------
 
@@ -1510,6 +1525,47 @@ namespace Saiyaheim
                 // junto com a forca dela — de longe e a noite, quem esta' em SSJ2 acende mais
                 // chao. Chute inicial: o degrau precisa ser visivel sem virar holofote.
                 glowIntensity: 1.5f);
+
+            // O SSJ3 atras do Bonemass — o terceiro boss, mantendo o ritmo de um degrau por boss.
+            // Ver [[Progressao por Bosses]].
+            //
+            // O que este degrau escolhe ser, e por que:
+            //   PowerMultiplier 4 = um terco a mais que o SSJ2. Nasceu 4,5, repetindo o passo de
+            //     uma vez e meia que o SSJ2 deu sobre o SSJ; desceu para 4 no playtest de
+            //     2026-09-07, o primeiro do SSJ3.
+            //   KiDrainPerSecond 15 = uma vez e meia o SSJ2, contra o passo de 2x que o SSJ2 deu
+            //     sobre o SSJ. O chute inicial era 25 — duas vezes e meia — pela leitura de que o
+            //     SSJ3 e' a forma que devora o dono; o playtest de 2026-09-07 cortou para 15. O
+            //     dreno ainda sobe mais rapido que o poder (1,5x de dreno contra 1,33x de poder),
+            //     que e' o que impede o topo da escada de tornar os degraus de baixo letra morta,
+            //     mas a margem ficou bem mais estreita do que a projetada no papel.
+            //   PunchLightningFraction 0,5 = meio a meio entre contusao e raio, contra os 0,2 do
+            //     SSJ2 (playtest de 2026-09-07, subiu de 0,35). Nada de corte, pelo mesmo motivo
+            //     que o SSJ2 nao tem: repetir o sabor do degrau anterior desperdicaria o unico
+            //     eixo que existe. Aqui o raio deixa de ser tempero e vira metade do golpe — e' o
+            //     degrau em que o tipo de dano vira identidade.
+            //   CarryWeightBonus 400 = o dobro do SSJ2, seguindo a mesma leitura dos dois degraus
+            //     anteriores.
+            //
+            // O visual e' onde este degrau se separa dos outros dois: ele e' o primeiro que muda a
+            // SILHUETA em vez de so' a cor. HairItem Hair6 ("Long and Loose") e' o cabelo comprido
+            // do genero, e o tom volta um pouco para o dourado fechado — o SSJ2 ja' tinha ido para
+            // o amarelo quase branco, e clarear mais so' entregaria dois degraus indistinguiveis.
+            // Raio branco pelo mesmo motivo do azul do SSJ2: contraste com a aura, nao harmonia.
+            Ssj3 = BindTransformation(config, SecSsj3,
+                // Calibrados no playtest de 2026-09-07, o primeiro do SSJ3.
+                powerMultiplier: 4f,
+                kiDrainPerSecond: 15f,
+                punchSlashFraction: 0f,
+                punchLightningFraction: 0.5f,
+                carryWeightBonus: 400f,
+                hairColor: "#FFE066",
+                requiredGlobalKey: "defeated_bonemass",
+                lightning: true,
+                lightningColor: "#FFFFFF",
+                // Brilha o dobro do SSJ, meio a mais que o SSJ2 — o mesmo passo de 0,5 por degrau.
+                glowIntensity: 2f,
+                hairItem: "Hair6");
 
             // --- Ataques de ki ---
             KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
@@ -2725,7 +2781,8 @@ namespace Saiyaheim
             ConfigFile config, string section, float powerMultiplier, float kiDrainPerSecond,
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
-            float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "")
+            float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
+            string hairItem = "")
         {
             return new TransformationConfig
             {
@@ -2916,6 +2973,38 @@ namespace Saiyaheim
                         "error — it is a form that never unlocks. Check the current state with " +
                         "saiya_form.",
                         null, AdminOnly(58))),
+
+                // O PENTEADO da forma, e nao so' a cor dele. Mesma via da cor — VisEquipment
+                // escreve na ZDO, o jogo replica de graca e o penteado de verdade do personagem
+                // (Humanoid.m_hairItem, que E' serializado no perfil) nunca e' tocado. Ver
+                // Transformations.TransformationEffects.SetHairStyle.
+                //
+                // Cabe aqui e nao numa secao global pelo mesmo motivo da cor: o penteado e'
+                // identidade de DEGRAU. O SSJ3 e' a forma que o genero define pelo comprimento do
+                // cabelo, e sem esta chave a unica diferenca dele para o SSJ2 seria o tom do
+                // amarelo.
+                //
+                // Nomes validos sao os itens de customizacao do proprio jogo: Hair1..Hair37 e
+                // HairNone. Nome invalido nao pinta nem estoura — o mod avisa no log e mantem o
+                // cabelo do personagem, porque um Hair99 no .cfg deixaria o jogador CARECA em
+                // forma, que e' pior que ignorar a chave.
+                HairItem = config.Bind(section, "HairItem", hairItem,
+                    new ConfigDescription(
+                        "Hairstyle worn while this form is active, by the game's own customization " +
+                        "item name. Empty keeps the character's own hair, which is what every " +
+                        "form did before this key existed. \n" +
+                        "Valid names are Hair1 to Hair37 and HairNone, the same list the barber " +
+                        "offers. They are numbered, not named, so run 'saiya_form hair' in the " +
+                        "console to print the list with the readable name of each one, and " +
+                        "'saiya_form hair <name>' to try one on without transforming. \n" +
+                        "The long ones are Hair6 (Long and Loose), Hair11 (Long Braid) and Hair30 " +
+                        "(Loose Waves). \n" +
+                        "A helmet hides the hair exactly as it hides your normal one — the form " +
+                        "keeps its hairstyle, you just cannot see it. \n" +
+                        "The character's real hairstyle is never overwritten: this only lives for " +
+                        "as long as the form does, and a crash while transformed leaves nothing " +
+                        "behind.",
+                        null, ClientSide(51))),
 
                 // Cosmetico, entao ClientSide como o resto da secao 8: pintar o cabelo nao muda
                 // numero nenhum, e o servidor nao tem por que impor gosto visual. A cor troca via

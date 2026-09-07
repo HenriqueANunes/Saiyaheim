@@ -4,6 +4,7 @@ using Saiyaheim.Ki;
 using Saiyaheim.Power;
 using Saiyaheim.Transformations;
 using Saiyaheim.Util;
+using UnityEngine;
 
 namespace Saiyaheim.Debugging
 {
@@ -23,7 +24,16 @@ namespace Saiyaheim.Debugging
     /// saiya_form ssj lock         devolve a trava
     /// saiya_form ssj skill 50     define o nível de maestria daquela forma
     /// saiya_form ssj xp 100       joga XP na skill de maestria daquela forma
+    /// saiya_form hair             lista os penteados do jogo, com o nome legivel de cada um
+    /// saiya_form hair Hair6       experimenta um penteado sem transformar
+    /// saiya_form hair off         devolve o penteado do personagem
     /// </code>
+    ///
+    /// <b>Por que o <c>hair</c> mora aqui.</b> A chave <c>HairItem</c> de cada forma pede o nome
+    /// de um item de customização do jogo, e eles são <b>numerados</b>: <c>Hair1</c> a
+    /// <c>Hair37</c>. Escolher o cabelo de uma forma lendo <c>.cfg</c> é escolher no escuro, e
+    /// entrar no barbeiro para ver cada um é caro. Aqui a lista sai com o nome legível ao lado, e
+    /// vestir um é um comando.
     ///
     /// <b>O nome da forma é opcional em toda linha.</b> Sem ele, o alvo é a forma ativa — e fora de
     /// forma, o primeiro degrau da escada. Com uma forma só isso é indiferente; com cinco, digitar
@@ -40,7 +50,8 @@ namespace Saiyaheim.Debugging
 
         public override string Help =>
             "Inspects transformations. " +
-            "Usage: saiya_form [<form>] [gate | unlock | lock | skill <level> | xp <amount>]";
+            "Usage: saiya_form [<form>] [gate | unlock | lock | skill <level> | xp <amount> | " +
+            "hair [<name> | off]]";
 
         /// <summary>
         /// Os nomes das formas entram no autocomplete junto dos subcomandos. É a escada que muda
@@ -49,7 +60,7 @@ namespace Saiyaheim.Debugging
         /// </summary>
         public override List<string> CommandOptionList()
         {
-            List<string> options = new List<string> { "gate", "unlock", "lock", "skill", "xp" };
+            List<string> options = new List<string> { "gate", "unlock", "lock", "skill", "xp", "hair" };
 
             foreach (Transformation form in TransformationRegistry.All)
             {
@@ -110,6 +121,10 @@ namespace Saiyaheim.Debugging
 
                 case "gate":
                     PrintGate(player);
+                    return;
+
+                case "hair":
+                    HandleHair(player, args, actionAt + 1);
                     return;
 
                 case "unlock":
@@ -461,6 +476,121 @@ namespace Saiyaheim.Debugging
             Print(Help);
         }
 
+        /// <summary>
+        /// O <c>hair</c>: lista os penteados, veste um, ou devolve o do personagem.
+        ///
+        /// <b>Listar é livre; vestir é cheat.</b> Ler a lista não muda nada em jogo, e é
+        /// justamente o que se quer fazer com o jogo aberto para preencher o <c>HairItem</c> de
+        /// uma forma. Vestir muda a aparência do personagem na sessão, então passa pelo
+        /// <c>devcommands</c> como o resto.
+        ///
+        /// <b>Não persiste nada.</b> O penteado experimentado vive na ZDO, igual ao das formas —
+        /// cai no próximo <c>power down</c>, no <c>off</c>, ou sozinho ao fechar o jogo. O
+        /// penteado de verdade do personagem não é tocado em nenhum caminho.
+        /// </summary>
+        private void HandleHair(Player player, string[] args, int at)
+        {
+            string name = args.Length > at ? args[at] : null;
+
+            if (name == null)
+            {
+                PrintHairList(player);
+                return;
+            }
+
+            if (!RequireCheats("hair"))
+            {
+                return;
+            }
+
+            if (string.Equals(name, "off", StringComparison.OrdinalIgnoreCase))
+            {
+                TransformationEffects.RestoreHairStyle(player);
+                Print("Hair back to the character's own.");
+                return;
+            }
+
+            if (!TransformationEffects.ApplyHairStyle(player, name))
+            {
+                Print($"No hair item named '{name}'. Run 'saiya_form hair' for the list.");
+                return;
+            }
+
+            Print($"Wearing {name} ({HairLabel(name)}). Preview only: it lasts until you power " +
+                  "down, wear another one, or run 'saiya_form hair off'.");
+        }
+
+        /// <summary>
+        /// Os penteados do jogo, com o nome legível ao lado, o do personagem marcado e a forma que
+        /// usa cada um.
+        ///
+        /// A lista sai do próprio <c>ObjectDB</c> e pelo mesmo caminho que o barbeiro do jogo usa
+        /// (<c>GetAllItems(Customization, "Hair")</c>), inclusive descartando os nomes com
+        /// <c>_</c> — são variantes internas, não opções. Uma lista escrita à mão aqui
+        /// envelheceria na primeira atualização do Valheim que acrescentasse um cabelo.
+        /// </summary>
+        private void PrintHairList(Player player)
+        {
+            if (ObjectDB.instance == null)
+            {
+                Print("The item database is not loaded yet.");
+                return;
+            }
+
+            List<ItemDrop> hairs =
+                ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Hair");
+            hairs.RemoveAll(hair => hair.name.Contains("_"));
+
+            if (hairs.Count == 0)
+            {
+                Print("No hair items found.");
+                return;
+            }
+
+            string worn = player.GetHair();
+
+            Print($"Hair items ({hairs.Count}). Wear one with 'saiya_form hair <name>':");
+
+            foreach (ItemDrop hair in hairs)
+            {
+                string mark = hair.name == worn ? " <- worn" : "";
+                string used = FormsUsing(hair.name);
+
+                Print($"  {hair.name,-10} {HairLabel(hair.name)}{used}{mark}");
+            }
+        }
+
+        /// <summary>O nome legível de um penteado, ou o próprio nome se o item não existe.</summary>
+        private static string HairLabel(string name)
+        {
+            GameObject prefab = ObjectDB.instance == null ? null : ObjectDB.instance.GetItemPrefab(name);
+            ItemDrop item = prefab == null ? null : prefab.GetComponent<ItemDrop>();
+
+            return item == null
+                ? name
+                : Localization.instance.Localize(item.m_itemData.m_shared.m_name);
+        }
+
+        /// <summary>
+        /// As formas cujo <c>HairItem</c> aponta para este penteado, entre colchetes, ou vazio.
+        /// Existe para a lista responder "este já é o cabelo do SSJ3" sem obrigar a abrir o
+        /// <c>.cfg</c> ao lado.
+        /// </summary>
+        private static string FormsUsing(string name)
+        {
+            List<string> forms = new List<string>();
+
+            foreach (Transformation form in TransformationRegistry.All)
+            {
+                if (string.Equals(form.Config.HairItem.Value, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    forms.Add(form.DisplayName);
+                }
+            }
+
+            return forms.Count == 0 ? "" : "  [" + string.Join(", ", forms.ToArray()) + "]";
+        }
+
         private static bool IsKnownAction(string action)
         {
             switch (action)
@@ -470,6 +600,7 @@ namespace Saiyaheim.Debugging
                 case "lock":
                 case "skill":
                 case "xp":
+                case "hair":
                     return true;
                 default:
                     return false;
