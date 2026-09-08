@@ -75,6 +75,9 @@ namespace Saiyaheim
             // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
             TransformationRegistry.Register();
 
+            // Cabelo de malha própria. Espera os prefabs do jogo por conta própria.
+            CustomHair.Register();
+
             // Sete patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
             // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch),

@@ -21,6 +21,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- O AssetBundle das malhas de cabelo viaja dentro da DLL, para o deploy continuar sendo um
+         arquivo só. Gerado pelo projeto Unity em ~/Documents/projetos/Saiyaheim-Unity, que fica
+         fora do repo; o bundle é binário regerável e está no .gitignore.
+
+         O Condition existe para clone novo compilar sem ele: sem o bundle o mod carrega igual e
+         só não registra o cabelo custom (CustomHair avisa no log e segue). Sem o Condition, a
+         ausência do arquivo seria erro de compilação. -->
+    <EmbeddedResource Include="Assets\saiyaheim_hair" Condition="Exists('Assets\saiyaheim_hair')" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Traz Jotunn + todas as referências do jogo (via Environment.props) + o publicizer. -->
     <PackageReference Include="JotunnLib" Version="2.29.2" />
     <!-- Necessário para compilar net462 fora do Windows. -->

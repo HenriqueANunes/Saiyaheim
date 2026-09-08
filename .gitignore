@@ -22,3 +22,8 @@ Environment.props
 CLAUDE.md
 # Zips de distribuição gerados pelo package.sh
 dist/
+
+# AssetBundle das malhas de cabelo. Binário regerável: sai do projeto Unity em
+# ~/Documents/projetos/Saiyaheim-Unity, com BundleBuilder.Build. Receita no vault, em
+# "Técnico/Malhas Custom.md". Sem ele o mod compila e roda — só não registra o cabelo custom.
+src/Saiyaheim/Assets/saiyaheim_hair
