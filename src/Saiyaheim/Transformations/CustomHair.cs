@@ -9,11 +9,11 @@ namespace Saiyaheim.Transformations
     /// <summary>
     /// Cabelo de malha própria, vindo de um AssetBundle embutido na DLL.
     ///
-    /// <b>Este arquivo é o teste do caminho de volta</b>: a malha sai do jogo (extraída dos
-    /// bundles do Valheim), passa pelo Blender, volta pelo Unity num AssetBundle e é vestida
-    /// aqui. Enquanto a malha embutida for a cópia não editada do <c>Hair6</c>, o resultado
-    /// correto na tela é <b>indistinguível do cabelo vanilla</b> — e é exatamente isso que prova
-    /// o caminho. Só depois de ver isso funcionar vale gastar horas esculpindo.
+    /// <b>A malha dá uma volta inteira fora deste repositório</b>: sai do jogo (extraída dos
+    /// bundles do Valheim), é esculpida no projeto Unity vizinho —
+    /// <c>~/Documents/projetos/Saiyaheim-Unity/</c>, com os espetos gerados por
+    /// <c>tools/spike_build.py</c> — volta num AssetBundle e é vestida aqui. O bundle viaja
+    /// embutido na DLL, então o deploy continua sendo um arquivo só.
     ///
     /// <b>Por que clonar um cabelo do jogo em vez de montar um prefab do zero.</b> O clone já vem
     /// com o <c>ItemDrop</c> preenchido, com o filho <c>attach_skin</c> que o
@@ -24,12 +24,12 @@ namespace Saiyaheim.Transformations
     /// deixaria o jogador sem cabelo ao vestir capuz. Trocar só a malha do clone herda tudo isso
     /// de graça.
     ///
-    /// <b>Contrato com o Blender: não mudar a contagem de vértices.</b> A malha do jogo é
-    /// <c>SkinnedMeshRenderer</c>, e os pesos de osso vêm da malha vanilla, copiados vértice a
-    /// vértice. O formato <c>.obj</c> não carrega peso nenhum, então a única forma de a malha
-    /// editada continuar acompanhando a cabeça é os dois arrays terem o mesmo tamanho. Mover
-    /// vértices: pode. Extrudar, subdividir, apagar: quebra o pareamento, e o
-    /// <see cref="SwapMesh"/> recusa a troca e deixa o cabelo vanilla no lugar.
+    /// <b>Vértice novo é permitido, e é assim que espeto entra.</b> A malha do jogo é
+    /// <c>SkinnedMeshRenderer</c>, e o formato <c>.obj</c> não carrega peso de osso nenhum. Quem
+    /// resolve isso é um arquivo <c>.parents</c> ao lado do <c>.obj</c>, com um índice por
+    /// vértice dizendo de qual vértice <b>original</b> ele nasceu; o <c>BundleBuilder</c> do
+    /// projeto Unity herda peso e UV do pai. Espeto que nasce de uma mecha se mexe com aquela
+    /// mecha, que é o comportamento certo.
     /// </summary>
     internal static class CustomHair
     {
@@ -161,9 +161,9 @@ namespace Saiyaheim.Transformations
         /// <c>BundleBuilder</c> do projeto Unity só copia esse asset para dentro do bundle. Aqui
         /// se confere e se troca.
         ///
-        /// A conferência de contagem de vértices continua valendo: ela pega o caso de a malha do
-        /// bundle ter sido esculpida com vértice a mais ou a menos, que embaralharia o pareamento
-        /// com os pesos.
+        /// A conferência aqui é só de coerência interna — um peso por vértice, bindposes
+        /// presentes. Não se compara com a contagem da malha vanilla: a malha editada tem
+        /// <b>mais</b> vértices que ela de propósito, um por espeto acrescentado.
         /// </summary>
         private static bool SwapMesh(GameObject prefab, Mesh mesh)
         {
