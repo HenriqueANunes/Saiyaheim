@@ -77,12 +77,20 @@ namespace Saiyaheim.Util
         /// normais, e nas duas o braço direito é disputado. O disparo fica por último porque é o
         /// gesto que o jogador acabou de pedir — e as outras duas continuam donas de tudo que ele
         /// não toca.
+        ///
+        /// Com a <b>quarta</b>, o Kamehameha, a regra continua valendo e ganhou um caso limite. Ele
+        /// vai por último porque é o gesto do corpo inteiro, e a saída dele é suave <i>porque</i>
+        /// voo e recarga são estados contínuos: enquanto o peso dele desce, o que reaparece por
+        /// baixo é a pose escrita neste mesmo frame. Com o <b>disparo</b>, que é um instante com
+        /// envelope próprio, isso não valeria — e é por isso que a supressão entre os dois é
+        /// explícita lá, e não uma questão de ordem. Ver <see cref="KiBlastPose"/>.
         /// </summary>
         private static readonly IPoseContributor[] Contributors =
         {
             FlightPose.Instance,
             KiChargePose.Instance,
             KiBlastPose.Instance,
+            KiBeamPose.Instance,
         };
 
         private static readonly float[] Weights = new float[Contributors.Length];
@@ -120,6 +128,21 @@ namespace Saiyaheim.Util
                 return;
             }
 
+            WritePose(player, deltaTime);
+
+            // ⚠️ **Depois da pose, e é por isso que a chamada mora aqui e não no laço de efeitos.**
+            // A bola de carregamento é medida a partir do osso da mão, e este é o único ponto do
+            // frame em que esse osso está onde a tela vai mostrá-lo: no Update ele alterna entre a
+            // pose vanilla e a do mod, conforme o frame tenha caído depois de um passo de física
+            // ou não, e o efeito pisca entre duas posições. Ver KiBeamChargeEffects.Place.
+            //
+            // Um postfix próprio para os efeitos resolveria a fase, mas não a ORDEM: dois postfixes
+            // no mesmo método rodam em ordem indefinida, e aqui a ordem é o conserto inteiro.
+            KiBeamChargeEffects.Place(player);
+        }
+
+        private static void WritePose(Player player, float deltaTime)
+        {
             // Um lugar só para a chave, e é aqui: os contribuintes não precisam saber que ela
             // existe, e ninguém pode esquecer de consultá-la ao escrever a quarta pose.
             if (!SaiyaheimConfig.ShowRemotePoses.Value && !ReferenceEquals(player, Player.m_localPlayer))

@@ -19,7 +19,10 @@ namespace Saiyaheim.Debugging
     /// saiya_blast blast select    seleciona aquele ataque
     /// saiya_blast blast unlock    ignora a trava daquele ataque nesta sessão
     /// saiya_blast blast lock      devolve a trava
-    /// saiya_blast pose            segura a pose de disparo, para calibrar
+    /// saiya_blast pose            segura a pose de disparo do ki blast, para calibrar
+    /// saiya_blast pose charge     segura a concha do Kamehameha
+    /// saiya_blast pose release    segura o empurrão do Kamehameha
+    /// saiya_blast pose off        solta todas
     /// </code>
     ///
     /// <b>O nome do ataque é opcional em toda linha</b>, como no <c>saiya_form</c>: sem ele o alvo é
@@ -35,11 +38,15 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_blast";
 
         public override string Help =>
-            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock] | pose";
+            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock] " +
+            "| pose [blast | charge | release | off]";
 
         public override List<string> CommandOptionList()
         {
-            List<string> options = new List<string> { "select", "unlock", "lock", "pose" };
+            List<string> options = new List<string>
+            {
+                "select", "unlock", "lock", "pose", "charge", "release", "off",
+            };
 
             foreach (KiAttack attack in KiAttackRegistry.All)
             {
@@ -62,9 +69,7 @@ namespace Saiyaheim.Debugging
             // desdobramento abaixo nem precisa de um ataque registrado para funcionar.
             if (args.Length > 0 && args[0].ToLowerInvariant() == "pose")
             {
-                KiBlastPose.DebugHold = !KiBlastPose.DebugHold;
-                Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}" +
-                      $"{(SaiyaheimConfig.BlastPoseEnabled.Value ? "" : " (but BlastPose.Enabled is off)")}");
+                HoldPose(args.Length > 1 ? args[1].ToLowerInvariant() : null);
                 return;
             }
 
@@ -135,6 +140,56 @@ namespace Saiyaheim.Debugging
 
             PrintUnlockWarning();
             PrintAttack(player, attack);
+        }
+
+        /// <summary>
+        /// Segura uma pose na tela até o comando ser chamado de novo.
+        ///
+        /// <b>Só uma de cada vez, e é o ponto.</b> A pose do Kamehameha e a do ki blast disputam os
+        /// mesmos músculos — segurar as duas juntas mostraria a soma delas, que não é nenhuma das
+        /// duas e não é o que acontece em jogo.
+        ///
+        /// <c>pose</c> sem argumento continua sendo o disparo do ki blast, que é como o comando
+        /// nasceu em 2026-08-21.
+        /// </summary>
+        private void HoldPose(string phase)
+        {
+            switch (phase)
+            {
+                case null:
+                case "blast":
+                    KiBeamPose.DebugHold = KiBeamPose.DebugPhase.None;
+                    KiBlastPose.DebugHold = !KiBlastPose.DebugHold;
+                    break;
+
+                case "charge":
+                case "release":
+                    KiBlastPose.DebugHold = false;
+
+                    KiBeamPose.DebugPhase wanted = phase == "charge"
+                        ? KiBeamPose.DebugPhase.Charge
+                        : KiBeamPose.DebugPhase.Release;
+
+                    // O mesmo argumento duas vezes desliga, como o 'pose' sozinho sempre fez.
+                    KiBeamPose.DebugHold =
+                        KiBeamPose.DebugHold == wanted ? KiBeamPose.DebugPhase.None : wanted;
+                    break;
+
+                case "off":
+                    KiBlastPose.DebugHold = false;
+                    KiBeamPose.DebugHold = KiBeamPose.DebugPhase.None;
+                    break;
+
+                default:
+                    Print($"Unknown pose: '{phase}'. Try: pose [blast | charge | release | off]");
+                    return;
+            }
+
+            Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}" +
+                  $"{(SaiyaheimConfig.BlastPoseEnabled.Value ? "" : " (but BlastPose.Enabled is off)")}");
+
+            Print($"Kamehameha pose held: {KiBeamPose.DebugHold}" +
+                  $"{(SaiyaheimConfig.BeamPoseEnabled.Value ? "" : " (but BeamPose.Enabled is off)")}");
         }
 
         private void PrintAttack(Player player, KiAttack attack)

@@ -32,13 +32,25 @@ namespace Saiyaheim.Attacks
     /// tira dele o voar. As outras duas são efeitos comuns e passam pelo <see cref="AttachedEffect"/>.
     ///
     /// <b>Tudo preso ao osso da mão</b>, pelo <see cref="BodyAnchor"/>, e não medido a partir dos
-    /// pés. Hoje dá no mesmo, porque o Kamehameha ainda não tem pose própria; no dia em que tiver,
-    /// os três vão para o quadril junto com as mãos sem uma linha de config a mais.
+    /// pés — então os três acompanham a pose de duas mãos sem uma linha de config a mais. Era o
+    /// motivo pelo qual a decisão foi tomada antes de a pose existir, e ela se pagou.
+    ///
+    /// <b>Mas o deslocamento não é no espaço do osso, e sim no do jogador</b> — ver
+    /// <see cref="Place"/>. Preso e medido são duas perguntas diferentes, e a pose de 2026-09-07
+    /// foi o que mostrou isso: com o efeito seguindo o pulso, as três chaves de offset andavam numa
+    /// diagonal que mudava a cada ajuste da pose.
     /// </summary>
     internal static class KiBeamChargeEffects
     {
         private sealed class Active
         {
+            /// <summary>
+            /// O osso (ou o corpo) em que as três peças estão penduradas. Guardado porque o
+            /// <see cref="Place"/> precisa dele <b>todo frame</b>, e re-resolvê-lo passaria por um
+            /// <c>GetComponent</c> por peça por frame.
+            /// </summary>
+            internal Transform Anchor;
+
             internal GameObject Vfx;
 
             /// <summary>A bola que cresce na mão, ou null quando a chave está vazia.</summary>
@@ -110,6 +122,23 @@ namespace Saiyaheim.Attacks
             }
         }
 
+        /// <summary>
+        /// Reposiciona as peças deste jogador, se ele tiver alguma acesa.
+        ///
+        /// Chamado do <see cref="PoseDriver"/>, depois de a pose do frame estar escrita — ver a doc
+        /// do <see cref="Place(Player, Active, KiAttack)"/> para o porquê de não ser no
+        /// <c>Update</c> junto com o resto.
+        /// </summary>
+        internal static void Place(Player player)
+        {
+            if (_disabled || player == null || !Live.TryGetValue(player, out Active active))
+            {
+                return;
+            }
+
+            Place(player, active, CurrentAttack());
+        }
+
         /// <summary>Este jogador saiu do alcance ou morreu; o objeto morreu junto, a entrada não.</summary>
         internal static void Forget(Player player)
         {
@@ -150,10 +179,9 @@ namespace Saiyaheim.Attacks
             }
 
             Transform anchor = BodyAnchor.Resolve(player, attack.Config.ChargeEffectAnchor.Value);
-            Vector3 offset = Offset(attack);
             string color = ResolveColor(attack);
 
-            Active active = new Active();
+            Active active = new Active { Anchor = anchor };
 
             string prefab = attack.Config.ChargeEffectPrefab.Value?.Trim() ?? string.Empty;
             if (prefab.Length > 0)
@@ -163,14 +191,16 @@ namespace Saiyaheim.Attacks
                 //
                 // Escala 1 aqui e o tamanho depois, no Grow: o tamanho é o que a carga mexe todo
                 // frame, e pedir ao Spawn para aplicá-lo obrigaria a recriar o efeito por frame.
+                // Sem offset aqui, e a posição vem logo abaixo pelo Place: o offset do Spawn é
+                // medido no espaço do PAI, e o pai é o osso da mão.
                 active.Vfx = AttachedEffect.Spawn(
                     player, prefab, color, 1f, forceLoop: true, lightIntensity: 1f,
-                    burstDuration: 0f, localOffset: offset, parent: anchor);
+                    burstDuration: 0f, localOffset: Vector3.zero, parent: anchor);
             }
 
             active.Ball = StaticProp.Spawn(
                 anchor, attack.Config.ChargeBallPrefab.Value?.Trim() ?? string.Empty,
-                ResolveBallColor(attack), offset,
+                ResolveBallColor(attack), Vector3.zero,
                 StrippedEffect.ParseFilter(attack.Config.ChargeBallStrip.Value));
 
             // A entrada existe mesmo sem nada aceso: é ela que segura o "já encheu". Sem ela, um
@@ -178,8 +208,68 @@ namespace Saiyaheim.Attacks
             Live[player] = active;
 
             Grow(active, attack, ratio);
+            Place(player, active, attack);
 
             return active;
+        }
+
+        /// <summary>
+        /// Põe as três peças no lugar, <b>nos eixos do jogador</b>: direita, cima e frente do
+        /// personagem, sempre, esteja o efeito preso à mão ou ao corpo.
+        ///
+        /// <b>Por que não é o offset do <c>Spawn</c>.</b> Aquele é medido no espaço do <i>pai</i>, e
+        /// o pai é o osso da mão — cujos eixos não são os do jogador e ainda giram com o pulso.
+        /// O resultado é que mexer numa das três chaves movia a bola numa diagonal que mudava
+        /// conforme a pose, e as três deixavam de ser calibráveis: cada ajuste de pulso invalidava
+        /// o anterior. Foi o que a calibragem da pose de duas mãos encontrou em 2026-09-07.
+        ///
+        /// <b>Todo frame, e não uma vez</b>, justamente porque a mão gira: um offset em eixos do
+        /// jogador precisa ser reescrito sempre que o osso muda de orientação. É uma soma de vetor
+        /// e três atribuições por jogador que carrega — o mesmo laço que já faz a bola crescer.
+        ///
+        /// <b>Preso à mão continua preso à mão</b>: o pai não muda, então as peças acompanham o
+        /// gesto. O que muda é só a direção em que o deslocamento é medido — e para o
+        /// <c>EffectAnchor.Body</c> nada muda, porque ali os dois espaços já eram o mesmo.
+        ///
+        /// ⚠️ <b>Quem chama é o <see cref="PoseDriver"/>, no LateUpdate, e não o laço do
+        /// <c>RemoteEffects</c> como todo o resto deste arquivo.</b> Não é arrumação: é a única
+        /// fase do frame em que o osso da mão está onde a tela vai mostrá-lo.
+        ///
+        /// A tentativa de fazer isto no <c>Update</c> piscou na tela em 2026-09-07, e o mecanismo é
+        /// a armadilha do animator outra vez: ele avalia em passo de <b>física</b>, então nos
+        /// frames <i>com</i> passo a mão já foi reescrita com a pose vanilla e a do mod ainda não
+        /// voltou (ela só entra no LateUpdate), e nos frames <i>sem</i> passo ela ainda está com a
+        /// pose do mod. Ler o osso ali devolve duas orientações alternadas, o que vira duas
+        /// posições alternadas para a bola.
+        ///
+        /// ⚠️ <b>E escreve <c>localPosition</c>, não <c>position</c></b> — o primeiro bug do mesmo
+        /// dia, e por outra razão: a peça é filha do osso, então fixar a posição de <b>mundo</b>
+        /// conta o deslocamento duas vezes assim que o osso se mexer. Em espaço local a peça fica
+        /// parada em relação ao osso e o movimento dele é o único que existe.
+        /// </summary>
+        private static void Place(Player player, Active active, KiAttack attack)
+        {
+            if (active == null || attack == null || active.Anchor == null || player == null)
+            {
+                return;
+            }
+
+            // De eixos do jogador para eixos do osso. InverseTransformVector e não Point: o que se
+            // converte é um deslocamento, e a origem já é o próprio osso.
+            Vector3 local = active.Anchor.InverseTransformVector(
+                player.transform.rotation * Offset(attack));
+
+            Move(active.Vfx, local);
+            Move(active.Ball, local);
+            Move(active.Full, local);
+        }
+
+        private static void Move(GameObject instance, Vector3 localPosition)
+        {
+            if (instance != null)
+            {
+                instance.transform.localPosition = localPosition;
+            }
         }
 
         /// <summary>
@@ -231,11 +321,12 @@ namespace Saiyaheim.Attacks
                 color = attack.Config.ProjectileColor.Value?.Trim() ?? string.Empty;
             }
 
+            // Sem offset, como as outras duas: quem posiciona é o Place, nos eixos do jogador.
             active.Full = AttachedEffect.Spawn(
                 player, prefab, color, 1f,
                 forceLoop: attack.Config.ChargeFullEffectLoop.Value,
-                lightIntensity: 1f, burstDuration: 0f, localOffset: Offset(attack),
-                parent: BodyAnchor.Resolve(player, attack.Config.ChargeEffectAnchor.Value));
+                lightIntensity: 1f, burstDuration: 0f, localOffset: Vector3.zero,
+                parent: active.Anchor);
 
             // Escala 1 no Spawn e o tamanho aqui, pelo EffectScale: o do Spawn não alcança
             // partícula filha nem largura de rastro. Ver EffectScale.

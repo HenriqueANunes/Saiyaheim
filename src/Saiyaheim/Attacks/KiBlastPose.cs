@@ -316,77 +316,50 @@ namespace Saiyaheim.Attacks
 
             // Menor que o visto significa que o jogador reentrou no mundo e o contador reiniciou.
             // Não é disparo, é ZDO nova.
-            if (count > seen)
+            if (count <= seen)
             {
-                Trigger(player);
+                return;
             }
+
+            // O Kamehameha usa este mesmo contador — um por projétil do feixe — e tem pose própria,
+            // de duas mãos. Levantar esta por baixo dela não seria só desperdício: os envelopes são
+            // independentes, e o braço direito apareceria com tudo no instante em que a outra
+            // terminasse de descer, que é o único momento em que o jogador de fato o veria.
+            //
+            // O contador continua sendo anotado acima, e de propósito: perder a conta faria o
+            // próximo ki blast avulso parecer o primeiro.
+            if (KiBeamPose.IsPosing(player))
+            {
+                return;
+            }
+
+            Trigger(player);
         }
 
         /// <summary>
         /// Quanto o braço sobe ou desce para acompanhar a mira.
         ///
-        /// Existe porque a bola nasce <b>na mão</b> (<c>KiProjectile.GetOrigin</c>) e voa na
-        /// direção do olhar. Com o braço travado na horizontal, mirar no céu produz um tiro saindo
-        /// da mão para cima com o braço apontando para o horizonte — e é o tipo de erro que só
-        /// aparece quando alguém atira num Draugr numa torre.
+        /// A geometria mora no <see cref="AimPose"/>, desde que a pose do Kamehameha passou a
+        /// precisar da mesma conta. O que fica aqui é o quanto <b>esta</b> pose usa dela — e a
+        /// saída antecipada, que evita um <c>normalize</c> por jogador por frame quando o
+        /// seguimento está desligado.
         /// </summary>
         private static float AimPitchOffset(Player player)
         {
             float follow = SaiyaheimConfig.BlastPoseAimFollowPitch.Value;
-            if (follow <= 0f)
-            {
-                return 0f;
-            }
 
-            // A componente vertical do olhar já é o seno do ângulo de mira, em [-1, 1]. Não precisa
-            // virar grau: o espaço de músculo também é normalizado, e o que se quer aqui é
-            // proporção e não ângulo exato.
-            return player.GetLookDir().normalized.y * follow;
+            return follow <= 0f ? 0f : AimPose.Pitch(player) * follow;
         }
 
         /// <summary>
         /// Quanto o braço gira na horizontal para acompanhar a mira. Positivo é a câmera olhando à
-        /// <b>direita</b> de para onde o corpo aponta.
-        ///
-        /// <b>Por que não bastava o pitch.</b> A pose é escrita no espaço do <i>corpo</i>, e o
-        /// corpo em geral já está virado para a câmera — daí o braço parecer acompanhar a mira
-        /// sozinho na horizontal e o irmão vertical ter sido o único a nascer. Mas "em geral" não é
-        /// "sempre": correndo para um lado e olhando para outro, o corpo segue o movimento e a
-        /// câmera não, e é justamente aí que o tiro sai numa direção com a mão apontando para
-        /// outra. É a mesma falha do pitch, no eixo que ninguém tinha olhado.
-        ///
-        /// <b>O denominador é 90°</b> porque é o que uma unidade de músculo vale neste swing: do
-        /// braço aberto de lado (0) ao braço apontado para frente (1) vai exatamente um quarto de
-        /// volta. Passar disso é o braço atravessando o peito, e o clamp aqui existe só para o
-        /// jogador olhando para trás — onde não há gesto possível e o certo é parar no limite em
-        /// vez de o braço dar a volta.
+        /// <b>direita</b> de para onde o corpo aponta. Ver <see cref="AimPose.Yaw"/>.
         /// </summary>
         private static float AimYaw(Player player)
         {
             float follow = SaiyaheimConfig.BlastPoseAimFollowYaw.Value;
-            if (follow <= 0f)
-            {
-                return 0f;
-            }
 
-            Vector3 look = player.GetLookDir();
-            Vector3 body = player.transform.forward;
-
-            // Só o plano do chão: a parte vertical do olhar já é problema do AimPitchOffset, e
-            // deixá-la aqui faria mirar no céu contar como girar para o lado.
-            look.y = 0f;
-            body.y = 0f;
-
-            if (look.sqrMagnitude < 0.0001f || body.sqrMagnitude < 0.0001f)
-            {
-                return 0f;
-            }
-
-            // SignedAngle em torno do "para cima" dá positivo quando o alvo está à direita da
-            // referência. Se na tela o braço for para o lado errado, é este sinal que troca.
-            float degrees = Vector3.SignedAngle(body, look, Vector3.up);
-
-            return Mathf.Clamp(degrees / 90f, -1f, 1f) * follow;
+            return follow <= 0f ? 0f : AimPose.Yaw(player) * follow;
         }
 
         /// <summary>
