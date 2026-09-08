@@ -387,36 +387,64 @@ namespace Saiyaheim.Attacks
             // ---------- Para onde o gesto aponta ----------
             //
             // Só na fase de empurrão: durante a concha as mãos estão no quadril e não há para onde
-            // apontar. O tronco leva a fatia que os braços não levam — nunca as duas coisas, senão
-            // o gesto gira duas vezes.
+            // apontar.
+            //
+            // ⚠️ **A mira inteira é do TRONCO, e os braços não participam dela.** Até 2026-09-07
+            // o empurrão mirava pelos músculos do braço, como o ki blast faz, e na tela isso
+            // estava quebrado dos dois lados: olhando para cima ou para baixo cada braço ia para
+            // um lado, e olhando para o lado um braço girava e o outro não. São duas falhas
+            // independentes, e as duas nascem de mirar com um par de membros espelhados em vez de
+            // com o eixo do corpo:
+            //
+            // 1. **Gimbal.** "Arm Down-Up" só é <i>levantar o braço</i> enquanto o braço está ao
+            //    lado do corpo. No empurrão ele aponta para frente, e aí esse mesmo músculo gira
+            //    em torno de um eixo que também aponta para frente — ou seja, move o braço
+            //    LATERALMENTE. Como os dois lados são espelhados, o mesmo delta manda um braço
+            //    para cada lado.
+            // 2. **Saturação assimétrica.** A mira horizontal entrava somando num braço e
+            //    subtraindo no outro, que é geometricamente correto, mas o músculo satura em 1.
+            //    Com o braço já quase estendido, olhar para o lado levava um braço ao teto (trava)
+            //    enquanto o outro ainda tinha faixa (gira). Um gira, o outro não.
+            //
+            // O tronco não tem nenhum dos dois problemas: ele leva os dois braços juntos, mantém a
+            // forma do gesto, e saturar só faz a mira parar de acompanhar — nunca desmontar. O
+            // preço é alcance: o tronco cobre menos ângulo que um braço solto, e mirar no zênite
+            // vira "o quanto o peito alcança" em vez do ângulo exato. É o preço certo, porque o
+            // ki blast continua mirando pelo braço e funciona: **um** braço não tem lado para
+            // divergir.
             float aimPitch = AimFollow(player, SaiyaheimConfig.BeamPoseAimFollowPitch.Value, true)
                              * release;
             float aimYaw = AimFollow(player, SaiyaheimConfig.BeamPoseAimFollowYaw.Value, false)
                            * release;
-            float yawToTorso = Mathf.Clamp01(SaiyaheimConfig.BeamPoseAimYawTorsoShare.Value);
 
             // O corpo girado leva os braços junto, e eles são escritos no referencial dele — então
             // apontar para o alvo custa desfazer o giro. Sem isto, pôr o personagem de lado manda o
             // empurrão para o lado também, e o feixe sai de mãos que apontam para outro lugar.
             //
             // ⚠️ **Não passa pelo AimFollowYaw de propósito.** Aquele é o quanto o jogador quer que
-            // o braço siga a câmera; este é a pose desfazendo uma rotação que ela mesma aplicou, e
+            // o gesto siga a câmera; este é a pose desfazendo uma rotação que ela mesma aplicou, e
             // desligá-lo junto deixaria o gesto torto sem que nenhuma chave explicasse por quê.
             // Multiplicado pelo peso das pernas junto com o do corpo: girar a raiz é girar o
             // personagem inteiro, e por cima da animação de corrida isso é o mesmo problema que
             // tira o agachamento do caminho. Andando, o corpo se endireita sozinho.
-            float bodyYaw = BodyYawDegrees(release) * cupSign * weight * state.GroundWeight;
-            float bodyYawToArms = -bodyYaw / 90f;
+            //
+            // A compensação vai para a torção do tronco pela mesma razão que a mira: nos braços
+            // ela entrava com sinal oposto em cada lado e saturava um deles primeiro. O
+            // <c>weight</c> fica DE FORA dela — quem escreve músculo já multiplica pelo peso, e
+            // contá-lo aqui de novo faria a compensação entrar ao quadrado enquanto a pose sobe.
+            float bodyYawDesign = BodyYawDegrees(release) * cupSign * state.GroundWeight;
+            float bodyYawToTorso = -bodyYawDesign / 90f
+                                   * SaiyaheimConfig.BeamPoseBodyYawCompensation.Value;
 
-            ApplyBodyYaw(ref pose, state, bodyYaw);
+            ApplyBodyYaw(ref pose, state, bodyYawDesign * weight);
 
             ResolveSides(cupRight, release, out SideTargets right, out SideTargets left);
 
-            ApplyArms(muscles, weight, right, left, aimPitch,
-                aimYaw * (1f - yawToTorso) + bodyYawToArms, strain, tremorL, tremorR);
+            ApplyArms(muscles, weight, right, left, strain, tremorL, tremorR);
             ApplyForearms(muscles, weight, right, left);
             ApplyShoulders(muscles, weight, right, left, strain, tremorL, tremorR);
-            ApplyTorso(muscles, weight, release, cupSign, aimYaw * yawToTorso, strain);
+            ApplyTorso(muscles, weight, release, cupSign,
+                aimYaw + bodyYawToTorso, aimPitch, strain);
             ApplyHands(muscles, weight, release, right, left);
             ApplyLegs(ref pose, state, weight, tremorL, tremorR);
         }
@@ -641,14 +669,14 @@ namespace Saiyaheim.Attacks
         /// No empurrão os dois convergem para o mesmo gesto — mas continuam vindo de lugares
         /// diferentes, e é por isso que o par sobrevive às duas fases.
         ///
-        /// A mira horizontal entra com sinal <b>oposto</b> em cada braço: com o alvo à direita, o
-        /// braço direito se abre de volta na direção do lado (menos "para frente") e o esquerdo
-        /// atravessa o peito (mais). Sem clamp de propósito — atravessar o peito passa de 1, e é
-        /// uma posição que o braço de verdade alcança.
+        /// <b>Os braços não miram.</b> Os alvos daqui são a forma do gesto e nada mais; para onde
+        /// ele aponta é decidido no tronco, em <see cref="ApplyTorso"/>. Um par de membros
+        /// espelhados é o pior lugar possível para pôr uma mira — ver o comentário longo em
+        /// <see cref="Apply"/>.
         /// </summary>
         private static void ApplyArms(
             float[] muscles, float weight, SideTargets right, SideTargets left,
-            float aimPitch, float armYaw, float strain, float tremorL, float tremorR)
+            float strain, float tremorL, float tremorR)
         {
             float arm = weight * SaiyaheimConfig.BeamPoseArmWeight.Value;
             if (arm <= 0f)
@@ -656,14 +684,14 @@ namespace Saiyaheim.Attacks
                 return;
             }
 
-            float rise = strain * 0.2f + aimPitch;
+            float rise = strain * 0.2f;
 
             WriteArm(muscles, MuscleArmSpreadR, MuscleArmSwingR, MuscleArmTwistR, MuscleElbowR,
-                right.Height + rise, right.Forward - armYaw, right.Twist,
+                right.Height + rise, right.Forward, right.Twist,
                 right.Elbow + tremorR, arm);
 
             WriteArm(muscles, MuscleArmSpreadL, MuscleArmSwingL, MuscleArmTwistL, MuscleElbowL,
-                left.Height + rise, left.Forward + armYaw, left.Twist,
+                left.Height + rise, left.Forward, left.Twist,
                 left.Elbow + tremorL, arm);
         }
 
@@ -747,9 +775,18 @@ namespace Saiyaheim.Attacks
         /// Escalonada de baixo para cima: a lombar mal se mexe, o peito alto leva o ombro. Torcer
         /// as três igualmente aponta o quadril para o lado junto, e aí o personagem deixa de
         /// encarar para onde está mirando.
+        ///
+        /// <b>E é aqui que o empurrão mira, nos dois eixos.</b> A torção acompanha o olhar
+        /// horizontal e a inclinação acompanha o vertical, as duas somadas por cima do desenho do
+        /// gesto. Os braços não participam: ver <see cref="Apply"/>.
+        ///
+        /// ⚠️ <b>Com <c>TorsoWeight</c> em zero o empurrão deixa de mirar</b>, e é a única forma
+        /// de o gesto voltar a apontar para um lugar fixo. Não é bug: é o preço de a mira morar
+        /// num grupo que também pode ser desligado.
         /// </summary>
         private static void ApplyTorso(
-            float[] muscles, float weight, float release, float cupSign, float torsoYaw, float strain)
+            float[] muscles, float weight, float release, float cupSign, float torsoYaw,
+            float aimPitch, float strain)
         {
             float torso = weight * SaiyaheimConfig.BeamPoseTorsoWeight.Value;
             if (torso <= 0f)
@@ -765,19 +802,35 @@ namespace Saiyaheim.Attacks
                               SaiyaheimConfig.BeamPoseReleaseTorsoTwist.Value, release) * cupSign
                           + torsoYaw;
 
+            // O lean positivo é o tronco indo PARA FRENTE, então olhar para cima tem de tirar
+            // lean: o peito arqueia para trás e leva os dois braços com ele. Daí o sinal
+            // invertido do aimPitch, que vem positivo quando o jogador olha para o alto.
             float lean = Mathf.Lerp(
                              SaiyaheimConfig.BeamPoseChargeTorsoLean.Value,
-                             SaiyaheimConfig.BeamPoseReleaseTorsoLean.Value, release) + strain;
+                             SaiyaheimConfig.BeamPoseReleaseTorsoLean.Value, release)
+                         - aimPitch + strain;
 
             float spine = torso * SaiyaheimConfig.BeamPoseSpineWeight.Value;
 
-            HumanMuscles.Blend(muscles, MuscleSpineTwist, twist * 0.25f, spine);
-            HumanMuscles.Blend(muscles, MuscleChestTwist, twist * 0.75f, torso);
-            HumanMuscles.Blend(muscles, MuscleUpperChestTwist, twist, torso);
+            // ⚠️ **Clamp por articulação, e ele passou a ser obrigatório quando a mira entrou
+            // aqui.** Enquanto o tronco só carregava o desenho do gesto, as somas eram pequenas e
+            // nunca saíam da faixa. Somar a mira estoura: olhar para os pés com o lean já em 0,25
+            // pede 1,25 de um músculo que vai até 1. Fora da faixa o valor não é uma pose mais
+            // extrema, é uma pose indefinida — e o certo é a mira PARAR no limite do peito, que é
+            // exatamente o pedaço de alcance que se aceitou ao tirar a mira dos braços.
+            HumanMuscles.Blend(muscles, MuscleSpineTwist, Clamp(twist * 0.25f), spine);
+            HumanMuscles.Blend(muscles, MuscleChestTwist, Clamp(twist * 0.75f), torso);
+            HumanMuscles.Blend(muscles, MuscleUpperChestTwist, Clamp(twist), torso);
 
-            HumanMuscles.Blend(muscles, MuscleSpineLean, lean * 0.25f * LeanSign, spine);
-            HumanMuscles.Blend(muscles, MuscleChestLean, lean * 0.75f * LeanSign, torso);
-            HumanMuscles.Blend(muscles, MuscleUpperChestLean, lean * LeanSign, torso);
+            HumanMuscles.Blend(muscles, MuscleSpineLean, Clamp(lean * 0.25f * LeanSign), spine);
+            HumanMuscles.Blend(muscles, MuscleChestLean, Clamp(lean * 0.75f * LeanSign), torso);
+            HumanMuscles.Blend(muscles, MuscleUpperChestLean, Clamp(lean * LeanSign), torso);
+        }
+
+        /// <summary>Espaço de músculo vai de -1 a 1; fora disso a pose é indefinida.</summary>
+        private static float Clamp(float value)
+        {
+            return Mathf.Clamp(value, -1f, 1f);
         }
 
         /// <summary>
@@ -958,7 +1011,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static float AimFollow(Player player, float follow, bool pitch)
         {
-            if (follow <= 0f)
+            if (follow == 0f)
             {
                 return 0f;
             }

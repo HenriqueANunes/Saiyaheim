@@ -982,10 +982,11 @@ namespace Saiyaheim
         public static ConfigEntry<float> BeamPoseReleaseHandOpen { get; private set; }
 
         // A mira so' vale no empurrao — durante a concha as maos estao no quadril e nao ha para
-        // onde apontar.
+        // onde apontar. E' o TRONCO que mira, nos dois eixos: mirar pelos bracos quebra com dois
+        // bracos espelhados (gimbal na vertical, saturacao de um lado so' na horizontal).
         public static ConfigEntry<float> BeamPoseAimFollowPitch { get; private set; }
         public static ConfigEntry<float> BeamPoseAimFollowYaw { get; private set; }
-        public static ConfigEntry<float> BeamPoseAimYawTorsoShare { get; private set; }
+        public static ConfigEntry<float> BeamPoseBodyYawCompensation { get; private set; }
 
         // As pernas sao as mesmas nas duas fases: e' a base que segura a carga e absorve o
         // empurrao.
@@ -2993,35 +2994,39 @@ namespace Saiyaheim
             //
             // Os do EMPURRAO continuam sendo chute: a calibragem parou na concha.
 
-            BeamPoseChargeCupArmHeight = config.Bind(SecBeamPose, "ChargeCupArmHeight", -0.5f,
+            BeamPoseChargeCupArmHeight = config.Bind(SecBeamPose, "ChargeCupArmHeight", -0.3f,
                 new ConfigDescription(
                     "Where the CUPPING upper arm sits while charging — the one on the same side " +
                     "as the ball. Raw muscle space, not intent: 0 is a T-pose (arm horizontal) " +
                     "and about -0.65 is the arm hanging straight down. The hand is at the hip, so " +
-                    "the arm is nearly down and it is the elbow that brings it in front.",
+                    "the arm is nearly down and it is the elbow that brings it in front." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(258)));
 
-            BeamPoseChargeCrossArmHeight = config.Bind(SecBeamPose, "ChargeCrossArmHeight", -0.2f,
+            BeamPoseChargeCrossArmHeight = config.Bind(SecBeamPose, "ChargeCrossArmHeight", -0.35f,
                 new ConfigDescription(
                     "Where the CROSSING upper arm sits while charging — the one reaching across " +
                     "the body. Same raw muscle space as the one above. Raising this one alone " +
                     "lifts that hand over the other instead of beside it, which is what the two " +
-                    "hands cupping a sphere actually do.",
+                    "hands cupping a sphere actually do." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(257)));
 
-            BeamPoseChargeCupArmForward = config.Bind(SecBeamPose, "ChargeCupArmForward", -0.2f,
+            BeamPoseChargeCupArmForward = config.Bind(SecBeamPose, "ChargeCupArmForward", 0f,
                 new ConfigDescription(
                     "How far FORWARD the CUPPING arm swings while charging. Negative pulls it " +
                     "behind the ribs, which is where it belongs: this arm barely moves, it is the " +
                     "other one that travels. Which side is which comes from the attack's " +
-                    "ChargeEffectAnchor, so the hands always meet where the ball is born.",
+                    "ChargeEffectAnchor, so the hands always meet where the ball is born." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(256)));
 
-            BeamPoseChargeCrossArmForward = config.Bind(SecBeamPose, "ChargeCrossArmForward", 0.8f,
+            BeamPoseChargeCrossArmForward = config.Bind(SecBeamPose, "ChargeCrossArmForward", 0.65f,
                 new ConfigDescription(
                     "How far FORWARD the CROSSING arm swings while charging. Bigger than the " +
                     "cupping arm by definition; this and ChargeCrossElbowBend are the two knobs " +
-                    "that decide whether the two hands actually meet.",
+                    "that decide whether the two hands actually meet." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(255)));
 
             BeamPoseChargeCupArmTwist = config.Bind(SecBeamPose, "ChargeCupArmTwist", -0.2f,
@@ -3034,12 +3039,13 @@ namespace Saiyaheim
                     "front of the belly instead of beside the hip.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(254)));
 
-            BeamPoseChargeCrossArmTwist = config.Bind(SecBeamPose, "ChargeCrossArmTwist", -0.5f,
+            BeamPoseChargeCrossArmTwist = config.Bind(SecBeamPose, "ChargeCrossArmTwist", -0.7f,
                 new ConfigDescription(
                     "Rotation of the CROSSING upper arm along its own length, while charging. " +
                     "Same raw muscle space as the one above. This is the knob that decides " +
                     "whether that forearm arrives at the hip pointing along the body or jabbing " +
-                    "into it.",
+                    "into it." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(253)));
 
             BeamPoseChargeCupForearmTwist = config.Bind(SecBeamPose, "ChargeCupForearmTwist", 1f,
@@ -3060,19 +3066,21 @@ namespace Saiyaheim
                     "wants the cupping arm's value.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(251)));
 
-            BeamPoseChargeCupElbowBend = config.Bind(SecBeamPose, "ChargeCupElbowBend", -0.2f,
+            BeamPoseChargeCupElbowBend = config.Bind(SecBeamPose, "ChargeCupElbowBend", -0.3f,
                 new ConfigDescription(
                     "How bent the CUPPING elbow is while charging. Raw muscle space, and it runs " +
                     "the way the muscle is named ('Forearm Stretch'): 1 is the straightest the " +
                     "rig goes, -1 the tightest bend, and 0 is the MIDDLE — a visibly bent arm, " +
-                    "not a straight one. Negative here, because cupped hands are a folded arm.",
+                    "not a straight one. Negative here, because cupped hands are a folded arm." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(250)));
 
-            BeamPoseChargeCrossElbowBend = config.Bind(SecBeamPose, "ChargeCrossElbowBend", 0f,
+            BeamPoseChargeCrossElbowBend = config.Bind(SecBeamPose, "ChargeCrossElbowBend", 0.4f,
                 new ConfigDescription(
                     "How bent the CROSSING elbow is while charging. Same raw muscle space as the " +
                     "one above and tighter to start with — reaching across the belly needs more " +
-                    "fold, not less. Raise it toward 1 if that hand ends up short of the other.",
+                    "fold, not less. Raise it toward 1 if that hand ends up short of the other." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(249)));
 
             BeamPoseChargeCupShoulderPush = config.Bind(SecBeamPose, "ChargeCupShoulderPush", -1f,
@@ -3111,11 +3119,12 @@ namespace Saiyaheim
                     "silently turned the wrists off with them.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(244)));
 
-            BeamPoseChargeCrossWristBend = config.Bind(SecBeamPose, "ChargeCrossWristBend", 1f,
+            BeamPoseChargeCrossWristBend = config.Bind(SecBeamPose, "ChargeCrossWristBend", 0.6f,
                 new ConfigDescription(
                     "How far the CROSSING wrist bends back while charging. The two hands face " +
                     "each other around the ball, so this one rarely wants the same number as the " +
-                    "cupping wrist.",
+                    "cupping wrist." +
+                    " (Playtest value, 2026-09-08.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(243)));
 
             BeamPoseChargeCupWristSide = config.Bind(SecBeamPose, "ChargeCupWristSide", 0f,
@@ -3213,10 +3222,13 @@ namespace Saiyaheim
                     "palms. Change this if the back of that hand ends up facing the target.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(232)));
 
-            BeamPoseReleaseCrossArmTwist = config.Bind(SecBeamPose, "ReleaseCrossArmTwist", 0f,
+            BeamPoseReleaseCrossArmTwist = config.Bind(SecBeamPose, "ReleaseCrossArmTwist", 1f,
                 new ConfigDescription(
                     "Rotation of the CROSSING upper arm along its own length at the push. Same " +
-                    "raw muscle space as the one above.",
+                    "raw muscle space as the one above." +
+                    " (Playtest value, 2026-09-08 — the first calibration of the push, and it only "
+                    + "became possible once the aim moved out of the arms and into "
+                    + "the torso.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(231)));
 
             BeamPoseReleaseCupForearmTwist = config.Bind(SecBeamPose, "ReleaseCupForearmTwist", 0f,
@@ -3227,10 +3239,13 @@ namespace Saiyaheim
                     "about — so the one to reach for here is whichever leaves the shoulder alone.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(230)));
 
-            BeamPoseReleaseCrossForearmTwist = config.Bind(SecBeamPose, "ReleaseCrossForearmTwist", 0f,
+            BeamPoseReleaseCrossForearmTwist = config.Bind(SecBeamPose, "ReleaseCrossForearmTwist", 0.5f,
                 new ConfigDescription(
                     "Rotation of the CROSSING FOREARM along its own length at the push. Raw " +
-                    "muscle space, same as the one above.",
+                    "muscle space, same as the one above." +
+                    " (Playtest value, 2026-09-08 — the first calibration of the push, and it only "
+                    + "became possible once the aim moved out of the arms and into "
+                    + "the torso.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(229)));
 
             BeamPoseReleaseCupElbowStretch = config.Bind(SecBeamPose, "ReleaseCupElbowStretch", 1f,
@@ -3247,16 +3262,22 @@ namespace Saiyaheim
                     "one above.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(227)));
 
-            BeamPoseReleaseCupShoulderPush = config.Bind(SecBeamPose, "ReleaseCupShoulderPush", 0.6f,
+            BeamPoseReleaseCupShoulderPush = config.Bind(SecBeamPose, "ReleaseCupShoulderPush", 1f,
                 new ConfigDescription(
                     "How far the CUPPING shoulder is pushed FORWARD at the push. This is the " +
                     "extra reach, and it is the difference between throwing the beam and holding " +
-                    "it out.",
+                    "it out." +
+                    " (Playtest value, 2026-09-08 — the first calibration of the push, and it only "
+                    + "became possible once the aim moved out of the arms and into "
+                    + "the torso.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(226)));
 
-            BeamPoseReleaseCrossShoulderPush = config.Bind(SecBeamPose, "ReleaseCrossShoulderPush", 0.6f,
+            BeamPoseReleaseCrossShoulderPush = config.Bind(SecBeamPose, "ReleaseCrossShoulderPush", 0.9f,
                 new ConfigDescription(
-                    "How far the CROSSING shoulder is pushed FORWARD at the push.",
+                    "How far the CROSSING shoulder is pushed FORWARD at the push." +
+                    " (Playtest value, 2026-09-08 — the first calibration of the push, and it only "
+                    + "became possible once the aim moved out of the arms and into "
+                    + "the torso.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(225)));
 
             BeamPoseReleaseCupShoulderLift = config.Bind(SecBeamPose, "ReleaseCupShoulderLift", 0.1f,
@@ -3292,10 +3313,13 @@ namespace Saiyaheim
                     "them facing forward.",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(220)));
 
-            BeamPoseReleaseCrossWristSide = config.Bind(SecBeamPose, "ReleaseCrossWristSide", 0f,
+            BeamPoseReleaseCrossWristSide = config.Bind(SecBeamPose, "ReleaseCrossWristSide", -1f,
                 new ConfigDescription(
                     "The sideways axis of the CROSSING wrist at the push. Raw muscle space, same " +
-                    "as the one above.",
+                    "as the one above." +
+                    " (Playtest value, 2026-09-08 — the first calibration of the push, and it only "
+                    + "became possible once the aim moved out of the arms and into "
+                    + "the torso.)",
                     new AcceptableValueRange<float>(-1f, 1f), ClientSide(219)));
 
             BeamPoseReleaseTorsoTwist = config.Bind(SecBeamPose, "ReleaseTorsoTwist", 0f,
@@ -3329,37 +3353,44 @@ namespace Saiyaheim
 
             BeamPoseAimFollowPitch = config.Bind(SecBeamPose, "AimFollowPitch", 1f,
                 new ConfigDescription(
-                    "How much the arms follow where you are LOOKING UP OR DOWN at the push, added " +
-                    "on top of the two ReleaseArmHeight keys. It only applies to the push — while " +
-                    "charging the hands are at the hip and there is nothing to aim. The " +
-                    "projectiles spawn at the right hand and fly along your look direction, so " +
-                    "with locked arms, aiming at the sky sends the beam upward out of hands " +
-                    "pointing at the horizon. 1 is full follow, 0 pins the arms to their " +
-                    "ReleaseArmHeight.",
+                    "How much the CHEST follows where you are LOOKING UP OR DOWN at the push, on " +
+                    "top of the two TorsoLean keys: looking up arches the chest back and both " +
+                    "arms rise with it. It only applies to the push — while charging the hands " +
+                    "are at the hip and there is nothing to aim. The projectiles spawn at the " +
+                    "right hand and fly along your look direction, so with a locked torso, " +
+                    "aiming at the sky sends the beam upward out of hands pointing at the " +
+                    "horizon. The chest covers less angle than a free arm would, and that is the " +
+                    "trade: the arms cannot aim this gesture at all — mirrored, the same delta " +
+                    "sends one arm to each side. 1 is full follow, 0 pins the lean to the " +
+                    "TorsoLean keys. Needs TorsoWeight above zero.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(214)));
 
             BeamPoseAimFollowYaw = config.Bind(SecBeamPose, "AimFollowYaw", 1f,
                 new ConfigDescription(
-                    "How much the arms follow where you are LOOKING LEFT OR RIGHT at the push. " +
-                    "The two arms move in OPPOSITE directions here: aiming right opens the right " +
-                    "arm back toward its own side and carries the left one across the chest. Most " +
-                    "of the time the body has already turned to the camera and this does nothing; " +
-                    "it earns its keep when the two come apart — strafing, or running one way " +
-                    "while looking another. It does NOT cover the body turn from BodyYaw: that " +
-                    "one is compensated whatever this is set to, because it is the pose's own " +
-                    "decision and not the player's aim.",
+                    "How much the SPINE TWIST follows where you are LOOKING LEFT OR RIGHT at the " +
+                    "push, on top of the two TorsoTwist keys. The chest carries both arms " +
+                    "together, so the hands stay together and the beam keeps leaving from " +
+                    "between them — which is why this is not in the arms, where aiming right " +
+                    "adds to one arm and subtracts from the other until one of them hits its " +
+                    "limit and stops while the other keeps going. Most of the time the body has " +
+                    "already turned to the camera and this does nothing; it earns its keep when " +
+                    "the two come apart — strafing, or running one way while looking another. It " +
+                    "does NOT cover the body turn from BodyYaw: see BodyYawCompensation. Needs " +
+                    "TorsoWeight above zero.",
                     new AcceptableValueRange<float>(0f, 1f), ClientSide(213)));
 
-            BeamPoseAimYawTorsoShare = config.Bind(SecBeamPose, "AimYawTorsoShare", 0.5f,
+            BeamPoseBodyYawCompensation = config.Bind(SecBeamPose, "BodyYawCompensation", 1f,
                 new ConfigDescription(
-                    "How much of that horizontal aim the SPINE takes instead of the shoulder " +
-                    "joints, from 0 (all arms) to 1 (all spine). Higher than the ki blast's " +
-                    "default on purpose: one arm can cross the chest to follow a wide angle, but " +
-                    "two arms held together cannot — past a point the hands come apart, and the " +
-                    "beam is supposed to leave from between them. Needs TorsoWeight above zero to " +
-                    "do anything; with the torso group off this only takes rotation away from the " +
-                    "arms and nothing gives it back.",
-                    new AcceptableValueRange<float>(0f, 1f), ClientSide(212)));
+                    "How far the chest twists BACK to undo the body turn from ChargeBodyYaw and " +
+                    "ReleaseBodyYaw, so the push still points where you are looking while the " +
+                    "character stands side-on. 1 is the geometric amount, assuming a full unit " +
+                    "of twist is worth a quarter turn; the spine covers less than that in " +
+                    "practice, so raise it if the hands still point off to the side of the beam, " +
+                    "and lower it if they over-rotate past it. 0 leaves the whole gesture turned " +
+                    "with the body. This is the pose undoing its own rotation, not the player's " +
+                    "aim, which is why AimFollowYaw does not switch it off. Needs TorsoWeight " +
+                    "above zero.",
+                    new AcceptableValueRange<float>(0f, 2f), ClientSide(212)));
 
             BeamPoseStanceWidth = config.Bind(SecBeamPose, "StanceWidth", 0.35f,
                 new ConfigDescription(
