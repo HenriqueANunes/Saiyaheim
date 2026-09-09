@@ -152,6 +152,19 @@ namespace Saiyaheim.Transformations
             // frente. Malha com esqueleto (filho `attach_skin`), uma peça só; assimétrica,
             // sem nenhum vértice em X = 0. Deitada como o Hair4.
             new HairEntry("SaiyaHair9", "Hair9", new HairPart(null, "hair9")),
+            // Casquete curto com uma única mecha longa nascendo do centro do topo e caindo
+            // para a frente, passando do queixo. Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, 2 cascas — assimétrica de propósito (mecha cai só de um lado, sem
+            // gêmeo). Deitada como o Hair4.
+            new HairEntry("SaiyaHair10", "Hair10", new HairPart(null, "hair10")),
+            // Casquete redondo e facetado com uma trança longa "em contas" descendo pela nuca.
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, 14 cascas espelhadas em
+            // X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair11", "Hair11", new HairPart(null, "hair11")),
+            // Capuz inteiro, sem rabo nem mecha, com um aro decorativo em volta da abertura do
+            // rosto (172 quadrados soltos, intacto). Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, casquete espelhado em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair12", "Hair12", new HairPart(null, "hair12")),
         };
 
         private static AssetBundle _bundle;

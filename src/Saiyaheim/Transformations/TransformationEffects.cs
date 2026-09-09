@@ -411,7 +411,7 @@ namespace Saiyaheim.Transformations
                 return false;
             }
 
-            vis.SetHairItem(name);
+            vis.SetHairItem(name.GetStableHashCode());
             _hairSwapped = true;
 
             return true;
@@ -432,7 +432,7 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            vis.SetHairItem(player.GetHair());
+            vis.SetHairItem(player.GetHair().GetStableHashCode());
             _hairSwapped = false;
         }
 
