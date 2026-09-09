@@ -127,6 +127,12 @@ namespace Saiyaheim.Transformations
             // esqueleto (filho `attach_skin`), e uma peça só — mas 12 cascas soltas dentro
             // dela, espelhadas em X.
             new HairEntry("SaiyaHair3", "Hair3", new HairPart(null, "hair3")),
+            // Casquete raso no alto do crânio com um rabo de cavalo longo pela nuca. Malha
+            // com esqueleto (filho `attach_skin`), uma peça só, 8 cascas espelhadas em X.
+            // A malha vem deitada: o bindpose dela é uma rotação de -90° em X, então no
+            // arquivo +Z é cima e -Y é o rosto. Isso é problema do gerador de espeto, não
+            // daqui — o jogo desfaz pelo bindpose, como faz com a vanilla.
+            new HairEntry("SaiyaHair4", "Hair4", new HairPart(null, "hair4")),
         };
 
         private static AssetBundle _bundle;
