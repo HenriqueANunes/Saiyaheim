@@ -180,6 +180,59 @@ namespace Saiyaheim.Transformations
             // um capacete curto. Malha com esqueleto (filho `attach_skin`), uma peça só,
             // espelhada em X, com franja na frente que fica intacta. Deitada como o Hair4.
             new HairEntry("SaiyaHair15", "Hair15", new HairPart(null, "hair15")),
+            // Rabo torcido em corda, curvo, sem casquete separado — a corda é a malha inteira,
+            // sem simetria bilateral (um único cordão central, não duas metades espelhadas).
+            // Malha com esqueleto (filho `attach_skin`), uma peça só. Deitada como o Hair4.
+            new HairEntry("SaiyaHair16", "Hair16", new HairPart(null, "hair16")),
+            // Trança única, sem casquete separado, com desfiado solto na ponta (intocado).
+            // Espeto ao longo de quase toda a trança, não só no topo. Malha com esqueleto
+            // (filho `attach_skin`), uma peça só. Deitada como o Hair4.
+            new HairEntry("SaiyaHair17", "Hair17", new HairPart(null, "hair17")),
+            // Crânio com cauda longa, coroa de espetos concentrada no topo, cauda mantida lisa.
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, espelhada em X, bindpose
+            // identidade (não deitada). Variante "crina" (espeto por toda a cauda) descartada
+            // aqui, marcada como candidata a um SSJ2 futuro.
+            new HairEntry("SaiyaHair18", "Hair18", new HairPart(null, "hair18")),
+            // Touca fechada cobrindo o crânio todo, sem franja baixa. Cobertura total de
+            // espetos, intensidade média. Malha com esqueleto (filho `attach_skin`), uma peça
+            // só, espelhada em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair19", "Hair19", new HairPart(null, "hair19")),
+            // Touca redonda tipo afro, sem rabo nem mecha, franja apagada pelos espetos. Malha
+            // com esqueleto (filho `attach_skin`), uma peça só, espelhada em X. Deitada como o
+            // Hair4.
+            new HairEntry("SaiyaHair20", "Hair20", new HairPart(null, "hair20")),
+            // Corte curto: calota lisa no alto e dois coques baixos bem laterais (tipo
+            // maria-chiquinha) na altura da orelha, mais painéis finos perto da nuca. Espeto só
+            // na coroa (calota + nuca); coques ficam lisos, redondos, por escolha de silhueta.
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, 9 cascas espelhadas em X.
+            // Deitada como o Hair4. ⚠️ No jogo, o guid da malha do prefab `Hair21` aponta pro
+            // arquivo `Hair22.asset` e vice-versa (nomes trocados); a malha certa foi escolhida
+            // pelo guid, não pelo nome do arquivo.
+            new HairEntry("SaiyaHair21", "Hair21", new HairPart(null, "hair21")),
+            // Bola de mechas soltas cobrindo a cabeça inteira até a nuca — 7 mechas facetadas,
+            // cada uma já nascendo inteira de um lado, sem casquete contínuo. Espeto em todas as
+            // mechas, nuca incluída (a alternativa "só topo" foi descartada). Malha com esqueleto
+            // (filho `attach_skin`), uma peça só, 14 cascas espelhadas em X. Deitada como o
+            // Hair4 (mesma troca de guid do Hair21/Hair22 no jogo, aqui resolvida do mesmo jeito).
+            new HairEntry("SaiyaHair22", "Hair22", new HairPart(null, "hair22")),
+            // A menor malha do projeto (46 vértices): toco curto e arredondado sobre o
+            // topo/nuca, sem franja nem casquete de verdade. Espeto em dois grupos: coroa no
+            // topo (4 por lado) e um segundo grupo na nuca (5 por lado, quase na vertical,
+            // cobrindo da base das abas até o meio de trás da cabeça) — pedido explícito do
+            // Henrique depois de ver o topo sozinho. Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, 2 cascas espelhadas em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair23", "Hair23", new HairPart(null, "hair23")),
+            // Trança única e fina, sem casquete, curvando quase 180° do topo do crânio até uma
+            // pontinha ornamental (mantida intacta). Espeto ao longo da trança inteira, seguindo
+            // a curva por um fluxo local (não uma reta raiz→ponta, que apontaria pro lado errado
+            // na metade de baixo). Malha com esqueleto (filho `attach_skin`), uma peça só,
+            // bindpose identidade (não deitada, como o Hair13/Hair18).
+            new HairEntry("SaiyaHair24", "Hair24", new HairPart(null, "hair24")),
+            // Casquete com um bico frontal tipo topete e um coque redondo colado atrás, colado à
+            // cabeça. Espeto no casquete inteiro e no coque também (a opção de coque liso foi
+            // descartada). Malha com esqueleto (filho `attach_skin`), uma peça só, 6 cascas
+            // espelhadas em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair25", "Hair25", new HairPart(null, "hair25")),
         };
 
         private static AssetBundle _bundle;
