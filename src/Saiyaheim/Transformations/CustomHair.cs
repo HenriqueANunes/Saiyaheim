@@ -165,6 +165,21 @@ namespace Saiyaheim.Transformations
             // rosto (172 quadrados soltos, intacto). Malha com esqueleto (filho `attach_skin`),
             // uma peça só, casquete espelhado em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair12", "Hair12", new HairPart(null, "hair12")),
+            // Casquete curto repartido ao meio, com duas tranças grossas "em contas" descendo
+            // até o peito. Malha com esqueleto (filho `attach_skin`), uma peça só, 6 cascas
+            // espelhadas em X. Bindpose **identidade** (não deitada, ao contrário do Hair4) —
+            // casquete e raiz da trança são a mesma casca, separados por corte de altura
+            // dentro dela, não por casca.
+            new HairEntry("SaiyaHair13", "Hair13", new HairPart(null, "hair13")),
+            // A menor malha do projeto: uma mecha única em gancho, sem casquete, nascendo perto
+            // do topo do crânio e curvando para um lado. Malha com esqueleto (filho
+            // `attach_skin`), uma peça só, assimétrica (sem par espelhado). Deitada como o
+            // Hair4.
+            new HairEntry("SaiyaHair14", "Hair14", new HairPart(null, "hair14")),
+            // Cúpula fechada cobrindo o crânio inteiro, sem rabo nem mecha — mais parecido com
+            // um capacete curto. Malha com esqueleto (filho `attach_skin`), uma peça só,
+            // espelhada em X, com franja na frente que fica intacta. Deitada como o Hair4.
+            new HairEntry("SaiyaHair15", "Hair15", new HairPart(null, "hair15")),
         };
 
         private static AssetBundle _bundle;
