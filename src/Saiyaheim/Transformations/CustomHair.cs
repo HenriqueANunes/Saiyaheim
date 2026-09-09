@@ -133,6 +133,25 @@ namespace Saiyaheim.Transformations
             // arquivo +Z é cima e -Y é o rosto. Isso é problema do gerador de espeto, não
             // daqui — o jogo desfaz pelo bindpose, como faz com a vanilla.
             new HairEntry("SaiyaHair4", "Hair4", new HairPart(null, "hair4")),
+            // Casquete curto e raso, sem rabo, colado à cabeça do alto até a nuca. Malha com
+            // esqueleto (filho `attach_skin`), uma peça só, 2 cascas espelhadas em X. Também
+            // deitada, mesmo bindpose do Hair4 (+Z cima, -Y rosto).
+            new HairEntry("SaiyaHair5", "Hair5", new HairPart(null, "hair5")),
+            // Capuz inteiro: cobre o crânio e desce em duas abas largas até os ombros, com
+            // fenda em V na frente, mais um par de "chamas" atrás da cabeça que já nasce
+            // pontudo na vanilla. Malha com esqueleto (filho `attach_skin`), uma peça só,
+            // deitada como o Hair4. A malha do jogo se chama `hair7.001`; o nome foi
+            // encurtado para `hair7` ao entrar no bundle.
+            new HairEntry("SaiyaHair7", "Hair7", new HairPart(null, "hair7")),
+            // Casquete pequeno com um "flick" já esculpido pendendo para um lado e uma mecha
+            // solta caindo pela bochecha do lado oposto. Malha com esqueleto (filho
+            // `attach_skin`), uma peça só, 2 cascas — e assimétrica de propósito: quase
+            // nenhum vértice tem gêmeo espelhado. Deitada como o Hair4.
+            new HairEntry("SaiyaHair8", "Hair8", new HairPart(null, "hair8")),
+            // Uma mecha só, em onda: nasce fina no crânio, incha no meio e se enrola para a
+            // frente. Malha com esqueleto (filho `attach_skin`), uma peça só; assimétrica,
+            // sem nenhum vértice em X = 0. Deitada como o Hair4.
+            new HairEntry("SaiyaHair9", "Hair9", new HairPart(null, "hair9")),
         };
 
         private static AssetBundle _bundle;
