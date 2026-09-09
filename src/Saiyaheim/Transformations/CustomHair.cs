@@ -1,7 +1,9 @@
+using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using Jotunn.Entities;
 using Jotunn.Managers;
-using Jotunn.Utils;
 using UnityEngine;
 
 namespace Saiyaheim.Transformations
@@ -11,13 +13,17 @@ namespace Saiyaheim.Transformations
     ///
     /// <b>A malha dá uma volta inteira fora deste repositório</b>: sai do jogo (extraída dos
     /// bundles do Valheim), é esculpida no projeto Unity vizinho —
-    /// <c>~/Documents/projetos/Saiyaheim-Unity/</c>, com os espetos gerados por
-    /// <c>tools/spike_build.py</c> — volta num AssetBundle e é vestida aqui. O bundle viaja
-    /// embutido na DLL, então o deploy continua sendo um arquivo só.
+    /// <c>~/Documents/projetos/Saiyaheim-Unity/</c>, com os espetos gerados por script — um por
+    /// penteado, <c>tools/spike_build.py</c> para o <c>Hair6</c>, <c>tools/hair1_spikes.py</c>
+    /// para o <c>Hair1</c>, <c>tools/hair2_spikes.py</c> para o <c>Hair2</c> e
+    /// <c>tools/hair3_spikes.py</c> para o <c>Hair3</c> — volta num
+    /// AssetBundle e é vestida aqui. O bundle viaja embutido na DLL, então o deploy continua
+    /// sendo um arquivo só.
     ///
     /// <b>Por que clonar um cabelo do jogo em vez de montar um prefab do zero.</b> O clone já vem
-    /// com o <c>ItemDrop</c> preenchido, com o filho <c>attach_skin</c> que o
-    /// <c>VisEquipment.AttachItem</c> procura, com o material do jogo (que é quem responde ao
+    /// com o <c>ItemDrop</c> preenchido, com o filho de encaixe que o
+    /// <c>VisEquipment.AttachItem</c> procura (<c>attach_skin</c> nos cabelos com esqueleto,
+    /// <c>attach</c> nos rígidos), com o material do jogo (que é quem responde ao
     /// <c>_SkinColor</c>, ou seja, à cor da forma) e com a lista <c>m_helmetHairSettings</c>. Essa
     /// última importa mais do que parece: o <c>VisEquipment.GetHairItem</c> devolve <b>0</b> —
     /// jogador careca — quando o elmo pede uma variante que o cabelo não declara. Prefab do zero
@@ -34,30 +40,100 @@ namespace Saiyaheim.Transformations
     internal static class CustomHair
     {
         /// <summary>
-        /// Nome do bundle embutido. O <c>LoadAssetBundleFromResources</c> casa por sufixo, então
-        /// isto não precisa do namespace na frente.
+        /// Nome do bundle embutido. O recurso é casado por <b>sufixo</b>, então isto não precisa
+        /// do namespace na frente.
         /// </summary>
         private const string BundleName = "saiyaheim_hair";
 
-        /// <summary>Nome da malha dentro do bundle, sem extensão. Sai do nome do arquivo no
-        /// projeto Unity — <c>Assets/HairMeshes/hair6.asset</c>.</summary>
-        private const string MeshAsset = "hair6";
+        /// <summary>
+        /// Uma malha nossa e onde ela entra no clone.
+        ///
+        /// <c>Child</c> nulo quer dizer "o primeiro renderer com malha que existir", que é o
+        /// caso dos penteados de uma peça só. Quando o cabelo do jogo é feito de várias peças,
+        /// cada uma é nomeada, porque aí a ordem em que os filhos aparecem não é garantia de
+        /// nada.
+        /// </summary>
+        private sealed class HairPart
+        {
+            internal HairPart(string child, string mesh)
+            {
+                Child = child;
+                Mesh = mesh;
+            }
 
-        /// <summary>Cabelo do jogo que serve de molde. É o comprido que o SSJ3 já usa.</summary>
-        private const string SourceHair = "Hair6";
+            /// <summary>Nome do filho do prefab que carrega o renderer, ou nulo.</summary>
+            internal string Child { get; }
+
+            /// <summary>Nome da malha dentro do bundle, sem extensão. Sai do nome do arquivo no
+            /// projeto Unity — <c>Assets/HairMeshes/&lt;nome&gt;.asset</c>.</summary>
+            internal string Mesh { get; }
+        }
 
         /// <summary>
-        /// Nome do item novo no <c>ObjectDB</c>. Sem <c>_</c> de propósito: o
-        /// <c>saiya_form hair</c> descarta os nomes com underscore, porque no jogo eles são as
-        /// variantes internas de elmo e não opções de barbeiro.
+        /// Um penteado espetado: o nome do item novo, o cabelo do jogo que serve de molde e as
+        /// malhas que substituem as dele.
         /// </summary>
-        internal const string HairName = "SaiyaHair6";
+        private sealed class HairEntry
+        {
+            internal HairEntry(string name, string source, params HairPart[] parts)
+            {
+                Name = name;
+                Source = source;
+                Parts = parts;
+            }
+
+            /// <summary>
+            /// Nome do item novo no <c>ObjectDB</c>. Sem <c>_</c> de propósito: o
+            /// <c>saiya_form hair</c> descarta os nomes com underscore, porque no jogo eles são
+            /// as variantes internas de elmo e não opções de barbeiro.
+            /// </summary>
+            internal string Name { get; }
+
+            /// <summary>Cabelo do jogo que serve de molde.</summary>
+            internal string Source { get; }
+
+            /// <summary>As peças a trocar. Uma na maioria dos penteados, três no Hair2.</summary>
+            internal HairPart[] Parts { get; }
+        }
+
+        /// <summary>
+        /// Os penteados espetados que o mod registra. Um por penteado do jogo; qual forma usa
+        /// qual continua sendo a chave <c>HairItem</c> de cada forma, no <c>.cfg</c>.
+        ///
+        /// ⚠️ <b>O nome do molde e o nome da malha não são o mesmo.</b> O prefab do jogo se chama
+        /// <c>Hair1</c>, mas a malha dentro dele é <c>Hair_01</c>. Só o <c>Hair6</c> tem os dois
+        /// iguais, e escrever o código como se isso valesse sempre não sobrevive ao segundo
+        /// cabelo.
+        ///
+        /// ⚠️ <b>E nem todo penteado é uma malha só.</b> O <c>Hair2</c> são três: duas metades de
+        /// casquete (<c>pCube225</c> e <c>pCube226</c>, malhas iguais, uma delas com
+        /// <c>scale.x</c> negativo) e um rabo de cavalo (<c>pCylinder623</c>). As duas metades
+        /// recebem a <b>mesma</b> malha nossa — quem espelha é o transform do jogo, então o
+        /// casquete é esculpido uma vez só.
+        /// </summary>
+        private static readonly HairEntry[] Hairs =
+        {
+            // O comprido que o SSJ3 usa. Malha com esqueleto: filho `attach_skin` e armature.
+            new HairEntry("SaiyaHair6", "Hair6", new HairPart(null, "hair6")),
+            // Casquete com rabo de cavalo. Malha RÍGIDA: filho `attach`, `m_Bones: []`.
+            new HairEntry("SaiyaHair1", "Hair1", new HairPart(null, "Hair_01")),
+            // Três peças: casquete espelhado em dois `MeshRenderer` e o rabo num
+            // `SkinnedMeshRenderer` sem ossos, com um `Cloth` que o jogo mantém desligado.
+            new HairEntry("SaiyaHair2", "Hair2",
+                          new HairPart("pCube225", "hair2_cap"),
+                          new HairPart("pCube226", "hair2_cap"),
+                          new HairPart("pCylinder623", "hair2_tail")),
+            // Casquete curto com duas mechas longas na frente das orelhas. Malha com
+            // esqueleto (filho `attach_skin`), e uma peça só — mas 12 cascas soltas dentro
+            // dela, espelhadas em X.
+            new HairEntry("SaiyaHair3", "Hair3", new HairPart(null, "hair3")),
+        };
 
         private static AssetBundle _bundle;
 
         /// <summary>
         /// Pendura o registro no evento do Jotunn. O clone só pode ser feito quando os prefabs do
-        /// jogo existem — antes disso não há <c>Hair6</c> para copiar.
+        /// jogo existem — antes disso não há o que copiar.
         /// </summary>
         internal static void Register()
         {
@@ -66,33 +142,54 @@ namespace Saiyaheim.Transformations
 
         private static void OnVanillaPrefabsAvailable()
         {
+            foreach (HairEntry hair in Hairs)
+            {
+                RegisterHair(hair);
+            }
+        }
+
+        /// <summary>
+        /// Registra um penteado. Um que falhe não derruba os outros: cada um é independente, e
+        /// perder um cabelo é melhor do que perder todos.
+        /// </summary>
+        private static void RegisterHair(HairEntry hair)
+        {
             // O evento pode disparar mais de uma vez numa sessão (voltar ao menu e entrar de novo).
-            if (PrefabManager.Instance.GetPrefab(HairName) != null)
+            if (PrefabManager.Instance.GetPrefab(hair.Name) != null)
             {
                 return;
             }
 
-            Mesh mesh = LoadMesh();
-            if (mesh == null)
+            // As malhas primeiro: um bundle sem a peça que o penteado pede derruba o registro
+            // antes de o clone existir, e clone registrado pela metade é pior do que nenhum.
+            Mesh[] meshes = new Mesh[hair.Parts.Length];
+            for (int i = 0; i < hair.Parts.Length; i++)
             {
-                return;
+                meshes[i] = LoadMesh(hair.Parts[i].Mesh);
+                if (meshes[i] == null)
+                {
+                    return;
+                }
             }
 
-            CustomItem item = new CustomItem(HairName, SourceHair);
+            CustomItem item = new CustomItem(hair.Name, hair.Source);
             if (item.ItemPrefab == null)
             {
                 SaiyaheimPlugin.Log.LogError(
-                    $"Could not clone '{SourceHair}'. Custom hair is off this session.");
+                    $"Could not clone '{hair.Source}'. Custom hair '{hair.Name}' is off this session.");
                 return;
             }
 
-            if (!SwapMesh(item.ItemPrefab, mesh))
+            for (int i = 0; i < hair.Parts.Length; i++)
             {
-                return;
+                if (!SwapMesh(item.ItemPrefab, hair.Parts[i], meshes[i]))
+                {
+                    return;
+                }
             }
 
             ItemManager.Instance.AddItem(item);
-            SaiyaheimPlugin.Log.LogInfo($"Custom hair '{HairName}' registered.");
+            SaiyaheimPlugin.Log.LogInfo($"Custom hair '{hair.Name}' registered.");
         }
 
         /// <summary>
@@ -109,11 +206,11 @@ namespace Saiyaheim.Transformations
         /// carrega um asset por nome. As duas pontas precisam continuar assim: bundle sem
         /// material nem shader, e carga nomeada em vez de carga cega.
         /// </summary>
-        private static Mesh LoadMesh()
+        private static Mesh LoadMesh(string meshAsset)
         {
             if (_bundle == null)
             {
-                _bundle = AssetUtils.LoadAssetBundleFromResources(BundleName);
+                _bundle = LoadBundle();
             }
 
             if (_bundle == null)
@@ -122,12 +219,15 @@ namespace Saiyaheim.Transformations
                 return null;
             }
 
+            // Os nomes dentro do bundle vêm em minúsculas, e o do Hair1 é `Hair_01` no projeto
+            // Unity. Comparar sem diferenciar caixa evita um "não achei" que não é verdade.
             string assetName = _bundle.GetAllAssetNames()
-                                      .FirstOrDefault(n => n.EndsWith($"/{MeshAsset}.asset"));
+                                      .FirstOrDefault(n => n.EndsWith(
+                                          $"/{meshAsset}.asset", StringComparison.OrdinalIgnoreCase));
             if (assetName == null)
             {
                 SaiyaheimPlugin.Log.LogError(
-                    $"Asset bundle '{BundleName}' has no mesh named '{MeshAsset}'. It holds: " +
+                    $"Asset bundle '{BundleName}' has no mesh named '{meshAsset}'. It holds: " +
                     string.Join(", ", _bundle.GetAllAssetNames()));
                 return null;
             }
@@ -139,6 +239,56 @@ namespace Saiyaheim.Transformations
             }
 
             return mesh;
+        }
+
+        /// <summary>
+        /// Carrega o bundle embutido, do jeito que sobrevive a ele crescer.
+        ///
+        /// ⚠️ <b>Não trocar isto pelo <c>AssetUtils.LoadAssetBundleFromResources</c> do
+        /// Jotunn.</b> Aquele helper faz <c>using Stream stream = ...</c> e devolve
+        /// <c>AssetBundle.LoadFromStream(stream)</c> — ou seja, <b>fecha o stream e entrega o
+        /// bundle</b>. O Unity lê o conteúdo do bundle <b>sob demanda</b>, e enquanto o bundle
+        /// inteiro coube no buffer interno de leitura (uns 32 KB) ele nunca precisou voltar ao
+        /// stream. Foi assim com três penteados.
+        ///
+        /// Com o quarto (<c>hair3</c>) o bundle passou de 45 KB, o <c>LoadAsset</c> foi buscar
+        /// bytes num stream já fechado e o jogo morreu na tela de carregamento:
+        /// <c>ArgumentException: ManagedStream object must be readable</c>, seguido de
+        /// <c>Size overflow in allocator</c> e <c>Caught fatal signal</c>. O <c>LogOutput.log</c>
+        /// não mostra nada disso — quem conta é o <c>Player.log</c> do Unity.
+        ///
+        /// A correção é ler o recurso inteiro para um <c>byte[]</c> e usar
+        /// <c>LoadFromMemory</c>: os bytes são nossos, e não há stream para fechar. O bundle tem
+        /// dezenas de KB, então o custo de memória não é assunto.
+        /// </summary>
+        private static AssetBundle LoadBundle()
+        {
+            Assembly assembly = typeof(CustomHair).Assembly;
+            string resource = assembly.GetManifestResourceNames()
+                                      .FirstOrDefault(n => n.EndsWith(BundleName, StringComparison.Ordinal));
+            if (resource == null)
+            {
+                SaiyaheimPlugin.Log.LogError(
+                    $"Asset bundle '{BundleName}' not found in the DLL. It holds: " +
+                    string.Join(", ", assembly.GetManifestResourceNames()));
+                return null;
+            }
+
+            byte[] data;
+            using (Stream stream = assembly.GetManifestResourceStream(resource))
+            using (MemoryStream buffer = new MemoryStream())
+            {
+                stream.CopyTo(buffer);
+                data = buffer.ToArray();
+            }
+
+            AssetBundle bundle = AssetBundle.LoadFromMemory(data);
+            if (bundle == null)
+            {
+                SaiyaheimPlugin.Log.LogError($"'{resource}' did not load as an asset bundle.");
+            }
+
+            return bundle;
         }
 
         /// <summary>
@@ -164,32 +314,93 @@ namespace Saiyaheim.Transformations
         /// A conferência aqui é só de coerência interna — um peso por vértice, bindposes
         /// presentes. Não se compara com a contagem da malha vanilla: a malha editada tem
         /// <b>mais</b> vértices que ela de propósito, um por espeto acrescentado.
+        ///
+        /// ⚠️ <b>Nem todo cabelo do Valheim tem esqueleto, e exigir um quebra os que não têm.</b>
+        /// São duas famílias. A do <c>Hair6</c> pendura um filho <c>attach_skin</c> com a armature
+        /// inteira, e a malha traz bindposes e um peso por vértice. A do <c>Hair1</c> pendura um
+        /// filho <c>attach</c> num <c>SkinnedMeshRenderer</c> de <c>m_Bones: []</c>: a malha é
+        /// rígida e quem a leva junto com a cabeça é o osso em que o <c>attach</c> é preso. Aí
+        /// <c>bindposes</c> e <c>boneWeights</c> vêm <b>vazios de fábrica</b>, e é assim que tem
+        /// que ser. Por isso a exigência é <b>relativa à malha vanilla do clone</b>: se ela tem
+        /// esqueleto, a nossa também precisa ter; se não tem, a nossa também não pode inventar um.
+        ///
+        /// ⚠️ <b>Nem todo penteado é uma malha só, e nem toda peça é <c>SkinnedMeshRenderer</c>.</b>
+        /// O casquete do <c>Hair2</c> são dois <c>MeshFilter</c> comuns. Procurar sempre o
+        /// primeiro <c>SkinnedMeshRenderer</c> trocaria só o rabo de cavalo e deixaria o resto da
+        /// cabeça com o cabelo do jogo — sem erro nenhum no log, com o defeito só na tela.
         /// </summary>
-        private static bool SwapMesh(GameObject prefab, Mesh mesh)
+        private static bool SwapMesh(GameObject prefab, HairPart part, Mesh mesh)
         {
-            SkinnedMeshRenderer renderer = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true)
-                                                 .FirstOrDefault();
-            if (renderer == null || renderer.sharedMesh == null)
+            SkinnedMeshRenderer skinned = null;
+            MeshFilter filter = null;
+
+            if (part.Child == null)
+            {
+                skinned = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault();
+            }
+            else
+            {
+                Transform child = prefab.GetComponentsInChildren<Transform>(true)
+                                        .FirstOrDefault(t => t.name == part.Child);
+                if (child == null)
+                {
+                    SaiyaheimPlugin.Log.LogError(
+                        $"'{prefab.name}' has no child named '{part.Child}'. The game's prefab " +
+                        "layout changed. It holds: " +
+                        string.Join(", ", prefab.GetComponentsInChildren<Transform>(true)
+                                                .Select(t => t.name).ToArray()));
+                    return false;
+                }
+
+                skinned = child.GetComponent<SkinnedMeshRenderer>();
+                filter = child.GetComponent<MeshFilter>();
+            }
+
+            Mesh vanilla = skinned != null ? skinned.sharedMesh
+                                           : filter != null ? filter.sharedMesh : null;
+            if (vanilla == null)
             {
                 SaiyaheimPlugin.Log.LogError(
-                    $"'{SourceHair}' has no skinned mesh renderer. The game's prefab layout changed.");
+                    $"'{prefab.name}' has no mesh to replace for part '{part.Child ?? "(first)"}'. " +
+                    "The game's prefab layout changed.");
                 return false;
             }
 
-            if (mesh.bindposes.Length == 0 || mesh.boneWeights.Length != mesh.vertexCount)
+            // A exigência é relativa à malha vanilla: com esqueleto, a nossa precisa de um; sem
+            // esqueleto, a nossa não pode inventar um.
+            if (vanilla.bindposes.Length > 0)
+            {
+                if (mesh.bindposes.Length == 0 || mesh.boneWeights.Length != mesh.vertexCount)
+                {
+                    SaiyaheimPlugin.Log.LogError(
+                        $"Mesh '{mesh.name}' carries no skinning ({mesh.boneWeights.Length} " +
+                        $"weights, {mesh.bindposes.Length} bindposes for {mesh.vertexCount} " +
+                        "vertices). It would hang off the body instead of the head. Rebuild the " +
+                        "bundle from the mesh that AssetRipper extracts.");
+                    return false;
+                }
+            }
+            else if (mesh.bindposes.Length > 0)
             {
                 SaiyaheimPlugin.Log.LogError(
-                    $"Mesh '{mesh.name}' carries no skinning ({mesh.boneWeights.Length} weights, " +
-                    $"{mesh.bindposes.Length} bindposes for {mesh.vertexCount} vertices). It would " +
-                    "hang off the body instead of the head. Rebuild the bundle from the mesh that " +
-                    "AssetRipper extracts.");
+                    $"Mesh '{mesh.name}' carries {mesh.bindposes.Length} bindposes, but " +
+                    $"'{prefab.name}' is a rigid hair with none. Rebuild the bundle from the " +
+                    "mesh that AssetRipper extracts, without adding skinning to it.");
                 return false;
             }
 
-            renderer.sharedMesh = mesh;
+            if (skinned != null)
+            {
+                skinned.sharedMesh = mesh;
+            }
+            else
+            {
+                filter.sharedMesh = mesh;
+            }
+
             SaiyaheimPlugin.LogVerbose(
-                $"Hair mesh '{mesh.name}': {mesh.vertexCount} vertices, " +
-                $"{mesh.bindposes.Length} bindposes.");
+                $"Hair mesh '{mesh.name}' on '{part.Child ?? prefab.name}': {mesh.vertexCount} " +
+                $"vertices, {mesh.bindposes.Length} bindposes.");
 
             return true;
         }
