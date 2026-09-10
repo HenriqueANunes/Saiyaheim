@@ -299,6 +299,26 @@ namespace Saiyaheim.Transformations
             // intactos (peça de milímetro). Malha com esqueleto (filho `attach_skin`), uma peça
             // só, 20 cascas soltas espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair35", "Hair35", new HairPart(null, "hair35")),
+            // Casquete raso colado ao crânio com dois fios longos caindo dos lados até o
+            // ombro/peito — silhueta de cortina, não de rabo central. Fio fino secundário junto
+            // do fio principal tratado como parte da mesma cauda (evita par de espeto colidindo
+            // no mesmo lugar). Franja frontal dupla (duas camadas empilhadas) mantida lisa —
+            // opção de franja espetada descartada. Espeto forte no casquete e na cauda,
+            // intensidade média e leve descartadas. Bug corrigido: a raiz da cauda sozinha já
+            // tinha candidato de sobra pra cota inteira e empilhava tudo no anel do topo;
+            // corrigido escolhendo por fatia de altura em vez de distância euclidiana. Malha com
+            // esqueleto (filho `attach_skin`), 16 cascas espelhadas em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair36", "Hair36", new HairPart(null, "hair36")),
+            // Casquete arredondado tipo couve-flor/voxel colado à cabeça, sem rabo, com uma
+            // mecha fina em gancho/nadadeira só do lado esquerdo, sem gêmea, mantida intacta.
+            // As duas metades do casquete não são espelho exato uma da outra (182 vs. 180
+            // vértices) — sem `mirror_map`, cada lado escolhe a própria aresta direto, deixando
+            // a assimetria original aparecer nos espetos também. Espeto denso do topo até a
+            // nuca; a primeira leva (26 espetos) esgotava a cota antes de descer e ficava careca
+            // na nuca — mesma causa do Hair32/Hair35, corrigida subindo a cota para 46 em vez de
+            // aumentar o `lift`. Malha com esqueleto (filho `attach_skin`), uma peça só, 9
+            // cascas soltas. Deitada como o Hair4/Hair30.
+            new HairEntry("SaiyaHair37", "Hair37", new HairPart(null, "hair37")),
         };
 
         private static AssetBundle _bundle;
