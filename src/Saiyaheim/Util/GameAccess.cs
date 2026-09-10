@@ -23,7 +23,7 @@ namespace Saiyaheim.Util
         private static readonly AccessTools.FieldRef<Hud, float> StaminaBarBorderBufferRef =
             CreateFieldRef<Hud, float>("m_staminaBarBorderBuffer");
 
-        /// <summary>Valor do jogo em 0.221.12, usado se a reflexão falhar após uma atualização.</summary>
+        /// <summary>Valor do jogo em 1.0.7, usado se a reflexão falhar após uma atualização.</summary>
         private const float StaminaBarBorderBufferFallback = 16f;
 
         internal static float GetStaminaBarBorderBuffer(Hud hud)
