@@ -233,6 +233,31 @@ namespace Saiyaheim.Transformations
             // descartada). Malha com esqueleto (filho `attach_skin`), uma peça só, 6 cascas
             // espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair25", "Hair25", new HairPart(null, "hair25")),
+            // Casquete colado com trança curta de cada lado, cada trança terminando numa conta
+            // em forma de laço (mantida intacta). Espeto no casquete e ao longo da trança
+            // inteira, bem denso — o Henrique pediu mais espeto depois de ver a primeira leva
+            // (trança rala) e a versão final cobre quase toda a trança, não só a raiz. Malha com
+            // esqueleto (filho `attach_skin`), uma peça só, 6 cascas espelhadas em X. Bindpose
+            // identidade (não deitada, como o Hair13/Hair18).
+            new HairEntry("SaiyaHair27", "Hair27", new HairPart(null, "hair27")),
+            // Coque/bola no topo com rabo fino descendo em espiral (ondulação vinda da malha
+            // original, não é espeto) até uma ponta afinada. Espeto no coque (intensidade
+            // média) e no rabo inteiro — a opção de rabo liso foi descartada. Malha com
+            // esqueleto (filho `attach_skin`), uma peça só, sem espelho (rabo cai pra um lado
+            // só, mesh assimétrica de propósito). Bindpose identidade (como o Hair6).
+            new HairEntry("SaiyaHair28", "Hair28", new HairPart(null, "hair28")),
+            // Corte tipo chanel/pageboy: cúpula curta sobre o crânio com aba sólida descendo até
+            // a nuca. Espeto na cúpula e também na aba de trás até o pescoço — a opção de aba
+            // lisa foi descartada. Malha com esqueleto (filho `attach_skin`), uma peça só, 2
+            // cascas espelhadas em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair29", "Hair29", new HairPart(null, "hair29")),
+            // Casquete arredondado tipo capacete, sem rabo, com franja (apagada, nasce sobre o
+            // rosto) e dois tufos de milímetro perto da nuca/orelha (intactos). Espeto cobrindo
+            // o casquete até a nuca, bem vertical — a primeira leva deixava a nuca lisa e os
+            // espetos de lá saindo pro lado, corrigido com `cap_lift` bem mais alto e mais
+            // espeto na área liberada. Malha com esqueleto (filho `attach_skin`), uma peça só, 5
+            // cascas espelhadas em X. Deitada como o Hair4.
+            new HairEntry("SaiyaHair30", "Hair30", new HairPart(null, "hair30")),
         };
 
         private static AssetBundle _bundle;
