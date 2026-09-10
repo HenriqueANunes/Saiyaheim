@@ -98,7 +98,9 @@ namespace Saiyaheim.Transformations
 
         /// <summary>
         /// Os penteados espetados que o mod registra. Um por penteado do jogo; qual forma usa
-        /// qual continua sendo a chave <c>HairItem</c> de cada forma, no <c>.cfg</c>.
+        /// qual continua sendo a chave <c>HairItem</c> de cada forma, no <c>.cfg</c> — com
+        /// <see cref="SpikedKeyword"/> ali, a forma veste a versão daqui do cabelo que o
+        /// personagem já usa.
         ///
         /// ⚠️ <b>O nome do molde e o nome da malha não são o mesmo.</b> O prefab do jogo se chama
         /// <c>Hair1</c>, mas a malha dentro dele é <c>Hair_01</c>. Só o <c>Hair6</c> tem os dois
@@ -321,7 +323,45 @@ namespace Saiyaheim.Transformations
             new HairEntry("SaiyaHair37", "Hair37", new HairPart(null, "hair37")),
         };
 
+        /// <summary>
+        /// Valor do <c>HairItem</c> de uma forma que pede "o cabelo do próprio personagem, na
+        /// versão espetada" em vez de um penteado fixo. Ver <see cref="GetSpikedVariant"/>.
+        /// </summary>
+        internal const string SpikedKeyword = "Spiked";
+
         private static AssetBundle _bundle;
+
+        /// <summary>
+        /// A versão espetada de um penteado do jogo — <c>Hair6</c> devolve <c>SaiyaHair6</c> — ou
+        /// null quando não há uma.
+        ///
+        /// <b>Null é resposta, não erro.</b> Nem todo penteado tem versão espetada: o
+        /// <c>HairNone</c> não tem o que espetar, o <c>Hair26</c> ainda espera julgamento, e um
+        /// cabelo que o Valheim acrescentar numa atualização não vai ter nenhuma até alguém
+        /// esculpir. Quem chama mantém o cabelo do personagem nesses casos, que é o que a forma
+        /// fazia antes de existir cabelo espetado.
+        ///
+        /// A busca vai pela tabela e não por <c>"Saiya" + nome</c>: é a tabela que sabe qual
+        /// molde cada item nosso clonou. E confere o <c>ObjectDB</c> porque um penteado da tabela
+        /// pode ter falhado o registro nesta sessão — malha faltando no bundle, prefab do jogo
+        /// mudado —, e vestir um item que não existe deixa o jogador careca sem erro nenhum.
+        /// </summary>
+        internal static string GetSpikedVariant(string vanillaHair)
+        {
+            if (string.IsNullOrEmpty(vanillaHair) || ObjectDB.instance == null)
+            {
+                return null;
+            }
+
+            HairEntry entry = Hairs.FirstOrDefault(
+                h => string.Equals(h.Source, vanillaHair, StringComparison.OrdinalIgnoreCase));
+            if (entry == null || ObjectDB.instance.GetItemPrefab(entry.Name) == null)
+            {
+                return null;
+            }
+
+            return entry.Name;
+        }
 
         /// <summary>
         /// Pendura o registro no evento do Jotunn. O clone só pode ser feito quando os prefabs do

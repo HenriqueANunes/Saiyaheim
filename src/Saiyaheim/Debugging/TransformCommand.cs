@@ -26,6 +26,7 @@ namespace Saiyaheim.Debugging
     /// saiya_form ssj xp 100       joga XP na skill de maestria daquela forma
     /// saiya_form hair             lista os penteados do jogo, com o nome legivel de cada um
     /// saiya_form hair Hair6       experimenta um penteado sem transformar
+    /// saiya_form hair spiked      experimenta a versão espetada do penteado do personagem
     /// saiya_form hair off         devolve o penteado do personagem
     /// </code>
     ///
@@ -51,7 +52,7 @@ namespace Saiyaheim.Debugging
         public override string Help =>
             "Inspects transformations. " +
             "Usage: saiya_form [<form>] [gate | unlock | lock | skill <level> | xp <amount> | " +
-            "hair [<name> | off]]";
+            "hair [<name> | spiked | off]]";
 
         /// <summary>
         /// Os nomes das formas entram no autocomplete junto dos subcomandos. É a escada que muda
@@ -510,6 +511,18 @@ namespace Saiyaheim.Debugging
                 return;
             }
 
+            // A mesma tradução que a forma faz com "Spiked" no HairItem, para conferir a malha
+            // espetada do próprio cabelo sem precisar de ki nem de forma destravada.
+            if (string.Equals(name, CustomHair.SpikedKeyword, StringComparison.OrdinalIgnoreCase))
+            {
+                name = TransformationEffects.ResolveHairItem(player, CustomHair.SpikedKeyword);
+                if (string.IsNullOrEmpty(name))
+                {
+                    Print($"{player.GetHair()} has no spiked version yet.");
+                    return;
+                }
+            }
+
             if (!TransformationEffects.ApplyHairStyle(player, name))
             {
                 Print($"No hair item named '{name}'. Run 'saiya_form hair' for the list.");
@@ -528,6 +541,10 @@ namespace Saiyaheim.Debugging
         /// (<c>GetAllItems(Customization, "Hair")</c>), inclusive descartando os nomes com
         /// <c>_</c> — são variantes internas, não opções. Uma lista escrita à mão aqui
         /// envelheceria na primeira atualização do Valheim que acrescentasse um cabelo.
+        ///
+        /// Os nossos <c>SaiyaHairN</c> não entram nesse filtro — o <c>GetAllItems</c> casa pelo
+        /// <b>começo</b> do nome, e é isso que os mantém fora do barbeiro. Por isso aparecem ao
+        /// lado do cabelo do jogo de que nasceram, em vez de numa linha própria.
         /// </summary>
         private void PrintHairList(Player player)
         {
@@ -553,10 +570,12 @@ namespace Saiyaheim.Debugging
 
             foreach (ItemDrop hair in hairs)
             {
+                string spiked = CustomHair.GetSpikedVariant(hair.name);
+                string spikedMark = spiked == null ? "" : $"  (spiked: {spiked})";
                 string mark = hair.name == worn ? " <- worn" : "";
-                string used = FormsUsing(hair.name);
+                string used = FormsUsing(hair.name, spiked, hair.name == worn);
 
-                Print($"  {hair.name,-10} {HairLabel(hair.name)}{used}{mark}");
+                Print($"  {hair.name,-10} {HairLabel(hair.name)}{spikedMark}{used}{mark}");
             }
         }
 
@@ -572,19 +591,31 @@ namespace Saiyaheim.Debugging
         }
 
         /// <summary>
-        /// As formas cujo <c>HairItem</c> aponta para este penteado, entre colchetes, ou vazio.
-        /// Existe para a lista responder "este já é o cabelo do SSJ3" sem obrigar a abrir o
-        /// <c>.cfg</c> ao lado.
+        /// As formas que vestem este penteado, entre colchetes, ou vazio. Existe para a lista
+        /// responder "este já é o cabelo do SSJ3" sem obrigar a abrir o <c>.cfg</c> ao lado.
+        ///
+        /// Conta três jeitos de uma forma chegar a ele: pelo nome do jogo, pelo nome da versão
+        /// espetada (<paramref name="spiked"/>), e pelo <c>Spiked</c> quando este é o penteado que
+        /// o personagem usa — esse último só vale na linha do <paramref name="worn"/>, porque é o
+        /// cabelo de cada personagem que decide.
         /// </summary>
-        private static string FormsUsing(string name)
+        private static string FormsUsing(string name, string spiked, bool worn)
         {
             List<string> forms = new List<string>();
 
             foreach (Transformation form in TransformationRegistry.All)
             {
-                if (string.Equals(form.Config.HairItem.Value, name, StringComparison.OrdinalIgnoreCase))
+                string item = form.Config.HairItem.Value;
+
+                if (string.Equals(item, name, StringComparison.OrdinalIgnoreCase))
                 {
                     forms.Add(form.DisplayName);
+                }
+                else if (spiked != null &&
+                         (string.Equals(item, spiked, StringComparison.OrdinalIgnoreCase) ||
+                          (worn && string.Equals(item, CustomHair.SpikedKeyword, StringComparison.OrdinalIgnoreCase))))
+                {
+                    forms.Add(form.DisplayName + " spiked");
                 }
             }
 

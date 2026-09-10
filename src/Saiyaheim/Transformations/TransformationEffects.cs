@@ -372,7 +372,41 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static void SetHairStyle(Player player, Transformation form)
         {
-            ApplyHairStyle(player, form == null ? "" : form.Config.HairItem.Value);
+            ApplyHairStyle(player, ResolveHairItem(player, form == null ? "" : form.Config.HairItem.Value));
+        }
+
+        /// <summary>
+        /// Traduz o <c>HairItem</c> da forma no nome do item a vestir.
+        ///
+        /// Um nome de item passa direto. O <see cref="CustomHair.SpikedKeyword"/> vira a versão
+        /// espetada do cabelo que o personagem usa <b>agora</b> — lido do <c>Humanoid.GetHair()</c>
+        /// a cada chamada, sem cache, pelo mesmo motivo do <see cref="RestoreHairStyle"/>: quem
+        /// passa no barbeiro transformado volta com outro cabelo, e a forma tem que acompanhar.
+        /// Como o <see cref="ReapplyHair"/> passa por aqui a cada troca de equipamento, a tradução
+        /// se refaz sozinha.
+        ///
+        /// <b>Sem versão espetada, devolve vazio</b> — ou seja, o cabelo do personagem, na cor da
+        /// forma. É o que a forma fazia antes de existir cabelo espetado, e é melhor do que trocar
+        /// para um penteado que o jogador não escolheu.
+        ///
+        /// Público para o <c>saiya_form hair spiked</c>, que experimenta a tradução sem transformar.
+        /// </summary>
+        internal static string ResolveHairItem(Player player, string configured)
+        {
+            if (!string.Equals(configured, CustomHair.SpikedKeyword, StringComparison.OrdinalIgnoreCase))
+            {
+                return configured;
+            }
+
+            string own = player == null ? null : player.GetHair();
+            string spiked = CustomHair.GetSpikedVariant(own);
+            if (spiked == null)
+            {
+                SaiyaheimPlugin.LogVerbose($"No spiked version of '{own}'. Keeping the character's own hair.");
+                return "";
+            }
+
+            return spiked;
         }
 
         /// <summary>
@@ -400,8 +434,9 @@ namespace Saiyaheim.Transformations
             if (ObjectDB.instance == null || ObjectDB.instance.GetItemPrefab(name) == null)
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"HairItem '{name}' does not exist. Valid names are the game's own hair items " +
-                    "(Hair1..Hair37, HairNone) — run 'saiya_form hair' to list them.");
+                    $"HairItem '{name}' does not exist. Valid values are '{CustomHair.SpikedKeyword}', " +
+                    "the game's own hair items (Hair1..Hair37, HairNone) and the mod's spiked ones " +
+                    "(SaiyaHair6 and so on) — run 'saiya_form hair' to list them.");
                 return false;
             }
 

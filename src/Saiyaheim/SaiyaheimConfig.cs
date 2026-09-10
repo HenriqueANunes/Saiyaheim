@@ -396,8 +396,10 @@ namespace Saiyaheim
             public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
 
             /// <summary>
-            /// Penteado usado enquanto a forma está ativa, pelo nome do item de customização do
-            /// jogo (<c>Hair1</c>..<c>Hair37</c>, <c>HairNone</c>). Vazio mantém o do personagem.
+            /// Penteado usado enquanto a forma está ativa: <c>Spiked</c> para a versão espetada do
+            /// cabelo do personagem, ou o nome de um item de customização — do jogo
+            /// (<c>Hair1</c>..<c>Hair37</c>, <c>HairNone</c>) ou nosso (<c>SaiyaHair6</c>...).
+            /// Vazio mantém o do personagem.
             /// </summary>
             public ConfigEntry<string> HairItem { get; internal set; }
 
@@ -1719,7 +1721,9 @@ namespace Saiyaheim
                 carryWeightBonus: 100f,
                 hairColor: "#FFE14A",
                 requiredGlobalKey: "defeated_eikthyr",
-                lightning: false);
+                lightning: false,
+                // O cabelo do proprio personagem, espetado. Ver a nota do HairItem do SSJ3.
+                hairItem: "Spiked");
 
             // O SSJ2 atras do Elder — o boss seguinte ao do SSJ, mantendo o ritmo de um degrau por
             // boss. Ver [[Progressao por Bosses]].
@@ -1768,7 +1772,10 @@ namespace Saiyaheim
                 // Brilha metade de novo que o SSJ. E' o unico numero visual da forma que sobe
                 // junto com a forca dela — de longe e a noite, quem esta' em SSJ2 acende mais
                 // chao. Chute inicial: o degrau precisa ser visivel sem virar holofote.
-                glowIntensity: 1.5f);
+                glowIntensity: 1.5f,
+                // Mesma malha do SSJ: ha' um grau de espeto so' por penteado, entao o que separa
+                // os dois degraus continua sendo a cor e o raio.
+                hairItem: "Spiked");
 
             // O SSJ3 atras do Bonemass — o terceiro boss, mantendo o ritmo de um degrau por boss.
             // Ver [[Progressao por Bosses]].
@@ -1792,10 +1799,16 @@ namespace Saiyaheim
             //     anteriores.
             //
             // O visual e' onde este degrau se separa dos outros dois: ele e' o primeiro que muda a
-            // SILHUETA em vez de so' a cor. HairItem Hair6 ("Long and Loose") e' o cabelo comprido
-            // do genero, e o tom volta um pouco para o dourado fechado — o SSJ2 ja' tinha ido para
-            // o amarelo quase branco, e clarear mais so' entregaria dois degraus indistinguiveis.
-            // Raio branco pelo mesmo motivo do azul do SSJ2: contraste com a aura, nao harmonia.
+            // SILHUETA em vez de so' a cor. HairItem SaiyaHair6 e' o Hair6 ("Long and Loose")
+            // espetado, o cabelo comprido do genero, e o tom volta um pouco para o dourado
+            // fechado — o SSJ2 ja' tinha ido para o amarelo quase branco, e clarear mais so'
+            // entregaria dois degraus indistinguiveis. Raio branco pelo mesmo motivo do azul do
+            // SSJ2: contraste com a aura, nao harmonia.
+            //
+            // Por que o SSJ3 fica com um penteado FIXO enquanto SSJ e SSJ2 vestem o do proprio
+            // personagem espetado (2026-09-10): com "Spiked" nos tres, os tres degraus teriam a
+            // mesma malha e so' a cor os separaria. O comprido fixo mantem o SSJ3 legivel de longe
+            // e de costas, que e' a razao de a chave existir. Ver [[Transformacoes]].
             Ssj3 = BindTransformation(config, SecSsj3,
                 // Calibrados no playtest de 2026-09-07, o primeiro do SSJ3.
                 powerMultiplier: 4f,
@@ -1809,7 +1822,7 @@ namespace Saiyaheim
                 lightningColor: "#FFFFFF",
                 // Brilha o dobro do SSJ, meio a mais que o SSJ2 — o mesmo passo de 0,5 por degrau.
                 glowIntensity: 2f,
-                hairItem: "Hair6");
+                hairItem: "SaiyaHair6");
 
             // --- Ataques de ki ---
             KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
@@ -3937,23 +3950,32 @@ namespace Saiyaheim
                 // cabelo, e sem esta chave a unica diferenca dele para o SSJ2 seria o tom do
                 // amarelo.
                 //
-                // Nomes validos sao os itens de customizacao do proprio jogo: Hair1..Hair37 e
-                // HairNone. Nome invalido nao pinta nem estoura — o mod avisa no log e mantem o
-                // cabelo do personagem, porque um Hair99 no .cfg deixaria o jogador CARECA em
-                // forma, que e' pior que ignorar a chave.
+                // Tres tipos de valor: "Spiked" (o cabelo do proprio personagem, na versao
+                // espetada do CustomHair), um item do jogo (Hair1..Hair37, HairNone) ou um item
+                // nosso (SaiyaHair6...), fixo para quem quer que transforme. Nome invalido nao
+                // pinta nem estoura — o mod avisa no log e mantem o cabelo do personagem, porque
+                // um Hair99 no .cfg deixaria o jogador CARECA em forma, que e' pior que ignorar a
+                // chave. "Spiked" sobre um cabelo sem versao espetada tambem mantem o do
+                // personagem, mas sem aviso: ali nao ha erro de ninguem.
                 HairItem = config.Bind(section, "HairItem", hairItem,
                     new ConfigDescription(
-                        "Hairstyle worn while this form is active, by the game's own customization " +
-                        "item name. Empty keeps the character's own hair, which is what every " +
-                        "form did before this key existed. \n" +
-                        "Valid names are Hair1 to Hair37 and HairNone, the same list the barber " +
-                        "offers. They are numbered, not named, so run 'saiya_form hair' in the " +
-                        "console to print the list with the readable name of each one, and " +
-                        "'saiya_form hair <name>' to try one on without transforming. \n" +
+                        "Hairstyle worn while this form is active. Empty keeps the character's " +
+                        "own hair, which is what every form did before this key existed. \n" +
+                        "'Spiked' wears the spiked version of the character's own hair, whatever " +
+                        "it is. Hairs with no spiked version (bald, and any the mod has not " +
+                        "sculpted yet) keep the character's own. \n" +
+                        "Any other value is a fixed hairstyle, by item name: the game's own " +
+                        "Hair1 to Hair37 and HairNone — the barber's list — or the mod's spiked " +
+                        "SaiyaHair1, SaiyaHair2 and so on, one per game hair. They are numbered, " +
+                        "not named, so run 'saiya_form hair' in the console to print the list " +
+                        "with the readable name of each one, and 'saiya_form hair <name>' to try " +
+                        "one on without transforming. \n" +
                         "The long ones are Hair6 (Long and Loose), Hair11 (Long Braid) and Hair30 " +
                         "(Loose Waves). \n" +
                         "A helmet hides the hair exactly as it hides your normal one — the form " +
-                        "keeps its hairstyle, you just cannot see it. \n" +
+                        "keeps its hairstyle, you just cannot see it. Hoods and helmets that swap " +
+                        "the hair for a shorter variant show the game's plain variant, without " +
+                        "spikes. \n" +
                         "The character's real hairstyle is never overwritten: this only lives for " +
                         "as long as the form does, and a crash while transformed leaves nothing " +
                         "behind.",
