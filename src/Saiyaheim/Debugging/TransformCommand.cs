@@ -28,6 +28,7 @@ namespace Saiyaheim.Debugging
     /// saiya_form hair Hair6       experimenta um penteado sem transformar
     /// saiya_form hair spiked      experimenta a versão espetada do penteado do personagem
     /// saiya_form hair off         devolve o penteado do personagem
+    /// saiya_form hair inspect     lista o que está na cabeça agora, com a malha de cada renderer
     /// </code>
     ///
     /// <b>Por que o <c>hair</c> mora aqui.</b> A chave <c>HairItem</c> de cada forma pede o nome
@@ -52,7 +53,7 @@ namespace Saiyaheim.Debugging
         public override string Help =>
             "Inspects transformations. " +
             "Usage: saiya_form [<form>] [gate | unlock | lock | skill <level> | xp <amount> | " +
-            "hair [<name> | spiked | off]]";
+            "hair [<name> | spiked | off | inspect]]";
 
         /// <summary>
         /// Os nomes das formas entram no autocomplete junto dos subcomandos. É a escada que muda
@@ -499,6 +500,12 @@ namespace Saiyaheim.Debugging
                 return;
             }
 
+            if (string.Equals(name, "inspect", StringComparison.OrdinalIgnoreCase))
+            {
+                PrintHeadAttachments(player);
+                return;
+            }
+
             if (!RequireCheats("hair"))
             {
                 return;
@@ -531,6 +538,69 @@ namespace Saiyaheim.Debugging
 
             Print($"Wearing {name} ({HairLabel(name)}). Preview only: it lasts until you power " +
                   "down, wear another one, or run 'saiya_form hair off'.");
+        }
+
+        /// <summary>
+        /// O penteado vestido, nas duas pontas: o prefab que o <c>ObjectDB</c> devolve para o hash
+        /// gravado na ZDO, e o que está pendurado na junta da cabeça. As duas com a malha de cada
+        /// renderer e de cada <c>MeshFilter</c>, pelo id. O log do registro só vê o clone na hora
+        /// em que ele é montado; isto mostra onde a malha se perde depois.
+        /// </summary>
+        private void PrintHeadAttachments(Player player)
+        {
+            VisEquipment vis = player.GetComponent<VisEquipment>();
+            if (vis == null || vis.m_helmet == null)
+            {
+                Print("No head joint found on the player.");
+                return;
+            }
+
+            ZNetView view = player.GetComponent<ZNetView>();
+            int hash = view != null && view.IsValid() ? view.GetZDO().GetInt(ZDOVars.s_hairItem) : 0;
+            GameObject prefab = hash == 0 || ObjectDB.instance == null
+                ? null
+                : ObjectDB.instance.GetItemPrefab(hash);
+            if (prefab == null)
+            {
+                Report($"prefab: none for hash {hash}");
+            }
+            else
+            {
+                foreach (Renderer r in prefab.GetComponentsInChildren<Renderer>(true))
+                {
+                    Report($"prefab {prefab.name}/{r.name}: {DescribeRenderer(r)}");
+                }
+            }
+
+            foreach (Transform child in vis.m_helmet)
+            {
+                foreach (Renderer r in child.GetComponentsInChildren<Renderer>(true))
+                {
+                    Report($"head {child.name}/{r.name}: {DescribeRenderer(r)}");
+                }
+            }
+        }
+
+        private void Report(string line)
+        {
+            Print(line);
+            SaiyaheimPlugin.Log.LogInfo("[hair inspect] " + line);
+        }
+
+        private static string DescribeRenderer(Renderer r)
+        {
+            SkinnedMeshRenderer skinned = r as SkinnedMeshRenderer;
+            MeshFilter filter = r.GetComponent<MeshFilter>();
+            Cloth cloth = r.GetComponent<Cloth>();
+            return $"{r.GetType().Name}, enabled {r.enabled}, visible {r.isVisible}, " +
+                   $"renderer mesh {DescribeMesh(skinned != null ? skinned.sharedMesh : null)}, " +
+                   $"filter mesh {(filter == null ? "no filter" : DescribeMesh(filter.sharedMesh))}, " +
+                   $"cloth {(cloth == null ? "none" : cloth.enabled ? "on" : "off")}";
+        }
+
+        private static string DescribeMesh(Mesh mesh)
+        {
+            return mesh == null ? "none" : $"{mesh.name} {mesh.vertexCount} #{mesh.GetInstanceID()}";
         }
 
         /// <summary>

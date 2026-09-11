@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -331,6 +332,18 @@ namespace Saiyaheim.Transformations
 
         private static AssetBundle _bundle;
 
+        /// <summary>As malhas que saíram do nosso bundle. Ver <see cref="IsCustomMesh"/>.</summary>
+        private static readonly HashSet<Mesh> LoadedMeshes = new HashSet<Mesh>();
+
+        /// <summary>
+        /// Se a malha saiu do nosso bundle. É o que deixa o <see cref="HairAttachPatch"/> mexer só
+        /// nos nossos cabelos, e não em qualquer peça do jogo que tenha <c>MeshFilter</c>.
+        /// </summary>
+        internal static bool IsCustomMesh(Mesh mesh)
+        {
+            return mesh != null && LoadedMeshes.Contains(mesh);
+        }
+
         /// <summary>
         /// A versão espetada de um penteado do jogo — <c>Hair6</c> devolve <c>SaiyaHair6</c> — ou
         /// null quando não há uma.
@@ -469,6 +482,10 @@ namespace Saiyaheim.Transformations
             {
                 SaiyaheimPlugin.Log.LogError($"'{assetName}' did not load as a mesh.");
             }
+            else
+            {
+                LoadedMeshes.Add(mesh);
+            }
 
             return mesh;
         }
@@ -569,6 +586,7 @@ namespace Saiyaheim.Transformations
             if (part.Child == null)
             {
                 skinned = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault();
+                filter = skinned != null ? skinned.GetComponent<MeshFilter>() : null;
             }
             else
             {
@@ -621,18 +639,23 @@ namespace Saiyaheim.Transformations
                 return false;
             }
 
+            // ⚠️ Os dois, quando a peça tem os dois. O cabelo rígido do Hair1 e o rabo do Hair2 têm
+            // `SkinnedMeshRenderer` e `MeshFilter` no mesmo objeto. Trocando só o primeiro, o
+            // clone sai certo, mas a instância vestida na cabeça desenha uma cópia da malha do
+            // `MeshFilter` — a vanilla (visto com `saiya_form hair inspect` em 2026-09-11:
+            // `Hair_01(Clone) 66` no lugar dos 5.940 vértices). Sem erro em lugar nenhum.
             if (skinned != null)
             {
                 skinned.sharedMesh = mesh;
             }
-            else
+            if (filter != null)
             {
                 filter.sharedMesh = mesh;
             }
 
             SaiyaheimPlugin.LogVerbose(
-                $"Hair mesh '{mesh.name}' on '{part.Child ?? prefab.name}': {mesh.vertexCount} " +
-                $"vertices, {mesh.bindposes.Length} bindposes.");
+                $"Hair mesh '{mesh.name}' #{mesh.GetInstanceID()} on '{part.Child ?? prefab.name}': " +
+                $"{mesh.vertexCount} vertices, {mesh.bindposes.Length} bindposes.");
 
             return true;
         }
