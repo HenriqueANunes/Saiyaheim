@@ -29,6 +29,10 @@
          só não registra o cabelo custom (CustomHair avisa no log e segue). Sem o Condition, a
          ausência do arquivo seria erro de compilação. -->
     <EmbeddedResource Include="Assets\saiyaheim_hair" Condition="Exists('Assets\saiyaheim_hair')" />
+
+    <!-- Ícones das skills (Power Level, Flight, maestrias). Arte final, versionada direto —
+         diferente do bundle de cabelo, não é saída de pipeline gerada fora do repo. -->
+    <EmbeddedResource Include="Assets\icons\*.jpg" />
   </ItemGroup>
 
   <ItemGroup>

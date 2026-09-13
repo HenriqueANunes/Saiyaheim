@@ -1,5 +1,7 @@
+using Jotunn.Configs;
 using Jotunn.Managers;
 using Saiyaheim.Ki;
+using Saiyaheim.Util;
 
 namespace Saiyaheim.Flight
 {
@@ -32,12 +34,14 @@ namespace Saiyaheim.Flight
 
         internal static void Register()
         {
-            // Ícone null é aceito pelo Jotunn: a skill aparece no menu sem arte própria.
-            Type = SkillManager.Instance.AddSkill(
-                Identifier,
-                "Flight",
-                "Grows while you are airborne. Higher levels fly faster and burn less ki.",
-                increaseStep: 1f);
+            Type = SkillManager.Instance.AddSkill(new SkillConfig
+            {
+                Identifier = Identifier,
+                Name = "Flight",
+                Description = "Grows while you are airborne. Higher levels fly faster and burn less ki.",
+                IncreaseStep = 1f,
+                Icon = IconLoader.Load("flight"),
+            });
 
             SaiyaheimPlugin.Log.LogInfo($"Skill 'Flight' registered ({Type}).");
         }

@@ -1,3 +1,4 @@
+using Jotunn.Configs;
 using Jotunn.Managers;
 using Saiyaheim.Power;
 using Saiyaheim.Util;
@@ -87,15 +88,16 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal void Register()
         {
-            // Ícone null é aceito pelo Jotunn: a skill aparece no menu sem arte própria.
-            // Arte é polimento da etapa 11 e não bloqueia nada.
-            SkillType = SkillManager.Instance.AddSkill(
-                "saiyaheim.mastery." + Id,
-                DisplayName,
-                $"Mastery of the {DisplayName} form. Grows while you hold it — or any form above " +
-                "it — and every level makes holding it cost less ki. It does not make the form " +
-                "stronger — that is Power Level's job.",
-                increaseStep: 1f);
+            SkillType = SkillManager.Instance.AddSkill(new SkillConfig
+            {
+                Identifier = "saiyaheim.mastery." + Id,
+                Name = DisplayName,
+                Description = $"Mastery of the {DisplayName} form. Grows while you hold it — or any form " +
+                              "above it — and every level makes holding it cost less ki. It does not make " +
+                              "the form stronger — that is Power Level's job.",
+                IncreaseStep = 1f,
+                Icon = IconLoader.Load(Id),
+            });
 
             SaiyaheimPlugin.Log.LogInfo($"Skill '{DisplayName}' (mastery) registered ({SkillType}).");
         }

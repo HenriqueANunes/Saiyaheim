@@ -1,5 +1,7 @@
+using Jotunn.Configs;
 using Jotunn.Managers;
 using Saiyaheim.Ki;
+using Saiyaheim.Util;
 using UnityEngine;
 
 namespace Saiyaheim.Power
@@ -45,14 +47,15 @@ namespace Saiyaheim.Power
 
         internal static void Register()
         {
-            // Ícone null é aceito pelo Jotunn: a skill aparece no menu sem arte própria.
-            // Trocar por um ícone do jogo é polimento da etapa 11, não bloqueia nada.
-            Type = SkillManager.Instance.AddSkill(
-                Identifier,
-                "Power Level",
-                "Grows by fighting with ki turned on: landing blows and taking damage. " +
-                "Determines punch damage, armor and the ki cap.",
-                increaseStep: 1f);
+            Type = SkillManager.Instance.AddSkill(new SkillConfig
+            {
+                Identifier = Identifier,
+                Name = "Power Level",
+                Description = "Grows by fighting with ki turned on: landing blows and taking damage. " +
+                              "Determines punch damage, armor and the ki cap.",
+                IncreaseStep = 1f,
+                Icon = IconLoader.Load("power_level"),
+            });
 
             SaiyaheimPlugin.Log.LogInfo($"Skill 'Power Level' registered ({Type}).");
         }
