@@ -154,6 +154,108 @@ namespace Saiyaheim.Attacks
         private const string MuscleKneeL = "Left Lower Leg Stretch";
         private const string MuscleKneeR = "Right Lower Leg Stretch";
 
+        // ---------- A pose, fechada ----------
+        //
+        // Estes números moraram na seção "8.3 - Kamehameha Pose" do .cfg enquanto as duas fases
+        // eram calibradas na tela. Viraram constantes em 2026-09-13, junto com as outras duas
+        // poses: pose é desenho do mod, não preferência de jogador. Ajustar exige recompilar.
+        //
+        // É a maior das três, e não por falta de corte: é a primeira pose com DUAS FASES
+        // (carregar e soltar) e DOIS LADOS (a mão de baixo, Cup, e a de cima, Cross). Um alvo de
+        // braço aparece quatro vezes porque nenhuma das duas divisões se provou dispensável: as
+        // fases são gestos diferentes, e os dois braços que se encontram num ponto do corpo não
+        // fazem a mesma coisa em eixo nenhum. O que não depende de fase nem de lado — pernas,
+        // pesos de grupo, seguimento de mira — continua com um número só.
+
+        // Tempo das fases. A concha sobe devagar, o empurrão estala.
+        private const float RiseSeconds = 0.25f;
+        private const float ReleaseRiseSeconds = 0.08f;
+        private const float HoldSeconds = 0.7f;
+        private const float FallSeconds = 0.35f;
+
+        // Pesos de grupo: interruptores, não intensidades. Zero é "deixa a animação em paz".
+        // Lombar e pernas ficam em zero pelo mesmo motivo das outras poses — no rig do Valheim a
+        // lombar arrasta o quadril e as pernas tiram os pés do chão.
+        private const float ArmWeight = 1f;
+        private const float ForearmWeight = 1f;
+        private const float ShoulderWeight = 1f;
+        private const float TorsoWeight = 1f;
+        private const float SpineWeight = 0f;
+        private const float LegWeight = 0f;
+        private const float HandWeight = 1f;
+
+        // --- Fase de carga: a concha ao lado do quadril ---
+        private const float ChargeCupArmHeight = -0.3f;
+        private const float ChargeCrossArmHeight = -0.35f;
+        private const float ChargeCupArmForward = 0f;
+        private const float ChargeCrossArmForward = 0.65f;
+        private const float ChargeCupArmTwist = -0.2f;
+        private const float ChargeCrossArmTwist = -0.7f;
+        private const float ChargeCupForearmTwist = 1f;
+        private const float ChargeCrossForearmTwist = 1f;
+        private const float ChargeCupElbowBend = -0.3f;
+        private const float ChargeCrossElbowBend = 0.4f;
+        private const float ChargeCupShoulderPush = -1f;
+        private const float ChargeCrossShoulderPush = 0f;
+        private const float ChargeCupShoulderLift = 1f;
+        private const float ChargeCrossShoulderLift = 0f;
+        private const float ChargeCupWristBend = 1f;
+        private const float ChargeCrossWristBend = 0.6f;
+        private const float ChargeCupWristSide = 0f;
+        private const float ChargeCrossWristSide = 0f;
+
+        // Tronco na carga: torcido para o lado da concha, inclinado por cima dela, e o corpo
+        // inteiro girado em graus para o ombro não esconder as mãos da câmera.
+        private const float ChargeTorsoTwist = 0.35f;
+        private const float ChargeTorsoLean = 0.2f;
+        private const float ChargeBodyYaw = 30f;
+
+        /// <summary>Quanto os dedos fecham em concha enquanto carrega. Zero é mão chapada.</summary>
+        private const float ChargeHandCup = 0f;
+
+        // --- Fase de disparo: o empurrão de duas mãos ---
+        private const float ReleaseCupArmHeight = 0.2f;
+        private const float ReleaseCrossArmHeight = 0.2f;
+        private const float ReleaseCupArmForward = 0.75f;
+        private const float ReleaseCrossArmForward = 0.75f;
+        private const float ReleaseCupArmTwist = 0f;
+        private const float ReleaseCrossArmTwist = 1f;
+        private const float ReleaseCupForearmTwist = 0f;
+        private const float ReleaseCrossForearmTwist = 0.5f;
+        private const float ReleaseCupElbowStretch = 1f;
+        private const float ReleaseCrossElbowStretch = 1f;
+        private const float ReleaseCupShoulderPush = 1f;
+        private const float ReleaseCrossShoulderPush = 0.9f;
+        private const float ReleaseCupShoulderLift = 0.1f;
+        private const float ReleaseCrossShoulderLift = 0.1f;
+        private const float ReleaseCupWristBend = 1f;
+        private const float ReleaseCrossWristBend = 1f;
+        private const float ReleaseCupWristSide = 0f;
+        private const float ReleaseCrossWristSide = -1f;
+
+        // Tronco no disparo: de frente para o alvo, inclinado para dentro do empurrão.
+        private const float ReleaseTorsoTwist = 0f;
+        private const float ReleaseTorsoLean = 0.25f;
+        private const float ReleaseBodyYaw = 0f;
+        private const float ReleaseHandOpen = 1f;
+
+        // Mira. O BodyYawCompensation desconta do braço o giro que o corpo já fez — sem ele o
+        // feixe sai torto pelo mesmo ângulo do ChargeBodyYaw.
+        private const float AimFollowPitch = 1f;
+        private const float AimFollowYaw = 1f;
+        private const float BodyYawCompensation = 1f;
+
+        // Pernas e quadril: a base plantada. Só entram com o GroundWeight; ver LegWeight acima.
+        private const float StanceWidth = 0.35f;
+        private const float KneeStretch = 0.25f;
+        private const float HipDrop = 0.05f;
+
+        // A vida da pose: a senóide lenta de esforço e o tremor rápido.
+        private const float Strain = 0.07f;
+        private const float StrainSpeed = 2.2f;
+        private const float Tremor = 0.02f;
+        private const float TremorSpeed = 17f;
+
         private static bool _warnedMissing;
 
         private sealed class PoseState
@@ -287,7 +389,7 @@ namespace Saiyaheim.Attacks
             // caso comum e, de quebra, o que impede um ki blast avulso de virar Kamehameha.
             if (state.Armed && ObserveBlast(player, state))
             {
-                state.HoldUntil = Time.time + Mathf.Max(0f, SaiyaheimConfig.BeamPoseHoldSeconds.Value);
+                state.HoldUntil = Time.time + Mathf.Max(0f, HoldSeconds);
             }
 
             bool releasing = Time.time < state.HoldUntil || IsDebugReleasing(player);
@@ -299,7 +401,7 @@ namespace Saiyaheim.Attacks
                 state.Armed = false;
             }
 
-            bool up = SaiyaheimConfig.BeamPoseEnabled.Value && (charging || releasing);
+            bool up = charging || releasing;
 
             state.ActionWeight = Mathf.MoveTowards(
                 state.ActionWeight, ActionTarget(player),
@@ -316,12 +418,12 @@ namespace Saiyaheim.Attacks
             {
                 state.Release = Mathf.MoveTowards(
                     state.Release, releasing ? 1f : 0f,
-                    StepPerSecond(SaiyaheimConfig.BeamPoseReleaseRiseSeconds.Value) * deltaTime);
+                    StepPerSecond(ReleaseRiseSeconds) * deltaTime);
             }
 
             float blend = up
-                ? SaiyaheimConfig.BeamPoseRiseSeconds.Value
-                : SaiyaheimConfig.BeamPoseFallSeconds.Value;
+                ? RiseSeconds
+                : FallSeconds;
 
             state.Weight = Mathf.MoveTowards(
                 state.Weight, up ? 1f : 0f, StepPerSecond(blend) * deltaTime);
@@ -368,11 +470,11 @@ namespace Saiyaheim.Attacks
             float life = 1f - release;
             float time = Time.time + state.Phase;
 
-            float strain = Mathf.Sin(time * SaiyaheimConfig.BeamPoseStrainSpeed.Value)
-                           * SaiyaheimConfig.BeamPoseStrain.Value * life;
+            float strain = Mathf.Sin(time * StrainSpeed)
+                           * Strain * life;
 
-            float tremorAmount = SaiyaheimConfig.BeamPoseTremor.Value * life;
-            float tremorSpeed = SaiyaheimConfig.BeamPoseTremorSpeed.Value;
+            float tremorAmount = Tremor * life;
+            float tremorSpeed = TremorSpeed;
 
             // Frequências ligeiramente diferentes entre os lados: em sincronia o tremor lê como
             // vibração mecânica, fora de fase lê como músculo.
@@ -412,9 +514,9 @@ namespace Saiyaheim.Attacks
             // vira "o quanto o peito alcança" em vez do ângulo exato. É o preço certo, porque o
             // ki blast continua mirando pelo braço e funciona: **um** braço não tem lado para
             // divergir.
-            float aimPitch = AimFollow(player, SaiyaheimConfig.BeamPoseAimFollowPitch.Value, true)
+            float aimPitch = AimFollow(player, AimFollowPitch, true)
                              * release;
-            float aimYaw = AimFollow(player, SaiyaheimConfig.BeamPoseAimFollowYaw.Value, false)
+            float aimYaw = AimFollow(player, AimFollowYaw, false)
                            * release;
 
             // O corpo girado leva os braços junto, e eles são escritos no referencial dele — então
@@ -434,7 +536,7 @@ namespace Saiyaheim.Attacks
             // contá-lo aqui de novo faria a compensação entrar ao quadrado enquanto a pose sobe.
             float bodyYawDesign = BodyYawDegrees(release) * cupSign * state.GroundWeight;
             float bodyYawToTorso = -bodyYawDesign / 90f
-                                   * SaiyaheimConfig.BeamPoseBodyYawCompensation.Value;
+                                   * BodyYawCompensation;
 
             ApplyBodyYaw(ref pose, state, bodyYawDesign * weight);
 
@@ -458,8 +560,8 @@ namespace Saiyaheim.Attacks
         private static float BodyYawDegrees(float release)
         {
             return Mathf.Lerp(
-                SaiyaheimConfig.BeamPoseChargeBodyYaw.Value,
-                SaiyaheimConfig.BeamPoseReleaseBodyYaw.Value, release);
+                ChargeBodyYaw,
+                ReleaseBodyYaw, release);
         }
 
         /// <summary>
@@ -564,20 +666,20 @@ namespace Saiyaheim.Attacks
                 // fica o braço".
                 Height = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupArmHeight.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossArmHeight.Value,
+                        ? ChargeCupArmHeight
+                        : ChargeCrossArmHeight,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupArmHeight.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossArmHeight.Value,
+                        ? ReleaseCupArmHeight
+                        : ReleaseCrossArmHeight,
                     release),
 
                 Forward = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupArmForward.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossArmForward.Value,
+                        ? ChargeCupArmForward
+                        : ChargeCrossArmForward,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupArmForward.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossArmForward.Value,
+                        ? ReleaseCupArmForward
+                        : ReleaseCrossArmForward,
                     release),
 
                 // O mesmo número não é um espelho: "Twist In-Out" já é nomeado em relação ao corpo,
@@ -585,67 +687,67 @@ namespace Saiyaheim.Attacks
                 // própria é outra coisa — é que eles querem valores diferentes, não sinais.
                 Twist = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupArmTwist.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossArmTwist.Value,
+                        ? ChargeCupArmTwist
+                        : ChargeCrossArmTwist,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupArmTwist.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossArmTwist.Value,
+                        ? ReleaseCupArmTwist
+                        : ReleaseCrossArmTwist,
                     release),
 
                 // Mesma convenção do twist do úmero: o mesmo número não é espelho, é "para dentro"
                 // dos dois lados.
                 ForearmTwist = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupForearmTwist.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossForearmTwist.Value,
+                        ? ChargeCupForearmTwist
+                        : ChargeCrossForearmTwist,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupForearmTwist.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossForearmTwist.Value,
+                        ? ReleaseCupForearmTwist
+                        : ReleaseCrossForearmTwist,
                     release),
 
                 Elbow = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupElbowBend.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossElbowBend.Value,
+                        ? ChargeCupElbowBend
+                        : ChargeCrossElbowBend,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupElbowStretch.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossElbowStretch.Value,
+                        ? ReleaseCupElbowStretch
+                        : ReleaseCrossElbowStretch,
                     release),
 
                 ShoulderPush = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupShoulderPush.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossShoulderPush.Value,
+                        ? ChargeCupShoulderPush
+                        : ChargeCrossShoulderPush,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupShoulderPush.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossShoulderPush.Value,
+                        ? ReleaseCupShoulderPush
+                        : ReleaseCrossShoulderPush,
                     release),
 
                 ShoulderLift = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupShoulderLift.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossShoulderLift.Value,
+                        ? ChargeCupShoulderLift
+                        : ChargeCrossShoulderLift,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupShoulderLift.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossShoulderLift.Value,
+                        ? ReleaseCupShoulderLift
+                        : ReleaseCrossShoulderLift,
                     release),
 
                 Wrist = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupWristBend.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossWristBend.Value,
+                        ? ChargeCupWristBend
+                        : ChargeCrossWristBend,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupWristBend.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossWristBend.Value,
+                        ? ReleaseCupWristBend
+                        : ReleaseCrossWristBend,
                     release),
 
                 WristSide = Mathf.Lerp(
                     cup
-                        ? SaiyaheimConfig.BeamPoseChargeCupWristSide.Value
-                        : SaiyaheimConfig.BeamPoseChargeCrossWristSide.Value,
+                        ? ChargeCupWristSide
+                        : ChargeCrossWristSide,
                     cup
-                        ? SaiyaheimConfig.BeamPoseReleaseCupWristSide.Value
-                        : SaiyaheimConfig.BeamPoseReleaseCrossWristSide.Value,
+                        ? ReleaseCupWristSide
+                        : ReleaseCrossWristSide,
                     release),
             };
         }
@@ -678,7 +780,7 @@ namespace Saiyaheim.Attacks
             float[] muscles, float weight, SideTargets right, SideTargets left,
             float strain, float tremorL, float tremorR)
         {
-            float arm = weight * SaiyaheimConfig.BeamPoseArmWeight.Value;
+            float arm = weight * ArmWeight;
             if (arm <= 0f)
             {
                 return;
@@ -711,7 +813,7 @@ namespace Saiyaheim.Attacks
         private static void ApplyForearms(
             float[] muscles, float weight, SideTargets right, SideTargets left)
         {
-            float forearm = weight * SaiyaheimConfig.BeamPoseForearmWeight.Value;
+            float forearm = weight * ForearmWeight;
             if (forearm <= 0f)
             {
                 return;
@@ -751,7 +853,7 @@ namespace Saiyaheim.Attacks
             float[] muscles, float weight, SideTargets right, SideTargets left,
             float strain, float tremorL, float tremorR)
         {
-            float shoulder = weight * SaiyaheimConfig.BeamPoseShoulderWeight.Value;
+            float shoulder = weight * ShoulderWeight;
             if (shoulder <= 0f)
             {
                 return;
@@ -788,7 +890,7 @@ namespace Saiyaheim.Attacks
             float[] muscles, float weight, float release, float cupSign, float torsoYaw,
             float aimPitch, float strain)
         {
-            float torso = weight * SaiyaheimConfig.BeamPoseTorsoWeight.Value;
+            float torso = weight * TorsoWeight;
             if (torso <= 0f)
             {
                 return;
@@ -798,19 +900,19 @@ namespace Saiyaheim.Attacks
             // isso para o lado que a bola de fato usa. O músculo é "Twist Left-Right", onde +1 é
             // girar para a direita — que é o que manda o ombro direito para trás.
             float twist = Mathf.Lerp(
-                              SaiyaheimConfig.BeamPoseChargeTorsoTwist.Value,
-                              SaiyaheimConfig.BeamPoseReleaseTorsoTwist.Value, release) * cupSign
+                              ChargeTorsoTwist,
+                              ReleaseTorsoTwist, release) * cupSign
                           + torsoYaw;
 
             // O lean positivo é o tronco indo PARA FRENTE, então olhar para cima tem de tirar
             // lean: o peito arqueia para trás e leva os dois braços com ele. Daí o sinal
             // invertido do aimPitch, que vem positivo quando o jogador olha para o alto.
             float lean = Mathf.Lerp(
-                             SaiyaheimConfig.BeamPoseChargeTorsoLean.Value,
-                             SaiyaheimConfig.BeamPoseReleaseTorsoLean.Value, release)
+                             ChargeTorsoLean,
+                             ReleaseTorsoLean, release)
                          - aimPitch + strain;
 
-            float spine = torso * SaiyaheimConfig.BeamPoseSpineWeight.Value;
+            float spine = torso * SpineWeight;
 
             // ⚠️ **Clamp por articulação, e ele passou a ser obrigatório quando a mira entrou
             // aqui.** Enquanto o tronco só carregava o desenho do gesto, as somas eram pequenas e
@@ -851,7 +953,7 @@ namespace Saiyaheim.Attacks
         private static void ApplyLegs(
             ref HumanPose pose, PoseState state, float weight, float tremorL, float tremorR)
         {
-            float legs = weight * SaiyaheimConfig.BeamPoseLegWeight.Value * state.GroundWeight;
+            float legs = weight * LegWeight * state.GroundWeight;
             if (legs <= 0f)
             {
                 return;
@@ -859,15 +961,15 @@ namespace Saiyaheim.Attacks
 
             float[] muscles = pose.muscles;
 
-            float stance = SaiyaheimConfig.BeamPoseStanceWidth.Value;
+            float stance = StanceWidth;
             HumanMuscles.Blend(muscles, MuscleLegSpreadL, stance, legs);
             HumanMuscles.Blend(muscles, MuscleLegSpreadR, stance, legs);
 
-            float knee = SaiyaheimConfig.BeamPoseKneeStretch.Value;
+            float knee = KneeStretch;
             HumanMuscles.Blend(muscles, MuscleKneeL, knee + tremorL * 0.5f, legs);
             HumanMuscles.Blend(muscles, MuscleKneeR, knee + tremorR * 0.5f, legs);
 
-            float drop = SaiyaheimConfig.BeamPoseHipDrop.Value;
+            float drop = HipDrop;
             if (drop <= 0f || !state.HasBaseHipY)
             {
                 return;
@@ -893,7 +995,7 @@ namespace Saiyaheim.Attacks
         private static void ApplyHands(
             float[] muscles, float weight, float release, SideTargets right, SideTargets left)
         {
-            float hand = weight * SaiyaheimConfig.BeamPoseHandWeight.Value;
+            float hand = weight * HandWeight;
             if (hand <= 0f)
             {
                 return;
@@ -913,8 +1015,8 @@ namespace Saiyaheim.Attacks
             HumanMuscles.Blend(muscles, MuscleWristSideL, left.WristSide, hand);
 
             float fingers = hand * Mathf.Lerp(
-                Mathf.Clamp01(SaiyaheimConfig.BeamPoseChargeHandCup.Value),
-                Mathf.Clamp01(SaiyaheimConfig.BeamPoseReleaseHandOpen.Value),
+                Mathf.Clamp01(ChargeHandCup),
+                Mathf.Clamp01(ReleaseHandOpen),
                 release);
 
             if (fingers <= 0f)
@@ -1054,11 +1156,6 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static bool IsCharging(Player player)
         {
-            if (!SaiyaheimConfig.BeamPoseEnabled.Value)
-            {
-                return false;
-            }
-
             if (DebugHold == DebugPhase.Charge && player == Player.m_localPlayer)
             {
                 return true;
@@ -1069,8 +1166,7 @@ namespace Saiyaheim.Attacks
 
         private static bool IsDebugReleasing(Player player)
         {
-            return SaiyaheimConfig.BeamPoseEnabled.Value
-                   && DebugHold == DebugPhase.Release
+            return DebugHold == DebugPhase.Release
                    && player == Player.m_localPlayer;
         }
 

@@ -88,6 +88,63 @@ namespace Saiyaheim.Ki
         /// <summary>Segundos para entregar o corpo à animação de ação, e para retomá-lo.</summary>
         private const float ActionBlendSeconds = 0.12f;
 
+        // ---------- A pose, fechada ----------
+        //
+        // Estes números moraram na seção "8.1 - Ki Charge Pose" do .cfg enquanto a pose era
+        // calibrada na tela. Viraram constantes em 2026-09-13, pelo caminho que a pose de voo já
+        // tinha percorrido em 2026-07-31: pose é desenho do mod, não preferência de jogador. São
+        // os valores fechados no playtest de 2026-08-07 — ajustar exige recompilar, de propósito.
+
+        /// <summary>Segundos para a pose entrar ao começar a carregar e sair ao parar.</summary>
+        private const float BlendSeconds = 0.25f;
+
+        // Os sete pesos de grupo. Cada um é um INTERRUPTOR, não uma intensidade: zero não quer
+        // dizer "grupo neutro", quer dizer "não toca neste grupo, deixa a animação em paz".
+        //
+        // Cinco nascem ligados. Os dois em zero são os dois que o rig do Valheim desaconselha: a
+        // lombar, que arrasta o quadril junto, e as pernas, que sem o agachamento do HipDrop
+        // levantam os pés do chão. Não é "falta calibrar" — é a pose calibrada.
+        private const float ChestWeight = 1f;
+        private const float UpperChestWeight = 1f;
+        private const float SpineWeight = 0f;
+        private const float ShoulderWeight = 1f;
+        private const float HeadWeight = 1f;
+        private const float ArmWeight = 1f;
+        private const float LegWeight = 0f;
+
+        // Tronco: inclinação para frente de cada uma das três articulações, em espaço de intenção
+        // (positivo é sempre "mais do que o nome diz"; quem traduz para o músculo é o LeanSign).
+        private const float ChestLean = 0.5f;
+        private const float UpperChestLean = 0.5f;
+        private const float SpineLean = 0f;
+
+        /// <summary>Negativo abaixa os ombros — o contrário de encolher.</summary>
+        private const float ShoulderShrug = -0.5f;
+
+        /// <summary>Positivo joga o queixo para cima.</summary>
+        private const float HeadTilt = 0.5f;
+
+        // Braços: afastados do corpo, puxados para trás, girados para dentro, cotovelo dobrado.
+        private const float ArmDown = -0.2f;
+        private const float ArmBack = -0.25f;
+        private const float ArmTwist = 0.15f;
+        private const float ElbowBend = 0.3f;
+
+        /// <summary>Quanto os dedos fecham em punho. Um é punho cheio.</summary>
+        private const float FistClench = 1f;
+
+        // Pernas e quadril. Só entram junto com o agachamento; ver LegWeight acima.
+        private const float StanceWidth = 0.3f;
+        private const float KneeBend = 0.25f;
+        private const float HipDrop = 0.16f;
+
+        // A vida da pose: a senóide lenta de esforço e o tremor rápido. O tremor fica em zero —
+        // na tela ele lia como bug de animação, não como força.
+        private const float Strain = 0.07f;
+        private const float StrainSpeed = 2.2f;
+        private const float Tremor = 0f;
+        private const float TremorSpeed = 17f;
+
         // Três articulações, e **não** uma "coluna". No humanoide da Unity o tronco é uma escada de
         // três, e no rig do Valheim elas não são intercambiáveis: a lombar arrasta o quadril junto
         // (é ela que o playtest do voo, em 2026-07-31, viu "mexendo as pernas"), o peito dobra o
@@ -181,7 +238,7 @@ namespace Saiyaheim.Ki
             state.Weight = Mathf.MoveTowards(
                 state.Weight,
                 charging ? 1f : 0f,
-                StepPerSecond(SaiyaheimConfig.ChargePoseBlendSeconds.Value) * deltaTime);
+                StepPerSecond(BlendSeconds) * deltaTime);
 
             if (state.Weight <= 0f)
             {
@@ -232,11 +289,11 @@ namespace Saiyaheim.Ki
             // respiração de personagem dormindo, só a rápida parece bug de animação.
             float time = Time.time + state.Phase;
 
-            float strain = Mathf.Sin(time * SaiyaheimConfig.ChargePoseStrainSpeed.Value)
-                           * SaiyaheimConfig.ChargePoseStrain.Value;
+            float strain = Mathf.Sin(time * StrainSpeed)
+                           * Strain;
 
-            float tremorAmount = SaiyaheimConfig.ChargePoseTremor.Value;
-            float tremorSpeed = SaiyaheimConfig.ChargePoseTremorSpeed.Value;
+            float tremorAmount = Tremor;
+            float tremorSpeed = TremorSpeed;
 
             // Frequências ligeiramente diferentes entre os lados. Em sincronia o tremor lê como
             // vibração mecânica; fora de fase lê como músculo.
@@ -245,55 +302,55 @@ namespace Saiyaheim.Ki
 
             // ---------- Tronco, uma articulação de cada vez ----------
             Lean(muscles, MuscleChest,
-                SaiyaheimConfig.ChargePoseChestWeight.Value,
-                SaiyaheimConfig.ChargePoseChestLean.Value, strain, weight);
+                ChestWeight,
+                ChestLean, strain, weight);
 
             Lean(muscles, MuscleUpperChest,
-                SaiyaheimConfig.ChargePoseUpperChestWeight.Value,
-                SaiyaheimConfig.ChargePoseUpperChestLean.Value, strain, weight);
+                UpperChestWeight,
+                UpperChestLean, strain, weight);
 
             Lean(muscles, MuscleSpine,
-                SaiyaheimConfig.ChargePoseSpineWeight.Value,
-                SaiyaheimConfig.ChargePoseSpineLean.Value, strain, weight);
+                SpineWeight,
+                SpineLean, strain, weight);
 
-            float shoulders = weight * SaiyaheimConfig.ChargePoseShoulderWeight.Value;
+            float shoulders = weight * ShoulderWeight;
             if (shoulders > 0f)
             {
-                float shrug = (SaiyaheimConfig.ChargePoseShoulderShrug.Value + strain * 0.5f) * ShrugSign;
+                float shrug = (ShoulderShrug + strain * 0.5f) * ShrugSign;
                 HumanMuscles.Blend(muscles, MuscleShrugL, shrug + tremorL, shoulders);
                 HumanMuscles.Blend(muscles, MuscleShrugR, shrug + tremorR, shoulders);
             }
 
-            float head = weight * SaiyaheimConfig.ChargePoseHeadWeight.Value;
+            float head = weight * HeadWeight;
             if (head > 0f)
             {
-                float tilt = (SaiyaheimConfig.ChargePoseHeadTilt.Value + strain * 0.4f) * HeadTiltSign;
+                float tilt = (HeadTilt + strain * 0.4f) * HeadTiltSign;
                 HumanMuscles.Blend(muscles, MuscleNeck, tilt * 0.6f, head);
                 HumanMuscles.Blend(muscles, MuscleHead, tilt * 0.4f, head);
             }
 
             // ---------- Braços ----------
-            float arms = weight * SaiyaheimConfig.ChargePoseArmWeight.Value;
+            float arms = weight * ArmWeight;
             if (arms > 0f)
             {
                 // Alvo absoluto no espaço de músculo, como o HoverArmSpread do voo: 0 é T-pose e
                 // ~-0,65 é braço caído ao lado do corpo. Os punhos ficam no quadril, então o braço
                 // está quase caído e o que os traz para a frente é o cotovelo.
-                float armDown = SaiyaheimConfig.ChargePoseArmDown.Value + strain * 0.2f;
+                float armDown = ArmDown + strain * 0.2f;
                 HumanMuscles.Blend(muscles, MuscleArmSpreadL, armDown, arms);
                 HumanMuscles.Blend(muscles, MuscleArmSpreadR, armDown, arms);
 
-                float armBack = SaiyaheimConfig.ChargePoseArmBack.Value;
+                float armBack = ArmBack;
                 HumanMuscles.Blend(muscles, MuscleArmSwingL, armBack + tremorL * 0.5f, arms);
                 HumanMuscles.Blend(muscles, MuscleArmSwingR, armBack + tremorR * 0.5f, arms);
 
                 // A rotação do úmero decide para ONDE o cotovelo dobrado aponta o antebraço. Sem
                 // ela a dobra sai para um lado qualquer que depende da pose de baixo.
-                float armTwist = SaiyaheimConfig.ChargePoseArmTwist.Value;
+                float armTwist = ArmTwist;
                 HumanMuscles.Blend(muscles, MuscleArmTwistL, armTwist, arms);
                 HumanMuscles.Blend(muscles, MuscleArmTwistR, armTwist, arms);
 
-                float elbow = SaiyaheimConfig.ChargePoseElbowBend.Value;
+                float elbow = ElbowBend;
                 HumanMuscles.Blend(muscles, MuscleElbowL, elbow + tremorL, arms);
                 HumanMuscles.Blend(muscles, MuscleElbowR, elbow + tremorR, arms);
             }
@@ -303,14 +360,14 @@ namespace Saiyaheim.Ki
             ApplyFists(muscles, weight);
 
             // ---------- Pernas ----------
-            float legs = weight * SaiyaheimConfig.ChargePoseLegWeight.Value;
+            float legs = weight * LegWeight;
             if (legs > 0f)
             {
-                float stance = SaiyaheimConfig.ChargePoseStanceWidth.Value;
+                float stance = StanceWidth;
                 HumanMuscles.Blend(muscles, MuscleLegSpreadL, stance, legs);
                 HumanMuscles.Blend(muscles, MuscleLegSpreadR, stance, legs);
 
-                float knee = SaiyaheimConfig.ChargePoseKneeBend.Value + strain * 0.5f;
+                float knee = KneeBend + strain * 0.5f;
                 HumanMuscles.Blend(muscles, MuscleKneeL, knee + tremorL * 0.5f, legs);
                 HumanMuscles.Blend(muscles, MuscleKneeR, knee + tremorR * 0.5f, legs);
 
@@ -361,7 +418,7 @@ namespace Saiyaheim.Ki
         private static void ApplyCrouch(
             ref HumanPose pose, PoseState state, float knee, float strain, float weight)
         {
-            float drop = SaiyaheimConfig.ChargePoseHipDrop.Value;
+            float drop = HipDrop;
             if (drop <= 0f || !state.HasBaseHipY)
             {
                 return;
@@ -393,7 +450,7 @@ namespace Saiyaheim.Ki
                 BuildFists();
             }
 
-            float clench = Mathf.Clamp01(SaiyaheimConfig.ChargePoseFistClench.Value);
+            float clench = Mathf.Clamp01(FistClench);
             if (clench <= 0f)
             {
                 return;
@@ -465,11 +522,6 @@ namespace Saiyaheim.Ki
         /// </summary>
         private static bool IsCharging(Player player)
         {
-            if (!SaiyaheimConfig.ChargePoseEnabled.Value)
-            {
-                return false;
-            }
-
             if (DebugHold && player == Player.m_localPlayer)
             {
                 return true;

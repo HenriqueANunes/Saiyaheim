@@ -185,11 +185,8 @@ namespace Saiyaheim.Debugging
                     return;
             }
 
-            Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}" +
-                  $"{(SaiyaheimConfig.BlastPoseEnabled.Value ? "" : " (but BlastPose.Enabled is off)")}");
-
-            Print($"Kamehameha pose held: {KiBeamPose.DebugHold}" +
-                  $"{(SaiyaheimConfig.BeamPoseEnabled.Value ? "" : " (but BeamPose.Enabled is off)")}");
+            Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}");
+            Print($"Kamehameha pose held: {KiBeamPose.DebugHold}");
         }
 
         private void PrintAttack(Player player, KiAttack attack)

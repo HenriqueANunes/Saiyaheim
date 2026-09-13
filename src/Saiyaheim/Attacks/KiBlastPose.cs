@@ -95,6 +95,45 @@ namespace Saiyaheim.Attacks
         private const string MuscleChestTwist = "Chest Twist Left-Right";
         private const string MuscleUpperChestTwist = "UpperChest Twist Left-Right";
 
+        // ---------- A pose, fechada ----------
+        //
+        // Estes números moraram na seção "8.2 - Ki Blast Pose" do .cfg enquanto o gesto era
+        // calibrado na tela. Viraram constantes em 2026-09-13, junto com as outras duas poses:
+        // pose é desenho do mod, não preferência de jogador. Ajustar exige recompilar.
+
+        // Tempo do gesto. Sobe rápido, segura, e volta devagar.
+        private const float RiseSeconds = 0.06f;
+        private const float HoldSeconds = 0.7f;
+        private const float FallSeconds = 0.3f;
+
+        // Pesos de grupo: interruptores, não intensidades. Zero é "deixa a animação em paz".
+        // A torção de lombar fica em zero porque no rig do Valheim ela leva o quadril junto.
+        private const float ArmWeight = 1f;
+        private const float ShoulderWeight = 1f;
+        private const float TorsoWeight = 1f;
+        private const float SpineTwistWeight = 0f;
+
+        // O braço que atira: estendido para frente, um pouco acima do ombro.
+        private const float ArmForward = 0.6f;
+        private const float ArmHeight = 0.3f;
+        private const float ArmTwist = 0f;
+        private const float ElbowStretch = 1f;
+
+        // Quanto da mira entra na pose, e quanto da guinada horizontal vai para o tronco em vez
+        // de ir para o braço. Zero de tronco: o gesto é curto demais para a torção aparecer.
+        private const float AimFollowPitch = 1f;
+        private const float AimFollowYaw = 1f;
+        private const float AimYawTorsoShare = 0f;
+
+        // Ombro e tronco acompanhando o empurrão.
+        private const float ShoulderPush = 0.5f;
+        private const float ShoulderLift = 0.1f;
+        private const float TorsoTwist = 0.3f;
+
+        // A mão: palma aberta e pulso dobrado para trás, que é o que faz a bola sair da palma.
+        private const float HandOpen = 1f;
+        private const float WristBend = 1f;
+
         private static bool _warnedMissing;
 
         private sealed class PoseState
@@ -141,13 +180,13 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static void Trigger(Player player)
         {
-            if (player == null || !SaiyaheimConfig.BlastPoseEnabled.Value)
+            if (player == null)
             {
                 return;
             }
 
             GetOrCreateState(player).HoldUntil =
-                Time.time + Mathf.Max(0f, SaiyaheimConfig.BlastPoseHoldSeconds.Value);
+                Time.time + Mathf.Max(0f, HoldSeconds);
         }
 
         public float Step(Player player, float deltaTime)
@@ -172,8 +211,8 @@ namespace Saiyaheim.Attacks
             WarnMissingOnce();
 
             float blend = up
-                ? SaiyaheimConfig.BlastPoseRiseSeconds.Value
-                : SaiyaheimConfig.BlastPoseFallSeconds.Value;
+                ? RiseSeconds
+                : FallSeconds;
 
             state.Weight = Mathf.MoveTowards(
                 state.Weight, up ? 1f : 0f, StepPerSecond(blend) * deltaTime);
@@ -200,17 +239,17 @@ namespace Saiyaheim.Attacks
             // Para onde a mira aponta, na horizontal, e quem paga por ela. O tronco leva a fatia
             // que o braço não leva — nunca as duas coisas, senão o gesto gira duas vezes.
             float aimYaw = AimYaw(player);
-            float yawToTorso = Mathf.Clamp01(SaiyaheimConfig.BlastPoseAimYawTorsoShare.Value);
+            float yawToTorso = Mathf.Clamp01(AimYawTorsoShare);
 
             // ---------- O braço ----------
-            float arm = weight * SaiyaheimConfig.BlastPoseArmWeight.Value;
+            float arm = weight * ArmWeight;
             if (arm > 0f)
             {
                 // Altura do ombro é alvo ABSOLUTO no espaço de músculo, como o ArmDown da recarga e
                 // o HoverArmSpread do voo: 0 é T-pose, ou seja braço na horizontal — que é
                 // exatamente a altura de quem aponta para frente. Não há nome de intenção honesto
                 // para "onde fica o braço".
-                float height = SaiyaheimConfig.BlastPoseArmHeight.Value + AimPitchOffset(player);
+                float height = ArmHeight + AimPitchOffset(player);
                 HumanMuscles.Blend(muscles, MuscleArmSpread, Mathf.Clamp(height, -1f, 1f), arm);
 
                 // A que faz o gesto. Da T-pose, girar o braço para frente é o que o aponta para
@@ -221,7 +260,7 @@ namespace Saiyaheim.Attacks
                 // olhar para a esquerda é atravessá-lo no peito (mais). Sem clamp de propósito —
                 // atravessar o peito passa de 1, e é uma posição que o braço de verdade alcança.
                 // Quem limita quanto isso anda é o AimFollowYaw.
-                float forward = SaiyaheimConfig.BlastPoseArmForward.Value
+                float forward = ArmForward
                                 - aimYaw * (1f - yawToTorso);
                 HumanMuscles.Blend(muscles, MuscleArmSwing, forward * ForwardSign, arm);
 
@@ -229,14 +268,14 @@ namespace Saiyaheim.Attacks
                 // quase não muda a silhueta — mas é ela que separa "mão espalmada para frente" de
                 // "mão de lado", e a bola nasce na mão.
                 HumanMuscles.Blend(muscles, MuscleArmTwist,
-                    SaiyaheimConfig.BlastPoseArmTwist.Value, arm);
+                    ArmTwist, arm);
 
                 // Alvo absoluto, e o músculo se chama "Stretch" por um motivo: +1 é o braço reto
                 // e -1 a dobra máxima — 0, que parecia o valor óbvio para "cotovelo esticado", é o
                 // MEIO da faixa, ou seja um braço dobrado. A descrição desta chave dizia o
                 // contrário até 2026-08-21, e foi o que fez o braço reto parecer inalcançável.
                 HumanMuscles.Blend(muscles, MuscleElbow,
-                    SaiyaheimConfig.BlastPoseElbowStretch.Value, arm);
+                    ElbowStretch, arm);
             }
 
             // ---------- O ombro ----------
@@ -244,13 +283,13 @@ namespace Saiyaheim.Attacks
             // Grupo separado do braço, e não enfeite: o ombro é o que transforma "braço levantado"
             // em "braço estendido". Sem ele o alcance do gesto para no encaixe do úmero, e o
             // personagem parece apontar em vez de empurrar.
-            float shoulder = weight * SaiyaheimConfig.BlastPoseShoulderWeight.Value;
+            float shoulder = weight * ShoulderWeight;
             if (shoulder > 0f)
             {
                 HumanMuscles.Blend(muscles, MuscleShoulderSwing,
-                    SaiyaheimConfig.BlastPoseShoulderPush.Value * ForwardSign, shoulder);
+                    ShoulderPush * ForwardSign, shoulder);
                 HumanMuscles.Blend(muscles, MuscleShoulderUp,
-                    SaiyaheimConfig.BlastPoseShoulderLift.Value, shoulder);
+                    ShoulderLift, shoulder);
             }
 
             // ---------- O tronco ----------
@@ -259,19 +298,19 @@ namespace Saiyaheim.Attacks
             // a lombar arrasta o quadril e as outras duas não. Aqui elas dividem UM alvo em vez de
             // ter um cada — a torção é um gesto só, distribuído — mas os pesos continuam
             // separados, e é por isso que a lombar pode ficar fora.
-            float torso = weight * SaiyaheimConfig.BlastPoseTorsoWeight.Value;
+            float torso = weight * TorsoWeight;
             if (torso > 0f)
             {
                 // A fatia da mira que o braço não levou. Mesmo sinal do braço: girar o tronco para
                 // a direita afasta o ombro direito, que é o contrário da intenção positiva daqui.
-                float twist = (SaiyaheimConfig.BlastPoseTorsoTwist.Value - aimYaw * yawToTorso)
+                float twist = (TorsoTwist - aimYaw * yawToTorso)
                               * TwistSign;
 
                 // Escalonado de baixo para cima: a lombar mal se mexe, o peito alto leva o ombro.
                 // Torcer as três igualmente aponta o quadril para o lado junto, e aí o personagem
                 // deixa de encarar para onde está mirando.
                 HumanMuscles.Blend(muscles, MuscleSpineTwist, twist * 0.25f,
-                    torso * SaiyaheimConfig.BlastPoseSpineTwistWeight.Value);
+                    torso * SpineTwistWeight);
                 HumanMuscles.Blend(muscles, MuscleChestTwist, twist * 0.75f, torso);
                 HumanMuscles.Blend(muscles, MuscleUpperChestTwist, twist, torso);
             }
@@ -346,7 +385,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static float AimPitchOffset(Player player)
         {
-            float follow = SaiyaheimConfig.BlastPoseAimFollowPitch.Value;
+            float follow = AimFollowPitch;
 
             return follow <= 0f ? 0f : AimPose.Pitch(player) * follow;
         }
@@ -357,7 +396,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static float AimYaw(Player player)
         {
-            float follow = SaiyaheimConfig.BlastPoseAimFollowYaw.Value;
+            float follow = AimFollowYaw;
 
             return follow <= 0f ? 0f : AimPose.Yaw(player) * follow;
         }
@@ -377,7 +416,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static void ApplyOpenPalm(float[] muscles, float weight)
         {
-            float open = Mathf.Clamp01(SaiyaheimConfig.BlastPoseHandOpen.Value) * weight;
+            float open = Mathf.Clamp01(HandOpen) * weight;
             if (open <= 0f)
             {
                 return;
@@ -395,7 +434,7 @@ namespace Saiyaheim.Attacks
 
             // O pulso vai junto do resto da mão: palma empurrada para frente é pulso estendido, e
             // separá-lo daria uma chave a mais para calibrar um gesto só.
-            HumanMuscles.Blend(muscles, MuscleWrist, SaiyaheimConfig.BlastPoseWristBend.Value, open);
+            HumanMuscles.Blend(muscles, MuscleWrist, WristBend, open);
         }
 
         private static int[] _palmIndex;
@@ -437,11 +476,6 @@ namespace Saiyaheim.Attacks
         /// <summary>A pose deve estar levantada agora?</summary>
         private static bool IsUp(Player player, PoseState state)
         {
-            if (!SaiyaheimConfig.BlastPoseEnabled.Value)
-            {
-                return false;
-            }
-
             if (DebugHold && player == Player.m_localPlayer)
             {
                 return true;

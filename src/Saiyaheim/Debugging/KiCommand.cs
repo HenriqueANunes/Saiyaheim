@@ -53,8 +53,7 @@ namespace Saiyaheim.Debugging
             if (action == "pose")
             {
                 KiChargePose.DebugHold = !KiChargePose.DebugHold;
-                Print($"Charging pose held: {(KiChargePose.DebugHold ? "on" : "off")}" +
-                      $"{(SaiyaheimConfig.ChargePoseEnabled.Value ? "" : " (but ChargePose.Enabled is off)")}");
+                Print($"Charging pose held: {(KiChargePose.DebugHold ? "on" : "off")}");
                 return;
             }
 
