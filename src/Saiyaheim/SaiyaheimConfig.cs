@@ -242,14 +242,16 @@ namespace Saiyaheim
 
         // ---------- 7 - HUD ----------
 
-        public static ConfigEntry<bool> ShowKiBar { get; private set; }
+        // Não há chave para esconder a barra de ki nem o poder de luta, e não é esquecimento:
+        // saíram em 2026-09-13. Ki é o recurso central do mod e não tem outro leitor na tela, e
+        // quem quer a tela limpa desliga o ki com o ToggleKiKey — os dois somem junto, que é a
+        // regra do toggle. Quebra de runtime já tem desligamento automático nas duas classes.
+        // O que é preferência de verdade continua aqui embaixo: posição, cor e o sumiço da barra
+        // cheia.
         public static ConfigEntry<float> KiBarOffsetX { get; private set; }
         public static ConfigEntry<float> KiBarOffsetY { get; private set; }
         public static ConfigEntry<string> KiBarColor { get; private set; }
         public static ConfigEntry<bool> KiBarAlwaysVisible { get; private set; }
-
-        /// <summary>Mostra o poder de luta na HUD, abaixo do minimapa.</summary>
-        public static ConfigEntry<bool> ShowPowerOnHud { get; private set; }
 
         /// <summary>Deslocamento X do texto, relativo ao rótulo do bioma no minimapa.</summary>
         public static ConfigEntry<float> PowerHudOffsetX { get; private set; }
@@ -1260,10 +1262,6 @@ namespace Saiyaheim
                     "(Starting value, 2026-08-01. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
 
-            // --- HUD ---
-            ShowKiBar = config.Bind(SecHud, "ShowKiBar", true,
-                new ConfigDescription("Show the ki bar.", null, ClientSide(100)));
-
             KiBarOffsetX = config.Bind(SecHud, "KiBarOffsetX", 0f,
                 new ConfigDescription(
                     "Horizontal offset of the ki bar, in pixels. " +
@@ -1294,16 +1292,9 @@ namespace Saiyaheim
 
             // --- Poder de luta na HUD (etapa 10) ---
             // Abaixo do minimapa, clonado do rotulo do bioma. Todas as chaves sao client-side —
-            // sao posicao e gosto de quem esta na frente da tela, nao balanceamento.
-            ShowPowerOnHud = config.Bind(SecHud, "ShowPowerOnHud", true,
-                new ConfigDescription(
-                    "Shows your battle power on the HUD, under the minimap. It follows the small " +
-                    "minimap: it hides with the big map open, and with the minimap turned off in " +
-                    "the game options — where it would otherwise float in an empty corner. It " +
-                    "also hides while ki is turned off, same as the ki bar and the enemy's " +
-                    "number: with the toggle off there is no battle power to read.",
-                    null, ClientSide(50)));
-
+            // sao posicao e gosto de quem esta na frente da tela, nao balanceamento. O texto segue
+            // o minimapa pequeno (some com o mapa grande aberto e com o minimapa desligado nas
+            // opcoes do jogo) e some com o ki desligado, como a barra e o numero do inimigo.
             PowerHudOffsetX = config.Bind(SecHud, "PowerHudOffsetX", 0f,
                 new ConfigDescription(
                     "Horizontal offset of the text, in pixels, RELATIVE to the minimap's biome " +

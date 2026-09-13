@@ -117,8 +117,7 @@ namespace Saiyaheim.Power
         /// </summary>
         private static bool ShouldBeVisible(Minimap map)
         {
-            return SaiyaheimConfig.ShowPowerOnHud.Value
-                   && Ki.KiManager.IsEnabled
+            return Ki.KiManager.IsEnabled
                    && map.m_smallRoot != null
                    && map.m_smallRoot.activeSelf;
         }

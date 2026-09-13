@@ -80,7 +80,7 @@ namespace Saiyaheim.Ki
         {
             Hud hud = Hud.instance;
 
-            if (hud == null || Player.m_localPlayer == null || !SaiyaheimConfig.ShowKiBar.Value)
+            if (hud == null || Player.m_localPlayer == null)
             {
                 if (_root != null)
                 {
