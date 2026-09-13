@@ -30,9 +30,10 @@ namespace Saiyaheim.Flight
     /// <c>Character.CustomFixedUpdate</c> é public e virtual, e o <c>Player</c> não a sobrescreve —
     /// é o alvo mais estável disponível. A física do voo continua sem patch nenhum.
     ///
-    /// <b>Não validado na tela.</b> Riscos conhecidos: forçar <c>onGround</c> pode mexer em som de
-    /// passos ou em alguma transição não mapeada. Por isso está atrás de
-    /// <c>FlightForceIdlePose</c> — desligar devolve o comportamento vanilla na hora.
+    /// <b>Riscos conhecidos:</b> forçar <c>onGround</c> pode mexer em som de passos ou em alguma
+    /// transição não mapeada. Ficou atrás da chave <c>FlightForceIdlePose</c> até 2026-09-13, para
+    /// se poder voltar ao vanilla sem recompilar; o playtest de 2026-07-31 fechou a pergunta e a
+    /// chave saiu do <c>.cfg</c> junto com a <c>FlightLevelBody</c>.
     /// </summary>
     [HarmonyPatch(typeof(Character), nameof(Character.CustomFixedUpdate))]
     internal static class FlightPosePatch
@@ -70,11 +71,6 @@ namespace Saiyaheim.Flight
             }
 
             LevelBody(player, __state);
-
-            if (!SaiyaheimConfig.FlightForceIdlePose.Value)
-            {
-                return;
-            }
 
             ZSyncAnimation zanim = player.GetZAnim();
             if (zanim == null)
@@ -131,11 +127,6 @@ namespace Saiyaheim.Flight
         /// </summary>
         private static void LevelBody(Player player, float previousYaw)
         {
-            if (!SaiyaheimConfig.FlightLevelBody.Value)
-            {
-                return;
-            }
-
             Vector3 moveDir = player.GetMoveDir();
             moveDir.y = 0f;
 

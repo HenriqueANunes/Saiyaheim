@@ -74,6 +74,17 @@ namespace Saiyaheim.Power
     internal static class PowerRating
     {
         /// <summary>
+        /// Segundos entre dois golpes do jogador, supostos pela fórmula de DPS.
+        ///
+        /// Fixo em código: não é knob de balanceamento, é a <b>premissa</b> que substitui um dado
+        /// que o jogo não tem — a cadência do jogador vive na animação, não no item (ver
+        /// <see cref="GetPlayerDps"/>). Mudar isto não rebalanceia nada, só multiplica a escala
+        /// inteira do poder mostrado, que é o que o <c>DisplayScale</c> faz de propósito. Esteve
+        /// no <c>.cfg</c> até 2026-09-13.
+        /// </summary>
+        private const float PlayerHitInterval = 5f;
+
+        /// <summary>
         /// Poder de luta cru de qualquer <c>Character</c> — jogador ou bicho, mesma fórmula, mesma
         /// escala. É o número **antes** da compressão; ver <see cref="GetDisplay"/>.
         /// </summary>
@@ -216,7 +227,7 @@ namespace Saiyaheim.Power
                 damage += BattlePower.GetPunchDamageBonus(player);
             }
 
-            return damage / Mathf.Max(0.05f, SaiyaheimConfig.RatingPlayerHitInterval.Value);
+            return damage / PlayerHitInterval;
         }
 
         /// <summary>

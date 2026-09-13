@@ -38,6 +38,20 @@ namespace Saiyaheim.Attacks
         private const float MinConvergeDistance = 2f;
 
         /// <summary>
+        /// Até onde o raio da cruz procura o ponto mirado, em metros. Não é alcance de ataque —
+        /// quem decide isso é o ttl do projétil: é só a distância além da qual o deslocamento
+        /// olho-mão já não muda a direção o bastante para importar. Esteve no <c>.cfg</c> até
+        /// 2026-09-13, junto com a trava abaixo e com o interruptor da própria convergência.
+        /// </summary>
+        private const float AimRange = 200f;
+
+        /// <summary>
+        /// Quanto a correção pode divergir do olhar, em graus. É trava de segurança, não mira
+        /// assistida: ver o comentário no <see cref="Resolve"/>.
+        /// </summary>
+        private const float MaxCorrection = 30f;
+
+        /// <summary>
         /// Buffer do raycast. Reaproveitado porque isto roda a cada disparo e o
         /// <c>RaycastAll</c> alocaria um array novo toda vez.
         /// </summary>
@@ -55,7 +69,7 @@ namespace Saiyaheim.Attacks
         {
             Vector3 look = player.GetLookDir().normalized;
 
-            if (look == Vector3.zero || !SaiyaheimConfig.KiAttackAimConvergence.Value)
+            if (look == Vector3.zero)
             {
                 return look;
             }
@@ -69,7 +83,7 @@ namespace Saiyaheim.Attacks
                 return look;
             }
 
-            float range = Mathf.Max(1f, SaiyaheimConfig.KiAttackAimRange.Value);
+            const float range = AimRange;
             Vector3 camPos = camera.transform.position;
             Vector3 camDir = camera.transform.forward;
 
@@ -91,10 +105,9 @@ namespace Saiyaheim.Attacks
             // da câmera, o ponto mirado pode cair ATRÁS da mão — e a direção corrigida apontaria
             // para o jogador. O ângulo limita o quanto a correção pode divergir do olhar; o que
             // passar disso vira uma correção parcial na direção certa, nunca uma inversão.
-            float maxCorrection = SaiyaheimConfig.KiAttackAimMaxCorrection.Value;
-            if (Vector3.Angle(look, corrected) > maxCorrection)
+            if (Vector3.Angle(look, corrected) > MaxCorrection)
             {
-                return Vector3.RotateTowards(look, corrected, maxCorrection * Mathf.Deg2Rad, 0f)
+                return Vector3.RotateTowards(look, corrected, MaxCorrection * Mathf.Deg2Rad, 0f)
                     .normalized;
             }
 

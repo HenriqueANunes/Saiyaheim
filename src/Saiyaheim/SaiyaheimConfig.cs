@@ -89,12 +89,10 @@ namespace Saiyaheim
         /// </summary>
         private const string SecSsj3 = "3.3 - SSJ3";
 
-        /// <summary>
-        /// O que vale para <b>todos</b> os ataques de ki: as duas teclas moram na seção 1, com as
-        /// outras, e aqui fica o que é da mecânica e não de um ataque específico. Hoje é só o
-        /// tempo mínimo entre disparos de ataques diferentes — ver <c>MinimumInterval</c>.
-        /// </summary>
-        private const string SecKiAttacks = "4 - Ki Attacks";
+        // A seção "4 - Ki Attacks", que valia para todos os ataques, ficou vazia em 2026-09-13:
+        // o piso entre disparos e as três chaves de mira eram tudo o que ela tinha, e nenhuma era
+        // balanceamento. As duas teclas seguem na seção 1, e o que é de um ataque só segue nas
+        // 4.1 e 4.2.
 
         /// <summary>
         /// Uma seção por ataque, pelo mesmo motivo das formas: <b>não há número compartilhado
@@ -181,9 +179,6 @@ namespace Saiyaheim
 
         /// <summary>Regeneração passiva somada por ponto de battle power. Mantém a torneira crescendo junto com a barra.</summary>
         public static ConfigEntry<float> KiRegenFromPower { get; private set; }
-
-        /// <summary>Intervalo do tick de ki. Regeneração é por tick fixo, nunca por frame.</summary>
-        public static ConfigEntry<float> KiTickInterval { get; private set; }
 
         /// <summary>Segundos sem regenerar depois de gastar ki.</summary>
         public static ConfigEntry<float> KiRegenDelay { get; private set; }
@@ -406,24 +401,10 @@ namespace Saiyaheim
 
         // ---------- 4.x - Ki Attacks ----------
 
-        /// <summary>
-        /// Tempo mínimo entre dois disparos, <b>qualquer que seja o ataque</b>. O cooldown de cada
-        /// ataque é dele; este é o piso comum, e existe para que trocar de ataque não seja um jeito
-        /// de burlar cooldown.
-        /// </summary>
-        public static ConfigEntry<float> KiAttackMinimumInterval { get; private set; }
-
-        /// <summary>
-        /// Liga a convergência da mira: apontar o tiro da mão <b>para o ponto</b> que a cruz está
-        /// olhando, em vez de copiar a direção da câmera. Ver <see cref="Attacks.KiAim"/>.
-        /// </summary>
-        public static ConfigEntry<bool> KiAttackAimConvergence { get; private set; }
-
-        /// <summary>Até onde o raio da mira procura o ponto que o jogador está olhando.</summary>
-        public static ConfigEntry<float> KiAttackAimRange { get; private set; }
-
-        /// <summary>Quanto, em graus, a correção pode desviar do olhar. Trava de segurança.</summary>
-        public static ConfigEntry<float> KiAttackAimMaxCorrection { get; private set; }
+        // A mira assistida não tem config: a convergência, o alcance do raio e a trava de
+        // correção viraram constantes em KiAim em 2026-09-13, e o piso entre disparos no
+        // KiAttackRegistry. Nenhum dos quatro é balanceamento — são o conserto do paralelismo
+        // entre a câmera e a mão, e a trava que o mantém honesto.
 
         /// <summary>
         /// Os números de <b>um</b> ataque de ki. Uma instância por ataque, cada uma na sua seção do
@@ -487,9 +468,6 @@ namespace Saiyaheim
 
             /// <summary>Segundos de vida do projétil. Alcance = velocidade x isto.</summary>
             public ConfigEntry<float> ProjectileLifetime { get; internal set; }
-
-            /// <summary>Gravidade sobre o projétil. 0 voa reto.</summary>
-            public ConfigEntry<float> ProjectileGravity { get; internal set; }
 
             /// <summary>Escala do projétil. 1 é o tamanho do prefab.</summary>
             public ConfigEntry<float> ProjectileScale { get; internal set; }
@@ -669,23 +647,11 @@ namespace Saiyaheim
         /// <summary>Pousar encosta no chão desliga o voo sozinho.</summary>
         public static ConfigEntry<bool> FlightAutoLandOnGround { get; private set; }
 
-        /// <summary>
-        /// Mantém o corpo na horizontal, tirando a inclinação que subir/descer causa.
-        /// Ver <c>FlightPosePatch.LevelBody</c>.
-        /// </summary>
-        public static ConfigEntry<bool> FlightLevelBody { get; private set; }
-
-
-        /// <summary>
-        /// Força a pose em pé no animator enquanto voa. Confirmado no playtest de 2026-07-31:
-        /// funciona. Fica em config para desligar sem recompilar se alguma animação futura
-        /// conflitar. Ver <c>FlightPosePatch</c>.
-        /// </summary>
-        public static ConfigEntry<bool> FlightForceIdlePose { get; private set; }
-
-        // A pose procedural de voo não tem config: os valores foram calibrados no playtest de
-        // 2026-07-31 e viraram constantes em <c>FlightPose</c>. São decisão de arte fechada, não
-        // balanceamento — não há motivo para outro jogador querer números diferentes.
+        // O voo não tem config de pose nenhuma. Os números da pose procedural viraram constantes
+        // em <c>FlightPose</c> no playtest de 2026-07-31; o corpo na horizontal e a pose em pé
+        // forçada no animator seguiram o mesmo caminho em 2026-09-13, direto no
+        // <c>FlightPosePatch</c>. São decisão de arte fechada, não balanceamento — não há motivo
+        // para outro jogador querer diferente.
 
         // ---------- 6 - Battle Power ----------
 
@@ -728,12 +694,6 @@ namespace Saiyaheim
 
         /// <summary>Peso do dano por segundo no poder de luta. Vale para jogador e inimigo.</summary>
         public static ConfigEntry<float> RatingK2Damage { get; private set; }
-
-        /// <summary>
-        /// Segundos entre dois golpes do jogador. É a única entrada do poder de luta que não sai
-        /// do jogo: a cadência do jogador vive na animação, não no item.
-        /// </summary>
-        public static ConfigEntry<float> RatingPlayerHitInterval { get; private set; }
 
         // Aqui morava o PowerCompressionExponent, removido no playtest da etapa 10: um expoente
         // sobre o valor vira o mesmo expoente sobre a razao, e ele achatava justamente as
@@ -979,12 +939,6 @@ namespace Saiyaheim
                     "strong player faster — the conservative half of the fix. " +
                     "Check it with saiya_ki, which prints seconds to fill.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(85)));
-
-            KiTickInterval = config.Bind(SecKi, "KiTickInterval", 0.25f,
-                new ConfigDescription(
-                    "Ki tick interval in seconds (regeneration and drain). " +
-                    "A smaller value reads smoother and costs more CPU.",
-                    new AcceptableValueRange<float>(0.05f, 1f), AdminOnly(80)));
 
             KiRegenDelay = config.Bind(SecKi, "KiRegenDelay", 5f,
                 new ConfigDescription(
@@ -1574,44 +1528,6 @@ namespace Saiyaheim
                 glowIntensity: 2f,
                 hairItem: "SaiyaHair6");
 
-            // --- Ataques de ki ---
-            KiAttackMinimumInterval = config.Bind(SecKiAttacks, "MinimumInterval", 0.2f,
-                new ConfigDescription(
-                    "Minimum seconds between two ki attacks, whatever they are. Each attack has " +
-                    "its own Cooldown; this is the shared floor, and it exists so that switching " +
-                    "attacks is not a way around a cooldown.",
-                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(100)));
-
-            // Correcao de mira, nao balanceamento — mas fica aqui porque muda ONDE o tiro cai, e
-            // isso e' gameplay. Desligar existe so' para o playtest poder comparar com o antes.
-            KiAttackAimConvergence = config.Bind(SecKiAttacks, "AimConvergence", true,
-                new ConfigDescription(
-                    "Aim the shot from the hand AT THE POINT the crosshair is on, instead of just " +
-                    "copying the camera direction. " +
-                    "Off, the shot leaves the hand on a line PARALLEL to the aim line — offset by " +
-                    "the distance between the eye and the hand — and two parallel lines never " +
-                    "meet, so it always lands below the crosshair, worse the closer the target is. " +
-                    "This is the same defect the vanilla bow has. Leave it on; the switch exists " +
-                    "to compare against the old behaviour.",
-                    null, AdminOnly(98)));
-
-            KiAttackAimRange = config.Bind(SecKiAttacks, "AimRange", 200f,
-                new ConfigDescription(
-                    "How far the aim ray looks for whatever the crosshair is on. Past this the " +
-                    "shot is aimed at a point this far down the camera line, which is close " +
-                    "enough — the eye-to-hand offset stops mattering long before that. " +
-                    "Only worth raising if a ki attack ever outranges it.",
-                    new AcceptableValueRange<float>(10f, 1000f), AdminOnly(97)));
-
-            KiAttackAimMaxCorrection = config.Bind(SecKiAttacks, "AimMaxCorrection", 30f,
-                new ConfigDescription(
-                    "How far, in degrees, the correction may bend the shot away from where you " +
-                    "are looking. Safety rail: aiming at the ground by your feet, the point under " +
-                    "the crosshair can end up BEHIND the hand, and an uncapped correction would " +
-                    "fire back at the player. Beyond this the shot bends partway, never inverts. " +
-                    "90 effectively disables the cap.",
-                    new AcceptableValueRange<float>(0f, 90f), AdminOnly(96)));
-
             // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
             // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de
             // dois mornos. Espacar custaria mexer numa trava de forma ja calibrada em playtest.
@@ -1983,24 +1899,6 @@ namespace Saiyaheim
                     "otherwise taking off would land you on the same frame.",
                     null, AdminOnly(42)));
 
-            FlightLevelBody = config.Bind(SecFlight, "LevelBody", true,
-                new ConfigDescription(
-                    "Keeps the body horizontal while flying, turning only left and right. The game " +
-                    "aims flight rotation at the full movement direction, and the mod puts the " +
-                    "climb/dive input into that same vector — so without this, going up flips you " +
-                    "belly-up and going down flips you belly-down. The deliberate belly-down lean " +
-                    "at speed is a separate, purely visual setting (FastPitch in 5.1) that does " +
-                    "not tilt aim or collision.",
-                    null, AdminOnly(41)));
-
-            FlightForceIdlePose = config.Bind(SecFlight, "ForceIdlePose", true,
-                new ConfigDescription(
-                    "Forces the standing idle pose while flying, which is the Dragon Ball look. " +
-                    "The vanilla player animator has no flight state, so without this you fly in " +
-                    "the free-fall pose. Purely visual — turn it off if it breaks some animation. " +
-                    "(Confirmed working in the 2026-07-31 playtest.)",
-                    null, ClientSide(40)));
-
             // --- Battle Power ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:
             //   ki desligado: poder = k1*HP + k2*dano_arma + k3*armadura
@@ -2109,17 +2007,6 @@ namespace Saiyaheim
                     "the rating was almost pure bulk, and the number is supposed to answer 'can " +
                     "this thing hurt me', not 'how long does it take to chew through it'.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
-
-            RatingPlayerHitInterval = config.Bind(SecPower, "RatingPlayerHitInterval", 5f,
-                new ConfigDescription(
-                    "Seconds between two of YOUR hits, used to turn your damage into damage per " +
-                    "second. Creatures carry their own cadence in the weapon item, so this key is " +
-                    "only about you — the player's swing rate lives in the animation and cannot " +
-                    "be read from the item. Lower makes your rating climb against everything. " +
-                    "(Playtest value, 2026-09-06. Raised from 1: one punch per second is the " +
-                    "animation's rate, not the fight's — between approach, block and recovery the " +
-                    "real cadence is far slower, and at 1 the player outscanned everything.)",
-                    new AcceptableValueRange<float>(0.1f, 10f), AdminOnly(44)));
 
             PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 1f,
                 new ConfigDescription(
@@ -3291,12 +3178,6 @@ namespace Saiyaheim
                         "ProjectileSpeed — saiya_blast prints the result in metres. Overrides the " +
                         "prefab's own lifetime.",
                         new AcceptableValueRange<float>(0.5f, 30f), AdminOnly(65))),
-
-                ProjectileGravity = config.Bind(section, "ProjectileGravity", 0f,
-                    new ConfigDescription(
-                        "Gravity pulling the projectile down. 0 flies dead straight, which is what " +
-                        "reads as energy rather than as a thrown rock. Raise it for an arc.",
-                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(60))),
 
                 ProjectileScale = config.Bind(section, "ProjectileScale", projectileScale,
                     new ConfigDescription(

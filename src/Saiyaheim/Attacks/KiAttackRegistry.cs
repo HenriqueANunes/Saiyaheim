@@ -110,9 +110,17 @@ namespace Saiyaheim.Attacks
             return Time.time >= _nextShotAt;
         }
 
+        /// <summary>
+        /// Piso de tempo entre dois disparos <b>quaisquer</b>, mesmo trocando de ataque. Fixo em
+        /// código: não é balanceamento — o custo e o cooldown de cada ataque é que balanceiam —,
+        /// é a trava que impede o ciclo de ataques de virar metralhadora por cima dos dois.
+        /// Esteve no <c>.cfg</c> até 2026-09-13.
+        /// </summary>
+        internal const float MinimumInterval = 0.2f;
+
         internal static void StartGlobalCooldown()
         {
-            _nextShotAt = Time.time + Mathf.Max(0f, SaiyaheimConfig.KiAttackMinimumInterval.Value);
+            _nextShotAt = Time.time + MinimumInterval;
         }
 
         /// <summary>

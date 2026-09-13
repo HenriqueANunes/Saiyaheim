@@ -19,6 +19,17 @@ namespace Saiyaheim.Ki
         private static KiState _state;
         private static float _tickAccumulator;
 
+        /// <summary>
+        /// Segundos entre dois tiques de ki. Fixo em código: é a taxa de amostragem do sistema,
+        /// não um número de balanceamento — quem ajusta o quanto se regenera é
+        /// <c>KiRegenPerSecond</c>, e este aqui só decide de quanto em quanto tempo a conta é
+        /// feita. Esteve no <c>.cfg</c> até 2026-09-13 sem nunca ter motivo para mudar.
+        ///
+        /// Também é o tique da cobrança do Kamehameha, em <c>KiBeamCharge</c>: as duas contas
+        /// gastam da mesma barra e amostrar em ritmos diferentes só criaria batimento.
+        /// </summary>
+        internal const float TickInterval = 0.25f;
+
         /// <summary>Estado do jogador local. Null antes de entrar no mundo.</summary>
         internal static KiState State => _state;
 
@@ -154,12 +165,11 @@ namespace Saiyaheim.Ki
             HandleInput(player);
 
             // Tick fixo, não por frame: custo previsível e independente de framerate.
-            float interval = SaiyaheimConfig.KiTickInterval.Value;
             _tickAccumulator += dt;
-            while (_tickAccumulator >= interval)
+            while (_tickAccumulator >= TickInterval)
             {
-                _tickAccumulator -= interval;
-                Tick(player, interval);
+                _tickAccumulator -= TickInterval;
+                Tick(player, TickInterval);
             }
         }
 

@@ -194,7 +194,7 @@ namespace Saiyaheim.Attacks
                 return false;
             }
 
-            float interval = Mathf.Max(0.01f, SaiyaheimConfig.KiTickInterval.Value);
+            const float interval = KiManager.TickInterval;
             float perSecond = Current.GetChargeKiPerSecond();
 
             _tickAccumulator += deltaTime;

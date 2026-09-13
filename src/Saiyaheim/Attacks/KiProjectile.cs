@@ -219,7 +219,10 @@ namespace Saiyaheim.Attacks
             projectile.m_aoe = 0f;
 
             projectile.m_ttl = Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);
-            projectile.m_gravity = Mathf.Max(0f, attack.Config.ProjectileGravity.Value);
+            // Gravidade zero, e não uma chave: um tiro de energia voa reto. Com arco o projétil
+            // cair é o que se mira; aqui seria pedra atirada. Esteve no .cfg até 2026-09-13, nos
+            // dois ataques, sempre em zero.
+            projectile.m_gravity = 0f;
 
             // Arrasto é o que faz um projétil perder velocidade no caminho e, com ela, alcance. Um
             // tiro de energia não desacelera; o que o apaga é o ttl acima.

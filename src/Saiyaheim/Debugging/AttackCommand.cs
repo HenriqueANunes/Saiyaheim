@@ -340,14 +340,8 @@ namespace Saiyaheim.Debugging
         /// </summary>
         private void PrintCadence(KiAttack attack, float cost)
         {
-            float floor = SaiyaheimConfig.KiAttackMinimumInterval.Value;
+            const float floor = KiAttackRegistry.MinimumInterval;
             float interval = attack.Config.Cooldown.Value > floor ? attack.Config.Cooldown.Value : floor;
-
-            if (interval <= 0f)
-            {
-                Print("Cooldown: none, and no shared floor either — rate of fire is the frame rate.");
-                return;
-            }
 
             Print($"Cooldown: {attack.Config.Cooldown.Value:0.##} s " +
                   $"(shared floor {floor:0.##} s) → {1f / interval:0.#} shots/s, " +
@@ -365,7 +359,6 @@ namespace Saiyaheim.Debugging
 
             Print($"Projectile: {prefabName}{(exists ? "" : "  *** DOES NOT EXIST — nothing will fire ***")}");
             Print($"  {speed:0.#} m/s for {life:0.##} s = {speed * life:0} m range, " +
-                  $"gravity {attack.Config.ProjectileGravity.Value:0.##}, " +
                   $"knockback {attack.Config.Knockback.Value:0}");
 
             int beam = attack.GetBeamCount();
