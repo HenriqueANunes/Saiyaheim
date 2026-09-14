@@ -205,36 +205,46 @@ namespace Saiyaheim.Transformations
             // Hair4.
             new HairEntry("SaiyaHair20", "Hair20", new HairPart(null, "hair20")),
             // Corte curto: calota lisa no alto e dois coques baixos bem laterais (tipo
-            // maria-chiquinha) na altura da orelha, mais painéis finos perto da nuca. Espeto só
-            // na coroa (calota + nuca); coques ficam lisos, redondos, por escolha de silhueta.
+            // maria-chiquinha) na altura da orelha, mais painéis finos perto da nuca. Método
+            // denso (mechas-guia + pétalas): coroa (calota + nuca) erriçada, coques ficam lisos
+            // e redondos — mesma escolha de silhueta do método antigo, confirmada de novo no
+            // julgamento das variantes densas (descartado espetar os coques igual à coroa).
             // Malha com esqueleto (filho `attach_skin`), uma peça só, 9 cascas espelhadas em X.
             // Deitada como o Hair4. ⚠️ No jogo, o guid da malha do prefab `Hair21` aponta pro
             // arquivo `Hair22.asset` e vice-versa (nomes trocados); a malha certa foi escolhida
             // pelo guid, não pelo nome do arquivo.
             new HairEntry("SaiyaHair21", "Hair21", new HairPart(null, "hair21")),
             // Bola de mechas soltas cobrindo a cabeça inteira até a nuca — 7 mechas facetadas,
-            // cada uma já nascendo inteira de um lado, sem casquete contínuo. Espeto em todas as
-            // mechas, nuca incluída (a alternativa "só topo" foi descartada). Malha com esqueleto
-            // (filho `attach_skin`), uma peça só, 14 cascas espelhadas em X. Deitada como o
-            // Hair4 (mesma troca de guid do Hair21/Hair22 no jogo, aqui resolvida do mesmo jeito).
+            // cada uma já nascendo inteira de um lado, sem casquete contínuo. Método denso
+            // (mechas-guia + pétalas) tratando as 14 cascas de forma uniforme, nuca incluída,
+            // com enchimento mais denso que o ponto de partida (descartadas guia maior e guia
+            // menor). Malha com esqueleto (filho `attach_skin`), uma peça só, 14 cascas
+            // espelhadas em X. Deitada como o Hair4 (mesma troca de guid do Hair21/Hair22 no
+            // jogo, aqui resolvida do mesmo jeito).
             new HairEntry("SaiyaHair22", "Hair22", new HairPart(null, "hair22")),
             // A menor malha do projeto (46 vértices): toco curto e arredondado sobre o
-            // topo/nuca, sem franja nem casquete de verdade. Espeto em dois grupos: coroa no
-            // topo (4 por lado) e um segundo grupo na nuca (5 por lado, quase na vertical,
-            // cobrindo da base das abas até o meio de trás da cabeça) — pedido explícito do
-            // Henrique depois de ver o topo sozinho. Malha com esqueleto (filho `attach_skin`),
-            // uma peça só, 2 cascas espelhadas em X. Deitada como o Hair4.
+            // topo/nuca, sem franja nem casquete de verdade — duas pétalas abertas, presas no
+            // couro cabeludo perto do topo e da base. Método denso (mechas-guia + pétalas) num
+            // único passe (o gradiente de altura embutido no método cobre topo e nuca sem
+            // precisar dos dois grupos manuais do método antigo), com enchimento bem denso —
+            // descartadas guia grande (engoliu a silhueta num bloco só) e menos enchimento.
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, 2 cascas espelhadas em X.
+            // Deitada como o Hair4.
             new HairEntry("SaiyaHair23", "Hair23", new HairPart(null, "hair23")),
             // Trança única e fina, sem casquete, curvando quase 180° do topo do crânio até uma
-            // pontinha ornamental (mantida intacta). Espeto ao longo da trança inteira, seguindo
-            // a curva por um fluxo local (não uma reta raiz→ponta, que apontaria pro lado errado
-            // na metade de baixo). Malha com esqueleto (filho `attach_skin`), uma peça só,
-            // bindpose identidade (não deitada, como o Hair13/Hair18).
+            // pontinha ornamental (mantida intacta). Método denso (mechas-guia + pétalas) com
+            // eixo por fluxo local — BFS topológico a partir da raiz, não reta raiz→ponta, que
+            // apontaria pro lado errado na metade de baixo da curva — e enchimento mais denso
+            // que o ponto de partida (descartadas a leitura mais reta e a guia mais grossa).
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, bindpose identidade (não
+            // deitada, como o Hair13/Hair18).
             new HairEntry("SaiyaHair24", "Hair24", new HairPart(null, "hair24")),
             // Casquete com um bico frontal tipo topete e um coque redondo colado atrás, colado à
-            // cabeça. Espeto no casquete inteiro e no coque também (a opção de coque liso foi
-            // descartada). Malha com esqueleto (filho `attach_skin`), uma peça só, 6 cascas
-            // espelhadas em X. Deitada como o Hair4.
+            // cabeça. Método denso (mechas-guia + pétalas): casquete inteiro erriçado (bico
+            // tratado igual ao resto, sem destaque nem suavização) e coque com mechas-guia
+            // próprias, mais curtas e grossas, nunca medidas pelo casquete (descartadas guia
+            // maior, mais enchimento e bico liso). Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, 6 cascas espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair25", "Hair25", new HairPart(null, "hair25")),
             // Casquete colado com trança curta de cada lado, cada trança terminando numa conta
             // em forma de laço (mantida intacta). Espeto no casquete e ao longo da trança
