@@ -44,8 +44,8 @@ cat > "$STAGE/manifest.json" <<MANIFEST
 {
   "name": "Saiyaheim",
   "version_number": "$VERSION",
-  "website_url": "",
-  "description": "Mod de Dragon Ball para Valheim: ki, voo, combate desarmado e transformacoes.",
+  "website_url": "https://github.com/HenriqueANunes/Saiyaheim",
+  "description": "Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and transformations.",
   "dependencies": [
     "$DEP_BEPINEX",
     "$DEP_JOTUNN"
