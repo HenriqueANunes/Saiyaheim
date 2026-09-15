@@ -24,6 +24,28 @@ dotnet build Saiyaheim.sln -c Release    # compila
 
 Sempre pelo `.sln`, não pelo `.csproj`.
 
+## Servidor dedicado
+
+O servidor com o mod roda em container na máquina `hserver`. Para acompanhar o log em tempo
+real:
+
+```bash
+ssh hserver 'docker logs -f valheim'        # log do servidor
+ssh hserver 'valheim/joincode.sh'           # join code atual (muda a cada reinício)
+```
+
+Últimas linhas, sem seguir:
+
+```bash
+ssh hserver 'docker logs --tail 200 valheim'
+```
+
+Log do cliente local (r2modman), reescrito a cada inicialização do jogo:
+
+```bash
+tail -f ~/.config/r2modmanPlus-local/Valheim/profiles/Default/BepInEx/LogOutput.log
+```
+
 ## Estrutura
 
 - `src/Saiyaheim/` — código do mod (C#)
