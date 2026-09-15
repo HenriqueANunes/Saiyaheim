@@ -246,30 +246,39 @@ namespace Saiyaheim.Transformations
             // maior, mais enchimento e bico liso). Malha com esqueleto (filho `attach_skin`),
             // uma peça só, 6 cascas espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair25", "Hair25", new HairPart(null, "hair25")),
-            // Casquete colado com trança curta de cada lado, cada trança terminando numa conta
-            // em forma de laço (mantida intacta). Espeto no casquete e ao longo da trança
-            // inteira, bem denso — o Henrique pediu mais espeto depois de ver a primeira leva
-            // (trança rala) e a versão final cobre quase toda a trança, não só a raiz. Malha com
-            // esqueleto (filho `attach_skin`), uma peça só, 6 cascas espelhadas em X. Bindpose
-            // identidade (não deitada, como o Hair13/Hair18).
+            // Chumaço de dreadlocks penduradas ao redor de um arco de ~200°, sem casquete: 26
+            // mechas de verdade + 10 presilhas de milímetro na raiz (intactas). Método denso
+            // (mechas-guia + pétalas) crescendo por cima das próprias dreads, guias próprias
+            // espalhadas pelo arco medido; guia menor/mais fina e mais enchimento (descartadas
+            // baseline, guia maior/mais grossa e menos enchimento). Malha com esqueleto (filho
+            // `attach_skin`), uma peça só (36 cascas soltas), sem espelho (mesh assimétrica de
+            // propósito). Deitada como o Hair4. Nunca teve modelo aprovado antes — primeiro
+            // fechamento deste penteado, direto no método denso.
+            new HairEntry("SaiyaHair26", "Hair26", new HairPart(null, "hair26")),
+            // Casquete pequeno colado no alto do crânio com trança curta de cada lado, cada
+            // trança terminando numa conta em forma de laço (mantida intacta). Refeito no
+            // método denso (mechas-guia + pétalas): preset padrão, trança acompanhando o fluxo
+            // espetado (descartadas guia maior/mais grossa, mais enchimento e trança lisa).
+            // Malha com esqueleto (filho `attach_skin`), uma peça só, 6 cascas espelhadas em X.
+            // Bindpose identidade (não deitada, como o Hair13/Hair18).
             new HairEntry("SaiyaHair27", "Hair27", new HairPart(null, "hair27")),
             // Coque/bola no topo com rabo fino descendo em espiral (ondulação vinda da malha
-            // original, não é espeto) até uma ponta afinada. Espeto no coque (intensidade
-            // média) e no rabo inteiro — a opção de rabo liso foi descartada. Malha com
-            // esqueleto (filho `attach_skin`), uma peça só, sem espelho (rabo cai pra um lado
-            // só, mesh assimétrica de propósito). Bindpose identidade (como o Hair6).
+            // original, não é espeto) até uma ponta afinada. Refeito no método denso: preset
+            // padrão, rabo acompanhando o fluxo espetado (descartadas guia maior/mais grossa,
+            // mais enchimento e rabo liso). Malha com esqueleto (filho `attach_skin`), uma peça
+            // só, sem espelho (rabo cai pra um lado só, mesh assimétrica de propósito). Bindpose
+            // identidade (como o Hair6).
             new HairEntry("SaiyaHair28", "Hair28", new HairPart(null, "hair28")),
             // Corte tipo chanel/pageboy: cúpula curta sobre o crânio com aba sólida descendo até
-            // a nuca. Espeto na cúpula e também na aba de trás até o pescoço — a opção de aba
-            // lisa foi descartada. Malha com esqueleto (filho `attach_skin`), uma peça só, 2
-            // cascas espelhadas em X. Deitada como o Hair4.
+            // a nuca. Refeito no método denso: guia menor/mais fina (descartadas baseline, guia
+            // maior/mais grossa e mais enchimento). Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, 2 cascas espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair29", "Hair29", new HairPart(null, "hair29")),
             // Casquete arredondado tipo capacete, sem rabo, com franja (apagada, nasce sobre o
-            // rosto) e dois tufos de milímetro perto da nuca/orelha (intactos). Espeto cobrindo
-            // o casquete até a nuca, bem vertical — a primeira leva deixava a nuca lisa e os
-            // espetos de lá saindo pro lado, corrigido com `cap_lift` bem mais alto e mais
-            // espeto na área liberada. Malha com esqueleto (filho `attach_skin`), uma peça só, 5
-            // cascas espelhadas em X. Deitada como o Hair4.
+            // rosto) e dois tufos de milímetro perto da nuca/orelha (intactos). Refeito no
+            // método denso: preset padrão (descartadas guia maior/mais grossa, mais e menos
+            // enchimento). Malha com esqueleto (filho `attach_skin`), uma peça só, 5 cascas
+            // espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair30", "Hair30", new HairPart(null, "hair30")),
             // Casquete cobrindo o crânio inteiro, laço prendendo a nuca (peça de milímetro,
             // intacto) e uma "saia" de pontas soltas abaixo do laço. Espeto no casquete
@@ -306,31 +315,34 @@ namespace Saiyaheim.Transformations
             new HairEntry("SaiyaHair34", "Hair34", new HairPart(null, "hair34")),
             // Manto/capuz cobrindo a cabeça inteira até o ombro, com um coque preso atrás e
             // duas abas curtas na frente/nuca (corte em V) — sem casquete separado, o próprio
-            // manto é a silhueta. Espeto denso no manto inteiro, cota alta e espaçamento
-            // pequeno depois do Henrique pedir mais cobertura na parte de trás (a primeira leva
-            // ficava só no topo, mesma causa do Hair32). Coque e tiras de acabamento ficam
-            // intactos (peça de milímetro). Malha com esqueleto (filho `attach_skin`), uma peça
-            // só, 20 cascas soltas espelhadas em X. Deitada como o Hair4.
+            // manto é a silhueta. Refeito no método denso (mechas-guia + pétalas): guia
+            // menor/mais fina (descartadas baseline, guia maior/mais grossa e mais enchimento).
+            // Sem mecha no topo — só nas laterais do manto: a coroa do conjunto de guias cai no
+            // furo onde o coque encaixa, e a tentativa de reforçar ali ficou grande demais perto
+            // do resto, descartada. Coque e tiras de acabamento ficam intactos (peça de
+            // milímetro). Malha com esqueleto (filho `attach_skin`), uma peça só, 20 cascas
+            // soltas espelhadas em X. Deitada como o Hair4.
             new HairEntry("SaiyaHair35", "Hair35", new HairPart(null, "hair35")),
             // Casquete raso colado ao crânio com dois fios longos caindo dos lados até o
-            // ombro/peito — silhueta de cortina, não de rabo central. Fio fino secundário junto
-            // do fio principal tratado como parte da mesma cauda (evita par de espeto colidindo
-            // no mesmo lugar). Franja frontal dupla (duas camadas empilhadas) mantida lisa —
-            // opção de franja espetada descartada. Espeto forte no casquete e na cauda,
-            // intensidade média e leve descartadas. Bug corrigido: a raiz da cauda sozinha já
-            // tinha candidato de sobra pra cota inteira e empilhava tudo no anel do topo;
-            // corrigido escolhendo por fatia de altura em vez de distância euclidiana. Malha com
-            // esqueleto (filho `attach_skin`), 16 cascas espelhadas em X. Deitada como o Hair4.
+            // ombro/peito — silhueta de cortina, não de rabo central. Refeito no método denso
+            // (mechas-guia + pétalas no casquete, mecha própria por fluxo no fio). As 5
+            // variantes iniciais (preset, guia maior, menos enchimento, fio liso, fio só na
+            // raiz) ficaram carecas vistas de frente: o casquete (só a metade de trás) e a
+            // franja (peça intacta, na frente) têm uma fresta real entre os dois onde nasce a
+            // raiz do fio, e é essa raiz que projeta no centro da silhueta — densidade do
+            // casquete e da raiz do fio aumentadas para cobrir. Fio fino secundário tratado
+            // como parte da mesma mecha do fio principal. Franja mantida lisa (peça de
+            // milímetro). Malha com esqueleto (filho `attach_skin`), 16 cascas espelhadas em X.
+            // Deitada como o Hair4.
             new HairEntry("SaiyaHair36", "Hair36", new HairPart(null, "hair36")),
             // Casquete arredondado tipo couve-flor/voxel colado à cabeça, sem rabo, com uma
             // mecha fina em gancho/nadadeira só do lado esquerdo, sem gêmea, mantida intacta.
-            // As duas metades do casquete não são espelho exato uma da outra (182 vs. 180
-            // vértices) — sem `mirror_map`, cada lado escolhe a própria aresta direto, deixando
-            // a assimetria original aparecer nos espetos também. Espeto denso do topo até a
-            // nuca; a primeira leva (26 espetos) esgotava a cota antes de descer e ficava careca
-            // na nuca — mesma causa do Hair32/Hair35, corrigida subindo a cota para 46 em vez de
-            // aumentar o `lift`. Malha com esqueleto (filho `attach_skin`), uma peça só, 9
-            // cascas soltas. Deitada como o Hair4/Hair30.
+            // Refeito no método denso (mechas-guia + pétalas): mais enchimento (descartadas
+            // baseline, guia maior/mais grossa e guia menor/mais fina). As duas metades do
+            // casquete não são espelho exato uma da outra (182 vs. 180 vértices) — tratadas como
+            // uma única superfície de amostragem, sem `mirror_map`, deixando a assimetria
+            // original aparecer nos espetos também. Malha com esqueleto (filho `attach_skin`),
+            // uma peça só, 9 cascas soltas. Deitada como o Hair4/Hair30.
             new HairEntry("SaiyaHair37", "Hair37", new HairPart(null, "hair37")),
         };
 
@@ -359,10 +371,10 @@ namespace Saiyaheim.Transformations
         /// null quando não há uma.
         ///
         /// <b>Null é resposta, não erro.</b> Nem todo penteado tem versão espetada: o
-        /// <c>HairNone</c> não tem o que espetar, o <c>Hair26</c> ainda espera julgamento, e um
-        /// cabelo que o Valheim acrescentar numa atualização não vai ter nenhuma até alguém
-        /// esculpir. Quem chama mantém o cabelo do personagem nesses casos, que é o que a forma
-        /// fazia antes de existir cabelo espetado.
+        /// <c>HairNone</c> não tem o que espetar, um penteado ainda não modelado não tem entrada
+        /// na tabela, e um cabelo que o Valheim acrescentar numa atualização não vai ter nenhuma
+        /// até alguém esculpir. Quem chama mantém o cabelo do personagem nesses casos, que é o
+        /// que a forma fazia antes de existir cabelo espetado.
         ///
         /// A busca vai pela tabela e não por <c>"Saiya" + nome</c>: é a tabela que sabe qual
         /// molde cada item nosso clonou. E confere o <c>ObjectDB</c> porque um penteado da tabela
