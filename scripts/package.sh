@@ -40,6 +40,11 @@ cp "$DLL" "$STAGE/BepInEx/plugins/Saiyaheim/"
 cp "$REPO_ROOT/packaging/README.md" "$STAGE/"
 cp "$REPO_ROOT/packaging/icon.png" "$STAGE/"
 
+# O CHANGELOG é opcional: presente, vira uma aba na página do Thunderstore.
+if [[ -f "$REPO_ROOT/packaging/CHANGELOG.md" ]]; then
+  cp "$REPO_ROOT/packaging/CHANGELOG.md" "$STAGE/"
+fi
+
 cat > "$STAGE/manifest.json" <<MANIFEST
 {
   "name": "Saiyaheim",
