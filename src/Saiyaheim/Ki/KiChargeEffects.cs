@@ -131,8 +131,8 @@ namespace Saiyaheim.Ki
             Live[player] = new Active
             {
                 Color = color,
-                Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color),
-                Sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab.Value, player, color)
+                Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab, player, color),
+                Sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab, player, color)
             };
         }
 
@@ -162,7 +162,7 @@ namespace Saiyaheim.Ki
                 UnityEngine.Object.Destroy(active.Vfx);
             }
 
-            active.Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab.Value, player, color);
+            active.Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab, player, color);
         }
 
         /// <summary>
@@ -182,12 +182,12 @@ namespace Saiyaheim.Ki
         {
             Transformation active = TransformationRegistry.At(NetState.GetFormIndex(player));
 
-            if (active != null && !string.IsNullOrEmpty(active.Config.AuraColor.Value))
+            if (active != null && !string.IsNullOrEmpty(active.Config.AuraColor))
             {
-                return active.Config.AuraColor.Value;
+                return active.Config.AuraColor;
             }
 
-            return SaiyaheimConfig.ChargeEffectColor.Value;
+            return SaiyaheimConfig.ChargeEffectColor;
         }
 
         private static GameObject Spawn(string prefabName, Player player, string color)
@@ -196,8 +196,8 @@ namespace Saiyaheim.Ki
                 player,
                 prefabName,
                 color,
-                SaiyaheimConfig.ChargeEffectScale.Value,
-                SaiyaheimConfig.ChargeEffectForceLoop.Value);
+                SaiyaheimConfig.ChargeEffectScale,
+                SaiyaheimConfig.ChargeEffectForceLoop);
         }
 
         private static void Cleanup(Player player, Active active)

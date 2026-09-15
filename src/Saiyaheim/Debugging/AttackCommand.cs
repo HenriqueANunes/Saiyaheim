@@ -325,7 +325,7 @@ namespace Saiyaheim.Debugging
             // a decisao de 2026-09-07 recusou.
             Print($"  each projectile hits for {perProjectile:0.#} at any charge; " +
                   $"the charge buys length and thickness only " +
-                  $"({attack.Config.ChargeMinScale.Value:0.##}x to 1x thickness)");
+                  $"({attack.Config.ChargeMinScale:0.##}x to 1x thickness)");
 
             if (KiBeamCharge.Current == attack)
             {
@@ -354,7 +354,7 @@ namespace Saiyaheim.Debugging
             float speed = attack.Config.ProjectileSpeed.Value;
             float life = attack.Config.ProjectileLifetime.Value;
 
-            string prefabName = attack.Config.ProjectilePrefab.Value;
+            string prefabName = attack.Config.ProjectilePrefab;
             bool exists = ZNetScene.instance != null && ZNetScene.instance.GetPrefab(prefabName) != null;
 
             Print($"Projectile: {prefabName}{(exists ? "" : "  *** DOES NOT EXIST — nothing will fire ***")}");

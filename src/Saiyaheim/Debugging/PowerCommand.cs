@@ -187,7 +187,7 @@ namespace Saiyaheim.Debugging
 
             Print($"Power rating — {SaiyaheimConfig.RatingK1Health.Value:0.##} x ehp" +
                   $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x dps," +
-                  $" displayed x{SaiyaheimConfig.PowerDisplayScale.Value:0.##}");
+                  $" displayed x{SaiyaheimConfig.PowerDisplayScale:0.##}");
 
             foreach (KeyValuePair<float, string> row in rows)
             {

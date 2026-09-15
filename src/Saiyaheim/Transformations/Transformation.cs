@@ -219,7 +219,7 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>Esta forma estala raios em volta do corpo enquanto está ativa?</summary>
-        internal bool HasLightning => Config.LightningEnabled.Value;
+        internal bool HasLightning => Config.LightningEnabled;
 
         /// <summary>
         /// A cor dos raios desta forma. Vazio na chave própria cai na cor da aura — a forma tem
@@ -231,9 +231,9 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal string GetLightningColor()
         {
-            string own = Config.LightningColor.Value;
+            string own = Config.LightningColor;
 
-            return string.IsNullOrEmpty(own) ? Config.AuraColor.Value : own;
+            return string.IsNullOrEmpty(own) ? Config.AuraColor : own;
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal float GetGlowIntensity()
         {
-            return Mathf.Max(0f, Config.GlowIntensity.Value);
+            return Mathf.Max(0f, Config.GlowIntensity);
         }
 
         /// <summary>
@@ -263,9 +263,9 @@ namespace Saiyaheim.Transformations
         /// </summary>
         internal string GetGlowColor()
         {
-            string own = Config.GlowColor.Value;
+            string own = Config.GlowColor;
 
-            return string.IsNullOrEmpty(own) ? Config.AuraColor.Value : own;
+            return string.IsNullOrEmpty(own) ? Config.AuraColor : own;
         }
 
         /// <summary>

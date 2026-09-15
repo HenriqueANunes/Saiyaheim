@@ -105,7 +105,7 @@ namespace Saiyaheim.Transformations
                 glow.Color = ResolveColor(form, glow.Color);
             }
 
-            float fade = Mathf.Max(0f, SaiyaheimConfig.FormGlowFade.Value);
+            float fade = Mathf.Max(0f, SaiyaheimConfig.FormGlowFade);
             float goal = target > 0f ? 1f : 0f;
 
             glow.Level = fade > 0f
@@ -175,7 +175,7 @@ namespace Saiyaheim.Transformations
                 return 0f;
             }
 
-            return Mathf.Max(0f, SaiyaheimConfig.FormGlowIntensity.Value * form.GetGlowIntensity());
+            return Mathf.Max(0f, SaiyaheimConfig.FormGlowIntensity * form.GetGlowIntensity());
         }
 
         /// <summary>
@@ -222,16 +222,16 @@ namespace Saiyaheim.Transformations
             Light light = glow.Light;
 
             light.color = glow.Color;
-            light.range = Mathf.Max(0.1f, SaiyaheimConfig.FormGlowRange.Value);
+            light.range = Mathf.Max(0.1f, SaiyaheimConfig.FormGlowRange);
             light.intensity = glow.Level * glow.Peak * Pulse(glow);
 
             // Sombra de luz pontual custa seis mapas de sombra por quadro, e a luz vive minutos.
             // Por isso a chave existe, e por isso ela nasce desligada.
-            light.shadows = SaiyaheimConfig.FormGlowShadows.Value
+            light.shadows = SaiyaheimConfig.FormGlowShadows
                 ? LightShadows.Soft
                 : LightShadows.None;
 
-            light.transform.localPosition = new Vector3(0f, SaiyaheimConfig.FormGlowHeight.Value, 0f);
+            light.transform.localPosition = new Vector3(0f, SaiyaheimConfig.FormGlowHeight, 0f);
         }
 
         /// <summary>
@@ -243,13 +243,13 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static float Pulse(Glow glow)
         {
-            float amount = Mathf.Clamp01(SaiyaheimConfig.FormGlowPulseAmount.Value);
+            float amount = Mathf.Clamp01(SaiyaheimConfig.FormGlowPulseAmount);
             if (amount <= 0f)
             {
                 return 1f;
             }
 
-            float speed = Mathf.Max(0f, SaiyaheimConfig.FormGlowPulseSpeed.Value);
+            float speed = Mathf.Max(0f, SaiyaheimConfig.FormGlowPulseSpeed);
             float wave = Mathf.Sin((Time.time * speed + glow.Phase) * 2f * Mathf.PI);
 
             return 1f + wave * amount;

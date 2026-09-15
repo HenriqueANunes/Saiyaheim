@@ -44,7 +44,6 @@ namespace Saiyaheim.Net
         {
             List<Player> players = Player.GetAllPlayers();
             Player local = Player.m_localPlayer;
-            bool showOthers = SaiyaheimConfig.ShowRemoteEffects.Value;
 
             for (int i = 0; i < players.Count; i++)
             {
@@ -52,15 +51,6 @@ namespace Saiyaheim.Net
 
                 if (player == null)
                 {
-                    continue;
-                }
-
-                if (!showOthers && !ReferenceEquals(player, local))
-                {
-                    // Desligado no meio de uma sessão: o que já estava aceso precisa apagar, senão
-                    // a chave só valeria para quem ainda não tinha começado a carregar.
-                    KiChargeEffects.Update(player, charging: false);
-                    KiBeamChargeEffects.Update(player, charging: false, charged: false, ratio: 0f);
                     continue;
                 }
 

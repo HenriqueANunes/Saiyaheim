@@ -55,7 +55,7 @@ namespace Saiyaheim.Attacks
                 return false;
             }
 
-            string prefabName = attack.Config.ProjectilePrefab.Value;
+            string prefabName = attack.Config.ProjectilePrefab;
             GameObject prefab = ZNetScene.instance.GetPrefab(prefabName);
             if (prefab == null)
             {
@@ -99,7 +99,7 @@ namespace Saiyaheim.Attacks
             // pai, e a largura de um rastro nao e' afetada por escala nenhuma. Ver EffectScale.
             EffectScale.Apply(instance, attack.GetProjectileScale(chargeRatio));
 
-            AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor.Value);
+            AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor);
 
             float damage = attack.GetDamage(player);
             float speed = attack.Config.ProjectileSpeed.Value;
@@ -253,7 +253,7 @@ namespace Saiyaheim.Attacks
                 $"static {projectile.m_stayAfterHitStatic}, dynamic {projectile.m_stayAfterHitDynamic}, " +
                 $"stayTTL {projectile.m_stayTTL:0.##}s, stopEmitters {projectile.m_stopEmittersOnHit}.");
 
-            if (attack.Config.ProjectileLingerOnHit.Value)
+            if (attack.Config.ProjectileLingerOnHit)
             {
                 return;
             }
@@ -282,10 +282,10 @@ namespace Saiyaheim.Attacks
             LogImpactEffects(projectile, attack);
 
             string context = $"Ki attack '{attack.Id}'";
-            string[] strip = StrippedEffect.ParseFilter(attack.Config.ImpactEffectStrip.Value);
+            string[] strip = StrippedEffect.ParseFilter(attack.Config.ImpactEffectStrip);
             string tint = ResolveImpactColor(attack);
-            bool lightsOnly = attack.Config.ImpactColorTarget.Value == ImpactTintTarget.Light;
-            string effectName = attack.Config.ImpactEffect.Value?.Trim() ?? string.Empty;
+            bool lightsOnly = attack.Config.ImpactColorTarget == ImpactTintTarget.Light;
+            string effectName = attack.Config.ImpactEffect?.Trim() ?? string.Empty;
 
             if (effectName.Equals("none", System.StringComparison.OrdinalIgnoreCase))
             {
@@ -337,7 +337,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static string ResolveImpactColor(KiAttack attack)
         {
-            string configured = attack.Config.ImpactColor.Value?.Trim() ?? string.Empty;
+            string configured = attack.Config.ImpactColor?.Trim() ?? string.Empty;
 
             if (configured.Equals("none", System.StringComparison.OrdinalIgnoreCase))
             {
@@ -346,7 +346,7 @@ namespace Saiyaheim.Attacks
 
             return configured.Length > 0
                 ? configured
-                : attack.Config.ProjectileColor.Value?.Trim() ?? string.Empty;
+                : attack.Config.ProjectileColor?.Trim() ?? string.Empty;
         }
 
         /// <summary>

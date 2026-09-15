@@ -42,9 +42,7 @@ namespace Saiyaheim.Debugging
 
             List<Player> players = Player.GetAllPlayers();
 
-            Print($"{players.Count} player(s) loaded. " +
-                  $"Remote poses {OnOff(SaiyaheimConfig.ShowRemotePoses.Value)}, " +
-                  $"remote effects {OnOff(SaiyaheimConfig.ShowRemoteEffects.Value)}.");
+            Print($"{players.Count} player(s) loaded.");
 
             for (int i = 0; i < players.Count; i++)
             {

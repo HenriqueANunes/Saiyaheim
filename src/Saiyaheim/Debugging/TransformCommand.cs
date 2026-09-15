@@ -675,7 +675,7 @@ namespace Saiyaheim.Debugging
 
             foreach (Transformation form in TransformationRegistry.All)
             {
-                string item = form.Config.HairItem.Value;
+                string item = form.Config.HairItem;
 
                 if (string.Equals(item, name, StringComparison.OrdinalIgnoreCase))
                 {

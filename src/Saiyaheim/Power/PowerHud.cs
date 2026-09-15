@@ -197,12 +197,12 @@ namespace Saiyaheim.Power
             }
 
             _lastValue = value;
-            _text.text = Util.HudText.Prefix(SaiyaheimConfig.PowerHudLabel.Value) + value;
+            _text.text = Util.HudText.Prefix(SaiyaheimConfig.PowerHudLabel) + value;
         }
 
         private static void ApplyColor()
         {
-            if (ColorUtility.TryParseHtmlString(SaiyaheimConfig.PowerHudColor.Value, out Color color))
+            if (ColorUtility.TryParseHtmlString(SaiyaheimConfig.PowerHudColor, out Color color))
             {
                 _text.color = color;
             }

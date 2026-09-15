@@ -56,7 +56,7 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            string prefab = SaiyaheimConfig.FormLightningPrefab.Value;
+            string prefab = SaiyaheimConfig.FormLightningPrefab;
 
             if (form == null || !form.HasLightning || string.IsNullOrEmpty(prefab))
             {
@@ -80,7 +80,7 @@ namespace Saiyaheim.Transformations
 
             NextSpark[player] = Time.time + DrawInterval();
 
-            int count = Mathf.Max(1, SaiyaheimConfig.FormLightningCount.Value);
+            int count = Mathf.Max(1, SaiyaheimConfig.FormLightningCount);
             for (int i = 0; i < count; i++)
             {
                 SpawnBolt(player, form, prefab);
@@ -107,8 +107,8 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static float DrawInterval()
         {
-            float interval = Mathf.Max(0.01f, SaiyaheimConfig.FormLightningInterval.Value);
-            float jitter = Mathf.Clamp01(SaiyaheimConfig.FormLightningIntervalJitter.Value);
+            float interval = Mathf.Max(0.01f, SaiyaheimConfig.FormLightningInterval);
+            float jitter = Mathf.Clamp01(SaiyaheimConfig.FormLightningIntervalJitter);
 
             return interval * Random.Range(1f - jitter, 1f + jitter);
         }
@@ -127,20 +127,20 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static void SpawnBolt(Player player, Transformation form, string prefab)
         {
-            Vector2 disc = Random.insideUnitCircle * SaiyaheimConfig.FormLightningRadius.Value;
+            Vector2 disc = Random.insideUnitCircle * SaiyaheimConfig.FormLightningRadius;
 
-            float spread = Mathf.Max(0f, SaiyaheimConfig.FormLightningSpread.Value);
-            float height = SaiyaheimConfig.FormLightningHeight.Value
+            float spread = Mathf.Max(0f, SaiyaheimConfig.FormLightningSpread);
+            float height = SaiyaheimConfig.FormLightningHeight
                            + Random.Range(-spread * 0.5f, spread * 0.5f);
 
             GameObject bolt = Util.AttachedEffect.Spawn(
                 player,
                 prefab,
                 form.GetLightningColor(),
-                SaiyaheimConfig.FormLightningScale.Value,
+                SaiyaheimConfig.FormLightningScale,
                 forceLoop: false,
-                lightIntensity: SaiyaheimConfig.FormLightningLightIntensity.Value,
-                burstDuration: SaiyaheimConfig.FormLightningDuration.Value,
+                lightIntensity: SaiyaheimConfig.FormLightningLightIntensity,
+                burstDuration: SaiyaheimConfig.FormLightningDuration,
                 localOffset: new Vector3(disc.x, height, disc.y));
 
             if (bolt != null)

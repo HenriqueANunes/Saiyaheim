@@ -189,10 +189,10 @@ namespace Saiyaheim.Ki
 
         private static void ApplyColor()
         {
-            if (!ColorUtility.TryParseHtmlString(SaiyaheimConfig.KiBarColor.Value, out Color color))
+            if (!ColorUtility.TryParseHtmlString(SaiyaheimConfig.KiBarColor, out Color color))
             {
                 SaiyaheimPlugin.Log.LogWarning(
-                    $"KiBarColor '{SaiyaheimConfig.KiBarColor.Value}' is not a valid color. Use the #RRGGBB format.");
+                    $"KiBarColor '{SaiyaheimConfig.KiBarColor}' is not a valid color. Use the #RRGGBB format.");
                 return;
             }
 
@@ -261,17 +261,11 @@ namespace Saiyaheim.Ki
         /// </summary>
         private static bool ShouldBeVisible(float current, float max)
         {
-            // Ki desligado não tem o que dizer: a barra some, inclusive com KiBarAlwaysVisible.
+            // Ki desligado não tem o que dizer: a barra some.
             if (!KiManager.IsEnabled)
             {
                 _hideTimer = HideDelay;
                 return false;
-            }
-
-            if (SaiyaheimConfig.KiBarAlwaysVisible.Value)
-            {
-                _hideTimer = 0f;
-                return true;
             }
 
             bool active = current < max - 0.01f || KiManager.IsCharging;

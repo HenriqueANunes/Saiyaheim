@@ -128,7 +128,7 @@ namespace Saiyaheim.Power
         /// </summary>
         internal static float ToDisplay(float raw)
         {
-            return raw <= 0f ? 0f : raw * SaiyaheimConfig.PowerDisplayScale.Value;
+            return raw <= 0f ? 0f : raw * SaiyaheimConfig.PowerDisplayScale;
         }
 
         /// <summary>

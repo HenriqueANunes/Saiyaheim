@@ -1138,7 +1138,7 @@ namespace Saiyaheim.Attacks
             {
                 if (attack.IsCharged)
                 {
-                    return attack.Config.ChargeEffectAnchor.Value != EffectAnchor.LeftHand;
+                    return attack.Config.ChargeEffectAnchor != EffectAnchor.LeftHand;
                 }
             }
 

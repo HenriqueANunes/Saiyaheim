@@ -85,7 +85,7 @@ namespace Saiyaheim.Transformations
         {
             Run(() =>
             {
-                PlayEmote(player, SaiyaheimConfig.TransformEmote.Value);
+                PlayEmote(player, SaiyaheimConfig.TransformEmote);
                 SetHairColor(player, form);
                 SetHairStyle(player, form);
             });
@@ -270,12 +270,12 @@ namespace Saiyaheim.Transformations
 
             Bursts[player] = AttachedEffect.Spawn(
                 player,
-                SaiyaheimConfig.TransformAuraPrefab.Value,
-                form.Config.AuraColor.Value,
-                SaiyaheimConfig.TransformAuraScale.Value,
-                SaiyaheimConfig.TransformAuraForceLoop.Value,
-                SaiyaheimConfig.TransformAuraLightIntensity.Value,
-                SaiyaheimConfig.TransformAuraDuration.Value);
+                SaiyaheimConfig.TransformAuraPrefab,
+                form.Config.AuraColor,
+                SaiyaheimConfig.TransformAuraScale,
+                SaiyaheimConfig.TransformAuraForceLoop,
+                SaiyaheimConfig.TransformAuraLightIntensity,
+                SaiyaheimConfig.TransformAuraDuration);
         }
 
         private static void PlayEmote(Player player, string emote)
@@ -372,7 +372,7 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static void SetHairStyle(Player player, Transformation form)
         {
-            ApplyHairStyle(player, ResolveHairItem(player, form == null ? "" : form.Config.HairItem.Value));
+            ApplyHairStyle(player, ResolveHairItem(player, form == null ? "" : form.Config.HairItem));
         }
 
         /// <summary>
@@ -484,7 +484,7 @@ namespace Saiyaheim.Transformations
         {
             color = Vector3.one;
 
-            string raw = form.Config.HairColor.Value;
+            string raw = form.Config.HairColor;
             if (string.IsNullOrEmpty(raw))
             {
                 return false;
@@ -497,7 +497,7 @@ namespace Saiyaheim.Transformations
                 return false;
             }
 
-            float intensity = Mathf.Max(0f, form.Config.HairColorIntensity.Value);
+            float intensity = Mathf.Max(0f, form.Config.HairColorIntensity);
             color = new Vector3(parsed.r, parsed.g, parsed.b) * intensity;
 
             return true;

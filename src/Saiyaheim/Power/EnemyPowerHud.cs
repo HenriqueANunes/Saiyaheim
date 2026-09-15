@@ -154,7 +154,7 @@ namespace Saiyaheim.Power
 
         private static Color GetColor()
         {
-            string configured = SaiyaheimConfig.EnemyPowerColor.Value;
+            string configured = SaiyaheimConfig.EnemyPowerColor;
             if (configured != _colorText)
             {
                 _colorText = configured;
@@ -230,15 +230,15 @@ namespace Saiyaheim.Power
                 }
 
                 // enabled do texto, e não SetActive no objeto: um objeto desativado não roda
-                // LateUpdate, então ele nunca voltaria sozinho quando a chave fosse religada no
-                // .cfg — ou quando o ki fosse religado — com o jogo aberto.
+                // LateUpdate, então ele nunca voltaria sozinho quando o ki fosse religado com o
+                // jogo aberto.
                 //
                 // O ki entra na condição porque ler o poder do inimigo É uma capacidade do ki, e
                 // não um enfeite de tela: com o toggle desligado o jogador está jogando Valheim,
                 // e Valheim não conta quanto vale um Greydwarf. Mesma regra que a barra de ki já
                 // segue (ver KiHud.ShouldBeVisible), e é a leitura local que vale — quem
                 // "escaneia" é quem está na frente da tela, não o bicho.
-                bool show = SaiyaheimConfig.ShowEnemyPowerOnHud.Value && Ki.KiManager.IsEnabled;
+                bool show = Ki.KiManager.IsEnabled;
                 _text.enabled = show;
                 if (!show)
                 {
@@ -257,7 +257,7 @@ namespace Saiyaheim.Power
                 // horizontalAlignment e nao alignment: o segundo carrega os dois eixos num
                 // inteiro so, entao escrever nele sobrescreveria tambem o alinhamento VERTICAL
                 // que veio do molde. Este toca so o eixo que a config pede.
-                _text.horizontalAlignment = ToTmp(SaiyaheimConfig.EnemyPowerAlign.Value);
+                _text.horizontalAlignment = ToTmp(SaiyaheimConfig.EnemyPowerAlign);
 
                 if (_generationSeen != _generation)
                 {
@@ -272,7 +272,7 @@ namespace Saiyaheim.Power
                 }
 
                 _lastValue = value;
-                _text.text = Util.HudText.Prefix(SaiyaheimConfig.EnemyPowerLabel.Value) + value;
+                _text.text = Util.HudText.Prefix(SaiyaheimConfig.EnemyPowerLabel) + value;
             }
         }
 

@@ -111,23 +111,10 @@ namespace Saiyaheim
         private const string SecPower = "6 - Battle Power";
         private const string SecPowerSkill = "6.1 - Power Level";
         private const string SecHud = "7 - HUD";
-        private const string SecEffects = "8 - Effects";
 
-
-
-
+        // As seções "8 - Effects" e "10 - Multiplayer" deixaram de existir em 2026-09-15: tudo o
+        // que estava nelas era visual já calibrado e virou constante. Ver a seção 8 mais abaixo.
         private const string SecDebug = "9 - Debug";
-
-        /// <summary>
-        /// O que este cliente desenha dos <b>outros</b> jogadores. Client-side de propósito: é
-        /// preferência e diagnóstico de quem está na frente da tela, não regra do servidor.
-        ///
-        /// As duas chaves existem separadas porque servem para <b>bissecar</b>. A etapa 8 é
-        /// validada numa sessão marcada com amigo, não iterando — quando alguém disser "ficou
-        /// estranho quando o outro transformou", a pergunta seguinte é qual dos dois sistemas, e
-        /// uma chave só não responde.
-        /// </summary>
-        private const string SecMultiplayer = "10 - Multiplayer";
 
         // ---------- 1 - General ----------
 
@@ -246,12 +233,15 @@ namespace Saiyaheim
         // saíram em 2026-09-13. Ki é o recurso central do mod e não tem outro leitor na tela, e
         // quem quer a tela limpa desliga o ki com o ToggleKiKey — os dois somem junto, que é a
         // regra do toggle. Quebra de runtime já tem desligamento automático nas duas classes.
-        // O que é preferência de verdade continua aqui embaixo: posição, cor e o sumiço da barra
-        // cheia.
+        // O que sobrou em config é posição pura: offset e tamanho de fonte dependem da resolução
+        // e da escala de UI da máquina de quem joga, então continuam sendo decisão de cada um.
+        // Cor, rótulo e alinhamento saíram em 2026-09-15, junto com o resto do visual calibrado:
+        // viraram as constantes logo abaixo. Ver [[Limpeza do .cfg]].
         public static ConfigEntry<float> KiBarOffsetX { get; private set; }
         public static ConfigEntry<float> KiBarOffsetY { get; private set; }
-        public static ConfigEntry<string> KiBarColor { get; private set; }
-        public static ConfigEntry<bool> KiBarAlwaysVisible { get; private set; }
+
+        /// <summary>Cor da barra de ki. Calibrada no playtest de 2026-07-28.</summary>
+        public const string KiBarColor = "#4FC3F7";
 
         /// <summary>Deslocamento X do texto, relativo ao rótulo do bioma no minimapa.</summary>
         public static ConfigEntry<float> PowerHudOffsetX { get; private set; }
@@ -262,14 +252,11 @@ namespace Saiyaheim
         /// <summary>Tamanho da fonte, em unidades de canvas.</summary>
         public static ConfigEntry<float> PowerHudFontSize { get; private set; }
 
-        /// <summary>Texto antes do número.</summary>
-        public static ConfigEntry<string> PowerHudLabel { get; private set; }
+        /// <summary>Texto antes do número. Fixado em 2026-09-15.</summary>
+        public const string PowerHudLabel = "PB:";
 
-        /// <summary>Cor do texto.</summary>
-        public static ConfigEntry<string> PowerHudColor { get; private set; }
-
-        /// <summary>Mostra o poder de luta do inimigo abaixo da barra de vida dele.</summary>
-        public static ConfigEntry<bool> ShowEnemyPowerOnHud { get; private set; }
+        /// <summary>Cor do texto — o branco do rótulo do bioma, de onde o texto é clonado.</summary>
+        public const string PowerHudColor = "#FFFFFF";
 
         /// <summary>Deslocamento X do texto, relativo ao nome do inimigo.</summary>
         public static ConfigEntry<float> EnemyPowerOffsetX { get; private set; }
@@ -280,14 +267,17 @@ namespace Saiyaheim
         /// <summary>Tamanho da fonte do texto do inimigo, em unidades de canvas.</summary>
         public static ConfigEntry<float> EnemyPowerFontSize { get; private set; }
 
-        /// <summary>Texto antes do numero, no rotulo do inimigo.</summary>
-        public static ConfigEntry<string> EnemyPowerLabel { get; private set; }
+        /// <summary>Texto antes do numero, no rotulo do inimigo. Fixado em 2026-09-15.</summary>
+        public const string EnemyPowerLabel = "PB:";
 
-        /// <summary>Cor do texto do inimigo.</summary>
-        public static ConfigEntry<string> EnemyPowerColor { get; private set; }
+        /// <summary>Cor do texto do inimigo — o branco do nome que fica logo acima dele.</summary>
+        public const string EnemyPowerColor = "#FFFFFF";
 
-        /// <summary>Alinhamento horizontal do texto do inimigo dentro da largura do hud.</summary>
-        public static ConfigEntry<HudTextAlign> EnemyPowerAlign { get; private set; }
+        /// <summary>
+        /// Alinhamento horizontal do texto do inimigo dentro da largura do hud. Centralizado por
+        /// playtest (2026-09-06): empilhado sob o nome, os dois leem como um rótulo só.
+        /// </summary>
+        public const HudTextAlign EnemyPowerAlign = HudTextAlign.Center;
 
         // ---------- 3.x - Transformations ----------
 
@@ -352,41 +342,41 @@ namespace Saiyaheim
             /// (<c>Hair1</c>..<c>Hair37</c>, <c>HairNone</c>) ou nosso (<c>SaiyaHair6</c>...).
             /// Vazio mantém o do personagem.
             /// </summary>
-            public ConfigEntry<string> HairItem { get; internal set; }
+            public string HairItem { get; internal set; }
 
             /// <summary>Cor do cabelo enquanto a forma está ativa, em #RRGGBB. Vazio não pinta.</summary>
-            public ConfigEntry<string> HairColor { get; internal set; }
+            public string HairColor { get; internal set; }
 
             /// <summary>Multiplicador de brilho da cor acima. Acima de 1 estoura e queima.</summary>
-            public ConfigEntry<float> HairColorIntensity { get; internal set; }
+            public float HairColorIntensity { get; internal set; }
 
             /// <summary>Cor da aura desta forma, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
-            public ConfigEntry<string> AuraColor { get; internal set; }
+            public string AuraColor { get; internal set; }
 
             /// <summary>
             /// Se esta forma estala raios em volta do corpo enquanto está ativa. É a única chave
             /// que decide <b>quais</b> formas crepitam; a regulagem do efeito é compartilhada, na
             /// seção 8 (<c>FormLightning*</c>).
             /// </summary>
-            public ConfigEntry<bool> LightningEnabled { get; internal set; }
+            public bool LightningEnabled { get; internal set; }
 
             /// <summary>
             /// Cor dos raios desta forma, em #RRGGBB. Vazio cai na <see cref="AuraColor"/>, que é
             /// o caso normal — a forma tem uma cor só.
             /// </summary>
-            public ConfigEntry<string> LightningColor { get; internal set; }
+            public string LightningColor { get; internal set; }
 
             /// <summary>
             /// Quanto esta forma brilha, como multiplicador da regulagem compartilhada da seção 8
             /// (<c>FormGlow*</c>). 0 apaga o brilho só nesta forma.
             /// </summary>
-            public ConfigEntry<float> GlowIntensity { get; internal set; }
+            public float GlowIntensity { get; internal set; }
 
             /// <summary>
             /// Cor do brilho desta forma, em #RRGGBB. Vazio cai na <see cref="AuraColor"/>, que é
             /// o caso normal — mesma regra da <see cref="LightningColor"/>.
             /// </summary>
-            public ConfigEntry<string> GlowColor { get; internal set; }
+            public string GlowColor { get; internal set; }
         }
 
         /// <summary>
@@ -435,35 +425,35 @@ namespace Saiyaheim
             public ConfigEntry<float> Knockback { get; internal set; }
 
             /// <summary>Prefab do projétil, do <c>ZNetScene</c>. Ver [[Prefabs do Jogo]].</summary>
-            public ConfigEntry<string> ProjectilePrefab { get; internal set; }
+            public string ProjectilePrefab { get; internal set; }
 
             /// <summary>
             /// O que toca onde o projétil bate. Vazio mantém o do prefab, <c>none</c> tira, um nome
             /// de prefab substitui. Ver [[Prefabs do Jogo]].
             /// </summary>
-            public ConfigEntry<string> ImpactEffect { get; internal set; }
+            public string ImpactEffect { get; internal set; }
 
             /// <summary>
             /// Nomes de emissores de partícula a tirar do efeito de impacto — a fumaça, tipicamente.
             /// É o corte fino que o <see cref="ImpactEffect"/> não faz. Ver
             /// <c>Util/StrippedEffect.cs</c>.
             /// </summary>
-            public ConfigEntry<string> ImpactEffectStrip { get; internal set; }
+            public string ImpactEffectStrip { get; internal set; }
 
             /// <summary>
             /// Cor do efeito de impacto. Vazio segue o <c>ProjectileColor</c>, <c>none</c> mantém a
             /// do prefab, um hex manda. Ver <c>KiProjectile.ResolveImpactColor</c>.
             /// </summary>
-            public ConfigEntry<string> ImpactColor { get; internal set; }
+            public string ImpactColor { get; internal set; }
 
             /// <summary>Quanto do efeito de impacto a <see cref="ImpactColor"/> pinta.</summary>
-            public ConfigEntry<ImpactTintTarget> ImpactColorTarget { get; internal set; }
+            public ImpactTintTarget ImpactColorTarget { get; internal set; }
 
             /// <summary>
             /// Deixa o projétil sobreviver ao próprio impacto, como o prefab queria. Desligado, ele
             /// some no acerto e não sobra rastro depois.
             /// </summary>
-            public ConfigEntry<bool> ProjectileLingerOnHit { get; internal set; }
+            public bool ProjectileLingerOnHit { get; internal set; }
 
             /// <summary>Velocidade do projétil em m/s.</summary>
             public ConfigEntry<float> ProjectileSpeed { get; internal set; }
@@ -472,10 +462,10 @@ namespace Saiyaheim
             public ConfigEntry<float> ProjectileLifetime { get; internal set; }
 
             /// <summary>Escala do projétil. 1 é o tamanho do prefab.</summary>
-            public ConfigEntry<float> ProjectileScale { get; internal set; }
+            public float ProjectileScale { get; internal set; }
 
             /// <summary>Cor do projétil, em #RRGGBB. Vazio mantém a cor do prefab.</summary>
-            public ConfigEntry<string> ProjectileColor { get; internal set; }
+            public string ProjectileColor { get; internal set; }
 
             /// <summary>
             /// Quantos projéteis um disparo solta. 1 é o tiro único do ki blast.
@@ -499,65 +489,65 @@ namespace Saiyaheim
             public ConfigEntry<float> MinChargeRatio { get; internal set; }
 
             /// <summary>Escala do projétil na carga mínima, como fração da escala na carga cheia.</summary>
-            public ConfigEntry<float> ChargeMinScale { get; internal set; }
+            public float ChargeMinScale { get; internal set; }
 
             /// <summary>Efeito preso ao jogador enquanto ele carrega. Vazio não mostra nada.</summary>
-            public ConfigEntry<string> ChargeEffectPrefab { get; internal set; }
+            public string ChargeEffectPrefab { get; internal set; }
 
             /// <summary>Cor do efeito de carregamento. Vazio segue o <see cref="ProjectileColor"/>.</summary>
-            public ConfigEntry<string> ChargeEffectColor { get; internal set; }
+            public string ChargeEffectColor { get; internal set; }
 
             /// <summary>Escala do efeito de carregamento na carga cheia.</summary>
-            public ConfigEntry<float> ChargeEffectScale { get; internal set; }
+            public float ChargeEffectScale { get; internal set; }
 
             /// <summary>Altura do efeito de carregamento, a partir dos pés.</summary>
-            public ConfigEntry<float> ChargeEffectHeight { get; internal set; }
+            public float ChargeEffectHeight { get; internal set; }
 
             /// <summary>Deslocamento lateral do efeito. Positivo é para a direita do jogador.</summary>
-            public ConfigEntry<float> ChargeEffectSide { get; internal set; }
+            public float ChargeEffectSide { get; internal set; }
 
             /// <summary>Deslocamento para frente do efeito.</summary>
-            public ConfigEntry<float> ChargeEffectForward { get; internal set; }
+            public float ChargeEffectForward { get; internal set; }
 
             /// <summary>
             /// Onde os efeitos de carregamento se prendem. Preso na mão, a animação os carrega.
             /// </summary>
-            public ConfigEntry<EffectAnchor> ChargeEffectAnchor { get; internal set; }
+            public EffectAnchor ChargeEffectAnchor { get; internal set; }
 
             /// <summary>
             /// A bola que junta na mão. Prefab de <b>projétil</b>, parado — ver
             /// <c>Util/StaticProp.cs</c>. Vazio não mostra nada.
             /// </summary>
-            public ConfigEntry<string> ChargeBallPrefab { get; internal set; }
+            public string ChargeBallPrefab { get; internal set; }
 
             /// <summary>Cor da bola. Vazio segue o <see cref="ProjectileColor"/>.</summary>
-            public ConfigEntry<string> ChargeBallColor { get; internal set; }
+            public string ChargeBallColor { get; internal set; }
 
             /// <summary>Tamanho da bola na carga cheia. Ela cresce da <see cref="ChargeMinScale"/> até aqui.</summary>
-            public ConfigEntry<float> ChargeBallScale { get; internal set; }
+            public float ChargeBallScale { get; internal set; }
 
             /// <summary>Emissores a tirar da bola — o rastro que o projétil deixava ao voar.</summary>
-            public ConfigEntry<string> ChargeBallStrip { get; internal set; }
+            public string ChargeBallStrip { get; internal set; }
 
             /// <summary>Efeito que marca a carga cheia. Vazio não mostra nada.</summary>
-            public ConfigEntry<string> ChargeFullEffectPrefab { get; internal set; }
+            public string ChargeFullEffectPrefab { get; internal set; }
 
             /// <summary>Cor do efeito de carga cheia. Vazio segue o <see cref="ProjectileColor"/>.</summary>
-            public ConfigEntry<string> ChargeFullEffectColor { get; internal set; }
+            public string ChargeFullEffectColor { get; internal set; }
 
             /// <summary>Escala do efeito de carga cheia.</summary>
-            public ConfigEntry<float> ChargeFullEffectScale { get; internal set; }
+            public float ChargeFullEffectScale { get; internal set; }
 
             /// <summary>
             /// Segura o efeito de carga cheia enquanto o jogador continuar segurando, em vez de
             /// tocá-lo uma vez no instante em que a carga enche.
             /// </summary>
-            public ConfigEntry<bool> ChargeFullEffectLoop { get; internal set; }
+            public bool ChargeFullEffectLoop { get; internal set; }
 
             /// <summary>
             /// A carga cheia <b>substitui</b> o efeito de carregamento em vez de somar-se a ele.
             /// </summary>
-            public ConfigEntry<bool> ChargeFullEffectReplaces { get; internal set; }
+            public bool ChargeFullEffectReplaces { get; internal set; }
 
             /// <summary>Nível mínimo de Power Level para usar o ataque. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinPowerLevel { get; internal set; }
@@ -701,100 +691,203 @@ namespace Saiyaheim
         // sobre o valor vira o mesmo expoente sobre a razao, e ele achatava justamente as
         // diferencas que o numero existe para mostrar. Ver PowerRating.GetDisplay.
 
-        /// <summary>Multiplicador linear do número exibido. Só escolhe o tamanho, não distorce razão.</summary>
-        public static ConfigEntry<float> PowerDisplayScale { get; private set; }
+        /// <summary>
+        /// Multiplicador linear do número exibido. Só escolhe o tamanho, não distorce razão —
+        /// por isso 1 mostra o valor cru, que é o que o poder de luta já foi desenhado para ser
+        /// legível (javali ~55, troll ~800, Fader ~25000). Fixado em 2026-09-15: era escolha de
+        /// gosto, e o gosto ficou em "número honesto".
+        /// </summary>
+        public const float PowerDisplayScale = 1f;
 
         // ---------- 8 - Effects ----------
 
-        // Aqui morava o ChargeEmote, removido em 2026-08-07: o emote de carregamento saiu inteiro
-        // quando a pose procedural entrou. Ver KiChargePose.
+        // A seção 8 do .cfg não existe mais: em 2026-09-15, antes da primeira publicação no
+        // Thunderstore, tudo o que ela tinha virou constante. Eram vinte e oito chaves de prefab,
+        // cor, escala e tempo — nenhuma delas balanceamento, todas já calibradas na tela, e todas
+        // no caminho de quem abre o arquivo procurando dano. O que cada número quer dizer, e de
+        // onde ele veio, está no comentário de cada um.
+        //
+        // Antes delas, aqui morava o ChargeEmote, removido em 2026-08-07: o emote de carregamento
+        // saiu inteiro quando a pose procedural entrou. Ver KiChargePose.
 
-        public static ConfigEntry<string> ChargeEffectPrefab { get; private set; }
-        public static ConfigEntry<string> ChargeSoundPrefab { get; private set; }
-        public static ConfigEntry<string> ChargeEffectColor { get; private set; }
-        public static ConfigEntry<float> ChargeEffectScale { get; private set; }
-        public static ConfigEntry<bool> ChargeEffectForceLoop { get; private set; }
+        /// <summary>Efeito preso ao jogador enquanto ele carrega ki.</summary>
+        public const string ChargeEffectPrefab = "fx_DvergerMage_Support_start";
 
-        /// <summary>Emote de disparo único tocado ao transformar. Vazio desliga.</summary>
-        public static ConfigEntry<string> TransformEmote { get; private set; }
+        /// <summary>Som em loop enquanto carrega.</summary>
+        public const string ChargeSoundPrefab = "sfx_charred_mage_attack_charge";
 
-        /// <summary>Prefab da aura que fica acesa enquanto a forma dura. Vazio desliga.</summary>
-        public static ConfigEntry<string> TransformAuraPrefab { get; private set; }
+        /// <summary>
+        /// Cor do efeito de carregamento. Azul de ki, o mesmo da barra. Ignorada transformado: ali
+        /// o brilho sai na <c>AuraColor</c> da forma, para os dois lerem como uma coisa só.
+        /// </summary>
+        public const string ChargeEffectColor = "#4FC3F7";
 
-        public static ConfigEntry<float> TransformAuraScale { get; private set; }
+        /// <summary>
+        /// Escala do efeito. O suporte do Dverger nasce pequeno demais na escala do jogador e
+        /// precisa dobrar. Calibrado no playtest de 2026-07-28.
+        /// </summary>
+        public const float ChargeEffectScale = 2f;
 
-        /// <summary>Segundos que o estouro dura. 0 devolve a decisão ao prefab.</summary>
-        public static ConfigEntry<float> TransformAuraDuration { get; private set; }
+        /// <summary>
+        /// Força partículas e áudio a repetir. Prefab do jogo é feito para um estouro curto; sem
+        /// isto o efeito some sozinho depois de um segundo.
+        /// </summary>
+        public const bool ChargeEffectForceLoop = true;
 
-        public static ConfigEntry<bool> TransformAuraForceLoop { get; private set; }
+        /// <summary>
+        /// Emote de disparo único tocado ao transformar. "roar" foi o escolhido no playtest: é o
+        /// que lê como power up. Não toca ao DESCER de forma — descer é alívio, não estouro.
+        /// </summary>
+        public const string TransformEmote = "roar";
 
-        /// <summary>Multiplicador da luz dinâmica da aura. 0 apaga; 1 é o prefab como veio.</summary>
-        public static ConfigEntry<float> TransformAuraLightIntensity { get; private set; }
+        /// <summary>
+        /// Estouro da transformação. Mesmo prefab do carregamento de propósito: ele já se provou
+        /// legível preso ao jogador, e quem separa os dois estados é a cor — azul carregando, a
+        /// cor da forma transformado. A cor não mora aqui: é por forma.
+        /// </summary>
+        public const string TransformAuraPrefab = "fx_DvergerMage_Support_start";
 
-        // Os raios das formas altas. A regulagem é COMPARTILHADA e mora aqui; quais formas
-        // crepitam e de que cor é por forma (LightningEnabled/LightningColor). É a mesma divisão
-        // que a aura já usa — "o prefab é compartilhado; a cor é a identidade".
+        /// <summary>
+        /// Escala do estouro. Um pouco maior que o carregamento de propósito: transformar tem que
+        /// ler maior que carregar até lá.
+        /// </summary>
+        public const float TransformAuraScale = 2.5f;
 
-        /// <summary>Prefab de um estalo de raio. Vazio desliga os raios em todas as formas.</summary>
-        public static ConfigEntry<string> FormLightningPrefab { get; private set; }
+        /// <summary>
+        /// Segundos que o estouro dura, impostos por nós e não herdados do prefab — o
+        /// <c>TimedDestruction</c> dele só dispara sozinho se marcou <c>m_triggerOnAwake</c>, e
+        /// confiar nisso foi o que deixou o efeito aceso a forma inteira (2026-08-02).
+        /// </summary>
+        public const float TransformAuraDuration = 2f;
 
-        /// <summary>Segundos entre um estalo e o próximo, antes do sorteio do jitter.</summary>
-        public static ConfigEntry<float> FormLightningInterval { get; private set; }
+        /// <summary>
+        /// Manter o estouro aceso enquanto a forma durar. <b>false por playtest</b> (2026-08-02):
+        /// prefab de estouro em loop não dura mais tempo, vira nuvem colada no personagem, porque
+        /// as partículas nunca chegam a dispersar.
+        /// </summary>
+        public const bool TransformAuraForceLoop = false;
 
-        /// <summary>Quanto o intervalo varia, em fração dele. 0 vira metrônomo.</summary>
-        public static ConfigEntry<float> FormLightningIntervalJitter { get; private set; }
+        /// <summary>
+        /// Multiplicador da luz dinâmica do estouro. 1 é o prefab como veio, que é o certo para um
+        /// flash de meio segundo — o baque é a luz.
+        /// </summary>
+        public const float TransformAuraLightIntensity = 1f;
+
+        // Os raios das formas altas. Quais formas crepitam e de que cor continua sendo por forma
+        // (LightningEnabled/LightningColor); a regulagem do estalo é a mesma em qualquer uma e
+        // mora aqui.
+        //
+        // Estalos REPETIDOS, e não um efeito sustentado, pela mesma razão da TransformAuraForceLoop
+        // acima. Raio não tem o problema da nuvem porque ele JÁ é intermitente por natureza — a
+        // leitura certa é um estalo curto aqui, outro ali, que é literalmente como o SSJ2 se
+        // apresenta.
+
+        /// <summary>Prefab de um estalo de raio.</summary>
+        public const string FormLightningPrefab = "fx_Lightning";
+
+        /// <summary>Segundos médios entre dois estalos.</summary>
+        public const float FormLightningInterval = 0.55f;
+
+        /// <summary>
+        /// Quanto o intervalo varia, em fração dele: cada intervalo é sorteado entre 40% e 160%
+        /// do acima. Sem sorteio os estalos batem em compasso e leem como máquina, não como
+        /// energia instável — é a mesma razão pela qual o jogo randomiza som de passo.
+        /// </summary>
+        public const float FormLightningIntervalJitter = 0.6f;
 
         /// <summary>Quantos raios saem por estalo.</summary>
-        public static ConfigEntry<int> FormLightningCount { get; private set; }
+        public const int FormLightningCount = 1;
 
-        public static ConfigEntry<float> FormLightningScale { get; private set; }
+        /// <summary>
+        /// Escala de cada raio. Bem abaixo do estouro da transformação de propósito: são faíscas
+        /// em volta do corpo, não uma explosão.
+        /// </summary>
+        public const float FormLightningScale = 0.5f;
 
-        /// <summary>Raio do cilindro em volta do corpo onde os estalos nascem, em metros.</summary>
-        public static ConfigEntry<float> FormLightningRadius { get; private set; }
+        /// <summary>
+        /// Raio do cilindro em volta do corpo onde os estalos nascem, em metros. O jogador tem uns
+        /// 0,4 m de largura: abaixo disso o raio nasce dentro do personagem, muito acima vira
+        /// clima em vez de aura.
+        /// </summary>
+        public const float FormLightningRadius = 0.6f;
 
-        /// <summary>Altura do centro do cilindro acima dos pés, em metros.</summary>
-        public static ConfigEntry<float> FormLightningHeight { get; private set; }
+        /// <summary>Altura do centro do cilindro acima dos pés — a altura do peito.</summary>
+        public const float FormLightningHeight = 1.1f;
 
-        /// <summary>Altura total do cilindro, em metros.</summary>
-        public static ConfigEntry<float> FormLightningSpread { get; private set; }
+        /// <summary>Altura total do cilindro: 1,8 m cobre o corpo inteiro, dos pés ao topo.</summary>
+        public const float FormLightningSpread = 1.8f;
 
-        /// <summary>Segundos que cada estalo dura. 0 devolve a decisão ao prefab.</summary>
-        public static ConfigEntry<float> FormLightningDuration { get; private set; }
+        /// <summary>
+        /// Segundos que cada estalo dura. Curto de propósito: estalo que demora deixa de ler como
+        /// raio. Imposto por nós pelo mesmo motivo da <see cref="TransformAuraDuration"/>, e aqui
+        /// importa mais — são dezenas de objetos por minuto.
+        /// </summary>
+        public const float FormLightningDuration = 0.35f;
 
-        /// <summary>Multiplicador da luz dinâmica de cada estalo. 0 apaga e deixa só as partículas.</summary>
-        public static ConfigEntry<float> FormLightningLightIntensity { get; private set; }
+        /// <summary>
+        /// Multiplicador da luz dinâmica de cada estalo. <b>0 de propósito</b>: a luz do
+        /// <c>fx_Lightning</c> ilumina o terreno, e piscando a cada meio segundo vira
+        /// estroboscópio para quem joga à noite. As partículas têm brilho próprio.
+        /// </summary>
+        public const float FormLightningLightIntensity = 0f;
 
-        // O brilho das formas. Mesma divisão de sempre — a regulagem é compartilhada e mora aqui;
-        // quanto cada forma brilha e de que cor é por forma (GlowIntensity/GlowColor).
+        // O brilho das formas. Mesma divisão de sempre — quanto cada forma brilha e de que cor é
+        // por forma (GlowIntensity/GlowColor), a regulagem é compartilhada e mora aqui.
+        //
+        // Uma luz nua presa ao jogador, sem prefab e sem partícula nenhuma. É o contrário exato da
+        // TransformAuraLightIntensity: lá a luz é herdada de um prefab de ESTOURO e o cuidado é
+        // não deixá-la acesa por engano; aqui ela é o pedido. Ver a cabeça do FormGlow.
 
-        /// <summary>Intensidade da luz da forma, antes do multiplicador dela. 0 desliga em todas.</summary>
-        public static ConfigEntry<float> FormGlowIntensity { get; private set; }
+        /// <summary>
+        /// Intensidade da luz da forma, antes do multiplicador de cada uma. Bem abaixo de uma
+        /// tocha (~1,5) de propósito: é para se notar à noite e quase não aparecer ao meio-dia,
+        /// não para iluminar o caminho.
+        /// </summary>
+        public const float FormGlowIntensity = 0.8f;
 
-        /// <summary>Até onde a luz alcança, em metros.</summary>
-        public static ConfigEntry<float> FormGlowRange { get; private set; }
+        /// <summary>
+        /// Alcance da luz, em metros. Pequeno de propósito: o pedido é uma poça de luz em volta do
+        /// personagem. Alcance grande ilumina meia clareira e deixa de ler como vindo do corpo.
+        /// </summary>
+        public const float FormGlowRange = 6f;
 
-        /// <summary>Altura da luz acima dos pés, em metros.</summary>
-        public static ConfigEntry<float> FormGlowHeight { get; private set; }
+        /// <summary>Altura da luz acima dos pés — peito, que ilumina corpo e chão de uma vez.</summary>
+        public const float FormGlowHeight = 1.1f;
 
-        /// <summary>Amplitude da respiração da luz, em fração da intensidade. 0 vira lâmpada.</summary>
-        public static ConfigEntry<float> FormGlowPulseAmount { get; private set; }
+        /// <summary>
+        /// Amplitude da respiração da luz, em fração da intensidade: ela oscila entre 85% e 115%,
+        /// com a intensidade como MÉDIA e não como teto. Sem pulso a luz lê como lâmpada
+        /// aparafusada no personagem, não como energia que ele mal segura.
+        /// </summary>
+        public const float FormGlowPulseAmount = 0.15f;
 
-        /// <summary>Velocidade da respiração, em ciclos por segundo.</summary>
-        public static ConfigEntry<float> FormGlowPulseSpeed { get; private set; }
+        /// <summary>
+        /// Velocidade da respiração, em ciclos por segundo. Calibrada no playtest de 2026-08-27, o
+        /// primeiro do brilho: saiu em 1,2 — "um ciclo por segundo é o ritmo de uma respiração" —
+        /// e desceu para 0,3, quatro vezes mais lento. A analogia estava errada: cadência de
+        /// respiração literal, vista de fora, lê como a luz piscando.
+        /// </summary>
+        public const float FormGlowPulseSpeed = 0.3f;
 
-        /// <summary>Segundos que a luz leva para acender e para apagar. 0 é instantâneo.</summary>
-        public static ConfigEntry<float> FormGlowFade { get; private set; }
+        /// <summary>
+        /// Segundos que a luz leva para acender e apagar. 0 estala — principalmente na saída, em
+        /// que não há mais nada acontecendo na tela para cobrir.
+        /// </summary>
+        public const float FormGlowFade = 0.4f;
 
-        /// <summary>A luz projeta sombras. Caro: são seis mapas de sombra por quadro.</summary>
-        public static ConfigEntry<bool> FormGlowShadows { get; private set; }
+        /// <summary>
+        /// A luz projeta sombras. <b>Desligada de propósito</b>: luz pontual com sombra custa SEIS
+        /// mapas de sombra por quadro, esta luz vive minutos e há uma por jogador transformado na
+        /// cena. Ligar é bonito e custa quadros de verdade.
+        /// </summary>
+        public const bool FormGlowShadows = false;
 
         // ---------- 10 - Multiplayer ----------
 
-        /// <summary>Poses procedurais dos outros jogadores: voo, carregamento e disparo.</summary>
-        public static ConfigEntry<bool> ShowRemotePoses { get; private set; }
-
-        /// <summary>Efeitos dos outros jogadores: o estouro da transformação e o brilho do carregamento.</summary>
-        public static ConfigEntry<bool> ShowRemoteEffects { get; private set; }
+        // As duas chaves da seção 10 — ShowRemotePoses e ShowRemoteEffects — saíram em 2026-09-15.
+        // Ver os outros jogadores voando e transformados não é preferência, é o mod funcionando;
+        // quem as desligasse veria os amigos correndo no ar. Eram interruptor de depuração com
+        // nome de config.
 
         // ---------- 9 - Debug ----------
 
@@ -1278,18 +1371,6 @@ namespace Saiyaheim
                     "(Playtest value, 2026-07-31.)",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(80)));
 
-            KiBarColor = config.Bind(SecHud, "KiBarColor", "#4FC3F7",
-                new ConfigDescription("Ki bar color, #RRGGBB format. Applies when the config reloads.",
-                    null, ClientSide(70)));
-
-            KiBarAlwaysVisible = config.Bind(SecHud, "KiBarAlwaysVisible", false,
-                new ConfigDescription(
-                    "If true, the ki bar stays on screen at all times. " +
-                    "If false (default), it hides when ki is full and comes back when you spend, " +
-                    "just like the native stamina and eitr bars. " +
-                    "With ki turned OFF the bar hides in both cases.",
-                    null, ClientSide(60)));
-
             // --- Poder de luta na HUD (etapa 10) ---
             // Abaixo do minimapa, clonado do rotulo do bioma. Todas as chaves sao client-side —
             // sao posicao e gosto de quem esta na frente da tela, nao balanceamento. O texto segue
@@ -1320,34 +1401,10 @@ namespace Saiyaheim
                     "(Playtest value, 2026-09-05.)",
                     new AcceptableValueRange<float>(4f, 60f), ClientSide(44)));
 
-            PowerHudLabel = config.Bind(SecHud, "PowerHudLabel", "PB:",
-                new ConfigDescription(
-                    "Text printed before the number. The separating space is added for you, and " +
-                    "surrounding whitespace here is ignored - BepInEx trims this file's values on " +
-                    "the way in and out, so a space typed at the end would never survive anyway. " +
-                    "Empty shows the bare number.",
-                    null, ClientSide(43)));
-
-            PowerHudColor = config.Bind(SecHud, "PowerHudColor", "#FFFFFF",
-                new ConfigDescription(
-                    "Text colour, as hex. Defaults to white, which is what the biome label uses.",
-                    null, ClientSide(42)));
-
             // --- Poder de luta do inimigo (etapa 10) ---
             // O outro lado do bloco acima: o mesmo numero, na mesma escala, escrito embaixo da
             // barra de vida do inimigo. Tambem client-side, pelo mesmo motivo — e' posicao na
             // tela, nao balanceamento. Ver EnemyPowerHud.
-            ShowEnemyPowerOnHud = config.Bind(SecHud, "ShowEnemyPowerOnHud", true,
-                new ConfigDescription(
-                    "Shows the enemy's battle power under its health bar. Same scale as your own " +
-                    "number, so the two can be compared directly - that comparison is the whole " +
-                    "point of the stat. Only shows while YOUR ki is turned on: reading an enemy's " +
-                    "power is something the ki lets you do, so it goes away with the toggle, just " +
-                    "like the ki bar. Does NOT show on other players: their skill levels and " +
-                    "status effects are not replicated to this machine, so the number would come " +
-                    "out too low. Applies live.",
-                    null, ClientSide(40)));
-
             EnemyPowerOffsetX = config.Bind(SecHud, "EnemyPowerOffsetX", 0f,
                 new ConfigDescription(
                     "Horizontal offset of the text, in pixels, RELATIVE to the enemy's name " +
@@ -1373,30 +1430,6 @@ namespace Saiyaheim
                     "(Playtest value, 2026-09-06. Raised from 14: at that size the number was " +
                     "unreadable at the distance you actually scan an enemy from.)",
                     new AcceptableValueRange<float>(4f, 40f), ClientSide(37)));
-
-            EnemyPowerLabel = config.Bind(SecHud, "EnemyPowerLabel", "PB:",
-                new ConfigDescription(
-                    "Text printed before the number. The separating space is added for you, and " +
-                    "surrounding whitespace here is ignored. Empty shows the bare number, which " +
-                    "is the tidier option when several enemies are on screen.",
-                    null, ClientSide(36)));
-
-            EnemyPowerColor = config.Bind(SecHud, "EnemyPowerColor", "#FFFFFF",
-                new ConfigDescription(
-                    "Text colour, as hex. Defaults to white, matching the enemy's name above it.",
-                    null, ClientSide(35)));
-
-            EnemyPowerAlign = config.Bind(SecHud, "EnemyPowerAlign", HudTextAlign.Center,
-                new ConfigDescription(
-                    "Horizontal alignment of the text INSIDE the hud's own width - the same box " +
-                    "the enemy name is centred in, which is about as wide as the health bar. " +
-                    "Right puts the number at the bar's right end, Center (default) keeps it " +
-                    "under the middle like the name. Only the horizontal alignment is touched, so the " +
-                    "vertical one stays as the cloned name label had it. Combine with " +
-                    "EnemyPowerOffsetX to nudge it past the edge. " +
-                    "(Playtest value, 2026-09-06. Centred beats right-aligned: stacked under the " +
-                    "name, the two lines read as one label instead of two loose bits of text.)",
-                    null, ClientSide(34)));
 
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir
@@ -1626,7 +1659,9 @@ namespace Saiyaheim
                 // o que se via era uma rajada curta. Playtest de 2026-09-07 subiu para 60, e a
                 // cadencia por segundo ficou igual — o que mudou foi quanto tempo o feixe DURA.
                 beamCount: 60,
-                beamInterval: 0.025f,
+                // 0,03 e nao 0,025: calibrado no .cfg e promovido em 2026-09-15. A 50 m/s sao 1,5 m
+                // entre um projetil e o seguinte.
+                beamInterval: 0.03f,
                 knockback: 3f,
                 projectileSpeed: 50f,
                 // 5 s: com 50 m/s sao 250 m de alcance. O feixe agora dura 1,5 s saindo da mao, e
@@ -1649,9 +1684,11 @@ namespace Saiyaheim
                 // Com 0,4 ela ja nascia quase do tamanho final e a carga nao aparecia na mao.
                 // Promovido do .cfg em 2026-09-15.
                 chargeMinScale: 0.2f,
-                // O carregamento de cajado dos Charred: particulas convergindo para um ponto, que
-                // e' o gesto certo. Catalogado em [[Prefabs do Jogo]] justamente para isto.
-                chargeEffectPrefab: "fx_charred_firestaff_chargeup",
+                // Vazio, e foi assim que se jogou: o carregamento de cajado dos Charred
+                // (fx_charred_firestaff_chargeup) entrou em 2026-09-07 e saiu no .cfg logo depois —
+                // com a bola na mao crescendo, as particulas convergindo por cima viravam sujeira.
+                // O que le como carga e' a bola. Promovido do .cfg em 2026-09-15.
+                chargeEffectPrefab: "",
                 // Vazio: a bola na mao sai da cor do que vai sair dela. Ver ChargeEffectColor.
                 chargeEffectColor: "",
                 chargeEffectScale: 1f,
@@ -2008,16 +2045,6 @@ namespace Saiyaheim
                     "this thing hurt me', not 'how long does it take to chew through it'.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
 
-            PowerDisplayScale = config.Bind(SecPower, "DisplayScale", 1f,
-                new ConfigDescription(
-                    "Linear multiplier on the displayed power rating, purely cosmetic. Linear is " +
-                    "the point: it changes how big the number looks without touching any ratio " +
-                    "between two characters. At 1 you read the raw rating (a boar around 55, a " +
-                    "troll around 800, Fader around 25000); raise it if you want Dragon Ball sized " +
-                    "numbers on screen. There used to be a square root here as well — it was " +
-                    "removed because it flattened the very differences the number exists to show.",
-                    new AcceptableValueRange<float>(0.01f, 10000f), AdminOnly(50)));
-
             // --- Power Level ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
@@ -2052,309 +2079,7 @@ namespace Saiyaheim
                     "on a boss from jumping several levels at once.",
                     new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(70)));
 
-            // --- Efeitos ---
-            // Nomes de prefab e de emote ficam aqui, e nao no codigo, porque qual pose e qual
-            // efeito "le" como carregar ki e julgamento visual — e quem ve a tela e o Henrique.
-            // Trocar deve custar editar este arquivo, nao uma recompilacao.
-            // "roar" foi o emote escolhido no playtest: é o que lê como power up.
-            ChargeEffectPrefab = config.Bind(SecEffects, "ChargeEffectPrefab", "fx_DvergerMage_Support_start",
-                new ConfigDescription(
-                    "Visual effect prefab attached to the player while charging. Empty disables it. " +
-                    "Candidates include fx_ShieldCharge_1 through _5 (increasing intensity) " +
-                    "and fx_chainlightning_spread.",
-                    null, ClientSide(90)));
-
-            ChargeSoundPrefab = config.Bind(SecEffects, "ChargeSoundPrefab", "sfx_charred_mage_attack_charge",
-                new ConfigDescription(
-                    "Sound prefab looped while charging. Empty disables it. " +
-                    "Alternatives: sfx_StaffLightning_charge, sfx_staff_lightning_charge.",
-                    null, ClientSide(80)));
-
-            ChargeEffectColor = config.Bind(SecEffects, "ChargeEffectColor", "#4FC3F7",
-                new ConfigDescription(
-                    "Charging effect color, #RRGGBB format. Empty keeps the prefab's original " +
-                    "color. Applies on the next charge — no restart needed. " +
-                    "The original particle fade is preserved; only the base color changes. " +
-                    "Ignored while you are transformed: charging in a form glows in that form's " +
-                    "AuraColor instead, so the two read as one thing happening harder.",
-                    null, ClientSide(85)));
-
-            ChargeEffectScale = config.Bind(SecEffects, "ChargeEffectScale", 2f,
-                new ConfigDescription(
-                    "Scale of the visual effect. The Dverger support effect is born far too small " +
-                    "at player scale and needs to be doubled. (Calibrated in the 2026-07-28 playtest.)",
-                    new AcceptableValueRange<float>(0.1f, 5f), ClientSide(70)));
-
-            ChargeEffectForceLoop = config.Bind(SecEffects, "ChargeEffectForceLoop", true,
-                new ConfigDescription(
-                    "Forces the effect's particles and audio to repeat. Game prefabs are built for " +
-                    "a quick beam; without this the effect disappears on its own after a second. " +
-                    "Turn it off if some prefab looks wrong when repeating.",
-                    null, ClientSide(60)));
-
-            // Mesmo emote do carregamento, mas de disparo unico: carregar segura a pose, transformar
-            // e' um estouro. O grito replica sozinho pela ZDO — os amigos veem e ouvem.
-            TransformEmote = config.Bind(SecEffects, "TransformEmote", "roar",
-                new ConfigDescription(
-                    "One-shot emote played when you power up into a form. Empty disables it. " +
-                    "Not played when stepping DOWN a form: coming down is relief, not a beam. " +
-                    "Any emote the player Animator knows works — the same names the /emote chat " +
-                    "command lists.",
-                    null, ClientSide(55)));
-
-            // Mesmo prefab do carregamento de ki de proposito: ele ja se provou legivel preso ao
-            // jogador, e a cor e' quem separa os dois estados — azul carregando, a cor da forma
-            // transformado. A cor NAO fica aqui: e' por forma, na secao de cada uma.
-            TransformAuraPrefab = config.Bind(SecEffects, "TransformAuraPrefab",
-                "fx_DvergerMage_Support_start",
-                new ConfigDescription(
-                    "Effect beam when you power up into a form. Empty disables it. " +
-                    "It fires once and fades — see TransformAuraForceLoop for why it is not kept " +
-                    "alive while the form lasts. Not played when stepping DOWN a form, same as " +
-                    "the emote. The color comes from each form's own AuraColor, not from here. " +
-                    "Alternatives: fx_goblinking_nova, fx_ShieldCharge_1 through _5 " +
-                    "(increasing), DvergerStaffNova_aoe.",
-                    null, ClientSide(50)));
-
-            TransformAuraScale = config.Bind(SecEffects, "TransformAuraScale", 2.5f,
-                new ConfigDescription(
-                    "Scale of the beam. Slightly larger than the charging effect on purpose: " +
-                    "transforming should read bigger than charging up to it.",
-                    new AcceptableValueRange<float>(0.1f, 5f), ClientSide(45)));
-
-            // A duracao e' imposta por nos, nao herdada do prefab: prefab de efeito sustentado ja
-            // vem com as particulas em loop, e o TimedDestruction dele so dispara sozinho se o
-            // prefab marcou m_triggerOnAwake. Confiar nos dois foi o que deixou o efeito aceso a
-            // forma inteira (2026-08-02).
-            TransformAuraDuration = config.Bind(SecEffects, "TransformAuraDuration", 2f,
-                new ConfigDescription(
-                    "How long the beam lasts, in seconds, before it is removed from the player. " +
-                    "This is enforced by the mod and does not depend on the prefab cleaning up " +
-                    "after itself — some of them never do, which is what used to leave the " +
-                    "effect burning for the whole transformation. " +
-                    "Ignored when TransformAuraForceLoop is on, where the effect is meant to " +
-                    "last as long as the form. 0 hands the decision back to the prefab. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 10f), ClientSide(42)));
-
-            // false por playtest (2026-08-02). Ver a descricao: em loop o efeito virou fumaca
-            // colada no personagem, e o Henrique pediu de volta so o estouro da ativacao.
-            TransformAuraForceLoop = config.Bind(SecEffects, "TransformAuraForceLoop", false,
-                new ConfigDescription(
-                    "Keeps the effect alive for as long as the form lasts, by forcing its " +
-                    "particles and audio to repeat. OFF by default, and that is a playtest " +
-                    "result, not an oversight: game prefabs are built for a half-second beam, " +
-                    "and looping one does not make it last longer — it makes it a permanent " +
-                    "cloud stuck to the player. The particles never get to disperse. " +
-                    "Turning this on with a prefab designed for a sustained aura is fine; " +
-                    "turning it on with a beam prefab is what produced the smoke. " +
-                    "(Playtest value, 2026-08-02.)",
-                    null, ClientSide(40)));
-
-            // 1 (nao mexe) porque o efeito voltou a ser um estouro: luz num flash de meio segundo
-            // e' justamente o que da' o baque. A chave existe para quem ligar o ForceLoop, onde
-            // luz presa ao jogador por minutos vira lanterna iluminando o terreno em volta.
-            TransformAuraLightIntensity = config.Bind(SecEffects, "TransformAuraLightIntensity", 1f,
-                new ConfigDescription(
-                    "Multiplier for the effect's dynamic light. 1 leaves the prefab as it came, " +
-                    "which is right for a beam — the flash is most of the punch. " +
-                    "0 removes the light entirely and keeps only the particles. " +
-                    "That matters if you turn TransformAuraForceLoop on: a light that follows " +
-                    "you for minutes lights up the terrain around you and gets tiring, while " +
-                    "the particles glow on their own and do not need it.",
-                    new AcceptableValueRange<float>(0f, 2f), ClientSide(38)));
-
-            // --- Raios das formas altas ---
-            //
-            // Estalos REPETIDOS, e nao um efeito sustentado, e a razao esta' na chave acima: prefab
-            // do jogo forcado a repetir vira nuvem colada no personagem (playtest de 2026-08-02).
-            // Raio nao tem esse problema porque ele JA' e' intermitente por natureza — a leitura
-            // certa e' um estalo curto aqui, outro ali, que e' literalmente como o SSJ2 se
-            // apresenta. O efeito dura enquanto a forma durar sem nunca ficar aceso.
-            FormLightningPrefab = config.Bind(SecEffects, "FormLightningPrefab", "fx_Lightning",
-                new ConfigDescription(
-                    "Prefab of a single lightning crackle, spawned over and over around the body " +
-                    "while a form with LightningEnabled is active. Empty disables the crackles " +
-                    "for every form at once — the per-form key only says WHICH forms crackle. " +
-                    "Alternatives: fx_chainlightning_spread (spreads wider), fx_redlightning_beam " +
-                    "(red variant, for a form of another color), vfx_HitSparks (small sparks).",
-                    null, ClientSide(36)));
-
-            FormLightningInterval = config.Bind(SecEffects, "FormLightningInterval", 0.55f,
-                new ConfigDescription(
-                    "Average seconds between two crackles. Lower is more frantic. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0.05f, 10f), ClientSide(35)));
-
-            // Sem jitter os estalos batem em compasso e leem como maquina, nao como energia
-            // instavel. E' a mesma razao pela qual o proprio jogo randomiza som de passo.
-            FormLightningIntervalJitter = config.Bind(SecEffects, "FormLightningIntervalJitter", 0.6f,
-                new ConfigDescription(
-                    "How much the interval varies, as a fraction of it. 0.6 means each gap is " +
-                    "drawn between 40% and 160% of FormLightningInterval. " +
-                    "0 turns the crackles into a metronome, which reads as a machine rather than " +
-                    "as unstable energy.",
-                    new AcceptableValueRange<float>(0f, 1f), ClientSide(34)));
-
-            FormLightningCount = config.Bind(SecEffects, "FormLightningCount", 1,
-                new ConfigDescription(
-                    "How many bolts fire per crackle. Above 1 they are scattered independently " +
-                    "around the body in the same instant. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<int>(1, 8), ClientSide(33)));
-
-            FormLightningScale = config.Bind(SecEffects, "FormLightningScale", 0.5f,
-                new ConfigDescription(
-                    "Scale of each bolt. Well under the transformation beam on purpose: these " +
-                    "are sparks around the body, not an explosion. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0.05f, 5f), ClientSide(32)));
-
-            FormLightningRadius = config.Bind(SecEffects, "FormLightningRadius", 0.6f,
-                new ConfigDescription(
-                    "How far from the body's center line the bolts pop, in meters. " +
-                    "A player is roughly 0.4m wide, so values under that put the bolts inside " +
-                    "the character and values well over it read as weather instead of aura. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 5f), ClientSide(31)));
-
-            FormLightningHeight = config.Bind(SecEffects, "FormLightningHeight", 1.1f,
-                new ConfigDescription(
-                    "Height above the feet of the center of the band where bolts spawn, in " +
-                    "meters. 1.1 is about chest height on a Valheim character. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(-1f, 4f), ClientSide(30)));
-
-            FormLightningSpread = config.Bind(SecEffects, "FormLightningSpread", 1.8f,
-                new ConfigDescription(
-                    "Total height of that band, in meters. 1.8 covers the whole body, so bolts " +
-                    "appear from the feet to just over the head. Smaller values concentrate them " +
-                    "around FormLightningHeight. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 6f), ClientSide(29)));
-
-            // Imposta por nos pelo mesmo motivo da TransformAuraDuration: o TimedDestruction do
-            // prefab so dispara sozinho se ele marcou m_triggerOnAwake, e aqui o custo de confiar
-            // seria pior que la' — sao dezenas de objetos por minuto, nao um por transformacao.
-            FormLightningDuration = config.Bind(SecEffects, "FormLightningDuration", 0.35f,
-                new ConfigDescription(
-                    "How long each bolt lasts, in seconds. Short on purpose: a crackle that " +
-                    "lingers stops reading as lightning. " +
-                    "Enforced by the mod and not left to the prefab, which matters more here " +
-                    "than for the transformation beam — this spawns dozens of objects a minute, " +
-                    "and one that forgets to clean itself up would pile up on the player. " +
-                    "0 hands the decision back to the prefab. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 5f), ClientSide(28)));
-
-            // 0 de proposito: a luz dinamica de fx_Lightning ilumina o terreno, e piscando a cada
-            // meio segundo ela vira estroboscopio na cara de quem esta' jogando a noite. As
-            // particulas tem brilho proprio e continuam visiveis sem ela.
-            FormLightningLightIntensity = config.Bind(SecEffects, "FormLightningLightIntensity", 0f,
-                new ConfigDescription(
-                    "Multiplier for each bolt's dynamic light. 0 removes the light and keeps only " +
-                    "the particles, which is the default and deliberate: a light flashing every " +
-                    "half second lights up the terrain around you and turns into a strobe at " +
-                    "night. The particles glow on their own. 1 leaves the prefab as it came. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 2f), ClientSide(27)));
-
-            // --- Brilho das formas ---
-            //
-            // Uma luz nua presa ao jogador, sem prefab e sem particula nenhuma. E' o contrario
-            // exato da TransformAuraLightIntensity logo acima: la' a luz e' herdada de um prefab
-            // de ESTOURO e o aviso e' para nao deixa-la acesa por engano; aqui ela e' o pedido, e
-            // por isso tem regulagem propria e discreta. Ver a cabeca do FormGlow.
-            FormGlowIntensity = config.Bind(SecEffects, "FormGlowIntensity", 0.8f,
-                new ConfigDescription(
-                    "How brightly a transformed body lights up the ground around it, before each " +
-                    "form's own GlowIntensity multiplier. 0 turns the glow off for every form at " +
-                    "once. " +
-                    "Deliberately well under a torch (~1.5): this is meant to be noticed at " +
-                    "night and to barely register at noon, not to light your way. " +
-                    "This is a plain point light, not a particle effect — it is the one sustained " +
-                    "effect that cannot turn into the cloud that looping a beam prefab did. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 5f), ClientSide(26)));
-
-            FormGlowRange = config.Bind(SecEffects, "FormGlowRange", 6f,
-                new ConfigDescription(
-                    "How far the glow reaches, in meters. Small on purpose: the point is a pool " +
-                    "of light around the character, so you can tell someone is transformed from " +
-                    "the ground under them. Large values light up half a clearing and stop " +
-                    "reading as coming from the body. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(25)));
-
-            FormGlowHeight = config.Bind(SecEffects, "FormGlowHeight", 1.1f,
-                new ConfigDescription(
-                    "Height of the light above the feet, in meters. 1.1 is about chest height on " +
-                    "a Valheim character, which lights the character and the ground at once. " +
-                    "Lower puts more light on the ground and less on the body. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(-1f, 4f), ClientSide(24)));
-
-            // Sem pulso a luz le como lampada — cenario, nao energia. E' o mesmo motivo pelo qual
-            // os estalos sao sorteados em vez de bater em compasso.
-            FormGlowPulseAmount = config.Bind(SecEffects, "FormGlowPulseAmount", 0.15f,
-                new ConfigDescription(
-                    "How much the glow breathes, as a fraction of its intensity. 0.15 means it " +
-                    "swings between 85% and 115%, with the configured intensity as the AVERAGE " +
-                    "rather than the ceiling. " +
-                    "0 leaves it perfectly steady, which reads as a lamp bolted to the character " +
-                    "instead of energy he is barely holding in. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 1f), ClientSide(23)));
-
-            // Calibrado no playtest de 2026-08-27, o primeiro do brilho: saiu em 1,2 — "um ciclo
-            // por segundo e' o ritmo de uma respiracao" — e desceu para 0,3, quatro vezes mais
-            // lento. A analogia estava errada: o corpo transformado nao respira no ritmo de quem
-            // esta' em repouso, e a cadencia de respiracao literal lida de fora le como a luz
-            // piscando. Devagar o bastante para o olho nao contar os ciclos, a luz volta a parecer
-            // instavel em vez de pulsante.
-            FormGlowPulseSpeed = config.Bind(SecEffects, "FormGlowPulseSpeed", 0.3f,
-                new ConfigDescription(
-                    "Speed of that breathing, in full cycles per second. Slow on purpose: 0.3 is " +
-                    "one swell every three seconds or so, slow enough that the eye reads it as " +
-                    "energy shifting rather than counting the cycles. " +
-                    "Anything near 1 — the rate of actual breathing — reads as the light " +
-                    "flickering, which is a playtest result (2026-08-27) and not what it sounds " +
-                    "like on paper. " +
-                    "Ignored when FormGlowPulseAmount is 0.",
-                    new AcceptableValueRange<float>(0f, 10f), ClientSide(22)));
-
-            FormGlowFade = config.Bind(SecEffects, "FormGlowFade", 0.4f,
-                new ConfigDescription(
-                    "Seconds the glow takes to come up when you transform and to go out when you " +
-                    "drop back. 0 snaps it on and off, which pops — especially on the way out, " +
-                    "where nothing else is happening on screen to cover it. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 5f), ClientSide(21)));
-
-            // Desligada de proposito: luz pontual com sombra custa SEIS mapas de sombra por
-            // quadro, e esta luz vive minutos, nao frames — e uma por jogador transformado na
-            // cena. A chave existe porque sombra projetada de um corpo brilhante e' bonita, e a
-            // decisao de pagar por ela e' de quem olha a tela.
-            FormGlowShadows = config.Bind(SecEffects, "FormGlowShadows", false,
-                new ConfigDescription(
-                    "Let the glow cast shadows. Off by default and deliberately: a point light " +
-                    "with shadows renders six shadow maps per frame, this light stays on for as " +
-                    "long as the form does, and there is one per transformed player in the scene. " +
-                    "On, the character throws his own shadow outward, which looks great and costs " +
-                    "real frames. " +
-                    "(Starting value. Not playtested yet.)",
-                    null, ClientSide(20)));
-
             // --- Debug ---
-            ShowRemotePoses = config.Bind(SecMultiplayer, "ShowRemotePoses", true,
-                new ConfigDescription(
-                    "Draw the mod poses (flight, ki charge, ki blast) on other players.",
-                    null, ClientSide(0)));
-
-            ShowRemoteEffects = config.Bind(SecMultiplayer, "ShowRemoteEffects", true,
-                new ConfigDescription(
-                    "Draw the mod effects (transformation beam, ki charge glow) on other players.",
-                    null, ClientSide(1)));
 
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
                 new ConfigDescription("Detailed logging in the BepInEx console.",
@@ -2567,136 +2292,52 @@ namespace Saiyaheim
                         "saiya_form.",
                         null, AdminOnly(58))),
 
-                // O PENTEADO da forma, e nao so' a cor dele. Mesma via da cor — VisEquipment
-                // escreve na ZDO, o jogo replica de graca e o penteado de verdade do personagem
-                // (Humanoid.m_hairItem, que E' serializado no perfil) nunca e' tocado. Ver
+                // O visual da forma saiu do .cfg em 2026-09-15, junto com a secao 8: o que segue
+                // aqui e' escolha de tela ja fechada, e o valor de cada degrau chega por parametro
+                // desta funcao. Os tres degraus continuam sem compartilhar numero nenhum.
+                //
+                // O PENTEADO e' identidade de DEGRAU, e nao decoracao: o SSJ3 e' a forma que o
+                // genero define pelo comprimento do cabelo, e sem ele a unica diferenca para o
+                // SSJ2 seria o tom do amarelo. Tres tipos de valor: "Spiked" (o cabelo do proprio
+                // personagem, na versao espetada do CustomHair), um item do jogo (Hair1..Hair37,
+                // HairNone) ou um item nosso (SaiyaHair6...). Nome invalido nao pinta nem estoura
+                // — o mod avisa no log e mantem o cabelo do personagem. A troca vai pela ZDO, via
+                // VisEquipment: o jogo replica de graca e o penteado de verdade do personagem
+                // (Humanoid.m_hairItem, serializado no perfil) nunca e' tocado. Ver
                 // Transformations.TransformationEffects.SetHairStyle.
-                //
-                // Cabe aqui e nao numa secao global pelo mesmo motivo da cor: o penteado e'
-                // identidade de DEGRAU. O SSJ3 e' a forma que o genero define pelo comprimento do
-                // cabelo, e sem esta chave a unica diferenca dele para o SSJ2 seria o tom do
-                // amarelo.
-                //
-                // Tres tipos de valor: "Spiked" (o cabelo do proprio personagem, na versao
-                // espetada do CustomHair), um item do jogo (Hair1..Hair37, HairNone) ou um item
-                // nosso (SaiyaHair6...), fixo para quem quer que transforme. Nome invalido nao
-                // pinta nem estoura — o mod avisa no log e mantem o cabelo do personagem, porque
-                // um Hair99 no .cfg deixaria o jogador CARECA em forma, que e' pior que ignorar a
-                // chave. "Spiked" sobre um cabelo sem versao espetada tambem mantem o do
-                // personagem, mas sem aviso: ali nao ha erro de ninguem.
-                HairItem = config.Bind(section, "HairItem", hairItem,
-                    new ConfigDescription(
-                        "Hairstyle worn while this form is active. Empty keeps the character's " +
-                        "own hair, which is what every form did before this key existed. \n" +
-                        "'Spiked' wears the spiked version of the character's own hair, whatever " +
-                        "it is. Hairs with no spiked version (bald, and any the mod has not " +
-                        "sculpted yet) keep the character's own. \n" +
-                        "Any other value is a fixed hairstyle, by item name: the game's own " +
-                        "Hair1 to Hair37 and HairNone — the barber's list — or the mod's spiked " +
-                        "SaiyaHair1, SaiyaHair2 and so on, one per game hair. They are numbered, " +
-                        "not named, so run 'saiya_form hair' in the console to print the list " +
-                        "with the readable name of each one, and 'saiya_form hair <name>' to try " +
-                        "one on without transforming. \n" +
-                        "The long ones are Hair6 (Long and Loose), Hair11 (Long Braid) and Hair30 " +
-                        "(Loose Waves). \n" +
-                        "A helmet hides the hair exactly as it hides your normal one — the form " +
-                        "keeps its hairstyle, you just cannot see it. Hoods and helmets that swap " +
-                        "the hair for a shorter variant show the game's plain variant, without " +
-                        "spikes. \n" +
-                        "The character's real hairstyle is never overwritten: this only lives for " +
-                        "as long as the form does, and a crash while transformed leaves nothing " +
-                        "behind.",
-                        null, ClientSide(51))),
+                HairItem = hairItem,
+                HairColor = hairColor,
 
-                // Cosmetico, entao ClientSide como o resto da secao 8: pintar o cabelo nao muda
-                // numero nenhum, e o servidor nao tem por que impor gosto visual. A cor troca via
-                // ZDO e replica sozinha, entao os amigos veem o cabelo de quem transformou mesmo
-                // com .cfg diferente do deles.
-                HairColor = config.Bind(section, "HairColor", hairColor,
-                    new ConfigDescription(
-                        "Hair color while this form is active, #RRGGBB format. Empty keeps the " +
-                        "character's own color. Applies on the next transformation — no restart " +
-                        "needed. The character's real hair color is never overwritten: this only " +
-                        "lives for as long as the form does.",
-                        null, ClientSide(50))),
+                // Acima de 1 a cor estoura e queima, que e' o que le como cabelo de Super Saiyan:
+                // um hex puro para em #FFFFFF e fica mais perto de tingido do que de brilhando.
+                HairColorIntensity = 1.6f,
 
-                HairColorIntensity = config.Bind(section, "HairColorIntensity", 1.6f,
-                    new ConfigDescription(
-                        "Brightness multiplier applied on top of HairColor. Above 1 the color " +
-                        "blows out and burns, which is what reads as Super Saiyan hair — a plain " +
-                        "hex tops out at #FFFFFF and lands closer to dyed than to glowing. " +
-                        "1 uses the hex as written. " +
-                        "(Starting value. Not playtested yet.)",
-                        new AcceptableValueRange<float>(0f, 5f), ClientSide(45))),
+                // A aura sai da cor do cabelo para as duas lerem como uma coisa so'. Uma cor por
+                // forma, e nao uma global: a escada quer degraus distinguiveis de longe, e a cor
+                // da aura e' o unico sinal que sobrevive a distancia. O prefab e' compartilhado;
+                // a cor e' a identidade.
+                AuraColor = hairColor,
 
-                // Uma cor por forma, e nao uma global na secao 8: a escada da etapa 7 quer degraus
-                // distinguiveis de longe, e a cor da aura e' o unico sinal que sobrevive a
-                // distancia. O prefab e' compartilhado; a cor e' a identidade.
-                AuraColor = config.Bind(section, "AuraColor", hairColor,
-                    new ConfigDescription(
-                        "Aura color while this form is active, #RRGGBB format. Empty keeps the " +
-                        "prefab's original color. Applies on the next transformation — no restart " +
-                        "needed. Defaults to the same color as the hair so the two read as one " +
-                        "thing; splitting them is fine if the aura washes out at that tone. " +
-                        "This also becomes the color of the ki CHARGING glow while you hold the " +
-                        "form, replacing Effects.ChargeEffectColor.",
-                        null, ClientSide(40))),
+                // Um booleano, e nao um prefab por forma: o que separa um degrau do outro e'
+                // crepitar ou nao, e a regulagem de um estalo (FormLightning*) e' a mesma em
+                // qualquer forma.
+                LightningEnabled = lightning,
 
-                // Um booleano, e nao um prefab por forma: o que separa um degrau do outro é
-                // crepitar ou não, e a regulagem de um estalo é a mesma em qualquer forma. Mesma
-                // divisão da aura — prefab compartilhado na seção 8, identidade aqui.
-                LightningEnabled = config.Bind(section, "LightningEnabled", lightning,
-                    new ConfigDescription(
-                        "Crackle bolts of lightning around the body for as long as this form is " +
-                        "active. It is the visual signature of the higher forms, and unlike the " +
-                        "transformation beam it lasts the whole time — lightning is intermittent " +
-                        "by nature, so repeating it does not turn into the permanent cloud that " +
-                        "looping a beam prefab did. " +
-                        "Everything about HOW the crackles look lives in Effects " +
-                        "(FormLightning*), shared by every form; this key only says which forms " +
-                        "get them.",
-                        null, ClientSide(37))),
+                // A unica cor que NAO acompanha as outras, e de proposito (playtest de
+                // 2026-08-16): raio da cor da aura le como mais aura, nao como eletricidade — o
+                // olho precisa da quebra de matiz para separar o raio do brilho em que ele senta.
+                // Vazio cai na AuraColor.
+                LightningColor = lightningColor,
 
-                // A unica cor que NAO acompanha as outras, e de proposito. Ver o playtest de
-                // 2026-08-16 na descricao: raio da cor da aura le como mais aura, nao como
-                // eletricidade.
-                LightningColor = config.Bind(section, "LightningColor", lightningColor,
-                    new ConfigDescription(
-                        "Color of this form's lightning, #RRGGBB format. Empty falls back to " +
-                        "AuraColor. " +
-                        "This is the one color of a form that is meant to CONTRAST with the " +
-                        "others rather than match them, and that is a playtest result " +
-                        "(2026-08-16): bolts tinted like the aura read as more aura, not as " +
-                        "electricity — the eye needs the hue break to tell them apart from the " +
-                        "glow they sit on top of. Electric blue over a gold aura is the classic " +
-                        "read; white also works. " +
-                        "Applies to the next bolt, so you can retune it with the game open. " +
-                        "Ignored when LightningEnabled is off.",
-                        null, ClientSide(35))),
+                // Um numero e nao um booleano, ao contrario do raio: o raio ou estala ou nao, mas
+                // o brilho de um degrau alto e' o mesmo brilho MAIS FORTE. E' o unico valor visual
+                // que le como ESCADA em vez de identidade, e de noite e' o que separa duas formas
+                // a distancia. Multiplica o FormGlowIntensity compartilhado.
+                GlowIntensity = glowIntensity,
 
-                // Um numero e nao um booleano, ao contrario do raio: o raio ou estala ou nao
-                // estala, mas o brilho de um degrau alto e' o mesmo brilho MAIS FORTE, e e' esse
-                // eixo continuo que deixa a escada legivel de longe.
-                GlowIntensity = config.Bind(section, "GlowIntensity", glowIntensity,
-                    new ConfigDescription(
-                        "How brightly this form lights up its surroundings, as a multiplier on " +
-                        "Effects.FormGlowIntensity. 0 turns the glow off for this form only. " +
-                        "Higher forms are meant to be brighter — this is the one visual key that " +
-                        "reads as a LADDER rather than as an identity, and at a distance it is " +
-                        "what tells two forms apart at night. " +
-                        "Applies immediately, so you can retune it with the game open.",
-                        new AcceptableValueRange<float>(0f, 5f), ClientSide(34))),
-
-                GlowColor = config.Bind(section, "GlowColor", glowColor,
-                    new ConfigDescription(
-                        "Color of this form's glow, #RRGGBB format. Empty falls back to " +
-                        "AuraColor, which is the normal case — the form has one color. " +
-                        "Worth splitting only if the aura tone washes out as light on terrain: " +
-                        "a saturated hue that reads well on particles can turn muddy once it is " +
-                        "lighting grass and stone. " +
-                        "Unlike LightningColor, this one is meant to MATCH the rest of the form. " +
-                        "Ignored when the glow is off.",
-                        null, ClientSide(33)))
+                // Vazio cai na AuraColor, que e' o caso normal — a forma tem uma cor so'. Separar
+                // so' vale se o tom da aura embarrar como luz sobre grama e pedra.
+                GlowColor = glowColor
             };
         }
 
@@ -2855,43 +2496,22 @@ namespace Saiyaheim
                         "Ignored entirely when ChargeTime is 0.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(87))),
 
-                // Visual, e por isso config: o quanto um feixe carregado deve parecer mais grosso
-                // que um curto so' se sabe olhando. 1 tira a diferenca sem tirar a mecanica.
-                ChargeMinScale = config.Bind(section, "ChargeMinScale", chargeMinScale,
-                    new ConfigDescription(
-                        "How thick the projectiles are at the smallest charge, as a fraction of " +
-                        "ProjectileScale — the size they reach at a full one. 1 makes charge " +
-                        "change only the length of the beam, never its thickness. " +
-                        "Visual only: it does NOT change what the projectiles hit, nor the damage.",
-                        new AcceptableValueRange<float>(0.05f, 1f), ClientSide(54))),
+                // Quanto um feixe carregado parece mais grosso que um curto. So' se sabia
+                // olhando, e foi olhando que se decidiu: 1 tiraria a diferenca sem tirar a
+                // mecanica, e o Kamehameha ficou em 0,2 para o CRESCIMENTO ser o que se le na mao.
+                ChargeMinScale = chargeMinScale,
 
                 // Prefab do jogo, nao asset novo. O vault e' explicito sobre este ser o pedaco que
                 // vende a cena: segundo [[Animacoes]], o carregamento se le pelas particulas nas
                 // maos, nao pela pose — e por isso ele vem antes da pose de duas maos.
-                ChargeEffectPrefab = config.Bind(section, "ChargeEffectPrefab", chargeEffectPrefab,
-                    new ConfigDescription(
-                        "Game prefab attached to the player while the attack charges. Empty shows " +
-                        "nothing, which leaves the player with no way to tell a charge is running. " +
-                        "Worth trying: fx_charred_firestaff_chargeup, fx_DvergerMage_Support, " +
-                        "vfx_blocked, fx_Potion_stamina_medium.",
-                        null, ClientSide(53))),
+                ChargeEffectPrefab = chargeEffectPrefab,
 
-                ChargeEffectColor = config.Bind(section, "ChargeEffectColor", chargeEffectColor,
-                    new ConfigDescription(
-                        "Colour of the charge effect, as #RRGGBB. Empty follows ProjectileColor, " +
-                        "so what gathers in the hand is the colour of what comes out of it — " +
-                        "asking twice would only create the chance of the two drifting apart.",
-                        null, ClientSide(52))),
+                ChargeEffectColor = chargeEffectColor,
 
-                ChargeEffectScale = config.Bind(section, "ChargeEffectScale", chargeEffectScale,
-                    new ConfigDescription(
-                        "Size of the charge effect at a full charge, 1 being the prefab as it came. " +
-                        "It grows from ChargeMinScale x this up to this as the charge fills, so " +
-                        "the ball in the hand reads as filling up.",
-                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(51))),
+                ChargeEffectScale = chargeEffectScale,
 
-                // Tres chaves e nao um vetor: o .cfg do BepInEx nao tem tipo de vetor, e as tres
-                // coordenadas viriam de uma string parseada a mao.
+                // Tres numeros e nao um vetor, herdado de quando eram tres chaves do .cfg — o
+                // BepInEx nao tem tipo de vetor.
                 //
                 // ⚠️ **As tres sao medidas nos eixos do JOGADOR** — direita, cima e frente do
                 // personagem —, e nao nos do osso em que o efeito esta pendurado. A diferenca so'
@@ -2899,32 +2519,13 @@ namespace Saiyaheim
                 // o pulso, e cada ajuste de pose invalidava a calibragem das tres. Trocado em
                 // 2026-09-07, durante a calibragem da pose de duas maos. Ver
                 // KiBeamChargeEffects.Place.
-                ChargeEffectHeight = config.Bind(section, "ChargeEffectHeight", chargeEffectHeight,
-                    new ConfigDescription(
-                        "Height of the charge effect, in metres, measured along the PLAYER'S up — " +
-                        "not the hand bone's, so it does not turn with the wrist. Anchored to the " +
-                        "body it counts from the feet, where about 1 is hand height on a standing " +
-                        "character; anchored to a hand it counts from the palm, so the useful " +
-                        "numbers are small and negative means below the hand.",
-                        new AcceptableValueRange<float>(-3f, 3f), ClientSide(50))),
+                ChargeEffectHeight = chargeEffectHeight,
 
-                ChargeEffectSide = config.Bind(section, "ChargeEffectSide", chargeEffectSide,
-                    new ConfigDescription(
-                        "Sideways offset of the charge effect, in metres. Positive is the " +
-                        "player's right, whatever the effect is anchored to and whatever the pose " +
-                        "is doing with that hand. It follows the body, so turning around does not " +
-                        "leave it behind.",
-                        new AcceptableValueRange<float>(-2f, 2f), ClientSide(49))),
+                ChargeEffectSide = chargeEffectSide,
 
-                ChargeEffectForward = config.Bind(
-                    section, "ChargeEffectForward", chargeEffectForward,
-                    new ConfigDescription(
-                        "Forward offset of the charge effects, in metres — the player's forward, " +
-                        "the direction the character's body faces. Anchored to a hand, this is " +
-                        "what pushes the ball off the palm instead of leaving it inside it.",
-                        new AcceptableValueRange<float>(-2f, 2f), ClientSide(42))),
+                ChargeEffectForward = chargeEffectForward,
 
-                // A chave que faz a pose futura valer de graca. Presos ao OSSO da mao, os efeitos
+                // O que faz a pose valer de graca. Presos ao OSSO da mao, os efeitos
                 // vao para onde a animacao levar a mao; medidos a partir dos pes, ficam boiando
                 // onde a mao estava antes. Enquanto nao ha' pose os dois parecem iguais, e e' por
                 // isso que vale decidir agora e nao depois.
@@ -2934,64 +2535,21 @@ namespace Saiyaheim
                 // altura da mao e' ~1). Um conjunto de numeros no outro modo poe o efeito a um
                 // metro de onde deveria. O que NAO muda sao as direcoes: as tres sempre andam nos
                 // eixos do jogador.
-                ChargeEffectAnchor = config.Bind(
-                    section, "ChargeEffectAnchor", chargeEffectAnchor,
-                    new ConfigDescription(
-                        "What the charge effects are pinned to. RightHand and LeftHand pin them to " +
-                        "the hand BONE, so they are carried by whatever the character does — a " +
-                        "future charging pose moves them with it, at no cost. Body pins them to " +
-                        "the character root, which is steady but has to be re-measured by hand " +
-                        "every time the pose changes. " +
-                        "This changes what the three offsets above MEAN: from a hand they are " +
-                        "measured from the palm, and near zero; from the body they are measured " +
-                        "from the feet, where hand height is about 1. " +
-                        "Falls back to the body while the skeleton is not built yet.",
-                        null, ClientSide(41))),
+                ChargeEffectAnchor = chargeEffectAnchor,
 
                 // Prefab de PROJETIL, e nao de efeito, e e' o ponto: o Valheim nao tem um "fx_" que
                 // seja uma esfera de energia parada, mas tem varias que voam. O StaticProp arranca
                 // o comportamento e deixa o visual. Ver Util/StaticProp.cs.
-                ChargeBallPrefab = config.Bind(section, "ChargeBallPrefab", chargeBallPrefab,
-                    new ConfigDescription(
-                        "The ball of ki that gathers in the hand while charging. This is the name " +
-                        "of a PROJECTILE prefab, not an effect one: the game has no effect that is " +
-                        "a ball of energy sitting still, but it has several that fly, and the mod " +
-                        "strips the flying part. It grows from ChargeMinScale to ChargeBallScale " +
-                        "as the charge fills. Empty shows no ball. " +
-                        "Worth trying: GoblinShaman_projectile_fireball, " +
-                        "DvergerStaffBlocker_projectile (a denser sphere), " +
-                        "DvergerStaffIce_projectile, staff_greenroots_projectile.",
-                        null, ClientSide(39))),
+                ChargeBallPrefab = chargeBallPrefab,
 
-                ChargeBallColor = config.Bind(section, "ChargeBallColor", chargeBallColor,
-                    new ConfigDescription(
-                        "Colour of the charge ball, as #RRGGBB. Empty follows ProjectileColor, so " +
-                        "what gathers in the hand is the colour of what comes out of it.",
-                        null, ClientSide(38))),
+                ChargeBallColor = chargeBallColor,
 
-                ChargeBallScale = config.Bind(section, "ChargeBallScale", chargeBallScale,
-                    new ConfigDescription(
-                        "Size of the charge ball at a full charge, 1 being the projectile prefab " +
-                        "as it came. It starts at ChargeMinScale times this and grows to it, which " +
-                        "is the same curve the projectiles themselves follow — so the ball in the " +
-                        "hand is the size of what is about to leave it.",
-                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(37))),
+                ChargeBallScale = chargeBallScale,
 
                 // O rastro e' a peca do projetil que so' faz sentido em movimento: parado na mao,
                 // ele vira uma nuvem crescendo em volta dela. Mesmo mecanismo e mesmas regras do
                 // ImpactEffectStrip — nome INTEIRO, e o log lista os nomes disponiveis.
-                ChargeBallStrip = config.Bind(section, "ChargeBallStrip", chargeBallStrip,
-                    new ConfigDescription(
-                        "Comma-separated names of particle emitters to remove from the charge " +
-                        "ball. A projectile prefab carries the trail it left while flying, and a " +
-                        "trail on something STANDING STILL reads as a cloud of smoke growing " +
-                        "around the hand — which is the one part of the projectile that only makes " +
-                        "sense in motion. Empty removes nothing. " +
-                        "Names must match in full, case aside, exactly like ImpactEffectStrip. " +
-                        "Turn VerboseLogging on and start a charge: the log prints " +
-                        "'Static prop <prefab>: emitters: ...' with every name inside the ball, " +
-                        "ready to copy from.",
-                        null, ClientSide(36))),
+                ChargeBallStrip = chargeBallStrip,
 
                 // O aviso de carga cheia. Sem ele o jogador nao tem como saber que parou de ganhar
                 // coisa por continuar segurando — a bola para de crescer, mas "parou de crescer" e'
@@ -3000,99 +2558,36 @@ namespace Saiyaheim
                 // Sai no MESMO ponto do corpo que a bola, pelo ChargeEffectSide/Height: sao dois
                 // sinais sobre a mesma coisa, e separa-los em dois lugares da tela leria como duas
                 // coisas acontecendo.
-                ChargeFullEffectPrefab = config.Bind(
-                    section, "ChargeFullEffectPrefab", chargeFullEffectPrefab,
-                    new ConfigDescription(
-                        "Game prefab played when the charge reaches full, on top of the charge " +
-                        "effect that is already there. It is the only sign that holding longer has " +
-                        "stopped buying anything. Empty shows nothing. " +
-                        "It appears where ChargeEffectSide and ChargeEffectHeight put it — the " +
-                        "same spot as the charge effect, because the two are one signal. " +
-                        "Worth trying: vfx_blocked, fx_DvergerMage_Support_hit, " +
-                        "fx_lightningstaffprojectile_hit, vfx_HealthUpgrade.",
-                        null, ClientSide(48))),
+                ChargeFullEffectPrefab = chargeFullEffectPrefab,
 
-                ChargeFullEffectColor = config.Bind(
-                    section, "ChargeFullEffectColor", chargeFullEffectColor,
-                    new ConfigDescription(
-                        "Colour of the full-charge effect, as #RRGGBB. Empty follows " +
-                        "ProjectileColor, like the charge effect does.",
-                        null, ClientSide(47))),
+                ChargeFullEffectColor = chargeFullEffectColor,
 
-                ChargeFullEffectScale = config.Bind(
-                    section, "ChargeFullEffectScale", chargeFullEffectScale,
-                    new ConfigDescription(
-                        "Size of the full-charge effect, 1 being the prefab as it came. " +
-                        "It does not grow: the charge is done, and something still growing would " +
-                        "say the opposite of what this exists to say.",
-                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(46))),
+                ChargeFullEffectScale = chargeFullEffectScale,
 
                 // Duas leituras possiveis do mesmo pedido, e so' a tela decide: um estalo no
                 // instante em que enche, ou um sinal aceso enquanto o jogador segura. A primeira e'
                 // o default porque vfx_blocked e' um prefab de estouro — po-lo em loop pisca.
-                ChargeFullEffectLoop = config.Bind(
-                    section, "ChargeFullEffectLoop", chargeFullEffectLoop,
-                    new ConfigDescription(
-                        "Hold the full-charge effect for as long as the player keeps holding, " +
-                        "instead of playing it once the moment the charge fills. " +
-                        "Off suits a burst prefab such as vfx_blocked, which loops as a flicker. " +
-                        "On suits a prefab meant to sit there, and keeps telling the player the " +
-                        "charge is done however long they hold — which a one-off flash stops " +
-                        "doing a second after it fires.",
-                        null, ClientSide(44))),
+                ChargeFullEffectLoop = chargeFullEffectLoop,
 
                 // Substituir e' o default porque os dois juntos ficaram ruins na tela — playtest de
                 // 2026-09-07. A bola de carregamento diz "enchendo", e ela continuar ali depois de
                 // cheia diz a coisa errada; o aviso de carga cheia e' que passa a ser a resposta.
                 //
-                // Chave e nao regra fixa: qual das duas leituras esta' certa e' julgamento visual,
-                // e o codigo nao pode ser o lugar onde ele mora. Desligar devolve os dois somados.
-                ChargeFullEffectReplaces = config.Bind(
-                    section, "ChargeFullEffectReplaces", chargeFullEffectReplaces,
-                    new ConfigDescription(
-                        "Take the charge effect away the moment the charge fills, leaving only " +
-                        "ChargeFullEffectPrefab. On, the two never share the screen: the ball " +
-                        "means 'filling up', and leaving it there once it is full says the " +
-                        "opposite of what the full-charge effect is for. Off keeps both. " +
-                        "Ignored when ChargeFullEffectPrefab is empty or names a prefab that does " +
-                        "not exist — a broken name should cost the polish, not the only sign the " +
-                        "player has that a charge is running. " +
-                        "It never touches ChargeBallPrefab: the ball is what is about to be " +
-                        "thrown, and it belongs on screen right up to the moment it leaves.",
-                        null, ClientSide(43))),
+                // Por ataque e nao regra global: qual das duas leituras esta' certa e' julgamento
+                // visual, e cada ataque pode querer a sua. Desligar devolve os dois somados.
+                ChargeFullEffectReplaces = chargeFullEffectReplaces,
 
-                // Prefab do jogo, nao asset novo — a regra de [[Efeitos Visuais]]. Trocar o nome
-                // aqui troca o visual inteiro sem recompilar, que e' o ponto de ser config.
-                ProjectilePrefab = config.Bind(section, "ProjectilePrefab", projectilePrefab,
-                    new ConfigDescription(
-                        "Name of the game prefab used as the projectile. It is instantiated from " +
-                        "ZNetScene, so it must be a prefab the game has loaded — a name that does " +
-                        "not exist logs a warning and fires nothing. " +
-                        "The mod strips whatever the prefab brought with it: its own damage, its " +
-                        "status effect (no more setting things on fire) and whatever it spawned " +
-                        "on impact. Only the visual and the sound are kept. " +
-                        "Alternatives worth trying: staff_fireball_projectile, Imp_fireball_projectile, " +
-                        "DvergerStaffIce_projectile (blue), charred_fireball_projectile, " +
-                        "DvergerStaffFire_clusterbomb_projectile.",
-                        null, AdminOnly(75))),
+                // Prefab do jogo, nao asset novo — a regra de [[Efeitos Visuais]]. O nome escolhido
+                // troca o visual inteiro do ataque, e por isso ele chega por parametro: e' a
+                // identidade do degrau, nao um detalhe do disparo.
+                ProjectilePrefab = projectilePrefab,
 
                 // O estouro do impacto e' um EffectList do proprio Projectile, separado do que ele
                 // INSTANCIA no hit — o mod ja' tirava o segundo e nao tocava no primeiro, e era de
                 // la' que vinha a fumaca da bola de fogo. Chave propria e nao parte do prefab
                 // porque voo e impacto sao escolhas independentes: da' para querer o voo de um e o
                 // estouro de outro.
-                ImpactEffect = config.Bind(section, "ImpactEffect", impactEffect,
-                    new ConfigDescription(
-                        "What plays where the projectile lands. Empty keeps whatever the " +
-                        "projectile prefab brought with it — for a fireball, that is a cloud of " +
-                        "smoke. 'none' strips it: the shot lands with no beam and no sound, " +
-                        "which reads as a miss, so it is more useful for telling the smoke apart " +
-                        "from the rest than as a final answer. Anything else is the name of a " +
-                        "prefab to play instead; a name that does not exist logs a warning and " +
-                        "leaves the prefab's own effect alone. " +
-                        "Worth trying: fx_lightningstaffprojectile_hit, fx_DvergerMage_Support_hit, " +
-                        "fx_goblinking_beam_hit, fx_greenroots_projectile_hit.",
-                        null, ClientSide(74))),
+                ImpactEffect = impactEffect,
 
                 // O corte fino do impacto. Existe porque o ImpactEffect e' grosso demais para o
                 // caso real: o estouro do GoblinShaman tem clarao bom, som bom e uma fumaca que
@@ -3103,23 +2598,7 @@ namespace Saiyaheim
                 // Nome INTEIRO, e nao pedaco de nome: 'fire' por pedaco casaria com
                 // fx_shaman_fireball_expl e derrubaria o estouro junto com a chama. Ver a doc do
                 // StrippedEffect.Matches.
-                ImpactEffectStrip = config.Bind(section, "ImpactEffectStrip", impactEffectStrip,
-                    new ConfigDescription(
-                        "Comma-separated names of particle emitters to remove from the impact " +
-                        "effect, so the good half of it can stay. A game effect is a tree of " +
-                        "emitters — the flash, the fire and the smoke are separate objects " +
-                        "inside one prefab — and ImpactEffect can only take or leave the whole " +
-                        "tree. This removes the emitters named here and keeps the rest, sound " +
-                        "included. Empty changes nothing. " +
-                        "Names must match in full, case aside: a partial name like 'fire' would " +
-                        "also match the effect fx_shaman_fireball_expl that contains it, and take " +
-                        "the whole beam with it. " +
-                        "A name that matches a whole impact effect drops that effect from the " +
-                        "list — which is how a prefab that keeps its smoke in a separate effect " +
-                        "is handled. " +
-                        "Turn VerboseLogging on and fire once: the log lists every impact effect " +
-                        "and the name of every emitter inside it, ready to copy from.",
-                        null, ClientSide(73))),
+                ImpactEffectStrip = impactEffectStrip,
 
                 // A luz do impacto e' a parte do prefab que mais denuncia de onde ele veio: ela
                 // pinta o terreno em volta, e o estouro do xama goblin acende ROSA. Nao ha' chave
@@ -3129,40 +2608,16 @@ namespace Saiyaheim
                 //
                 // Vazio segue o ProjectileColor de proposito. Duas chaves de cor para o mesmo tiro
                 // sairiam de sincronia no dia em que a bola mudasse de cor.
-                ImpactColor = config.Bind(section, "ImpactColor", impactColor,
-                    new ConfigDescription(
-                        "Colour of the impact effect, as #RRGGBB. Empty follows ProjectileColor, " +
-                        "so the beam matches the shot that made it without being set twice. " +
-                        "'none' keeps the effect's own colours, whatever the prefab shipped with " +
-                        "— which for the goblin shaman beam means a pink light on the ground " +
-                        "around the hit. Anything else overrides both.",
-                        null, ClientSide(72))),
+                ImpactColor = impactColor,
 
-                // Escolha visual, e por isso config e nao constante: qual das duas leituras esta'
-                // certa so' se sabe olhando a tela. Trocar aqui vale no proximo tiro, sem
-                // reiniciar — a cor faz parte da chave de cache do template.
-                ImpactColorTarget = config.Bind(section, "ImpactColorTarget", ImpactTintTarget.Light,
-                    new ConfigDescription(
-                        "How much of the impact effect ImpactColor paints. 'Light' repaints only " +
-                        "the dynamic light the beam casts on the ground, which is what gives a " +
-                        "borrowed prefab away, and leaves the flash and the shockwave drawn the " +
-                        "way the game drew them. 'Everything' repaints particles, trails and " +
-                        "materials too, so the whole beam reads as the ki that caused it — at " +
-                        "the cost of the shading the effect came with.",
-                        null, ClientSide(71))),
+                // Luz sozinha, e nao o estouro inteiro: conserta o vazamento de cor do prefab — o
+                // rosa do xama goblin no terreno — sem apagar a variacao de tom que o efeito trazia
+                // de fabrica. Julgado na tela em 2026-08-20.
+                ImpactColorTarget = ImpactTintTarget.Light,
 
-                // Cosmetico e client-side pelo mesmo motivo que o ImpactEffect: o que morre aqui
-                // e' a copia local do projetil, no cliente de quem atirou.
-                ProjectileLingerOnHit = config.Bind(section, "ProjectileLingerOnHit", false,
-                    new ConfigDescription(
-                        "Let the projectile survive its own impact, the way the prefab wanted. " +
-                        "Prefabs meant for arrows use this to stick into the wall they hit, and a " +
-                        "prefab with a particle trail uses it to keep trailing after it lands — " +
-                        "which reads as a puff of smoke sitting where the shot went off, seconds " +
-                        "after the beam is over. Off, the shot is gone the instant it connects " +
-                        "and only the impact effect is left. Turn it on to check whether lingering " +
-                        "smoke is coming from the projectile or from ImpactEffect.",
-                        null, ClientSide(70))),
+                // Desligado: o que morre aqui e' a copia local do projetil, no cliente de quem
+                // atirou, e o rastro que sobrava depois do acerto lia como tiro que nao bateu.
+                ProjectileLingerOnHit = false,
 
                 ProjectileSpeed = config.Bind(section, "ProjectileSpeed", projectileSpeed,
                     new ConfigDescription(
@@ -3179,32 +2634,16 @@ namespace Saiyaheim
                         "prefab's own lifetime.",
                         new AcceptableValueRange<float>(0.5f, 30f), AdminOnly(65))),
 
-                ProjectileScale = config.Bind(section, "ProjectileScale", projectileScale,
-                    new ConfigDescription(
-                        "Size of the projectile, 1 being the prefab as it came. " +
-                        "Visual only: it does NOT change what the projectile hits.",
-                        new AcceptableValueRange<float>(0.1f, 10f), ClientSide(55))),
+                ProjectileScale = projectileScale,
 
-                // Cosmetico, entao ClientSide como a cor da aura. Vazio de proposito: o primeiro
-                // playtest deve ver o prefab como ele e', antes de decidir que cor o ki tem.
-                // Amarelo desde o playtest de 2026-08-20 — antes era vazio, "o prefab manda", que
+                // A cor do ataque. Amarelo no blast desde o playtest de 2026-08-20 — antes era vazio, "o prefab manda", que
                 // era a posicao certa enquanto nao se sabia que cor o ki tinha. Agora se sabe, e
-                // deixar vazio faria a instalacao limpa de outro jogador nascer com a cor do prefab
-                // emprestado (verde de raiz, laranja de fogo) em vez da do mod.
+                // vazio faria o tiro nascer com a cor do prefab emprestado (verde de raiz, laranja
+                // de fogo) em vez da do mod.
                 //
                 // O ImpactColor pendura nele: vazio la' significa "a cor deste tiro".
-                ProjectileColor = config.Bind(section, "ProjectileColor", projectileColor,
-                    new ConfigDescription(
-                        "Projectile color, #RRGGBB format. Empty keeps the prefab's own colors. " +
-                        "Tinting touches particles, lights and this clone's own materials only — " +
-                        "never the game's shared assets. " +
-                        "The impact beam follows this colour unless ImpactColor says otherwise.",
-                        null, ClientSide(50))),
+                ProjectileColor = projectileColor,
 
-                // Cosmetico, entao ClientSide — mas note que ele replica: o ZSyncAnimation.SetTrigger
-                // manda RPC para todo mundo, entao os amigos veem a pose de quem atirou mesmo com
-                // .cfg diferente. Mesmo padrao da cor de cabelo.
-                //
                 MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(
                         "Minimum Power Level required to use this attack. 0 disables the " +

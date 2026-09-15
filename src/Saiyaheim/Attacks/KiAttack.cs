@@ -193,7 +193,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         internal float GetProjectileScale(float ratio)
         {
-            float full = Config.ProjectileScale.Value;
+            float full = Config.ProjectileScale;
 
             if (!IsCharged)
             {
@@ -201,7 +201,7 @@ namespace Saiyaheim.Attacks
             }
 
             return full * Mathf.Lerp(
-                Mathf.Clamp01(Config.ChargeMinScale.Value), 1f, Mathf.Clamp01(ratio));
+                Mathf.Clamp01(Config.ChargeMinScale), 1f, Mathf.Clamp01(ratio));
         }
 
         /// <summary>Segundos entre um projétil do feixe e o seguinte.</summary>

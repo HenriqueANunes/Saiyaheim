@@ -178,12 +178,12 @@ namespace Saiyaheim.Attacks
                 return null;
             }
 
-            Transform anchor = BodyAnchor.Resolve(player, attack.Config.ChargeEffectAnchor.Value);
+            Transform anchor = BodyAnchor.Resolve(player, attack.Config.ChargeEffectAnchor);
             string color = ResolveColor(attack);
 
             Active active = new Active { Anchor = anchor };
 
-            string prefab = attack.Config.ChargeEffectPrefab.Value?.Trim() ?? string.Empty;
+            string prefab = attack.Config.ChargeEffectPrefab?.Trim() ?? string.Empty;
             if (prefab.Length > 0)
             {
                 // forceLoop porque a carga DURA: um prefab de estouro morreria no meio dela e
@@ -199,9 +199,9 @@ namespace Saiyaheim.Attacks
             }
 
             active.Ball = StaticProp.Spawn(
-                anchor, attack.Config.ChargeBallPrefab.Value?.Trim() ?? string.Empty,
+                anchor, attack.Config.ChargeBallPrefab?.Trim() ?? string.Empty,
                 ResolveBallColor(attack), Vector3.zero,
-                StrippedEffect.ParseFilter(attack.Config.ChargeBallStrip.Value));
+                StrippedEffect.ParseFilter(attack.Config.ChargeBallStrip));
 
             // A entrada existe mesmo sem nada aceso: é ela que segura o "já encheu". Sem ela, um
             // ChargeEffectPrefab vazio levaria junto o aviso de carga cheia, que é chave própria.
@@ -279,9 +279,9 @@ namespace Saiyaheim.Attacks
         private static Vector3 Offset(KiAttack attack)
         {
             return new Vector3(
-                attack.Config.ChargeEffectSide.Value,
-                attack.Config.ChargeEffectHeight.Value,
-                attack.Config.ChargeEffectForward.Value);
+                attack.Config.ChargeEffectSide,
+                attack.Config.ChargeEffectHeight,
+                attack.Config.ChargeEffectForward);
         }
 
         /// <summary>
@@ -309,33 +309,33 @@ namespace Saiyaheim.Attacks
                 return;
             }
 
-            string prefab = attack.Config.ChargeFullEffectPrefab.Value?.Trim() ?? string.Empty;
+            string prefab = attack.Config.ChargeFullEffectPrefab?.Trim() ?? string.Empty;
             if (prefab.Length == 0)
             {
                 return;
             }
 
-            string color = attack.Config.ChargeFullEffectColor.Value?.Trim() ?? string.Empty;
+            string color = attack.Config.ChargeFullEffectColor?.Trim() ?? string.Empty;
             if (color.Length == 0)
             {
-                color = attack.Config.ProjectileColor.Value?.Trim() ?? string.Empty;
+                color = attack.Config.ProjectileColor?.Trim() ?? string.Empty;
             }
 
             // Sem offset, como as outras duas: quem posiciona é o Place, nos eixos do jogador.
             active.Full = AttachedEffect.Spawn(
                 player, prefab, color, 1f,
-                forceLoop: attack.Config.ChargeFullEffectLoop.Value,
+                forceLoop: attack.Config.ChargeFullEffectLoop,
                 lightIntensity: 1f, burstDuration: 0f, localOffset: Vector3.zero,
                 parent: active.Anchor);
 
             // Escala 1 no Spawn e o tamanho aqui, pelo EffectScale: o do Spawn não alcança
             // partícula filha nem largura de rastro. Ver EffectScale.
-            EffectScale.Apply(active.Full, attack.Config.ChargeFullEffectScale.Value);
+            EffectScale.Apply(active.Full, attack.Config.ChargeFullEffectScale);
 
             // A bola sai de cena. Só quando o aviso de fato nasceu: um nome errado no .cfg deve
             // custar o polimento, nunca o único sinal de que há uma carga em curso — a mesma regra
             // que o ImpactEffect segue ao manter o estouro do prefab quando o nome não existe.
-            if (active.Full != null && attack.Config.ChargeFullEffectReplaces.Value
+            if (active.Full != null && attack.Config.ChargeFullEffectReplaces
                 && active.Vfx != null)
             {
                 UnityEngine.Object.Destroy(active.Vfx);
@@ -354,20 +354,20 @@ namespace Saiyaheim.Attacks
                 return;
             }
 
-            float min = Mathf.Clamp01(attack.Config.ChargeMinScale.Value);
+            float min = Mathf.Clamp01(attack.Config.ChargeMinScale);
             float growth = Mathf.Lerp(min, 1f, Mathf.Clamp01(ratio));
 
             // Pelo EffectScale, e nao pelo transform: ele guarda a medida original no proprio
             // objeto (por isso crescer todo frame nao acumula) e alcanca o que a escala do
             // transform sozinha nao alcanca — particulas filhas, rastro e luz. Ver EffectScale.
             EffectScale.Apply(
-                active.Vfx, Mathf.Max(0.01f, attack.Config.ChargeEffectScale.Value) * growth);
+                active.Vfx, Mathf.Max(0.01f, attack.Config.ChargeEffectScale) * growth);
 
             // A bola segue a MESMA curva, de proposito: ela e' a previa do projetil, e o
             // GetProjectileScale usa esse mesmo ChargeMinScale. O que se ve na mao e' do tamanho
             // do que vai sair dela.
             EffectScale.Apply(
-                active.Ball, Mathf.Max(0.01f, attack.Config.ChargeBallScale.Value) * growth);
+                active.Ball, Mathf.Max(0.01f, attack.Config.ChargeBallScale) * growth);
         }
 
         /// <summary>
@@ -376,12 +376,12 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static string ResolveColor(KiAttack attack)
         {
-            return Fallback(attack, attack.Config.ChargeEffectColor.Value);
+            return Fallback(attack, attack.Config.ChargeEffectColor);
         }
 
         private static string ResolveBallColor(KiAttack attack)
         {
-            return Fallback(attack, attack.Config.ChargeBallColor.Value);
+            return Fallback(attack, attack.Config.ChargeBallColor);
         }
 
         private static string Fallback(KiAttack attack, string configured)
@@ -390,7 +390,7 @@ namespace Saiyaheim.Attacks
 
             return value.Length > 0
                 ? value
-                : attack.Config.ProjectileColor.Value?.Trim() ?? string.Empty;
+                : attack.Config.ProjectileColor?.Trim() ?? string.Empty;
         }
 
         /// <summary>
