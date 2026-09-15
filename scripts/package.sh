@@ -65,3 +65,16 @@ rm -f "$ZIP"
 
 echo "$ZIP"
 unzip -l "$ZIP"
+
+# Aviso, não erro: a tag é o que liga uma versão publicada no Thunderstore ao commit que a
+# gerou. Versão publicada não pode ser republicada, então um bug report que chegue citando
+# "0.1.0" precisa de um ponto exato no histórico para ser investigado.
+if ! git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+  echo
+  echo "aviso: não existe a tag v$VERSION. Antes de publicar no Thunderstore:"
+  echo "  git tag -a v$VERSION -m \"Saiyaheim $VERSION\" && git push origin v$VERSION"
+elif [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
+  echo
+  echo "aviso: a tag v$VERSION existe, mas há mudanças não commitadas — o zip pode não"
+  echo "       corresponder ao que a tag aponta."
+fi
