@@ -17,8 +17,8 @@ DIST="$REPO_ROOT/dist"
 
 # Versões das dependências no Thunderstore. Precisam bater com o que está instalado no
 # perfil, senão o r2modman baixa outra e a checagem de rede reclama.
-DEP_BEPINEX="denikson-BepInExPack_Valheim-5.4.2333"
-DEP_JOTUNN="ValheimModding-Jotunn-2.29.2"
+DEP_BEPINEX="denikson-BepInExPack_Valheim-5.4.2350"
+DEP_JOTUNN="ValheimModding-Jotunn-2.30.0"
 
 VERSION="$(grep -oP 'PluginVersion\s*=\s*"\K[^"]+' "$REPO_ROOT/src/Saiyaheim/Plugin.cs")"
 if [[ -z "$VERSION" ]]; then
