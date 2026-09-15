@@ -26,9 +26,12 @@ namespace Saiyaheim.Attacks
         /// <c>BindKiAttack</c> na config, exatamente como o SSJ2 tinha entrado na escada de formas.
         ///
         /// <b>A escada de ataques não anda mais junto com a de bosses.</b> O blast sai no Eikthyr,
-        /// o Kamehameha no Bonemass, e os dois bosses do meio não entregam ataque nenhum — não há
-        /// cinco ataques que valham a pena, e inventá-los para preencher a tabela encheria a escada
-        /// de degraus mornos. Decidido em 2026-09-07, ver [[Ataques de Ki]].
+        /// o Kamehameha no Elder, e os bosses seguintes não entregam ataque nenhum — não há cinco
+        /// ataques que valham a pena, e inventá-los para preencher a tabela encheria a escada de
+        /// degraus mornos. Decidido em 2026-09-07, ver [[Ataques de Ki]].
+        ///
+        /// O Kamehameha esteve no Bonemass até 2026-09-15, quando o valor calibrado em playtest
+        /// subiu do <c>.cfg</c> para o código.
         /// </summary>
         internal static readonly KiAttack[] All =
         {

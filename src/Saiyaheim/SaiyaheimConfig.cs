@@ -1490,8 +1490,11 @@ namespace Saiyaheim
             //     que o SSJ2 nao tem: repetir o sabor do degrau anterior desperdicaria o unico
             //     eixo que existe. Aqui o raio deixa de ser tempero e vira metade do golpe — e' o
             //     degrau em que o tipo de dano vira identidade.
-            //   CarryWeightBonus 400 = o dobro do SSJ2, seguindo a mesma leitura dos dois degraus
-            //     anteriores.
+            //   CarryWeightBonus 300 = uma vez e meia o SSJ2, e nao o dobro. Saiu em 400, pela
+            //     mesma leitura dos dois degraus anteriores, e o playtest desceu para 300: com 400
+            //     o limite de peso deixava de ser uma decisao — nada que se recolhe em jogo chega
+            //     perto de encher a mochila, e o [[Voo]] cobra o peso em curva justamente para que
+            //     carregar muito custe alguma coisa. Promovido do .cfg em 2026-09-15.
             //
             // O visual e' onde este degrau se separa dos outros dois: ele e' o primeiro que muda a
             // SILHUETA em vez de so' a cor. HairItem SaiyaHair6 e' o Hair6 ("Long and Loose")
@@ -1510,7 +1513,7 @@ namespace Saiyaheim
                 kiDrainPerSecond: 15f,
                 punchSlashFraction: 0f,
                 punchLightningFraction: 0.5f,
-                carryWeightBonus: 400f,
+                carryWeightBonus: 300f,
                 hairColor: "#FFE066",
                 requiredGlobalKey: "defeated_bonemass",
                 lightning: true,
@@ -1611,7 +1614,10 @@ namespace Saiyaheim
                 // Azul claro. O blast e' amarelo; o Kamehameha precisa se distinguir dele na tela
                 // antes de qualquer outra coisa, e azul e' a cor da cena no anime.
                 projectileColor: "#66CCFF",
-                requiredGlobalKey: "defeated_bonemass",
+                // O Elder, e nao o Bonemass: calibrado em playtest e promovido do .cfg para o
+                // codigo em 2026-09-15, antes da primeira publicacao no Thunderstore. Esperar o
+                // terceiro boss deixava o segundo sem entrega nenhuma para quem usa ki.
+                requiredGlobalKey: "defeated_gdking",
                 // Teto, e nao valor fixo: 60 e' o feixe da carga CHEIA. Com 5 s de carregamento
                 // sao 12 projeteis por segundo segurado, e o custo e o dano acompanham em linha
                 // reta — segurar metade do tempo entrega metade de tudo.
@@ -1639,7 +1645,10 @@ namespace Saiyaheim
                 chargeTime: 5f,
                 // 0,15 x 60 = 9 projeteis no minimo. Encostar na tecla sem querer nao gasta nada.
                 minChargeRatio: 0.15f,
-                chargeMinScale: 0.4f,
+                // 0,2 e nao 0,4: a bola comeca menor para o CRESCIMENTO ser o que se le na tela.
+                // Com 0,4 ela ja nascia quase do tamanho final e a carga nao aparecia na mao.
+                // Promovido do .cfg em 2026-09-15.
+                chargeMinScale: 0.2f,
                 // O carregamento de cajado dos Charred: particulas convergindo para um ponto, que
                 // e' o gesto certo. Catalogado em [[Prefabs do Jogo]] justamente para isto.
                 chargeEffectPrefab: "fx_charred_firestaff_chargeup",
