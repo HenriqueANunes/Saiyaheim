@@ -1,0 +1,20 @@
+# Changelog
+
+## 0.1.1
+
+- HUD power label is now `BP:` (Battle Power) instead of `PB:`, on both the player readout
+  and the enemy nameplate.
+- Fixed: hitting with a vanilla weapon no longer trains Power Level. Only punches and ki
+  attacks pay XP for damage dealt; damage taken still pays regardless. The new
+  `XpWeaponFactor` key brings weapon XP back for anyone who wants it.
+
+## 0.1.0
+
+First public release.
+
+- Ki as a resource, with regeneration and a HUD bar.
+- Flight.
+- Unarmed combat scaling with power.
+- Ki attacks: Kamehameha and ki blasts.
+- Super Saiyan transformations gated behind the game's bosses.
+- Power level readout on the HUD and over enemies.
