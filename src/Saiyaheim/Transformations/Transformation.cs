@@ -339,7 +339,7 @@ namespace Saiyaheim.Transformations
         /// Quanto o XP de maestria desta forma está acelerado <b>agora</b>, pelo que o mundo já
         /// derrubou depois do boss que a destravou.
         ///
-        /// <code>1 + passo × (bosses derrotados − degrau desta forma)</code>
+        /// <code>min(teto, 1 + passo × (bosses derrotados − degrau desta forma))</code>
         ///
         /// <b>Por que existe.</b> A curva de XP do Valheim é a mesma para todo degrau, então a
         /// forma destravada primeiro é sempre a que está mais longe na ponta cara da curva — e ela
@@ -389,7 +389,17 @@ namespace Saiyaheim.Transformations
             // índice 0 e vale x1 com um boss morto, x2 com dois. Daí o "rung + 1".
             int ahead = BossGate.DefeatedCount() - (rung + 1);
 
-            return ahead <= 0 ? 1f : 1f + step * ahead;
+            if (ahead <= 0)
+            {
+                return 1f;
+            }
+
+            // Teto: o bônus corrige o atraso do degrau velho, não acelera sem limite. Entrada não
+            // ligada cai no comportamento sem teto, pelo mesmo motivo do guarda lá em cima.
+            float multiplier = 1f + step * ahead;
+            return Config.MasteryXpBossMultiplierMax == null
+                ? multiplier
+                : Mathf.Min(multiplier, Mathf.Max(1f, Config.MasteryXpBossMultiplierMax.Value));
         }
     }
 }

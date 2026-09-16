@@ -327,6 +327,12 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<float> MasteryXpPerBossBonus { get; internal set; }
 
+            /// <summary>
+            /// Teto do multiplicador de XP por boss. 1 desliga o bônus. Ver
+            /// <c>Transformation.GetBossXpMultiplier</c>.
+            /// </summary>
+            public ConfigEntry<float> MasteryXpBossMultiplierMax { get; internal set; }
+
             /// <summary>Nível mínimo de Power Level para entrar na forma. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinPowerLevel { get; internal set; }
 
@@ -2255,11 +2261,11 @@ namespace Saiyaheim
                     new ConfigDescription(
                         "How much this form's mastery XP speeds up for each boss defeated AFTER " +
                         "the one that unlocked it. The multiplier is 1 + this * (bosses defeated " +
-                        "- this form's rung), floored at 1. 0 disables it. \n" +
-                        "With the default 2: the form pays x1 while its own boss is the newest " +
-                        "kill, x3 after the next boss falls, x5 after the one after that. A form " +
-                        "unlocked at the second boss is one rung behind, so at the third boss it " +
-                        "is still on x3 while the first form is already on x5. \n" +
+                        "- this form's rung), floored at 1 and capped by " +
+                        "MasteryXpBossMultiplierMax. 0 disables it. \n" +
+                        "Uncapped, the default 2 would pay x1 while the form's own boss is the " +
+                        "newest kill, x3 after the next boss falls, x5 after the one after that; " +
+                        "with the default cap of 2 it pays x1 and then x2 for good. \n" +
                         "What it is for: the mastery curve is the same for every rung, so the form " +
                         "unlocked first is always the one furthest up the expensive end of " +
                         "Valheim's XP curve, and it crawls exactly when a stronger form has just " +
@@ -2278,6 +2284,17 @@ namespace Saiyaheim
                         "the gap without touching MasteryXpPerSecond. Sized on paper, not read " +
                         "off a run yet.)",
                         new AcceptableValueRange<float>(0f, 5f), AdminOnly(69))),
+
+                // Teto do multiplicador acima. Sem ele o degrau velho acelera sem limite conforme o
+                // mundo anda (x3, x5...), e o bonus deixa de ser correcao para virar atalho.
+                MasteryXpBossMultiplierMax = config.Bind(section, "MasteryXpBossMultiplierMax", 2f,
+                    new ConfigDescription(
+                        "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
+                        "multiplier is min(this, 1 + bonus * (bosses defeated - this form's " +
+                        "rung)), floored at 1. 1 disables the boss bonus entirely. \n" +
+                        "With the default 2: a form pays x1 while its own boss is the newest " +
+                        "kill and x2 from the next boss on, no matter how many more fall.",
+                        new AcceptableValueRange<float>(1f, 20f), AdminOnly(68))),
 
                 MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(

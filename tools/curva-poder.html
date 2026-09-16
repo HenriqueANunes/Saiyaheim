@@ -435,9 +435,11 @@
           <p class="hint">Segurar a forma é o único jeito de treinar a skill dela. A curva do Valheim cobra ~20.000 de XP do 0 ao 100 — a 1/s são ~5,5 h <b>dentro</b> da forma, e as recargas de ki entram por cima. Este número regula a <b>velocidade da escada inteira</b>.</p>
           <div class="ctl"><div class="row"><label for="bxp">MasteryXpPerBossBonus</label><output id="bxp-out"></output></div>
             <input type="range" id="bxp" min="0" max="5" step="0.25" value="2"></div>
+          <div class="ctl"><div class="row"><label for="bxm">MasteryXpBossMultiplierMax</label><output id="bxm-out"></output></div>
+            <input type="range" id="bxm" min="1" max="10" step="0.25" value="2"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>1 + isto × (bosses derrotados − degrau da forma)</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então no default 2, com três bosses no chão, o SSJ paga x5, o SSJ2 x3 e o SSJ3 — destravado por esse terceiro boss — x1. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 2, teto 2), com três bosses no chão, o SSJ e o SSJ2 pagam x2 e o SSJ3 — destravado por esse terceiro boss — x1. Sem o teto seriam x5 e x3. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -542,7 +544,7 @@
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
-               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "boss",
+               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "bxm", "boss",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -610,7 +612,7 @@
   // Quanto o XP desta forma esta' acelerado pelo que o mundo ja' derrubou depois do boss dela.
   // Piso em 1 e sem estado: e' funcao pura do numero de bosses e do degrau da forma, igual ao
   // Transformation.GetBossXpMultiplier. O degrau e' base zero, a contagem e' base um — dai o +1.
-  const bossXp = form => Math.max(1, 1 + v("bxp") * (v("boss") - (form.rung + 1)));
+  const bossXp = form => Math.max(1, Math.min(v("bxm"), 1 + v("bxp") * (v("boss") - (form.rung + 1))));
 
   // XP por segundo que ESTA forma recebe agora, ja com o bonus de boss.
   const xpRate = form => v("xps") * bossXp(form);
@@ -1367,6 +1369,7 @@
     kv("MasteryDrainReduction", n(f.r, 2)),
     kv("MasteryXpPerSecond", n("xps", 2)),
     kv("MasteryXpPerBossBonus", n("bxp", 2)),
+    kv("MasteryXpBossMultiplierMax", n("bxm", 2)),
   ]);
 
   const CFG = {
@@ -1410,7 +1413,7 @@
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
-                    xps: 2, bxp: 2, boss: 0,
+                    xps: 2, bxp: 2, bxm: 2, boss: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
 
   function setLens(id) {
