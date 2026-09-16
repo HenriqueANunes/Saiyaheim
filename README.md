@@ -32,6 +32,7 @@ real:
 ```bash
 ssh hserver 'docker logs -f valheim'        # log do servidor
 ssh hserver 'valheim/joincode.sh'           # join code atual (muda a cada reinício)
+ssh hserver 'valheim/players.sh'            # quem está online agora
 ```
 
 Últimas linhas, sem seguir:
@@ -39,6 +40,11 @@ ssh hserver 'valheim/joincode.sh'           # join code atual (muda a cada rein�
 ```bash
 ssh hserver 'docker logs --tail 200 valheim'
 ```
+
+O `players.sh` cruza a última linha `Connections N` do log com os nomes mais recentes de
+`Got character ZDOID` — o servidor dedicado não tem console, e o log não liga nome a socket.
+A contagem vem da última leitura periódica, então pode estar até ~2 minutos atrasada.
+`players.sh -f` acompanha entradas e saídas em tempo real.
 
 Log do cliente local (r2modman), reescrito a cada inicialização do jogo:
 

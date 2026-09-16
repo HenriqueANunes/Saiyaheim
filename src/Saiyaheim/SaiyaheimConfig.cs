@@ -253,7 +253,7 @@ namespace Saiyaheim
         public static ConfigEntry<float> PowerHudFontSize { get; private set; }
 
         /// <summary>Texto antes do número. Fixado em 2026-09-15.</summary>
-        public const string PowerHudLabel = "PB:";
+        public const string PowerHudLabel = "BP:";
 
         /// <summary>Cor do texto — o branco do rótulo do bioma, de onde o texto é clonado.</summary>
         public const string PowerHudColor = "#FFFFFF";
@@ -268,7 +268,7 @@ namespace Saiyaheim
         public static ConfigEntry<float> EnemyPowerFontSize { get; private set; }
 
         /// <summary>Texto antes do numero, no rotulo do inimigo. Fixado em 2026-09-15.</summary>
-        public const string EnemyPowerLabel = "PB:";
+        public const string EnemyPowerLabel = "BP:";
 
         /// <summary>Cor do texto do inimigo — o branco do nome que fica logo acima dele.</summary>
         public const string EnemyPowerColor = "#FFFFFF";
@@ -677,6 +677,12 @@ namespace Saiyaheim
 
         /// <summary>Trava de segurança: XP máximo de um único golpe.</summary>
         public static ConfigEntry<float> SkillXpMaxPerEvent { get; private set; }
+
+        /// <summary>
+        /// Fração do dano de arma que conta como XP. 0 = arma não treina Power Level.
+        /// Soco e ataque de ki contam sempre inteiros.
+        /// </summary>
+        public static ConfigEntry<float> SkillXpWeaponFactor { get; private set; }
 
         /// <summary>Peso da vida efetiva no poder de luta escaneável. Vale para jogador e inimigo.</summary>
         public static ConfigEntry<float> RatingK1Health { get; private set; }
@@ -2078,6 +2084,15 @@ namespace Saiyaheim
                     "Safety clamp: maximum XP from a single hit, dealt or taken. Prevents one hit " +
                     "on a boss from jumping several levels at once.",
                     new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(70)));
+
+            SkillXpWeaponFactor = config.Bind(SecPowerSkill, "XpWeaponFactor", 0f,
+                new ConfigDescription(
+                    "Fraction of WEAPON damage that pays Power Level XP. Punches and ki attacks " +
+                    "always pay in full; this key only covers hits made with a vanilla weapon. " +
+                    "0 (default) means the sword path and the ki path are separate progressions: " +
+                    "Power Level is what you get for fighting the mod's way, and a sword already " +
+                    "trains its own vanilla skill.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(65)));
 
             // --- Debug ---
 

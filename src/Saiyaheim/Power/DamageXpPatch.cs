@@ -68,15 +68,67 @@ namespace Saiyaheim.Power
             }
             else if (hit.GetAttacker() == local)
             {
-                PowerSkill.RaiseFromDamageDealt(local, applied);
-                SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {applied:0.#} damage.");
+                float credited = applied * DealtFactor(hit, local);
+                if (credited > 0f)
+                {
+                    PowerSkill.RaiseFromDamageDealt(local, credited);
+                    SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {credited:0.#} damage.");
+                }
             }
             else if (hit.GetAttacker() is Player attacker)
             {
                 // Quem bateu é outro cliente. Esta máquina é a única que sabe o número, e não tem
-                // o que fazer com ele.
-                DamageReport.Send(attacker, applied);
+                // o que fazer com ele. O desconto de arma é aplicado aqui, e não do outro lado,
+                // porque é aqui que o HitData existe — o RPC carrega um float e mais nada.
+                float credited = applied * DealtFactor(hit, attacker);
+                if (credited > 0f)
+                {
+                    DamageReport.Send(attacker, credited);
+                }
             }
+        }
+
+        /// <summary>
+        /// Quanto do dano causado paga XP, segundo o que causou o golpe.
+        ///
+        /// <b>Power Level é o eixo de quem luta do jeito do mod</b> — soco e ki. Bater de espada
+        /// treinava a skill igual até 2026-09-15, e isso é um bug: a arma já tem a skill vanilla
+        /// dela, e deixar as duas progredirem no mesmo golpe faz o caminho vanilla ser
+        /// estritamente melhor que o desarmado, que é o oposto da ideia. Quem quiser as duas
+        /// progressões juntas sobe o <c>XpWeaponFactor</c>.
+        ///
+        /// <b>Dano recebido não passa por aqui</b>, de propósito: apanhar é apanhar, com ou sem
+        /// arma na mão.
+        /// </summary>
+        private static float DealtFactor(HitData hit, Player attacker)
+        {
+            // Ataque de ki: o KiProjectile.BuildHit zera a skill justamente para não treinar
+            // magia vanilla, então skill nenhuma com jogador atacando é golpe do mod.
+            if (hit.m_skill == Skills.SkillType.None || IsPunch(hit, attacker))
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp01(SaiyaheimConfig.SkillXpWeaponFactor.Value);
+        }
+
+        /// <summary>
+        /// Se o golpe é um soco. Mesma pergunta — e mesma armadilha — do
+        /// <see cref="SE_KiBody"/>: o <c>Attack.DoMeleeAttack</c> troca a skill do golpe por
+        /// <c>m_specialHitSkill</c> em alvo especial, então o <c>hit.m_skill</c> sozinho mente.
+        /// A arma equipada não mente, e <c>GetCurrentWeapon()</c> nunca devolve null: sem nada
+        /// nas mãos ele entrega o <c>m_unarmedWeapon</c>, que é <c>Unarmed</c>.
+        /// </summary>
+        private static bool IsPunch(HitData hit, Player attacker)
+        {
+            if (hit.m_skill == Skills.SkillType.Unarmed)
+            {
+                return true;
+            }
+
+            ItemDrop.ItemData weapon = attacker.GetCurrentWeapon();
+
+            return weapon != null && weapon.m_shared.m_skillType == Skills.SkillType.Unarmed;
         }
     }
 }

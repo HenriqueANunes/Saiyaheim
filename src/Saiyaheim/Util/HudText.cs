@@ -12,8 +12,8 @@ namespace Saiyaheim.Util
         /// <b>Isto conserta um bug, e não é só conveniência.</b> As chaves de prefixo nasceram
         /// pedindo "mantenha o espaço no fim, nenhum é adicionado" — e esse espaço
         /// <b>nunca chegava</b>. O <c>ConfigFile</c> do BepInEx faz <c>Trim()</c> nos dois lados do
-        /// <c>=</c> ao ler o arquivo <i>e</i> ao escrevê-lo, então o default <c>"PB: "</c> ia para
-        /// o disco como <c>PB:</c> e voltava como <c>PB:</c>. Na tela saía <c>PB:622</c>. O espaço
+        /// <c>=</c> ao ler o arquivo <i>e</i> ao escrevê-lo, então o default <c>"BP: "</c> ia para
+        /// o disco como <c>BP:</c> e voltava como <c>BP:</c>. Na tela saía <c>BP:622</c>. O espaço
         /// só sobrevivia na primeiríssima sessão, antes de o arquivo existir — que é exatamente a
         /// sessão em que ninguém repara.
         ///
