@@ -79,8 +79,18 @@ git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$TAG" >/dev/null \
 
 TAG_COMMIT="$(git -C "$REPO_ROOT" rev-parse "$TAG^{commit}")"
 HEAD_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
-[[ "$TAG_COMMIT" == "$HEAD_COMMIT" ]] \
-  || fail "a tag $TAG aponta para ${TAG_COMMIT:0:7}, mas o HEAD é ${HEAD_COMMIT:0:7}."
+
+# HEAD à frente da tag é aceito se nada do que entra no zip mudou desde ela — caso típico de
+# consertar este próprio script ou o README do repo depois de taguear. Qualquer mudança em
+# código, packaging ou build exige tag nova.
+ZIP_INPUTS=(src packaging Saiyaheim.sln DoPrebuild.props)
+if [[ "$TAG_COMMIT" != "$HEAD_COMMIT" ]]; then
+  git -C "$REPO_ROOT" merge-base --is-ancestor "$TAG_COMMIT" HEAD \
+    || fail "a tag $TAG aponta para ${TAG_COMMIT:0:7}, que não é ancestral do HEAD ${HEAD_COMMIT:0:7}."
+  git -C "$REPO_ROOT" diff --quiet "$TAG_COMMIT" HEAD -- "${ZIP_INPUTS[@]}" \
+    || fail "a tag $TAG aponta para ${TAG_COMMIT:0:7}, e o HEAD ${HEAD_COMMIT:0:7} muda o que entra no zip: $(git -C "$REPO_ROOT" diff --name-only "$TAG_COMMIT" HEAD -- "${ZIP_INPUTS[@]}" | tr '\n' ' ')"
+  echo "aviso: HEAD ${HEAD_COMMIT:0:7} está à frente da tag $TAG, mas sem mudança no que entra no zip."
+fi
 
 # Sem a tag no remoto, o gh criaria uma nova a partir do branch padrão — que pode não ser o
 # commit certo. O --verify-tag abaixo também recusa, mas aqui a mensagem diz o que fazer.
