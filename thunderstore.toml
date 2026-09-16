@@ -20,4 +20,4 @@ communities = [ "valheim" ]
 [publish.categories]
 # Slugs em https://thunderstore.io/api/experimental/community/valheim/category/
 # O mod precisa estar no cliente e no servidor (EveryoneMustHaveMod).
-valheim = [ "mods", "client-side", "server-side" ]
+valheim = [ "mods", "client-side", "server-side", "misc" ]
