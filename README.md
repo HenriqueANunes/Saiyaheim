@@ -30,15 +30,24 @@ O servidor com o mod roda em container na máquina `hserver`. Para acompanhar o 
 real:
 
 ```bash
-ssh hserver 'docker logs -f valheim'        # log do servidor
-ssh hserver 'valheim/joincode.sh'           # join code atual (muda a cada reinício)
-ssh hserver 'valheim/players.sh'            # quem está online agora
+ssh hserver 'docker logs -f --tail 50 valheim'   # log do servidor
+ssh hserver 'valheim/joincode.sh'                # join code atual (muda a cada reinício)
+ssh hserver 'valheim/players.sh'                 # quem está online agora
 ```
+
+O `--tail` não é opcional. Sem ele, `docker logs -f` despeja todo o log acumulado desde a
+criação do container antes de começar a seguir, e restart não zera esse arquivo.
 
 Últimas linhas, sem seguir:
 
 ```bash
 ssh hserver 'docker logs --tail 200 valheim'
+```
+
+Só o que aconteceu agora, para separar problema atual de histórico:
+
+```bash
+ssh hserver 'docker logs --since 2m valheim'
 ```
 
 O `players.sh` cruza a última linha `Connections N` do log com os nomes mais recentes de
