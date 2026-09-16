@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Saiyaheim.Net
 {
     /// <summary>
@@ -52,6 +54,8 @@ namespace Saiyaheim.Net
         private static readonly int StateHash = "saiyaheim.state".GetStableHashCode();
 
         private static readonly int BlastHash = "saiyaheim.blast".GetStableHashCode();
+
+        private static readonly int RatingHash = "saiyaheim.rating".GetStableHashCode();
 
         // ---------- O leiaute do inteiro ----------
         //
@@ -187,6 +191,51 @@ namespace Saiyaheim.Net
             ZDO zdo = GetZdo(player);
 
             return zdo == null ? 0 : zdo.GetInt(BlastHash);
+        }
+
+        /// <summary>
+        /// Publica o poder de luta <b>cru</b> do jogador local — etapa 10, a metade entre jogadores.
+        ///
+        /// <b>Por que publicar, e não calcular do outro lado.</b> O <c>PowerRating.GetRaw</c> de um
+        /// jogador remoto sai errado nesta máquina: lê nível de skill (não replicado), o
+        /// <c>SEMan</c> dele (que não tem o <c>SE_KiBody</c> aqui) e a arma equipada (que chega
+        /// pelo <c>VisEquipment</c>, não pelo inventário). Só o dono tem as três entradas certas,
+        /// então só o dono faz a conta.
+        ///
+        /// <b>Chave própria, e não bits no inteiro do estado.</b> O número vai a 25 mil e não cabe
+        /// na folga de bandeiras sem mudar o leiaute; e ele muda num ritmo diferente do estado —
+        /// a comida decaindo mexe no HP máximo o tempo todo —, então juntar os dois faria cada
+        /// ponto de vida reenviar as bandeiras junto.
+        ///
+        /// <b>Arredondado antes de publicar</b>, pelo mesmo motivo: o <c>ZDO.Set</c> só sobe a
+        /// revisão quando o valor muda, e um float cru mudaria em quase todo frame com a comida
+        /// decaindo. Inteiro muda a cada poucos segundos, e é a precisão que a tela mostra.
+        ///
+        /// <b>Cru, e não já escalado</b>: a escala de exibição é de quem olha, e fica certa mesmo
+        /// que um dia deixe de ser constante.
+        /// </summary>
+        internal static void PublishRating(Player player, float raw)
+        {
+            ZDO zdo = GetZdo(player);
+            if (zdo == null || !zdo.IsOwner())
+            {
+                return;
+            }
+
+            zdo.Set(RatingHash, Mathf.Round(raw));
+        }
+
+        /// <summary>
+        /// O poder de luta cru que este jogador publicou. Falso quando não há o que ler — jogador
+        /// ainda entrando no mundo, sem o mod, ou com uma versão do mod anterior a esta chave —, e
+        /// é diferente de zero: quem chama deve esconder o número, não mostrar 0.
+        /// </summary>
+        internal static bool TryGetRating(Player player, out float raw)
+        {
+            raw = 0f;
+            ZDO zdo = GetZdo(player);
+
+            return zdo != null && zdo.GetFloat(RatingHash, out raw);
         }
 
         /// <summary>

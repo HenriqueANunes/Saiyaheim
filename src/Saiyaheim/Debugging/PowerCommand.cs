@@ -15,7 +15,8 @@ namespace Saiyaheim.Debugging
     ///
     /// <code>
     /// saiya_power              mostra os números: fórmula em uso, poder, dano e armadura
-    /// saiya_power scan         poder de luta de todo bicho carregado, ordenado — a ferramenta de calibragem
+    /// saiya_power scan         poder de luta dos 10 bichos mais próximos, ordenado por poder — a ferramenta de calibragem
+    /// saiya_power scan 25      os 25 mais próximos; "scan all" lista todo mundo carregado
     /// saiya_power skill 50     define o nível da skill Power Level (testa o topo da curva sem grind)
     /// saiya_power xp 10        joga XP na skill
     /// </code>
@@ -28,7 +29,7 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_power";
 
         public override string Help =>
-            "Inspects the battle power. Usage: saiya_power [skill <level> | xp <amount>]";
+            "Inspects the battle power. Usage: saiya_power [scan [count | all] | skill <level> | xp <amount>]";
 
         public override List<string> CommandOptionList() => new List<string> { "scan", "skill", "xp" };
 
@@ -55,7 +56,13 @@ namespace Saiyaheim.Debugging
                     break;
 
                 case "scan":
-                    PrintScan(player);
+                    if (!TryParseScanLimit(args, out int limit))
+                    {
+                        Print("Usage: saiya_power scan [count | all]");
+                        return;
+                    }
+
+                    PrintScan(player, limit);
                     return;
 
                 case "skill":
@@ -139,7 +146,7 @@ namespace Saiyaheim.Debugging
         }
 
         /// <summary>
-        /// Poder de luta de todo <c>Character</c> carregado, ordenado do mais forte para o mais
+        /// Poder de luta dos <c>Character</c> mais próximos, ordenado do mais forte para o mais
         /// fraco, com o jogador marcado no meio da lista.
         ///
         /// <b>É a ferramenta que calibra os pesos, e por isso ela é uma lista e não uma leitura
@@ -149,19 +156,50 @@ namespace Saiyaheim.Debugging
         ///
         /// Os componentes saem separados de propósito: quando a ordem sair errada, é a coluna de
         /// HP contra a de dano que diz qual dos dois pesos está mentindo.
+        ///
+        /// <b>Limitado aos mais próximos</b> (10 por padrão), porque "todo mundo carregado" são as
+        /// zonas em volta inteiras e a lista enchia o console. O corte é por distância e a ordem
+        /// continua por poder: o que se quer comparar é o que está na frente, não o mais forte do
+        /// mapa. Você entra sempre, fora da contagem, para servir de régua.
         /// </summary>
-        private void PrintScan(Player player)
+        private void PrintScan(Player player, int limit)
         {
             var rows = new List<KeyValuePair<float, string>>();
+            var nearby = new List<Character>();
 
             foreach (Character character in Character.GetAllCharacters())
             {
-                if (character == null || character.IsDead())
+                if (character != null && character != player && !character.IsDead())
                 {
-                    continue;
+                    nearby.Add(character);
                 }
+            }
 
+            int loaded = nearby.Count;
+            UnityEngine.Vector3 origin = player.transform.position;
+            nearby.Sort((a, b) => (a.transform.position - origin).sqrMagnitude
+                .CompareTo((b.transform.position - origin).sqrMagnitude));
+
+            if (nearby.Count > limit)
+            {
+                nearby.RemoveRange(limit, nearby.Count - limit);
+            }
+
+            nearby.Add(player);
+
+            foreach (Character character in nearby)
+            {
+
+                // Jogador sai do canal, como na HUD: a conta local de um jogador remoto é errada
+                // (skill, SEMan e arma não chegam aqui). As colunas ehp/dps dele continuam sendo a
+                // estimativa local, e só servem para comparar com o 'published'.
                 float raw = PowerRating.GetRaw(character);
+                string source = string.Empty;
+                if (character is Player scanned && Net.NetState.TryGetRating(scanned, out float published))
+                {
+                    source = $" | local {raw:0.#}, published";
+                    raw = published;
+                }
                 float distance = UnityEngine.Vector3.Distance(
                     player.transform.position, character.transform.position);
 
@@ -174,10 +212,10 @@ namespace Saiyaheim.Debugging
                 rows.Add(new KeyValuePair<float, string>(raw,
                     $"{PowerRating.ToDisplay(raw),8:0}  {name}{stars}  " +
                     $"(ehp {PowerRating.GetEffectiveHp(character):0} | dps {PowerRating.GetDps(character):0.#}" +
-                    $" | raw {raw:0.#} | {distance:0}m){self}"));
+                    $" | raw {raw:0.#}{source} | {distance:0}m){self}"));
             }
 
-            if (rows.Count == 0)
+            if (loaded == 0)
             {
                 Print("No characters loaded.");
                 return;
@@ -187,12 +225,33 @@ namespace Saiyaheim.Debugging
 
             Print($"Power rating — {SaiyaheimConfig.RatingK1Health.Value:0.##} x ehp" +
                   $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x dps," +
-                  $" displayed x{SaiyaheimConfig.PowerDisplayScale:0.##}");
+                  $" displayed x{SaiyaheimConfig.PowerDisplayScale:0.##}" +
+                  $" — nearest {Math.Min(limit, loaded)} of {loaded} loaded");
 
             foreach (KeyValuePair<float, string> row in rows)
             {
                 Print(row.Value);
             }
+        }
+
+        /// <summary>
+        /// Quantos mostrar no scan: sem argumento, 10; "all", todos; um número positivo, ele.
+        /// </summary>
+        private static bool TryParseScanLimit(string[] args, out int limit)
+        {
+            limit = 10;
+            if (args.Length < 2)
+            {
+                return true;
+            }
+
+            if (args[1].Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                limit = int.MaxValue;
+                return true;
+            }
+
+            return int.TryParse(args[1], out limit) && limit > 0;
         }
 
         /// <summary>

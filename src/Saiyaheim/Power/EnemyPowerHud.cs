@@ -6,7 +6,8 @@ using UnityEngine;
 namespace Saiyaheim.Power
 {
     /// <summary>
-    /// O poder de luta do <b>inimigo</b>, escrito logo abaixo da barra de vida dele — o outro lado
+    /// O poder de luta do <b>inimigo</b> — e dos outros jogadores —, escrito logo abaixo da barra de
+    /// vida dele — o outro lado
     /// do <see cref="PowerHud"/>, que mostra o do jogador embaixo do minimapa.
     ///
     /// <b>É aqui que o número da etapa 10 vira jogo.</b> O poder de luta do jogador sozinho é um
@@ -31,13 +32,17 @@ namespace Saiyaheim.Power
     /// leitura que o ki permite fazer, não um widget do jogo. Desligar o toggle devolve o Valheim
     /// cru, e no Valheim cru não há poder de luta para ler.
     ///
-    /// <b>Não aparece em cima de jogador</b>, e isso não é gosto: o
-    /// <see cref="PowerRating.GetRaw"/> de um jogador remoto lê skill (que não é replicada), o
-    /// <c>SEMan</c> dele (que não tem o <c>SE_KiBody</c> nesta máquina) e a arma equipada (que
-    /// chega pelo <c>VisEquipment</c>, não pelo inventário). O número sairia, e sairia <b>errado</b>
-    /// — mais baixo que o real, o que é pior que não mostrar nada, porque convida o amigo a
-    /// duvidar do único número que o mod pede para ele levar a sério. Mostrar poder de outro
-    /// jogador exige publicá-lo no <see cref="Net.NetState"/>; é trabalho de outra etapa.
+    /// <b>Em cima de jogador, o número vem da rede</b>, desde 2026-09-16. Até ali jogador ficava
+    /// de fora: o <see cref="PowerRating.GetRaw"/> de um jogador remoto lê skill (que não é
+    /// replicada), o <c>SEMan</c> dele (que não tem o <c>SE_KiBody</c> nesta máquina) e a arma
+    /// equipada (que chega pelo <c>VisEquipment</c>, não pelo inventário), e sairia <b>errado</b>.
+    /// Agora o dono calcula e publica (<see cref="Net.NetState.PublishRating"/>), e o
+    /// <see cref="PowerRating.TryGetDisplay"/> escolhe a fonte — este arquivo não distingue bicho
+    /// de jogador. O hud de jogador é o do próprio <c>EnemyHud</c> (<c>m_baseHudPlayer</c>), que
+    /// também tem o filho <c>Name</c>, então o molde é o mesmo.
+    ///
+    /// Jogador sem o mod, ou com versão anterior à chave, não publica nada, e o rótulo fica
+    /// escondido — zero seria mentira.
     /// </summary>
     internal static class EnemyPowerHud
     {
@@ -72,7 +77,7 @@ namespace Saiyaheim.Power
         /// </summary>
         private static void Attach(Character character, GameObject gui)
         {
-            if (_disabled || character == null || gui == null || character.IsPlayer())
+            if (_disabled || character == null || gui == null)
             {
                 return;
             }
@@ -238,7 +243,12 @@ namespace Saiyaheim.Power
                 // e Valheim não conta quanto vale um Greydwarf. Mesma regra que a barra de ki já
                 // segue (ver KiHud.ShouldBeVisible), e é a leitura local que vale — quem
                 // "escaneia" é quem está na frente da tela, não o bicho.
-                bool show = Ki.KiManager.IsEnabled;
+                //
+                // O ki que conta é só o de quem olha. O do alvo não entra: o poder de luta é sempre
+                // calculável, e um amigo de ki desligado mostra o número vanilla dele — o que já
+                // é informação (ele não vai puxar forma nem ataque agora).
+                float display = 0f;
+                bool show = Ki.KiManager.IsEnabled && PowerRating.TryGetDisplay(_character, out display);
                 _text.enabled = show;
                 if (!show)
                 {
@@ -265,7 +275,7 @@ namespace Saiyaheim.Power
                     _lastValue = int.MinValue;
                 }
 
-                int value = Mathf.RoundToInt(PowerRating.GetDisplay(_character));
+                int value = Mathf.RoundToInt(display);
                 if (value == _lastValue)
                 {
                     return;

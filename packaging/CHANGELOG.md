@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Other players' power rating now shows under their health bar, the same way enemies'
+  does. Each player computes their own number and shares it over the network, so what you
+  see on a friend matches the number under their minimap. Like the enemy number, it only
+  shows while your own ki is on.
+- Everyone must update: players on 0.1.x can't join a 0.2.0 server.
+
 ## 0.1.3
 
 - Transformation mastery XP bonus from bosses is now capped at x2. A form still trains

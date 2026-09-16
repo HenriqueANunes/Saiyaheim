@@ -123,6 +123,42 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
+        /// O número que vai para a tela, de <b>qualquer</b> personagem — o caminho que as duas HUDs
+        /// usam, no lugar do <see cref="GetDisplay"/>.
+        ///
+        /// <b>Bicho é calculado aqui; jogador é lido do canal</b>, inclusive o local. O remoto
+        /// porque a conta dele só sai certa na máquina do dono (ver
+        /// <see cref="Net.NetState.PublishRating"/>); o local pela regra do canal do multiplayer:
+        /// uma fonte de verdade só, para que um número que parasse de ser publicado sumisse na
+        /// tela do Henrique e não só na do amigo.
+        ///
+        /// Falso quando o jogador não publicou nada — sem o mod, entrando no mundo, ou com versão
+        /// velha. Quem chama esconde o número em vez de mostrar zero.
+        /// </summary>
+        internal static bool TryGetDisplay(Character character, out float display)
+        {
+            display = 0f;
+            if (character == null)
+            {
+                return false;
+            }
+
+            if (character is Player player)
+            {
+                if (!Net.NetState.TryGetRating(player, out float raw))
+                {
+                    return false;
+                }
+
+                display = ToDisplay(raw);
+                return true;
+            }
+
+            display = GetDisplay(character);
+            return true;
+        }
+
+        /// <summary>
         /// A escala sozinha, para quem já tem o valor cru em mãos — o <c>saiya_power</c> imprime
         /// os dois lado a lado, e o scan de jogador remoto recebe o cru pela rede.
         /// </summary>

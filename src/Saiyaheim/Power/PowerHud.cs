@@ -190,7 +190,14 @@ namespace Saiyaheim.Power
 
         private static void UpdateValue(Player player)
         {
-            int value = Mathf.RoundToInt(PowerRating.GetDisplay(player));
+            // Lido do canal, como o dos outros jogadores. Sem valor publicado ainda (o primeiro
+            // frame depois de entrar no mundo), fica o texto anterior em vez de piscar um zero.
+            if (!PowerRating.TryGetDisplay(player, out float display))
+            {
+                return;
+            }
+
+            int value = Mathf.RoundToInt(display);
             if (value == _lastValue)
             {
                 return;

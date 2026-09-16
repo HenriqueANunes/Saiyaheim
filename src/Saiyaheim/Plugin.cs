@@ -25,7 +25,7 @@ namespace Saiyaheim
     {
         public const string PluginGuid = "com.hman.saiyaheim";
         public const string PluginName = "Saiyaheim";
-        public const string PluginVersion = "0.1.3";
+        public const string PluginVersion = "0.2.0";
 
         internal static SaiyaheimPlugin Instance { get; private set; }
 
@@ -149,6 +149,10 @@ namespace Saiyaheim
                 KiBeamCharge.IsCharging(player),
                 KiBeamCharge.IsFull(player),
                 TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)));
+
+            // Publicado sempre, inclusive com o ki desligado: o alvo é sempre calculável, e quem
+            // decide se o número aparece é o ki de quem olha (etapa 10).
+            NetState.PublishRating(player, PowerRating.GetRaw(player));
         }
 
         private void OnDestroy()

@@ -75,7 +75,8 @@ namespace Saiyaheim.Debugging
             Print($"  {who}: ki {OnOff(NetState.IsKiEnabled(player))}, " +
                   $"{Flag("flying", NetState.IsFlying(player))}, " +
                   $"{Flag("charging", NetState.IsCharging(player))}, " +
-                  $"form {form}, blasts {NetState.GetBlastCount(player)}");
+                  $"form {form}, blasts {NetState.GetBlastCount(player)}, " +
+                  $"rating {(NetState.TryGetRating(player, out float rating) ? rating.ToString("0") : "not published")}");
         }
 
         private static string OnOff(bool value) => value ? "on" : "off";
