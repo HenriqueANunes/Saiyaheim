@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Monta o zip de distribuição no formato Thunderstore, que o r2modman importa direto
-# por "Import local mod". Não publica nada — o zip é entregue à mão para os amigos.
+# por "Import local mod". Não publica nada — quem publica este zip é o scripts/release.sh.
 #
 # Uso:  ./scripts/package.sh [Release|Debug]
 #

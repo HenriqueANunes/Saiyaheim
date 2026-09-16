@@ -1,0 +1,23 @@
+# Configuração do tcli (thunderstore-cli) para publicar no Thunderstore.
+#
+# Só a seção [publish] e o namespace/nome do pacote são usados: o zip é montado pelo
+# scripts/package.sh, que escreve o manifest.json com a versão de Plugin.cs, e o
+# scripts/release.sh passa esse zip pronto com --file. Por isso não há [build] aqui, e a
+# versão não mora neste arquivo.
+
+[config]
+schemaVersion = "0.0.1"
+
+[package]
+# Namespace é o time no Thunderstore. Permanente: não pode ser renomeado.
+namespace = "Hman"
+name = "Saiyaheim"
+
+[publish]
+repository = "https://thunderstore.io"
+communities = [ "valheim" ]
+
+[publish.categories]
+# Slugs em https://thunderstore.io/api/experimental/community/valheim/category/
+# O mod precisa estar no cliente e no servidor (EveryoneMustHaveMod).
+valheim = [ "mods", "client-side", "server-side" ]

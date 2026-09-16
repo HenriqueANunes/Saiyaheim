@@ -55,6 +55,36 @@ O `players.sh` cruza a última linha `Connections N` do log com os nomes mais re
 A contagem vem da última leitura periódica, então pode estar até ~2 minutos atrasada.
 `players.sh -f` acompanha entradas e saídas em tempo real.
 
+### Atualizar o mod no servidor
+
+O servidor precisa da mesma versão do `Saiyaheim.dll` que os clientes — com versão diferente o
+Jotunn recusa a conexão. Depois de subir uma versão nova:
+
+```bash
+./scripts/deploy.sh                      # compila e copia a DLL para o perfil local
+
+P=~/.config/r2modmanPlus-local/Valheim/profiles/Default/BepInEx
+rsync -a "$P/plugins/Saiyaheim/" hserver:/storage/valheim/config/bepinex/plugins/Saiyaheim/
+ssh hserver 'cd ~/valheim && docker compose restart'
+```
+
+O restart derruba quem estiver jogando e gera um join code novo — confira antes com
+`players.sh` e passe o código novo para o grupo com `joincode.sh`.
+
+Conferir se o servidor subiu com a versão certa:
+
+```bash
+ssh hserver 'docker logs --since 5m valheim' | grep -oE 'Loading \[Saiyaheim [^]]+\]'
+```
+
+O `.cfg` do mod **não** vai junto nesse `rsync`: a config é `AdminOnly`, então o que vale na
+sessão é o `.cfg` do servidor. Valor de balanceamento novo precisa ser copiado para lá à parte.
+
+⚠️ No container, os plugins de `/storage/valheim/config/bepinex/plugins/` são copiados para a
+pasta ativa com `rsync` **sem `--delete`**. Sobrescrever a DLL funciona; apagar ou renomear um
+plugin em `/config` não o desativa — é preciso apagar também dentro do container
+(`docker exec valheim rm ...`) antes do restart.
+
 Log do cliente local (r2modman), reescrito a cada inicialização do jogo:
 
 ```bash
