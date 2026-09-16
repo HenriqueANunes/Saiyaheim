@@ -94,12 +94,11 @@ namespace Saiyaheim.Attacks
 
             Defuse(projectile, attack);
 
-            // Pelo EffectScale e nao pelo transform: escrever no localScale de um prefab de
-            // efeito nao muda nada na tela — as particulas dele sao filhas e ignoram a escala do
-            // pai, e a largura de um rastro nao e' afetada por escala nenhuma. Ver EffectScale.
-            EffectScale.Apply(instance, attack.GetProjectileScale(chargeRatio));
-
-            AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor);
+            // Antes do visual, e é o que leva o visual aos amigos: o clone replica, mas o que o
+            // amigo recebe é o prefab do jogo com posição e dono — tinta, escala e rastro são
+            // escritas locais que não passam pela ZDO. Ver KiProjectileSyncPatch.
+            Publish(instance, attack, chargeRatio);
+            ApplyVisuals(projectile, attack, chargeRatio);
 
             float damage = attack.GetDamage(player);
             float speed = attack.Config.ProjectileSpeed.Value;
@@ -228,8 +227,68 @@ namespace Saiyaheim.Attacks
             // tiro de energia não desacelera; o que o apaga é o ttl acima.
             projectile.m_drag = 0f;
 
-            ApplyLingerOnHit(projectile, attack);
+            // O impacto fica aqui e não no ApplyVisuals: o OnHit, que toca o m_hitEffects, só
+            // roda na máquina do dono do projétil. Nos outros clientes a lista nem é lida.
             ApplyImpactEffect(projectile, attack);
+        }
+
+        /// <summary>
+        /// Chaves na ZDO do projétil. Prefixadas com o nome do mod pelo mesmo motivo das do
+        /// <c>NetState</c>: a ZDO é espaço compartilhado com o jogo.
+        /// </summary>
+        internal static readonly int AttackIdHash = "saiyaheim.kiAttack".GetStableHashCode();
+
+        internal static readonly int ChargeRatioHash = "saiyaheim.kiCharge".GetStableHashCode();
+
+        /// <summary>
+        /// Grava na ZDO do projétil <b>qual</b> ataque ele é e com que carga saiu — não a cor nem a
+        /// escala. O resto sai do <c>.cfg</c> de quem recebe, que é o mesmo do servidor porque a
+        /// config de ataque é <c>AdminOnly</c>. Mandar o id e não os valores é o que mantém uma
+        /// fonte de verdade só para o visual.
+        ///
+        /// Seguro de escrever logo depois do <c>Instantiate</c>: o <c>ZNetView.Awake</c> já criou a
+        /// ZDO, e ela só vai para a rede no próximo envio periódico — o amigo nunca vê o projétil
+        /// sem as chaves.
+        /// </summary>
+        private static void Publish(GameObject instance, KiAttack attack, float chargeRatio)
+        {
+            ZNetView view = instance.GetComponent<ZNetView>();
+            ZDO zdo = view != null ? view.GetZDO() : null;
+            if (zdo == null)
+            {
+                return;
+            }
+
+            zdo.Set(AttackIdHash, attack.Id);
+            zdo.Set(ChargeRatioHash, chargeRatio);
+        }
+
+        /// <summary>
+        /// O que é aparência do projétil em voo: escala, cor, e se ele some no impacto.
+        ///
+        /// <b>Roda em toda máquina</b> — na de quem atira, a partir do <see cref="Fire"/>; nas
+        /// outras, do <c>KiProjectileSyncPatch</c>, quando o jogo cria a cópia a partir da ZDO. Um
+        /// caminho só para os dois é o que impede o visual do amigo de divergir em silêncio do de
+        /// quem está testando, que foi exatamente o bug de 2026-09-16.
+        ///
+        /// Não entra aqui nada de combate (dano, AoE, ttl, gravidade): isso é simulação, e o
+        /// <c>Projectile.FixedUpdate</c> só simula na máquina do dono. Ver <see cref="Defuse"/>.
+        /// </summary>
+        internal static void ApplyVisuals(Projectile projectile, KiAttack attack, float chargeRatio)
+        {
+            GameObject instance = projectile.gameObject;
+
+            // Pelo EffectScale e nao pelo transform: escrever no localScale de um prefab de
+            // efeito nao muda nada na tela — as particulas dele sao filhas e ignoram a escala do
+            // pai, e a largura de um rastro nao e' afetada por escala nenhuma. Ver EffectScale.
+            EffectScale.Apply(instance, attack.GetProjectileScale(chargeRatio));
+
+            AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor);
+
+            // Aqui e não no Defuse: o m_stopEmittersOnHit é lido no RPC_OnHit, que chega a todos
+            // os clientes. Sem isto, o rastro na tela do amigo continuaria emitindo até a
+            // destruição chegar pela rede.
+            ApplyLingerOnHit(projectile, attack);
         }
 
         /// <summary>

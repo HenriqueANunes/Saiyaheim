@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed (multiplayer): other players' ki blasts and Kamehameha now show the configured
+  color, size and trail on your screen. Before, only the shooter saw the custom look;
+  everyone else saw the raw projectile from the base game. Every player needs this version
+  for the fix to show.
+
 ## 0.1.1
 
 - HUD power label is now `BP:` (Battle Power) instead of `PB:`, on both the player readout

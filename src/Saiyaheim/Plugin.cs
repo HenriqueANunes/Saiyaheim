@@ -25,7 +25,7 @@ namespace Saiyaheim
     {
         public const string PluginGuid = "com.hman.saiyaheim";
         public const string PluginName = "Saiyaheim";
-        public const string PluginVersion = "0.1.1";
+        public const string PluginVersion = "0.1.2";
 
         internal static SaiyaheimPlugin Instance { get; private set; }
 
