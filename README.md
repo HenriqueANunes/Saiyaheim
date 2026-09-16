@@ -24,6 +24,44 @@ dotnet build Saiyaheim.sln -c Release    # compila
 
 Sempre pelo `.sln`, não pelo `.csproj`.
 
+## Publicar uma versão
+
+O `scripts/release.sh` publica no GitHub e no Thunderstore com o mesmo zip, mas **não cria commit
+nem tag** — isso é à mão, nesta ordem:
+
+1. Subir a versão em `src/Saiyaheim/Plugin.cs` (`PluginVersion`) e em
+   `src/Saiyaheim/Saiyaheim.csproj` (`<Version>`), e escrever a seção `## X.Y.Z` no
+   `packaging/CHANGELOG.md`. O script recusa se a seção não existir.
+2. Testar no jogo e commitar.
+3. Criar a tag no commit atual e enviar branch e tag juntos:
+
+   ```bash
+   git tag -a v0.1.3 -m "Saiyaheim 0.1.3"   # tag anotada, no HEAD
+   git push origin main v0.1.3
+   ```
+
+4. Publicar:
+
+   ```bash
+   ./scripts/release.sh                      # GitHub + Thunderstore
+   ./scripts/release.sh --only-thunderstore  # repete só o Thunderstore, se o upload falhou
+   ```
+
+A tag tem que ser `v` + exatamente o `PluginVersion`. O script confere que a árvore está limpa,
+que a tag existe localmente e no GitHub, e que o `main` do GitHub já contém o commit.
+
+Conferir e corrigir tags:
+
+```bash
+git tag -l 'v*'                  # tags existentes
+git show v0.1.3 --stat           # para qual commit a tag aponta
+git tag -d v0.1.3                # apaga a tag local (antes do push)
+```
+
+⚠️ Versão publicada no Thunderstore é queimada para sempre. Se a tag já foi enviada e a release
+publicada, não mova a tag: suba para a próxima versão. Commit depois da tag só é aceito se não
+tocar no que entra no zip (`src/`, `packaging/`, `Saiyaheim.sln`, `DoPrebuild.props`).
+
 ## Servidor dedicado
 
 O servidor com o mod roda em container na máquina `hserver`. Para acompanhar o log em tempo
