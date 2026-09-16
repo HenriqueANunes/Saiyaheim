@@ -30,10 +30,38 @@ O servidor com o mod roda em container na máquina `hserver`. Para acompanhar o 
 real:
 
 ```bash
+ssh hserver 'valheim/status.sh'                  # desligado / ligando / ligado + versão do mod
 ssh hserver 'docker logs -f --tail 50 valheim'   # log do servidor
 ssh hserver 'valheim/joincode.sh'                # join code atual (muda a cada reinício)
 ssh hserver 'valheim/players.sh'                 # quem está online agora
 ```
+
+O `status.sh` responde se o servidor está no ar e qual versão do Saiyaheim ele carregou:
+
+```
+Status:    LIGADO desde 10:37:13 (join code 902151)
+Saiyaheim: v0.1.2
+Players:   0 online
+```
+
+- **DESLIGADO**: container parado, ou processo `valheim-server` parado dentro dele.
+- **LIGANDO**: container preparando (steamcmd, plugins, backup) ou processo iniciado sem join
+  code ainda. A subida inteira leva cerca de 1 min e meio.
+- **LIGADO**: o log tem `registered with join code` desde o último start do processo.
+
+A versão vem da linha `Saiyaheim vX loaded.` do log, então é a DLL que carregou de fato, não a
+que está no disco. Se a DLL em `/config` for diferente da carregada, ele avisa que falta
+reiniciar.
+
+A contagem de players é em tempo real, somando entradas e saídas no log:
+
+- entrada: `Server: New peer connected`
+- saída: `ZPlayFabSocket::Dispose. State: CONNECTED`
+- a cada 10 minutos, a linha `Connections N` do servidor corrige a conta
+
+Quem sai pelo menu some da contagem na hora. Quem fecha o jogo à força ou cai continua contando
+por 90 segundos, que é o tempo que o servidor espera a reconexão antes de soltar a vaga. O
+`now N player(s)` que o PlayFab escreve não serve: na saída ele ainda mostra o número de antes.
 
 O `--tail` não é opcional. Sem ele, `docker logs -f` despeja todo o log acumulado desde a
 criação do container antes de começar a seguir, e restart não zera esse arquivo.
@@ -50,10 +78,11 @@ Só o que aconteceu agora, para separar problema atual de histórico:
 ssh hserver 'docker logs --since 2m valheim'
 ```
 
-O `players.sh` cruza a última linha `Connections N` do log com os nomes mais recentes de
-`Got character ZDOID` — o servidor dedicado não tem console, e o log não liga nome a socket.
-A contagem vem da última leitura periódica, então pode estar até ~2 minutos atrasada.
-`players.sh -f` acompanha entradas e saídas em tempo real.
+O `players.sh` mostra quantos estão online, em tempo real, e os nomes. A contagem é a mesma do
+`status.sh` (explicada acima), que chama `players.sh --count`. Os nomes vêm de
+`Got character ZDOID`, mas a linha de saída não traz nome: a lista é de quem entrou desde a
+última vez que o servidor ficou vazio. Se ela tiver mais nomes que a contagem, o script avisa
+que alguém da lista já saiu. `players.sh -f` acompanha entradas e saídas enquanto acontecem.
 
 ### Atualizar o mod no servidor
 
@@ -74,7 +103,7 @@ O restart derruba quem estiver jogando e gera um join code novo — confira ante
 Conferir se o servidor subiu com a versão certa:
 
 ```bash
-ssh hserver 'docker logs --since 5m valheim' | grep -oE 'Loading \[Saiyaheim [^]]+\]'
+ssh hserver 'valheim/status.sh'
 ```
 
 O `.cfg` do mod **não** vai junto nesse `rsync`: a config é `AdminOnly`, então o que vale na
