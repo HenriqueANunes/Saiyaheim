@@ -12,6 +12,9 @@
 #   3. git tag -a vX.Y.Z -m "Saiyaheim X.Y.Z" && git push origin main vX.Y.Z
 #   4. ./scripts/release.sh
 #
+# No fim ele pergunta se sobe a versão para o servidor dedicado (scripts/server-update.sh, com a
+# DLL do mesmo zip). Servidor e cliente com versões diferentes o Jotunn recusa a conexão.
+#
 # As checagens abaixo existem para que o zip publicado seja exatamente o código que a tag marca.
 # O zip é compilado da árvore de trabalho, não da tag: se as duas divergirem, a release mente.
 #
@@ -164,3 +167,17 @@ tcli publish --file "$ZIP" --token "$TS_TOKEN" \
 
 echo
 echo "Publicado: https://thunderstore.io/c/valheim/p/$TS_PACKAGE/"
+
+# ---------- Servidor dedicado ----------
+
+# Só depois do Thunderstore: é de lá que os amigos pegam a versão, e servidor à frente dos
+# clientes recusa todo mundo. A release já está feita, então falha aqui não é fail do release.
+echo
+read -r -p "Subir $VERSION para o servidor dedicado agora? Reinicia o servidor. [s/N] " ANSWER
+if [[ "$ANSWER" != [sS] ]]; then
+  echo "Servidor pulado. Para subir depois: ./scripts/server-update.sh $ZIP"
+  exit 0
+fi
+
+"$REPO_ROOT/scripts/server-update.sh" "$ZIP" \
+  || echo "aviso: a release saiu, mas o servidor não foi atualizado. Para tentar de novo: ./scripts/server-update.sh $ZIP" >&2

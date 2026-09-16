@@ -47,6 +47,9 @@ nem tag** — isso é à mão, nesta ordem:
    ./scripts/release.sh --only-thunderstore  # repete só o Thunderstore, se o upload falhou
    ```
 
+No fim o script pergunta se sobe a versão para o servidor dedicado. Respondendo `s`, ele roda o
+`scripts/server-update.sh` com a DLL do mesmo zip (ver "Atualizar o mod no servidor").
+
 A tag tem que ser `v` + exatamente o `PluginVersion`. O script confere que a árvore está limpa,
 que a tag existe localmente e no GitHub, e que o `main` do GitHub já contém o commit.
 
@@ -70,7 +73,7 @@ real:
 ```bash
 ssh hserver 'valheim/status.sh'                  # desligado / ligando / ligado + versão do mod
 ssh hserver 'docker logs -f --tail 50 valheim'   # log do servidor
-ssh hserver 'valheim/joincode.sh'                # join code atual (muda a cada reinício)
+ssh hserver 'valheim/joincode.sh'                # join code atual (pode mudar no reinício)
 ssh hserver 'valheim/players.sh'                 # quem está online agora
 ```
 
@@ -125,24 +128,20 @@ que alguém da lista já saiu. `players.sh -f` acompanha entradas e saídas enqu
 ### Atualizar o mod no servidor
 
 O servidor precisa da mesma versão do `Saiyaheim.dll` que os clientes — com versão diferente o
-Jotunn recusa a conexão. Depois de subir uma versão nova:
+Jotunn recusa a conexão. O `release.sh` já oferece isso no fim; fora de uma release:
 
 ```bash
-./scripts/deploy.sh                      # compila e copia a DLL para o perfil local
-
-P=~/.config/r2modmanPlus-local/Valheim/profiles/Default/BepInEx
-rsync -a "$P/plugins/Saiyaheim/" hserver:/storage/valheim/config/bepinex/plugins/Saiyaheim/
-ssh hserver 'cd ~/valheim && docker compose restart'
+./scripts/deploy.sh                                   # compila e copia a DLL para o perfil local
+./scripts/server-update.sh                            # sobe a DLL do perfil local
+./scripts/server-update.sh dist/Saiyaheim-0.1.3.zip   # ou a DLL de um zip publicado
 ```
 
-O restart derruba quem estiver jogando e gera um join code novo — confira antes com
-`players.sh` e passe o código novo para o grupo com `joincode.sh`.
+O script envia só o `Saiyaheim.dll`, reinicia o container e espera até 5 minutos o `status.sh`
+mostrar `LIGADO` com a versão da DLL enviada; se não vier, ele falha e aponta o log.
 
-Conferir se o servidor subiu com a versão certa:
-
-```bash
-ssh hserver 'valheim/status.sh'
-```
+O restart derruba quem estiver jogando e pode trocar o join code. Com alguém online o script
+mostra quem e pede confirmação. No fim ele diz se o join code mudou, para avisar o
+grupo.
 
 O `.cfg` do mod **não** vai junto nesse `rsync`: a config é `AdminOnly`, então o que vale na
 sessão é o `.cfg` do servidor. Valor de balanceamento novo precisa ser copiado para lá à parte.
