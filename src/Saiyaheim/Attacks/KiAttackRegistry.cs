@@ -32,6 +32,13 @@ namespace Saiyaheim.Attacks
         ///
         /// O Kamehameha esteve no Bonemass até 2026-09-15, quando o valor calibrado em playtest
         /// subiu do <c>.cfg</c> para o código.
+        ///
+        /// ⚠️ <b>Ataque novo: o visual não atravessa a rede sozinho.</b> Projétil e estouro são
+        /// objetos de rede, mas cor, escala e emissor removido são escritas locais, e os outros
+        /// jogadores recebem o prefab cru. Passar pelo <c>KiProjectile.ApplyVisuals</c> e pelo
+        /// <c>StrippedEffect.Prepare</c> já resolve; efeito que fuja deles precisa gravar na ZDO e
+        /// ser refeito no <c>KiProjectileSyncPatch</c>. Checklist em [[Multiplayer]], e o teste é
+        /// com dois jogadores olhando o ataque do outro.
         /// </summary>
         internal static readonly KiAttack[] All =
         {

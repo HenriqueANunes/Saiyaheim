@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Saiyaheim.Util;
 using UnityEngine;
 
 namespace Saiyaheim.Attacks
@@ -20,6 +21,9 @@ namespace Saiyaheim.Attacks
     /// O <c>CreateObject</c> é o ponto exato: só roda para cópia vinda da rede, e no postfix todos
     /// os <c>Awake</c> já aconteceram.
     ///
+    /// <b>Também veste o estouro de impacto</b> (2026-09-17), que tinha o mesmo bug. Ver
+    /// <see cref="StrippedEffect.NetTag"/>.
+    ///
     /// <b>Não pega o projétil de quem atirou.</b> Esse nasce por <c>Instantiate</c> direto, e o
     /// <c>Fire</c> aplica o visual ali mesmo — pelo mesmo <see cref="KiProjectile.ApplyVisuals"/>.
     /// </summary>
@@ -30,6 +34,15 @@ namespace Saiyaheim.Attacks
         {
             if (__result == null || zdo == null)
             {
+                return;
+            }
+
+            // Estouro de impacto montado pelo StrippedEffect. Vem antes do projétil porque é o
+            // outro tipo de objeto nosso que chega por aqui; ver StrippedEffect.NetTag.
+            string effectKey = zdo.GetString(StrippedEffect.NetKeyHash);
+            if (!string.IsNullOrEmpty(effectKey))
+            {
+                StrippedEffect.ApplyRemote(__result, effectKey);
                 return;
             }
 

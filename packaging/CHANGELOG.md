@@ -11,6 +11,8 @@
   walk or run while charging; in flight you hover still, with no climbing or diving. Aiming
   stays free. You can't block or attack while charging. Jumping or dodging on the ground drops the
   charge without firing.
+- Fixed (multiplayer): other players' ki blast and Kamehameha impacts now show in the
+  attack's color, without smoke. They used to show as the game's raw purple, smoky explosion.
 
 ## 0.2.0
 

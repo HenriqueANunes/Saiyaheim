@@ -30,6 +30,12 @@ namespace Saiyaheim.Util
     /// </summary>
     internal static class StrippedEffect
     {
+        /// <summary>
+        /// Chave na ZDO da cópia do template: o filtro e a cor com que ela foi montada. Ver
+        /// <see cref="NetTag"/>.
+        /// </summary>
+        internal static readonly int NetKeyHash = "saiyaheim.effect".GetStableHashCode();
+
         /// <summary>Pai desativado que segura os templates. Ver o truque na doc da classe.</summary>
         private static GameObject _templates;
 
@@ -252,6 +258,12 @@ namespace Saiyaheim.Util
             // e o material instanciado do emissor apagado sobraria na memoria sem dono.
             AttachedEffect.ApplyTint(template, tintHex, tintLightsOnly);
 
+            bool networked = template.GetComponent<ZNetView>() != null;
+            if (networked)
+            {
+                template.AddComponent<NetTag>().m_key = EncodeNetKey(filter, tintHex, tintLightsOnly);
+            }
+
             string strippedNote = removed.Count == 0
                 ? "nothing stripped"
                 : $"stripped {removed.Count} emitter(s): {string.Join(", ", removed.ToArray())}";
@@ -261,9 +273,91 @@ namespace Saiyaheim.Util
                 : $"tinted {tintHex}" + (tintLightsOnly ? " (lights only)" : string.Empty);
 
             SaiyaheimPlugin.LogVerbose(
-                $"{logContext}: template of '{source.name}' — {strippedNote}; {tintNote}.");
+                $"{logContext}: template of '{source.name}' — {strippedNote}; {tintNote}" +
+                (networked ? "; networked, tagged for remote clients." : "; local only."));
 
             return template;
+        }
+
+        private static string EncodeNetKey(string[] filter, string tintHex, bool tintLightsOnly)
+        {
+            return (tintHex ?? string.Empty) + "|" + (tintLightsOnly ? "1" : "0") + "|" +
+                   (filter == null ? string.Empty : string.Join(",", filter));
+        }
+
+        /// <summary>
+        /// Refaz, numa cópia que chegou pela rede, o que o <see cref="Build"/> fez no template:
+        /// tira os mesmos emissores e pinta da mesma cor. Chamado pelo
+        /// <c>KiProjectileSyncPatch</c>.
+        ///
+        /// Mexe no objeto já vivo, e não num template, porque quem o criou foi o
+        /// <c>ZNetScene.CreateObject</c>, a partir do prefab do jogo. O <c>StripEmitters</c> já
+        /// usa <c>DestroyImmediate</c>, então a fumaça sai antes do primeiro frame desenhado.
+        /// </summary>
+        internal static void ApplyRemote(GameObject instance, string encoded)
+        {
+            string[] parts = encoded.Split(new[] { '|' }, 3);
+            if (instance == null || parts.Length < 3)
+            {
+                return;
+            }
+
+            StripEmitters(instance, ParseFilter(parts[2]));
+            AttachedEffect.ApplyTint(instance, parts[0], parts[1] == "1");
+        }
+
+        /// <summary>
+        /// Leva para a ZDO da cópia com que filtro e cor o template foi montado.
+        ///
+        /// <b>O bug (multiplayer, 2026-09-17).</b> Quem atirava via o estouro certo; quem assistia
+        /// via o <c>fx_shaman_fireball_expl</c> cru, roxo e com fumaça, no ki blast e no
+        /// Kamehameha. O efeito tem <c>ZNetView</c>: a cópia que o <c>EffectList.Create</c>
+        /// instancia na máquina do dono ganha uma ZDO, e o template mantém o nome do prefab
+        /// original, então a ZDO leva o hash do vanilla. Os outros clientes recriam a partir do
+        /// prefab cru. É o mesmo bug do projétil em voo, agora no impacto.
+        ///
+        /// <b>Por que um componente no template.</b> Quem instancia o efeito é o
+        /// <c>Projectile.OnHit</c> do jogo, e o mod nunca vê a cópia. Um componente no molde nasce
+        /// junto com cada cópia, e é o único código nosso que roda nela. O campo é público para o
+        /// <c>Instantiate</c> copiá-lo.
+        ///
+        /// Escreve no <c>Awake</c> e, se o <c>ZNetView</c> ainda não tiver acordado (a ordem de
+        /// <c>Awake</c> entre componentes não é garantida), no <c>Start</c>. Os dois vêm antes do
+        /// próximo envio de ZDOs, então o outro cliente nunca cria a cópia sem a chave.
+        /// </summary>
+        internal sealed class NetTag : MonoBehaviour
+        {
+            public string m_key;
+
+            private bool _published;
+
+            private void Awake()
+            {
+                Publish();
+            }
+
+            private void Start()
+            {
+                Publish();
+            }
+
+            private void Publish()
+            {
+                if (_published || string.IsNullOrEmpty(m_key))
+                {
+                    return;
+                }
+
+                ZNetView view = GetComponent<ZNetView>();
+                ZDO zdo = view != null ? view.GetZDO() : null;
+                if (zdo == null || !zdo.IsOwner())
+                {
+                    return;
+                }
+
+                zdo.Set(NetKeyHash, m_key);
+                _published = true;
+            }
         }
     }
 }
