@@ -43,6 +43,22 @@ namespace Saiyaheim.Power
         private static bool _localPlayerIsBlocking;
 
         /// <summary>
+        /// O bloqueio em curso é um parry. Marcado pelo <see cref="SE_KiBody.ModifyTimedBlockBonus"/>,
+        /// que o jogo só chama quando o tempo do bloqueio acertou a janela — é o sinal nativo, sem
+        /// ler o <c>m_blockTimer</c> privado. Lido no <c>Finalizer</c>.
+        /// </summary>
+        private static bool _parry;
+
+        /// <summary>Chamado pelo <c>SE_KiBody</c> dentro do <c>BlockAttack</c>.</summary>
+        internal static void MarkParry(Character blocker)
+        {
+            if (_localPlayerIsBlocking && blocker == Player.m_localPlayer)
+            {
+                _parry = true;
+            }
+        }
+
+        /// <summary>
         /// Marca a janela em que o bloqueio é do jogador local, e mede quanto o bloqueio barrou.
         ///
         /// A medida é a diferença do <c>HitData</c> antes e depois: o <c>BlockAttack</c> chama
@@ -65,6 +81,7 @@ namespace Saiyaheim.Power
                 }
 
                 _localPlayerIsBlocking = true;
+                _parry = false;
                 __state = hit.GetTotalBlockableDamage();
             }
 
@@ -85,20 +102,30 @@ namespace Saiyaheim.Power
                 }
 
                 _localPlayerIsBlocking = false;
+                bool parry = _parry;
+                _parry = false;
 
                 if (__exception != null || hit == null)
                 {
                     return;
                 }
 
-                float rate = SaiyaheimConfig.BlockKiCost.Value;
-                if (rate <= 0f)
+                float blocked = __state - hit.GetTotalBlockableDamage();
+                if (blocked <= 0f)
                 {
                     return;
                 }
 
-                float blocked = __state - hit.GetTotalBlockableDamage();
-                if (blocked <= 0f)
+                // O ModifyTimedBlockBonus roda antes do teste de stamina e de stagger, então sozinho
+                // ele também marca o parry que falhou. Exigir dano barrado é o que filtra: o jogo só
+                // chama o BlockDamage quando o bloqueio se sustentou.
+                if (parry)
+                {
+                    KiRewards.OnParry(Player.m_localPlayer);
+                }
+
+                float rate = SaiyaheimConfig.BlockKiCost.Value;
+                if (rate <= 0f)
                 {
                     return;
                 }

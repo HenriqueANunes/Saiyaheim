@@ -1,7 +1,11 @@
 # Changelog
 
-## 0.2.1
+## 0.3.0
 
+- New: gain ki by fighting well. A successful parry gives the ki cost of 2 punches, and
+  landing the killing blow on a creature gives 4. Both scale with your power, like the punch
+  cost. Only with ki on; tamed creatures and players give nothing. Tune with
+  `KiOnParryPunches` and `KiOnKillPunches` (0 turns each off).
 - Fixed: with ki on, equipping a weapon no longer inflates your power rating. The number
   used to add the weapon's damage on top of the ki punch bonus, a hit that never happens:
   the bonus only applies to unarmed strikes. With ki on it now reads the unarmed punch plus
@@ -13,6 +17,7 @@
   charge without firing.
 - Fixed (multiplayer): other players' ki blast and Kamehameha impacts now show in the
   attack's color, without smoke. They used to show as the game's raw purple, smoky explosion.
+- Everyone must update: players on 0.2.x can't join a 0.3.0 server.
 
 ## 0.2.0
 

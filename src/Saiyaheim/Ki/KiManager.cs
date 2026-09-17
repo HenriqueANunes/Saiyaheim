@@ -253,6 +253,22 @@ namespace Saiyaheim.Ki
         }
 
         /// <summary>
+        /// Ganha ki fora da regeneração e do carregamento: parry e kill (ver
+        /// <see cref="KiRewards"/>). Só com o ki ligado, e respeitando o máximo.
+        ///
+        /// Não mexe no bloqueio da regeneração: ganhar não é gastar.
+        /// </summary>
+        internal static void Gain(float amount)
+        {
+            if (_state == null || !_state.Enabled || amount <= 0f)
+            {
+                return;
+            }
+
+            Add(amount);
+        }
+
+        /// <summary>
         /// Gasta ki se houver o suficiente. Base para transformação, voo e ataques de ki.
         /// Retorna false sem gastar nada se faltar — quem chama decide o que fazer.
         /// </summary>

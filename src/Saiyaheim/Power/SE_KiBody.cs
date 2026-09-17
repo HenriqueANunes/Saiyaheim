@@ -80,6 +80,16 @@ namespace Saiyaheim.Power
             }
         }
 
+        /// <summary>
+        /// Não mexe no bônus: só avisa o <see cref="BlockPowerPatch"/> que este bloqueio é um parry.
+        /// O jogo chama isto apenas quando o tempo acertou a janela. Ver <c>Ki.KiRewards</c>.
+        /// </summary>
+        public override void ModifyTimedBlockBonus(ref float timedBlockBonus)
+        {
+            base.ModifyTimedBlockBonus(ref timedBlockBonus);
+            BlockPowerPatch.MarkParry(m_character);
+        }
+
         public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
         {
             if (IsPunch(skill))

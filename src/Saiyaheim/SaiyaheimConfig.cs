@@ -185,6 +185,12 @@ namespace Saiyaheim
         /// <summary>Se true, andar interrompe o carregamento.</summary>
         public static ConfigEntry<bool> ChargeRequiresStandingStill { get; private set; }
 
+        /// <summary>Ki ganho num parry, em socos: múltiplos do custo de ki de um soco agora.</summary>
+        public static ConfigEntry<float> KiOnParryPunches { get; private set; }
+
+        /// <summary>Ki ganho ao matar, em socos: múltiplos do custo de ki de um soco agora.</summary>
+        public static ConfigEntry<float> KiOnKillPunches { get; private set; }
+
         // ---------- 2.1 - Combat ----------
 
         /// <summary>Ki gasto por ponto de dano que o poder somou ao soco. Ki insuficiente não cancela o golpe, só tira o bônus.</summary>
@@ -1112,6 +1118,26 @@ namespace Saiyaheim
                     "classic Dragon Ball gesture and creates a real choice: stopping to charge " +
                     "leaves you exposed. (Both tested in the 2026-07-28 playtest; standing still won.)",
                     null, AdminOnly(50)));
+
+            // Recompensa de luta boa, e nao so de ficar parado recarregando. Medida em SOCOS, e
+            // nao em ki nem em fracao da barra: o custo do soco ja escala com o poder e ja leva o
+            // desconto de fim de jogo (BattlePower.GetKiCostFactor), entao "um parry paga dois
+            // socos" continua verdade do primeiro bioma ao ultimo sem recalibrar nada. Os numeros
+            // 2 e 4 sao do Henrique, 2026-09-17, antes de qualquer playtest.
+            KiOnParryPunches = config.Bind(SecKi, "KiOnParryPunches", 2f,
+                new ConfigDescription(
+                    "Ki gained on a successful parry (a block timed right), measured in punches: " +
+                    "2 means the ki cost of two punches at your current power. Only with ki on, " +
+                    "and only when the parry actually stopped damage. 0 disables it.",
+                    new AcceptableValueRange<float>(0f, 50f), AdminOnly(45)));
+
+            KiOnKillPunches = config.Bind(SecKi, "KiOnKillPunches", 4f,
+                new ConfigDescription(
+                    "Ki gained for landing the killing blow on a creature, measured in punches: " +
+                    "4 means the ki cost of four punches at your current power. Any weapon or ki " +
+                    "attack counts, as long as ki is on. Tamed creatures and players give nothing. " +
+                    "0 disables it.",
+                    new AcceptableValueRange<float>(0f, 50f), AdminOnly(40)));
 
             // --- Combate ---
             // O numero mais arriscado da etapa 3: alto demais e o combate vira gerenciamento

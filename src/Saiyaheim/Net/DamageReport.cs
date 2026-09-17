@@ -52,7 +52,7 @@ namespace Saiyaheim.Net
         {
             private static void Postfix(ZRoutedRpc __instance)
             {
-                __instance.Register<float>(RpcName, RPC_DamageDealt);
+                __instance.Register<float, bool>(RpcName, RPC_DamageDealt);
             }
         }
 
@@ -61,9 +61,9 @@ namespace Saiyaheim.Net
         /// Se quem bateu for outro cliente, o número atravessa; se for o jogador local, quem
         /// credita é o <c>DamageXpPatch</c> ali mesmo, sem passar pela rede.
         /// </summary>
-        internal static void Send(Player attacker, float applied)
+        internal static void Send(Player attacker, float applied, bool killed)
         {
-            if (attacker == null || ZRoutedRpc.instance == null || applied <= 0f)
+            if (attacker == null || ZRoutedRpc.instance == null || (applied <= 0f && !killed))
             {
                 return;
             }
@@ -74,7 +74,10 @@ namespace Saiyaheim.Net
                 return;
             }
 
-            ZRoutedRpc.instance.InvokeRoutedRPC(peer, RpcName, applied);
+            // ⚠️ Mudar os parâmetros quebra a conversa com quem está numa versão anterior do mod:
+            // o outro lado lê o pacote com a assinatura velha. O bool da kill entrou em 2026-09-17,
+            // e é por isso que essa versão sobe o minor, que o VersionStrictness.Minor barra.
+            ZRoutedRpc.instance.InvokeRoutedRPC(peer, RpcName, applied, killed);
         }
 
         /// <summary>
@@ -88,11 +91,22 @@ namespace Saiyaheim.Net
         /// envenenaria a skill de forma irreversível, enquanto um valor alto é o que um golpe forte
         /// legitimamente é.
         /// </summary>
-        private static void RPC_DamageDealt(long sender, float applied)
+        private static void RPC_DamageDealt(long sender, float applied, bool killed)
         {
             Player local = Player.m_localPlayer;
 
-            if (local == null || applied <= 0f || float.IsNaN(applied) || float.IsInfinity(applied))
+            if (local == null || float.IsNaN(applied) || float.IsInfinity(applied))
+            {
+                return;
+            }
+
+            // A kill vem primeiro porque não depende do dano: com arma, o crédito pode ser zero.
+            if (killed)
+            {
+                Ki.KiRewards.OnKill(local);
+            }
+
+            if (applied <= 0f)
             {
                 return;
             }

@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Saiyaheim.Ki;
 using Saiyaheim.Net;
 using UnityEngine;
 
@@ -59,6 +60,9 @@ namespace Saiyaheim.Power
                 return;
             }
 
+            // Golpe final: tinha vida antes, não tem depois. O applied > 0 acima já garante o antes.
+            bool killed = __instance.GetHealth() <= 0f && KiRewards.CountsAsKill(__instance);
+
             if (__instance == local)
             {
                 // Dano recebido: já depois da armadura e das resistências, porque ApplyDamage é
@@ -74,16 +78,23 @@ namespace Saiyaheim.Power
                     PowerSkill.RaiseFromDamageDealt(local, credited);
                     SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {credited:0.#} damage.");
                 }
+
+                if (killed)
+                {
+                    KiRewards.OnKill(local);
+                }
             }
             else if (hit.GetAttacker() is Player attacker)
             {
                 // Quem bateu é outro cliente. Esta máquina é a única que sabe o número, e não tem
                 // o que fazer com ele. O desconto de arma é aplicado aqui, e não do outro lado,
                 // porque é aqui que o HitData existe — o RPC carrega um float e mais nada.
+                // Vai mesmo com crédito zero quando matou: a kill com arma dá ki ainda que o dano
+                // dela não pague XP.
                 float credited = applied * DealtFactor(hit, attacker);
-                if (credited > 0f)
+                if (credited > 0f || killed)
                 {
-                    DamageReport.Send(attacker, credited);
+                    DamageReport.Send(attacker, credited, killed);
                 }
             }
         }
