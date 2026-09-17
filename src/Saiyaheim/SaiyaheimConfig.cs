@@ -711,6 +711,9 @@ namespace Saiyaheim
         /// <summary>Peso do dano por segundo no poder de luta. Vale para jogador e inimigo.</summary>
         public static ConfigEntry<float> RatingK2Damage { get; private set; }
 
+        /// <summary>Quanto do multiplicador da forma chega ao poder de luta do jogador.</summary>
+        public static ConfigEntry<float> RatingFormShare { get; private set; }
+
         // Aqui morava o PowerCompressionExponent, removido no playtest da etapa 10: um expoente
         // sobre o valor vira o mesmo expoente sobre a razao, e ele achatava justamente as
         // diferencas que o numero existe para mostrar. Ver PowerRating.GetDisplay.
@@ -2087,9 +2090,9 @@ namespace Saiyaheim
             RatingArmorScale = config.Bind(SecPower, "RatingArmorScale", 40f,
                 new ConfigDescription(
                     "How much armor DOUBLES effective health: at 50, an armor of 50 makes you count " +
-                    "as twice your max health. This is what makes a transformation show up on the " +
-                    "defensive side — forms grant no health, they grant armor, and without this term " +
-                    "base form and SSJ2 read within 10% of each other. Creatures have zero armor in " +
+                    "as twice your max health. Transformations do not show up through this term: the " +
+                    "rating uses your base-form armor and RatingFormShare applies the form on top. " +
+                    "Creatures have zero armor in " +
                     "Valheim (only Player overrides GetBodyArmor), so their factor is exactly 1 and " +
                     "this key does not touch them. Lower makes armor count for more. " +
                     "(Playtest value, 2026-09-06. Lowered from 50 so the forms show up harder on " +
@@ -2107,6 +2110,21 @@ namespace Saiyaheim
                     "the rating was almost pure bulk, and the number is supposed to answer 'can " +
                     "this thing hurt me', not 'how long does it take to chew through it'.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
+
+            // A forma entra no poder de luta como multiplicador sobre a conta da forma base, e nao
+            // pela armadura e pelo soco de dentro dela. Decidido em 2026-09-17 na calculadora
+            // (aba Poder de luta). Mesmo desenho do FormSpeedShare do voo.
+            RatingFormShare = config.Bind(SecPower, "RatingFormShare", 1f,
+                new ConfigDescription(
+                    "How much of a transformation's PowerMultiplier reaches your scannable power " +
+                    "rating. The rating is computed with your BASE-form armor and punch and then " +
+                    "multiplied by 1 + (PowerMultiplier - 1) x this. At 1, SSJ reads exactly 2x your " +
+                    "base form, SSJ2 3x, SSJ3 4x; at 0 the form does not show at all. Base form is " +
+                    "unaffected. Why not just let the form show through its armor and punch: forms " +
+                    "grant no health, and health is most of the rating, so SSJ only read about 1.3x. " +
+                    "Who wins a fight goes with effective health TIMES damage per second, and the form " +
+                    "raises both, so 2x is still conservative.",
+                    new AcceptableValueRange<float>(0f, 2f), AdminOnly(45)));
 
             // --- Power Level ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo

@@ -13,6 +13,10 @@
 - New: the flight skill now softens falls. With ki on, fall damage drops with your flight
   level, up to 80% less at level 100 (`FallDamageSkillReduction`). Turning ki off takes the
   protection away.
+- Changed: transforming now shows in your power rating. SSJ reads 2x your base form, SSJ2 3x
+  and SSJ3 4x. Before, the form only showed through the armor and punch it adds, and since it
+  gives no health, SSJ read about 1.3x. Your base-form number is unchanged. Tune with
+  `RatingFormShare` (0 hides the form, 1 is the full multiplier).
 - Fixed: with ki on, equipping a weapon no longer inflates your power rating. The number
   used to add the weapon's damage on top of the ki punch bonus, a hit that never happens:
   the bonus only applies to unarmed strikes. With ki on it now reads the unarmed punch plus

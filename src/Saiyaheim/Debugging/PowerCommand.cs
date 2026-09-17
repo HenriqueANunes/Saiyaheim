@@ -140,9 +140,14 @@ namespace Saiyaheim.Debugging
             // A vida efetiva e o HP cru saem juntos porque a diferenca entre eles E o termo que a
             // transformacao move do lado defensivo — sem os dois, a linha esconde o que ela existe
             // para mostrar.
-            Print($"  = {SaiyaheimConfig.RatingK1Health.Value:0.##} x {PowerRating.GetEffectiveHp(player):0.#} ehp" +
-                  $" (hp {player.GetMaxHealth():0.#} x armor {player.GetBodyArmor():0.#})" +
-                  $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x {PowerRating.GetDps(player):0.#} dps");
+            // Transformado, ehp e dps sao os da forma BASE e a forma entra no fim, pelo fator: e' a
+            // conta que o PowerRating faz, e sem o fator impresso a linha nao fecharia.
+            float formFactor = PowerRating.GetFormFactor(player);
+            Print($"  = ({SaiyaheimConfig.RatingK1Health.Value:0.##} x {PowerRating.GetEffectiveHp(player):0.#} ehp" +
+                  $" (hp {player.GetMaxHealth():0.#}, armor {PowerRating.GetArmor(player):0.#}" +
+                  $"{(formFactor > 1f ? " in base form" : string.Empty)})" +
+                  $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x {PowerRating.GetDps(player):0.#} dps)" +
+                  $" x {formFactor:0.##} form");
         }
 
         /// <summary>

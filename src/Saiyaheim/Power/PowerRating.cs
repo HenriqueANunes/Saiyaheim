@@ -65,6 +65,22 @@ namespace Saiyaheim.Power
     /// legível ("<c>C</c> de armadura dobra a vida efetiva"), não uma simulação, e nada de combate
     /// lê esta classe.
     ///
+    /// <b>A forma entra multiplicando, não pela armadura e pelo soco.</b> Decisão de 2026-09-17. O
+    /// jogador transformado é calculado com a armadura e o soco da forma <b>base</b>, e o resultado
+    /// é multiplicado por <c>1 + (PowerMultiplier − 1) × RatingFormShare</c>. Antes a forma só
+    /// chegava ao número pelo que ela dobra (armadura e soco), e como a vida é a maior parte do
+    /// total e a forma não dá vida, o SSJ lia ~1,3× a forma base.
+    ///
+    /// Não mente na comparação com bicho. Quem vence uma luta é quem tem mais
+    /// <c>vida efetiva × dano por segundo</c> — aguentar mais tempo do que o outro leva para
+    /// matar —, e a forma sobe os dois: o soco quase dobra e a armadura dobra. Na conta somada o
+    /// ganho some; o multiplicador devolve um ×2 que ainda fica abaixo da força real. A forma base
+    /// não muda nada e continua calibrada contra as criaturas.
+    ///
+    /// Duas alternativas caíram antes, na calculadora: armadura pelo <c>ApplyArmor</c> contra um
+    /// golpe fixo não dava ×2 no começo do jogo, e contra o golpe típico do bioma fazia o número
+    /// <b>cair</b> ao matar um boss.
+    ///
     /// <b>Variante estrelada sai de graça nos dois termos</b>, e isso não era esperado: o
     /// <c>Character.SetLevel</c> faz <c>SetMaxHealth(GetMaxHealthBase() × level)</c>, então o HP
     /// já vem multiplicado; e o <c>Attack.GetLevelDamageFactor</c> é
@@ -95,8 +111,29 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            return SaiyaheimConfig.RatingK1Health.Value * GetEffectiveHealth(character)
-                   + SaiyaheimConfig.RatingK2Damage.Value * GetDamagePerSecond(character);
+            return (SaiyaheimConfig.RatingK1Health.Value * GetEffectiveHealth(character)
+                    + SaiyaheimConfig.RatingK2Damage.Value * GetDamagePerSecond(character))
+                   * GetFormFactor(character);
+        }
+
+        /// <summary>
+        /// Quanto a forma ativa multiplica o poder de luta: <c>1 + (PowerMultiplier − 1) ×
+        /// RatingFormShare</c>. É 1 para criatura, para jogador fora da forma e com o ki desligado —
+        /// sem ki a forma não aplica nada ao combate, então também não aparece aqui.
+        ///
+        /// ⚠️ Anda junto com a vida efetiva e o DPS <b>sem forma</b> deste arquivo. Multiplicar a
+        /// conta de dentro da forma contaria a forma duas vezes.
+        /// </summary>
+        internal static float GetFormFactor(Character character)
+        {
+            if (!(character is Player player) || !Ki.KiManager.IsEnabled)
+            {
+                return 1f;
+            }
+
+            float multiplier = Transformations.TransformationRegistry.GetPowerMultiplier(player);
+
+            return 1f + Mathf.Max(0f, multiplier - 1f) * SaiyaheimConfig.RatingFormShare.Value;
         }
 
         /// <summary>
@@ -179,8 +216,9 @@ namespace Saiyaheim.Power
 
         /// <summary>
         /// A vida efetiva, para o <c>saiya_power</c> imprimir. Mesmo papel do
-        /// <see cref="GetDps"/>: sem esta coluna, a lista mostra HP cru e esconde justamente a
-        /// parcela que a transformação move.
+        /// <see cref="GetDps"/>: sem esta coluna, a lista mostra HP cru e esconde a parcela da
+        /// armadura. No jogador transformado é a da forma base; a forma entra depois, pelo
+        /// <see cref="GetFormFactor"/>.
         /// </summary>
         internal static float GetEffectiveHp(Character character)
         {
@@ -211,7 +249,21 @@ namespace Saiyaheim.Power
                 return character.GetMaxHealth();
             }
 
-            return character.GetMaxHealth() * (1f + character.GetBodyArmor() / scale);
+            return character.GetMaxHealth() * (1f + GetArmor(character) / scale);
+        }
+
+        /// <summary>
+        /// A armadura que entra na vida efetiva. Jogador com ki ligado usa a da forma base; o resto
+        /// usa o <c>GetBodyArmor()</c> do jogo, que no ki ligado dá o mesmo valor fora da forma.
+        /// </summary>
+        internal static float GetArmor(Character character)
+        {
+            if (character is Player player && Ki.KiManager.IsEnabled)
+            {
+                return BattlePower.GetArmorWithoutForm(player);
+            }
+
+            return character.GetBodyArmor();
         }
 
         /// <summary>
@@ -265,9 +317,10 @@ namespace Saiyaheim.Power
                 : player.GetCurrentWeapon();
             float damage = weapon == null ? 0f : weapon.GetDamage().GetTotalDamage();
 
+            // O bônus da forma base: a forma entra depois, inteira, pelo GetFormFactor.
             if (Ki.KiManager.IsEnabled)
             {
-                damage += BattlePower.GetPunchDamageBonus(player);
+                damage += BattlePower.PunchBonusFor(BattlePower.GetKiCombatRawWithoutForm(player));
             }
 
             return damage / PlayerHitInterval;

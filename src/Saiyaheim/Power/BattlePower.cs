@@ -151,8 +151,20 @@ namespace Saiyaheim.Power
         /// </summary>
         private static float GetKiCombatRaw(Player player)
         {
-            return (GetKiRaw(player) + GetLateGameBonus(player))
+            return GetKiCombatRawWithoutForm(player)
                    * Transformations.TransformationRegistry.GetPowerMultiplier(player);
+        }
+
+        /// <summary>
+        /// O poder de combate do ki ligado <b>antes</b> do multiplicador da forma. Transformado ou
+        /// não, devolve o que o jogador teria na forma base.
+        ///
+        /// Existe para o <see cref="PowerRating"/>, que calcula o poder de luta na forma base e
+        /// aplica a forma por cima, em vez de deixar a forma entrar só pela armadura e pelo soco.
+        /// </summary>
+        internal static float GetKiCombatRawWithoutForm(Player player)
+        {
+            return GetKiRaw(player) + GetLateGameBonus(player);
         }
 
         /// <summary>Fórmula do ki desligado: a original do projeto, com arma e armadura do jogo.</summary>
@@ -375,8 +387,26 @@ namespace Saiyaheim.Power
             // GetKiCombatRaw, não GetCombatRaw: ver o comentário de recursão em GetKiRaw. Este
             // método só é chamado com o ki ligado, então o ramo é o mesmo — mas depender disso
             // seria depender de um invariante que uma troca de toggle no meio do frame quebra.
-            float armor = ArmorFor(GetKiCombatRaw(player));
+            return ArmorWithKiStep(ArmorFor(GetKiCombatRaw(player)));
+        }
 
+        /// <summary>
+        /// A armadura que o jogador teria <b>fora da forma</b>, com o mesmo degrau da barra vazia e
+        /// o mesmo arredondamento do <see cref="GetArmor"/>. Mesmo papel do
+        /// <see cref="GetKiCombatRawWithoutForm"/>.
+        /// </summary>
+        internal static float GetArmorWithoutForm(Player player)
+        {
+            if (player == null)
+            {
+                return 0f;
+            }
+
+            return ArmorWithKiStep(ArmorFor(GetKiCombatRawWithoutForm(player)));
+        }
+
+        private static float ArmorWithKiStep(float armor)
+        {
             if (KiManager.Current <= 0f)
             {
                 armor *= SaiyaheimConfig.ArmorFractionWithoutKi.Value;
