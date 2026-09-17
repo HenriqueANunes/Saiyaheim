@@ -21,12 +21,8 @@ xdg-open tools/curva-poder.html
 Funciona offline, sem servidor e sem dependência nenhuma: tudo é inline, inclusive o gráfico
 (SVG desenhado à mão em JS). Não há build.
 
-Também está publicada como Artifact, para abrir do celular ou mandar para alguém:
-**https://claude.ai/code/artifact/b248144a-f920-4162-bed4-34308a0014a6**
-
-> ⚠️ Para o Claude **atualizar** essa página numa conversa futura sem criar um link novo, ele
-> precisa receber essa URL e passá-la no parâmetro `url` do publish. Sem isso, sai uma URL
-> diferente e a antiga fica órfã.
+Existiu uma cópia publicada como Artifact. Foi apagada em 2026-09-17, a pedido do Henrique, que
+não usava: a página vale só como arquivo local.
 
 ### O que ela modela
 
@@ -44,8 +40,24 @@ mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 | `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
 | `applyArmor()` | `HitData.ApplyArmor` do Valheim, copiada da decompilação |
 | `xpCost[]` | `Skills.Skill.GetNextLevelRequirement()` |
+| `ehp`, `rdps`, `rating` (dentro de `model()`) | `PowerRating.GetRaw()` do jogador, com o ki ligado |
+| `creatureDps()` | `PowerRating.GetCreatureDps()` |
+| `CREATURES` | prefabs do jogo, gerado por `tools/creature_stats.py` |
 
 A curva de XP e o `ApplyArmor` são do **jogo**, não do mod: só mudam se o Valheim atualizar.
+
+### A aba **Poder de luta** — feito em 2026-09-17
+
+Mostra o número da HUD (`PowerRating`), que não é o battle power interno, fora e dentro de cada
+forma, e uma tabela de criaturas por bioma com o poder de luta de cada uma e a razão "você ÷ ela"
+no nível escolhido.
+
+- Os dados de criatura (`CREATURES`) são **colados** na página, não lidos em tempo real. Para
+  regerar, rodar `tools/creature_stats.py --json` com a lista de prefabs e reescrever o array. A
+  mesma tabela está no vault, em `Técnico/Criaturas.md`.
+- O checkbox "contar dano em estrutura" existe porque o `GetTotalDamage()` do jogo soma `chop` e
+  `pickaxe`, e o `PowerRating` herda isso. Marcado é o comportamento do mod hoje.
+- `PlayerHitInterval` tem slider, mas é `const` no `PowerRating.cs`: não sai no snippet de `.cfg`.
 
 ### As Transformações (etapa 5) — feito em 2026-08-02
 
@@ -155,7 +167,7 @@ abrir por `http://`:
 ```
 
 Só para inspeção — o `http.server` manda `text/html` sem charset e o Chrome cai em windows-1252,
-então os acentos aparecem quebrados. Abrindo direto do disco (`xdg-open`) ou como Artifact, não.
+então os acentos aparecem quebrados. Abrindo direto do disco (`xdg-open`), não.
 
 ### Convenções da página
 

@@ -236,6 +236,21 @@
   .delta.up { color: var(--ki); }
   .delta.down { color: var(--warn); }
 
+  /* Tabela de criaturas: uma faixa por bioma, e a criatura de referencia marcada. */
+  tbody tr.biome td {
+    font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--ink-2); background: var(--panel-2); padding-top: 9px; padding-bottom: 7px; text-align: left;
+  }
+  tbody tr.biome td .boss { letter-spacing: .02em; text-transform: none; color: var(--ink-3); margin-left: 8px; }
+  td.who { font-family: var(--f-body); }
+  td.who .pf { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+  td.who .ref { font-family: var(--f-mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ki); border: 1px solid var(--ki); border-radius: 2px; padding: 0 4px; margin-left: 6px; }
+  td .win { color: var(--ki); }
+  td .lose { color: var(--warn); }
+  td .muted { color: var(--ink-3); font-size: 11px; }
+  .table-note { padding: 0 18px 16px; font-size: 12.5px; color: var(--ink-3); max-width: 90ch; }
+
   .cfg { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
   .cfg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   pre {
@@ -265,6 +280,7 @@
     <button type="button" data-lens="combat">Combate</button>
     <button type="button" data-lens="fly">Voo</button>
     <button type="button" data-lens="form">Transformação</button>
+    <button type="button" data-lens="rating">Poder de luta</button>
   </nav>
 
   <p class="formula" id="formula"></p>
@@ -298,7 +314,7 @@
         </div>
       </details>
 
-      <details class="card group" id="g-power" data-lens="prog combat fly form">
+      <details class="card group" id="g-power" data-lens="prog combat fly form rating">
         <summary><span class="chev">▶</span>Battle power</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="hp">HP acima da base (25)</label><output id="hp-out"></output></div>
@@ -310,7 +326,7 @@
         </div>
       </details>
 
-      <details class="card group" id="g-combat" data-lens="combat">
+      <details class="card group" id="g-combat" data-lens="combat rating">
         <summary><span class="chev">▶</span>Combate</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="hit">Golpe do inimigo (teste)</label><output id="hit-out"></output></div>
@@ -383,7 +399,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj" id="g-ssj" data-lens="combat form" open>
+      <details class="card group g-ssj" id="g-ssj" data-lens="combat form rating" open>
         <summary><span class="chev">▶</span>SSJ<span class="tag ssj">3.1</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m1">PowerMultiplier</label><output id="m1-out"></output></div>
@@ -397,7 +413,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj2" id="g-ssj2" data-lens="combat form" open>
+      <details class="card group g-ssj2" id="g-ssj2" data-lens="combat form rating" open>
         <summary><span class="chev">▶</span>SSJ2<span class="tag ssj2">3.2</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m2">PowerMultiplier</label><output id="m2-out"></output></div>
@@ -411,7 +427,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj3" id="g-ssj3" data-lens="combat form" open>
+      <details class="card group g-ssj3" id="g-ssj3" data-lens="combat form rating" open>
         <summary><span class="chev">▶</span>SSJ3<span class="tag ssj3">3.3</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m3">PowerMultiplier</label><output id="m3-out"></output></div>
@@ -458,6 +474,29 @@
           <div class="ctl"><div class="row"><label for="cfp">ChargeKiFromPower</label><output id="cfp-out"></output></div>
             <input type="range" id="cfp" min="0" max="0.5" step="0.005" value="0.075"></div>
           <p class="hint">A recarga usa o <b>carregamento ativo</b> (parado, segurando a tecla), não a regeneração de fundo — que o dreno da forma bloqueia a cada tick, do mesmo jeito que qualquer outro gasto.</p>
+        </div>
+      </details>
+
+      <details class="card group" id="g-rating" data-lens="rating">
+        <summary><span class="chev">▶</span>Poder de luta</summary>
+        <div class="group-body">
+          <div class="ctl"><div class="row"><label for="rk1">RatingHealthWeight</label><output id="rk1-out"></output></div>
+            <input type="range" id="rk1" min="0" max="3" step="0.05" value="0.8"></div>
+          <div class="ctl"><div class="row"><label for="rc">RatingArmorScale</label><output id="rc-out"></output></div>
+            <input type="range" id="rc" min="0" max="200" step="1" value="40"></div>
+          <p class="hint">Vida efetiva = <code>HP × (1 + armadura / isto)</code>. Em 0 a armadura sai da conta. Criatura tem armadura 0, então este slider só mexe no jogador.</p>
+          <div class="ctl"><div class="row"><label for="rk2">RatingDamageWeight</label><output id="rk2-out"></output></div>
+            <input type="range" id="rk2" min="0" max="30" step="0.5" value="10"></div>
+          <div class="ctl"><div class="row"><label for="rhi">PlayerHitInterval (constante no código)</label><output id="rhi-out"></output></div>
+            <input type="range" id="rhi" min="0.5" max="10" step="0.5" value="5"></div>
+          <p class="hint">Segundos entre dois socos que a conta supõe. Não é config: é <code>const</code> no <code>PowerRating.cs</code>. Está aqui para ver quanto ele achata o termo de dano, que é o termo que a forma multiplica.</p>
+          <div class="ctl is-hero"><div class="row"><label for="rlv">Nível do jogador na tabela de criaturas</label><output id="rlv-out"></output></div>
+            <input type="range" id="rlv" min="0" max="100" step="1" value="50"></div>
+          <label class="check">
+            <input type="checkbox" id="rstruct" checked>
+            contar dano em estrutura (chop, pickaxe)
+          </label>
+          <p class="hint">Marcado é o que o mod faz hoje: o <code>GetTotalDamage()</code> do jogo soma <code>chop</code> e <code>pickaxe</code>, que só acertam construção. Troll, Stone Golem, Seeker e Morgen saem inflados por isso.</p>
         </div>
       </details>
 
@@ -509,6 +548,17 @@
         </div>
       </section>
 
+      <section class="card" id="creatures-card">
+        <div class="table-wrap">
+          <table>
+            <caption id="creatures-caption"></caption>
+            <thead id="creatures-thead"></thead>
+            <tbody id="creatures-tbody"></tbody>
+          </table>
+        </div>
+        <p class="table-note">Dano e HP lidos dos prefabs do jogo (jogo extraído em <code>~/Downloads/valheim-ripped</code>, <code>m_damages</code> e <code>m_aiAttackInterval</code> de cada item de ataque), sem estrelas. <b>Golpe</b> é o ataque mais frequente, sem o dano em estrutura. <b>DPS</b> espelha o <code>PowerRating.GetCreatureDps</code>: média de <code>dano ÷ intervalo</code> das armas do inventário. Quem sorteia arma ou conjunto (Draugr, Fuling, Troll, Stone Golem) entra com a média dos sorteios. <b>Você ÷ ela</b> é o seu poder de luta dividido pelo dela: acima de 1 você ganha.</p>
+      </section>
+
       <section class="card cfg">
         <div class="cfg-head">
           <div class="eyebrow">com.hman.saiyaheim.cfg</div>
@@ -548,7 +598,7 @@
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "bxm", "boss",
-               "kmax", "kper", "creg", "cfp"];
+               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
@@ -556,6 +606,7 @@
   const cmpToday = document.getElementById("cmp-today");
   const cmpForms = document.getElementById("cmp-forms");
   const cfgAll = document.getElementById("cfg-all");
+  const rStruct = document.getElementById("rstruct");
   const DEFAULTS = Object.fromEntries(ids.map(i => [i, el[i].value]));
 
   let lens = "prog";
@@ -644,6 +695,9 @@
     return wall / 3600;
   }
 
+  // Dano do PlayerUnarmed (blunt 5), do prefab do jogo.
+  const PLAYER_UNARMED = 5;
+
   // form = null e' o jogador fora da transformacao.
   function model(L, k5, form = null, opt = {}) {
     const lin = linearPower(L);
@@ -717,9 +771,19 @@
     const drain = form ? formDrain(form, L, opt.mastery) : 0;
     const formtime = drain > 0 ? kiMax / drain : Infinity;
 
+    // Poder de luta: o numero da tela, na mesma escala das criaturas. Espelha PowerRating.GetRaw
+    // com o ki ligado: vida maxima (base 25 + comida) esticada pela armadura, mais o soco desarmado
+    // vanilla (5) com o bonus do mod, dividido pela cadencia suposta.
+    const maxhp = 25 + v("hp");
+    const ehp = v("rc") > 0 ? maxhp * (1 + armor / v("rc")) : maxhp;
+    const rdps = (PLAYER_UNARMED + punch) / v("rhi");
+
     return {
       power,
       gain,
+      ehp,
+      rdps,
+      rating: v("rk1") * ehp + v("rk2") * rdps,
       eff: gain / xpCost[Math.max(nxt, 1)],
       armor,
       taken: applyArmor(v("hit"), armor),
@@ -801,6 +865,12 @@
       sub: "quanta força uma barra cheia de ki compra. É o número que decide se o degrau alto vale o ki — se um degrau passar o de baixo aqui, o de baixo vira letra morta" },
     masteryhours: { btn: "horas até maestria", label: "Horas até maestria 100", mode: "formonly", dec: 1, unit: " h",
       sub: "tempo de relógio, não de forma: soma o tempo dentro da forma e as recargas entre uma e outra, nível a nível, com o dreno encolhendo pelo caminho" },
+    rating: { btn: "poder de luta", label: "Poder de luta (o número da HUD)", mode: "forms", dec: 0, unit: "",
+      sub: "RatingHealthWeight × vida efetiva + RatingDamageWeight × dano por segundo. É o número que se compara com criatura" },
+    ehp: { btn: "vida efetiva", label: "Vida efetiva", mode: "forms", dec: 0, unit: "",
+      sub: "HP máximo × (1 + armadura / RatingArmorScale). A forma não dá vida: só a armadura mexe aqui" },
+    rdps: { btn: "dano por segundo", label: "Dano por segundo suposto", mode: "forms", dec: 1, unit: "",
+      sub: "(soco desarmado 5 + bônus do mod) ÷ PlayerHitInterval" },
     refill: { btn: "recarga", label: "Recarga da barra", mode: "solo", dec: 0, unit: " s",
       sub: "segundos carregando ativo para encher a barra do zero" },
   };
@@ -871,6 +941,18 @@
           fcol("Dreno", i, "drain", 2, "", { sep: true }),
           fcol("Tempo", i, "formtime", 0, " s"),
           fcol("Poder×t", i, "powertime", 0)])),
+    },
+    rating: {
+      title: "O número da HUD contra os bichos de cada bioma",
+      sub: "O poder de luta não é o battle power interno: é uma conta em termos vanilla, igual para jogador e criatura, para que escanear um bicho diga quem ganha. A forma multiplica o battle power, mas aqui ela só chega pela armadura e pelo bônus do soco — e a vida, que pesa mais, ela não toca.",
+      stats: ["rating", "ehp", "rdps"],
+      open: ["g-rating", "g-ssj", "g-ssj2", "g-ssj3"],
+      today: false,
+      forms: true,
+      cfg: ["rating"],
+      caption: "Poder de luta nível a nível, fora e dentro de cada forma",
+      cols: [col("Vida ef.", c => c.m.ehp, 0), col("DPS", c => c.m.rdps, 1), col("Poder", c => c.m.rating, 0)].concat(
+        FORMS.map((f, i) => fcol("Poder", i, "rating", 0, "", { sep: i === 0, get: c => c.f[i].rating }))),
     },
   };
 
@@ -1354,11 +1436,139 @@
       `) — o degrau alto bate mais forte e por menos tempo, então escolher entre eles é uma decisão de verdade. Recém-destravado, no nível 100, o ${TOP.name} segura ${fmt(at(TOP, 0).formtime, 0)} s; maxado, ${fmt(at(TOP, MAXLVL).formtime, 0)} s, ${fmt(at(TOP, MAXLVL).uptime, 0)}% do tempo.` };
   }
 
+  // ── criaturas ─────────────────────────────────────────────────────────────
+  // Dados extraidos dos prefabs do jogo. Cada ataque: [item, dano de combate, dano em estrutura
+  // (chop + pickaxe), m_aiAttackInterval, tipos]. fixed = m_defaultItems; oneOf = m_randomWeapon
+  // (sai UMA); sets = m_randomSets (sai UM conjunto).
+  const CREATURES = [
+    {"biome": "Meadows", "boss": "—", "name": "Greyling", "prefab": "Greyling", "common": true, "hp": 20.0, "fixed": [["Greyling_attack", 5.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Meadows", "boss": "—", "name": "Neck", "prefab": "Neck", "common": false, "hp": 5.0, "fixed": [["Neck_BiteAttack", 6.0, 0, 4.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Meadows", "boss": "—", "name": "Boar", "prefab": "Boar", "common": false, "hp": 10.0, "fixed": [["boar_base_attack", 10.0, 0, 5.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf", "prefab": "Greydwarf", "common": true, "hp": 40.0, "fixed": [["Greydwarf_attack", 14.0, 0, 2.0, "slash"], ["Greydwarf_throw", 10.0, 0, 8.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf Shaman", "prefab": "Greydwarf_Shaman", "common": false, "hp": 60.0, "fixed": [["Greydwarf_shaman_attack", 30.0, 0, 8.0, "poison"], ["Greydwarf_attack", 14.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf Brute", "prefab": "Greydwarf_Elite", "common": false, "hp": 150.0, "fixed": [["Greydwarf_elite_attack", 30.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Skeleton", "prefab": "Skeleton", "common": false, "hp": 40.0, "fixed": [], "oneOf": [["skeleton_sword", 25.0, 0, 3.0, "slash"], ["skeleton_bow", 20.0, 0, 4.0, "pierce"]], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Troll", "prefab": "Troll", "common": false, "hp": 600.0, "fixed": [], "oneOf": [], "sets": [[["troll_punch", 60.0, 140.0, 4.0, "blunt"], ["troll_groundslam", 70.0, 140.0, 20.0, "blunt"], ["troll_throw", 50.0, 100.0, 10.0, "blunt"]], [["troll_punch", 60.0, 140.0, 4.0, "blunt"], ["troll_groundslam", 70.0, 140.0, 20.0, "blunt"], ["troll_throw", 50.0, 100.0, 10.0, "blunt"]], [["troll_log_swing_v", 70.0, 140.0, 6.0, "blunt"], ["troll_log_swing_h", 60.0, 140.0, 6.0, "blunt"]]]},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Draugr", "prefab": "Draugr", "common": true, "hp": 100.0, "fixed": [], "oneOf": [["draugr_axe", 48.0, 15.0, 3.0, "slash"], ["draugr_bow", 48.0, 0, 4.0, "pierce"]], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Draugr Elite", "prefab": "Draugr_Elite", "common": false, "hp": 200.0, "fixed": [], "oneOf": [["draugr_sword", 58.0, 0, 4.0, "slash"]], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Blob", "prefab": "Blob", "common": false, "hp": 50.0, "fixed": [["blob_attack_aoe", 90.0, 0, 2.0, "poison"]], "oneOf": [], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Leech", "prefab": "Leech", "common": false, "hp": 60.0, "fixed": [["Leech_BiteAttack", 90.0, 0, 2.0, "pierce+poison"]], "oneOf": [], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Wraith", "prefab": "Wraith", "common": false, "hp": 100.0, "fixed": [["wraith_melee", 60.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Surtling", "prefab": "Surtling", "common": false, "hp": 20.0, "fixed": [["imp_fireball_attack", 50.0, 0, 3.0, "blunt+fire"]], "oneOf": [], "sets": []},
+    {"biome": "Mountain", "boss": "Bonemass", "name": "Wolf", "prefab": "Wolf", "common": true, "hp": 80.0, "fixed": [["Wolf_Attack1", 70.0, 0, 5.0, "slash"], ["Wolf_Attack2", 70.0, 0, 5.0, "slash"], ["Wolf_Attack3", 70.0, 0, 5.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Mountain", "boss": "Bonemass", "name": "Ulv", "prefab": "Ulv", "common": false, "hp": 50.0, "fixed": [["Ulv_attack1_bite", 80.0, 0, 5.0, "slash"], ["Ulv_attack2_slash", 70.0, 0, 9.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Mountain", "boss": "Bonemass", "name": "Drake", "prefab": "Hatchling", "common": false, "hp": 100.0, "fixed": [["hatchling_spit_cold", 90.0, 0, 6.0, "frost"]], "oneOf": [], "sets": []},
+    {"biome": "Mountain", "boss": "Bonemass", "name": "Fenring", "prefab": "Fenring", "common": false, "hp": 300.0, "fixed": [["Fenring_attack_claw", 85.0, 0, 3.0, "slash"], ["Fenring_attack_jump", 95.0, 0, 8.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Mountain", "boss": "Bonemass", "name": "Stone Golem", "prefab": "StoneGolem", "common": false, "hp": 800.0, "fixed": [], "oneOf": [], "sets": [[["stonegolem_attack1_spike", 110.0, 200.0, 8.0, "pierce"], ["stonegolem_attack3_spikesweep", 110.0, 200.0, 15.0, "blunt"]], [["stonegolem_attack2_left_groundslam", 110.0, 200.0, 8.0, "blunt"], ["stonegolem_attack_doublesmash", 110.0, 200.0, 15.0, "blunt"]]]},
+    {"biome": "Plains", "boss": "Moder", "name": "Fuling", "prefab": "Goblin", "common": true, "hp": 175.0, "fixed": [], "oneOf": [["GoblinClub", 85.0, 0, 2.0, "blunt"], ["GoblinSpear", 85.0, 0, 4.0, "pierce"], ["GoblinSword", 85.0, 0, 2.0, "slash"], ["GoblinTorch", 90.0, 0, 2.0, "blunt+fire"]], "sets": []},
+    {"biome": "Plains", "boss": "Moder", "name": "Fuling Archer", "prefab": "GoblinArcher", "common": false, "hp": 175.0, "fixed": [], "oneOf": [["GoblinSpear", 85.0, 0, 4.0, "pierce"]], "sets": []},
+    {"biome": "Plains", "boss": "Moder", "name": "Fuling Shaman", "prefab": "GoblinShaman", "common": false, "hp": 100.0, "fixed": [["GoblinShaman_attack_poke", 100.0, 0, 2.0, "blunt"], ["GoblinShaman_attack_fireball", 120.0, 0, 3.0, "blunt+fire"]], "oneOf": [], "sets": []},
+    {"biome": "Plains", "boss": "Moder", "name": "Fuling Berserker", "prefab": "GoblinBrute", "common": false, "hp": 800.0, "fixed": [["GoblinBrute_Attack", 130.0, 140.0, 2.0, "blunt"], ["GoblinBrute_RageAttack", 130.0, 140.0, 20.0, "blunt"], ["GoblinBrute_Taunt", 80.0, 10.0, 60.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Plains", "boss": "Moder", "name": "Deathsquito", "prefab": "Deathsquito", "common": false, "hp": 10.0, "fixed": [["Deathsquito_sting", 90.0, 0, 10.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Plains", "boss": "Moder", "name": "Lox", "prefab": "Lox", "common": false, "hp": 1000.0, "fixed": [["lox_bite", 130.0, 0, 4.0, "slash"], ["lox_stomp", 120.0, 200.0, 12.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Mistlands", "boss": "Yagluth", "name": "Seeker", "prefab": "Seeker", "common": true, "hp": 200.0, "fixed": [["seeker_takeoff", 230.0, 400.0, 8.0, "pierce+frost"], ["seeker_land", 230.0, 400.0, 8.0, "pierce+frost"], ["seeker_pincers", 90.0, 0, 6.0, "pierce"], ["seeker_claw_left", 120.0, 0, 10.0, "pierce"], ["seeker_claw_right", 120.0, 0, 10.0, "pierce"], ["seeker_groundslam", 100.0, 0, 10.0, "blunt"], ["seeker_groundslam_flying", 100.0, 0, 10.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Mistlands", "boss": "Yagluth", "name": "Seeker Soldier", "prefab": "SeekerBrute", "common": false, "hp": 1500.0, "fixed": [["SeekerBrute_Taunt", 80.0, 10.0, 60.0, "slash"], ["SeekerBrute_ram", 100.0, 200.0, 8.0, "blunt"], ["SeekerBrute_bite", 100.0, 0, 8.0, "slash"], ["SeekerBrute_groundslam", 120.0, 200.0, 12.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Mistlands", "boss": "Yagluth", "name": "Tick", "prefab": "Tick", "common": false, "hp": 50.0, "fixed": [["tick_attack_attach", 50.0, 0, 2.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Mistlands", "boss": "Yagluth", "name": "Gjall", "prefab": "Gjall", "common": false, "hp": 1500.0, "fixed": [["gjall_attack_spit", 130.0, 0, 6.0, "blunt+fire"], ["gjall_attack_shake", 20.0, 0, 10.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Mistlands", "boss": "Yagluth", "name": "Dvergr Rogue", "prefab": "Dverger", "common": false, "hp": 350.0, "fixed": [["DvergerArbalest_shoot", 110.0, 0, 6.0, "pierce"], ["Dverger_melee", 70.0, 0, 4.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Charred Warrior", "prefab": "Charred_Melee", "common": true, "hp": 600.0, "fixed": [["charred_greatsword_swing", 150.0, 0, 3.0, "slash"], ["charred_greatsword_thrust", 160.0, 0, 3.0, "pierce"], ["charred_greatsword_feint", 130.0, 0, 8.0, "slash"], ["charred_greatsword_thrustfeint", 160.0, 0, 3.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Charred Marksman", "prefab": "Charred_Archer", "common": false, "hp": 200.0, "fixed": [["charred_bow", 90.0, 0, 2.0, "pierce"], ["charred_bow_volley", 60.0, 0, 4.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Charred Twitcher", "prefab": "Charred_Twitcher", "common": false, "hp": 220.0, "fixed": [["charred_twitcher_scratch_l", 100.0, 0, 3.0, "slash"], ["charred_twitcher_scratch_r", 100.0, 0, 3.0, "slash"], ["charred_twitcher_throw", 75.0, 0, 6.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Charred Warlock", "prefab": "Charred_Mage", "common": false, "hp": 600.0, "fixed": [["charred_magestaff_fire", 100.0, 0, 8.0, "pierce"], ["charred_magestaff_summon", 100.0, 0, 10.0, "pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Volture", "prefab": "Volture", "common": false, "hp": 200.0, "fixed": [["volture_talons", 110.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Asksvin", "prefab": "Asksvin", "common": false, "hp": 800.0, "fixed": [["Asksvin_Bite", 150.0, 100.0, 8.0, "blunt+slash"], ["Asksvin_Headbutt", 120.0, 200.0, 8.0, "blunt"], ["Asksvin_Pounce", 150.0, 150.0, 4.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Morgen", "prefab": "Morgen", "common": false, "hp": 1600.0, "fixed": [["Morgen_bite", 160.0, 200.0, 4.0, "pierce"], ["Morgen_roll_right", 50.0, 200.0, 20.0, "blunt"], ["Morgen_roll_left", 50.0, 200.0, 12.0, "blunt"], ["Morgen_swipe_1", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_2", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_3", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_4", 160.0, 200.0, 4.0, "pierce"], ["Morgen_bodyslam", 160.0, 0, 12.0, "blunt"]], "oneOf": [], "sets": []},
+    {"biome": "Ashlands", "boss": "The Queen", "name": "Fallen Valkyrie", "prefab": "FallenValkyrie", "common": false, "hp": 1500.0, "fixed": [["fallenvalkyrie_claws", 160.0, 0, 3.0, "slash+pierce"], ["fallenvalkyrie_spin", 220.0, 200.0, 10.0, "blunt+pierce"], ["fallenvalkyrie_taunt", 40.0, 0, 30.0, "slash+pierce"]], "oneOf": [], "sets": []},
+    {"biome": "Ocean", "boss": "—", "name": "Serpent", "prefab": "Serpent", "common": true, "hp": 400.0, "fixed": [["Serpent_attack", 70.0, 0, 10.0, "slash"], ["Serpent_taunt", 45.0, 0, 120.0, "slash+poison"]], "oneOf": [], "sets": []},
+  ];
+
+  // Espelha PowerRating.GetCreatureDps: media, por arma, de dano / intervalo. O inventario real
+  // depende do sorteio, entao a tabela usa a media dos inventarios possiveis.
+  function creatureDps(c) {
+    const hit = a => (a[1] + (rStruct.checked ? a[2] : 0)) / Math.max(0.05, a[3]);
+    const pools = [];
+    const picks = c.oneOf.length ? c.oneOf.map(a => [a]) : [[]];
+    const sets = c.sets.length ? c.sets : [[]];
+    picks.forEach(p => sets.forEach(s => pools.push(c.fixed.concat(p, s))));
+    const each = pools.map(inv => inv.length ? inv.reduce((t, a) => t + hit(a), 0) / inv.length : 0);
+    return each.reduce((t, x) => t + x, 0) / each.length;
+  }
+  const creatureRating = c => v("rk1") * c.hp + v("rk2") * creatureDps(c);
+
+  // O golpe que mais se ve: o ataque de menor intervalo, desempatado pelo maior dano.
+  function mainHit(c) {
+    const all = c.fixed.concat(c.oneOf, ...c.sets);
+    if (!all.length) return null;
+    return all.slice().sort((a, b) => a[3] - b[3] || b[1] - a[1])[0];
+  }
+
+  function drawCreatures(k5) {
+    const L = v("rlv");
+    const you = [model(L, k5)].concat(FORMS.map(f => model(L, k5, f)));
+    const names = ["Base"].concat(FORMS.map(f => f.name));
+    const cls = [""].concat(FORMS.map(f => f.cls));
+    document.getElementById("creatures-caption").textContent =
+      `Criaturas por bioma, contra você no nível ${fmt(L, 0)}`;
+    document.getElementById("creatures-thead").innerHTML =
+      `<tr class="groups"><th colspan="5"></th><th colspan="${you.length}" class="sep">você ÷ ela</th></tr>` +
+      `<tr><th scope="col">Criatura</th><th scope="col">HP</th><th scope="col">Golpe</th><th scope="col">DPS</th><th scope="col">Poder</th>` +
+      names.map((n, i) => `<th scope="col"${i === 0 ? ' class="sep"' : ""}><span class="${cls[i]}" style="color: ${i ? FORMS[i - 1].color : "var(--ki)"}">${n} ${fmt(you[i].rating, 0)}</span></th>`).join("") + `</tr>`;
+
+    let biome = null;
+    const rows = [];
+    CREATURES.forEach(c => {
+      if (c.biome !== biome) {
+        biome = c.biome;
+        rows.push(`<tr class="biome"><td colspan="${5 + you.length}">${c.biome}<span class="boss">${c.boss === "—" ? "desde o início" : "depois de " + c.boss}</span></td></tr>`);
+      }
+      const h = mainHit(c);
+      const r = creatureRating(c);
+      const hitTxt = h ? `${fmt(h[1], 0)} <span class="muted">${h[4]} / ${fmt(h[3], 0)} s</span>` : "—";
+      const ratios = you.map((y, i) => {
+        const q = r > 0 ? y.rating / r : Infinity;
+        return `<td${i === 0 ? ' class="sep"' : ""}><span class="${q >= 1 ? "win" : "lose"}">${fmt(q, q >= 10 ? 0 : 1)}×</span></td>`;
+      }).join("");
+      rows.push(`<tr><td class="who">${c.name}<span class="pf">${c.prefab}</span>${c.common ? '<span class="ref">comum</span>' : ""}</td>` +
+        `<td>${fmt(c.hp, 0)}</td><td>${hitTxt}</td><td>${fmt(creatureDps(c), 1)}</td><td>${fmt(r, 0)}</td>${ratios}</tr>`);
+    });
+    document.getElementById("creatures-tbody").innerHTML = rows.join("");
+  }
+
+  function cardsRating(k5) {
+    const L = v("rlv");
+    const b = model(L, k5);
+    const cards = [{ k: `você no nível ${fmt(L, 0)}`, v: fmt(b.rating, 0), cls: "accent",
+      n: `vida efetiva ${fmt(b.ehp, 0)} (${fmt(v("rk1") * b.ehp / b.rating * 100, 0)}% do total) · DPS ${fmt(b.rdps, 1)}` }];
+    FORMS.forEach(f => {
+      const c = model(L, k5, f);
+      cards.push({ k: `${f.name} no nível ${fmt(L, 0)}`, v: fmt(c.rating / b.rating, 2) + "×", cls: f.cls,
+        n: `${fmt(c.rating, 0)} · battle power ${fmt(Math.max(1, v(f.m)), 1)}× · vida ef. ${fmt(c.ehp / b.ehp, 2)}× · DPS ${fmt(c.rdps / b.rdps, 2)}×` });
+    });
+    const refs = CREATURES.filter(c => c.common);
+    const beaten = refs.filter(c => b.rating >= creatureRating(c));
+    cards.push({ k: "comuns que você vence", v: `${beaten.length} de ${refs.length}`,
+      n: `fora da forma. ${refs.map(c => `${c.name} ${fmt(creatureRating(c), 0)}`).join(" · ")}` });
+    return cards;
+  }
+
+  function verdictRating(k5) {
+    const L = v("rlv");
+    const b = model(L, k5), s = model(L, k5, SSJ);
+    const q = s.rating / b.rating;
+    const hpShare = v("rk1") * b.ehp / b.rating * 100;
+    if (q < 1.6) {
+      return { warn: true, html: `<strong>A transformação mexe pouco no número:</strong> no nível ${fmt(L, 0)} o ${SSJ.name} lê ${fmt(q, 2)}× a forma base, com battle power ${fmt(Math.max(1, v(SSJ.m)), 1)}×. A vida efetiva é ${fmt(hpShare, 0)}% do total e sobe só ${fmt(s.ehp / b.ehp, 2)}×, porque a forma não dá HP e a armadura entra linear. O alvo anotado em 2026-09-16 é perto de 2×.` };
+    }
+    return { html: `<strong>O ${SSJ.name} lê ${fmt(q, 2)}× a forma base</strong> no nível ${fmt(L, 0)}: vida efetiva ${fmt(s.ehp / b.ehp, 2)}×, DPS ${fmt(s.rdps / b.rdps, 2)}×. ` +
+      FORMS.slice(1).map(f => `${f.name} ${fmt(model(L, k5, f).rating / b.rating, 2)}×`).join(" · ") + "." };
+  }
+
   const LENS_FN = {
     prog: { cards: cardsProg, verdict: verdictProg },
     combat: { cards: cardsCombat, verdict: verdictCombat },
     fly: { cards: cardsFly, verdict: verdictFly },
     form: { cards: cardsForm, verdict: verdictForm },
+    rating: { cards: cardsRating, verdict: verdictRating },
   };
 
   function drawReadout(k5) {
@@ -1404,13 +1614,16 @@
       kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
+    rating: () => block("6 - Battle Power", [
+      kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)),
+      kv("RatingDamageWeight", n("rk2", 1))]),
     ki: () => block("2 - Ki", [
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
   };
   // Uma entrada por forma, montada da escada: o degrau novo entra no snippet sem tocar aqui.
   FORMS.forEach(f => { CFG[f.id] = () => formBlock(f); });
-  const CFG_ORDER = ["power", "combat", "flight"].concat(FORMS.map(f => f.id), ["ki"]);
+  const CFG_ORDER = ["power", "rating", "combat", "flight"].concat(FORMS.map(f => f.id), ["ki"]);
 
   function drawSnippet() {
     const want = cfgAll.checked ? CFG_ORDER : LENSES[lens].cfg;
@@ -1422,6 +1635,7 @@
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
     fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
+    rating: `Espelha o <code>PowerRating.cs</code> com o ki ligado. O jogador entra com HP máximo = 25 + o slider de HP, a armadura do battle power de combate e o soco desarmado vanilla (5) mais o bônus do mod. A criatura entra com armadura 0, e por isso o fator de armadura dela é sempre 1. Os dados de criatura vêm dos prefabs e também estão no vault, em <code>Técnico/Criaturas.md</code>.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -1429,7 +1643,8 @@
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
                     xps: 2, bxp: 2, bxm: 2, boss: 0,
-                    kmax: 0, kper: 1, creg: 1, cfp: 3 };
+                    kmax: 0, kper: 1, creg: 1, cfp: 3,
+                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0 };
 
   function setLens(id) {
     lens = id;
@@ -1455,6 +1670,7 @@
     document.getElementById("page-sub").innerHTML = L.sub;
     document.getElementById("formula").style.display = id === "prog" ? "" : "none";
     document.getElementById("page-footer").innerHTML = FOOTERS[id];
+    document.getElementById("creatures-card").style.display = id === "rating" ? "" : "none";
     render();
   }
 
@@ -1501,10 +1717,11 @@
     draw(k5);
     drawTable(k5);
     drawSnippet();
+    if (lens === "rating") drawCreatures(k5);
   }
 
   ids.forEach(i => el[i].addEventListener("input", render));
-  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll].forEach(c => c.addEventListener("change", render));
+  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll, rStruct].forEach(c => c.addEventListener("change", render));
 
   document.getElementById("lenses").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return; setLens(b.dataset.lens);
@@ -1521,7 +1738,7 @@
   });
   document.getElementById("reset").addEventListener("click", () => {
     ids.forEach(i => el[i].value = DEFAULTS[i]);
-    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true;
+    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = true;
     setLens(lens);
   });
   document.getElementById("copy").addEventListener("click", async e => {
