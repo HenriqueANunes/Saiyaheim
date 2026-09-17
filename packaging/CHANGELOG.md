@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed: with ki on, equipping a weapon no longer inflates your power rating. The number
+  used to add the weapon's damage on top of the ki punch bonus, a hit that never happens:
+  the bonus only applies to unarmed strikes. With ki on it now reads the unarmed punch plus
+  the bonus; with ki off it still reads the equipped weapon. Expect the number to drop if
+  you carry a weapon.
+
 ## 0.2.0
 
 - Other players' power rating now shows under their health bar, the same way enemies'

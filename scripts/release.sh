@@ -82,7 +82,7 @@ git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/$TAG" >/dev/null \
 
 TAG_COMMIT="$(git -C "$REPO_ROOT" rev-parse "$TAG^{commit}")"
 HEAD_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
-
+  
 # HEAD à frente da tag é aceito se nada do que entra no zip mudou desde ela — caso típico de
 # consertar este próprio script ou o README do repo depois de taguear. Qualquer mudança em
 # código, packaging ou build exige tag nova.

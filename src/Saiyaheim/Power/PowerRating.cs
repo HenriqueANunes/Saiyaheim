@@ -217,10 +217,10 @@ namespace Saiyaheim.Power
         /// <summary>
         /// Dano por segundo deste personagem, já com o fator de estrela.
         ///
-        /// <b>Jogador:</b> o dano da arma equipada mais o bônus que o mod soma no soco, dividido
-        /// pela cadência. O <c>GetCurrentWeapon()</c> nunca devolve null — sem nada equipado ele
-        /// entrega o <c>m_unarmedWeapon</c>, cujo dano é de unidade dígita, e é o valor certo:
-        /// quem soca sem ki bate mesmo quase nada. Com o ki ligado, o bônus domina.
+        /// <b>Jogador:</b> com o ki desligado, o dano da arma equipada; com o ki ligado, o soco
+        /// desarmado mais o bônus do mod. Dividido pela cadência. O <c>GetCurrentWeapon()</c>
+        /// nunca devolve null — sem nada equipado ele entrega o <c>m_unarmedWeapon</c>, cujo dano
+        /// é de unidade dígita, e é o valor certo: quem soca sem ki bate mesmo quase nada.
         ///
         /// <b>Criatura:</b> a média das armas do inventário dela, cada uma dividida pelo
         /// <b>próprio</b> intervalo. Bicho do Valheim guarda cada ataque como um item de arma
@@ -246,6 +246,11 @@ namespace Saiyaheim.Power
         /// desligado o <c>SE_KiBody</c> não está aplicado e o soco sai vanilla cru, então somar
         /// aqui mostraria na tela um dano que ele não dá.
         ///
+        /// <b>Com o ki ligado, a arma equipada não entra.</b> Decisão de 2026-07-30: a arma dá
+        /// zero, porque o dano do soco já vem do poder. E o <c>SE_KiBody.ModifyAttack</c> só soma o
+        /// bônus em golpe desarmado, então arma + bônus era uma soma que nenhum golpe real dá —
+        /// equipar uma espada inflava o número. Até 2026-09-17 era assim.
+        ///
         /// <b>⚠️ A cadência do jogador é config, e é a única entrada desta classe que não sai do
         /// jogo.</b> Não é preguiça: o intervalo entre golpes do jogador vive na <b>animação</b>,
         /// não no item — o <c>m_aiAttackInterval</c> existe no <c>ItemData</c>, mas é o campo que
@@ -255,7 +260,9 @@ namespace Saiyaheim.Power
         /// </summary>
         private static float GetPlayerDps(Player player)
         {
-            ItemDrop.ItemData weapon = player.GetCurrentWeapon();
+            ItemDrop.ItemData weapon = Ki.KiManager.IsEnabled
+                ? player.m_unarmedWeapon?.m_itemData
+                : player.GetCurrentWeapon();
             float damage = weapon == null ? 0f : weapon.GetDamage().GetTotalDamage();
 
             if (Ki.KiManager.IsEnabled)
