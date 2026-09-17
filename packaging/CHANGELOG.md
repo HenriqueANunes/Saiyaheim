@@ -6,6 +6,9 @@
   landing the killing blow on a creature gives 4. Both scale with your power, like the punch
   cost. Only with ki on; tamed creatures and players give nothing. Tune with
   `KiOnParryPunches` and `KiOnKillPunches` (0 turns each off).
+- New: the flight skill now softens falls. With ki on, fall damage drops with your flight
+  level, up to 80% less at level 100 (`FallDamageSkillReduction`). Turning ki off takes the
+  protection away.
 - Fixed: with ki on, equipping a weapon no longer inflates your power rating. The number
   used to add the weapon's damage on top of the ki punch bonus, a hit that never happens:
   the bonus only applies to unarmed strikes. With ki on it now reads the unarmed punch plus

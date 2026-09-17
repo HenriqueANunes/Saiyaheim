@@ -81,6 +81,35 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
+        /// Dano de queda cai com o nível da skill de voo. Pedido pelo Henrique em 2026-09-17.
+        ///
+        /// Aqui, no efeito do ki, e não no <c>SE_Flight</c>: esse só existe voando, e voando a queda
+        /// já é zero. Morar no <c>SE_KiBody</c> amarra a proteção ao toggle — com a barra vazia ainda
+        /// protege, com o ki desligado a queda é vanilla, como todo o resto do mod.
+        ///
+        /// <b>Multiplica o <paramref name="damage"/> que chegou</b>, em vez de somar sobre o
+        /// <paramref name="baseDamage"/> como o <c>SE_Stats</c> faz. Assim compõe com a capa de pena
+        /// e qualquer outro efeito de queda, seja qual for a ordem no <c>SEMan</c>.
+        /// </summary>
+        public override void ModifyFallDamage(float baseDamage, ref float damage)
+        {
+            base.ModifyFallDamage(baseDamage, ref damage);
+
+            float reduction = Mathf.Clamp01(SaiyaheimConfig.FlightFallDamageSkillReduction.Value) *
+                              Flight.FlightSkill.GetLevelFactor(m_character as Player);
+            if (reduction <= 0f || damage <= 0f)
+            {
+                return;
+            }
+
+            float before = damage;
+            damage *= 1f - reduction;
+
+            SaiyaheimPlugin.LogVerbose(
+                $"Fall damage: {before:0.#} → {damage:0.#} ({reduction:P0} off from flight skill).");
+        }
+
+        /// <summary>
         /// Não mexe no bônus: só avisa o <see cref="BlockPowerPatch"/> que este bloqueio é um parry.
         /// O jogo chama isto apenas quando o tempo acertou a janela. Ver <c>Ki.KiRewards</c>.
         /// </summary>

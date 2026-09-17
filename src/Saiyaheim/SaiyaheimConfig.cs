@@ -620,6 +620,9 @@ namespace Saiyaheim
         /// </summary>
         public static ConfigEntry<float> FlightKiSkillCurve { get; private set; }
 
+        /// <summary>Fração do dano de queda removida no nível 100 da skill de voo, com o ki ligado. Linear.</summary>
+        public static ConfigEntry<float> FlightFallDamageSkillReduction { get; private set; }
+
         /// <summary>
         /// Barateamento hiperbólico do voo vindo do termo de fim de jogo. É a única coisa do voo
         /// que esse termo toca — velocidade fica de fora.
@@ -1926,6 +1929,20 @@ namespace Saiyaheim
                     "KiPerSecond; 0.3 turned out to be the other extreme, with the skill barely " +
                     "moving over a whole session.)",
                     new AcceptableValueRange<float>(0f, 20f), AdminOnly(60)));
+
+            // 0.8 veio do playtest de 2026-09-17 (comecou em 0.75, escolha do Henrique antes de
+            // testar). Abaixo de 1 de proposito:
+            // zerar tiraria a consequencia da queda de vez. Linear e nao com curva como o custo de
+            // ki: aqui nao ha o risco de o voo virar transporte padrao cedo demais.
+            FlightFallDamageSkillReduction = config.Bind(SecFlight, "FallDamageSkillReduction", 0.8f,
+                new ConfigDescription(
+                    "Fraction of fall damage removed at level 100 of the flight skill, linear in the " +
+                    "level (0.8 = 40% less at level 50, 80% less at 100). Only while ki is on — " +
+                    "an empty bar still protects, turning ki off does not. Flying itself never " +
+                    "takes fall damage; this is for jumping off cliffs and dropping out of flight. " +
+                    "Stacks multiplicatively with the game's own fall protection (feather cape). " +
+                    "0 disables it, 1 makes level 100 immune.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(58)));
 
             FlightWeightPenalty = config.Bind(SecFlight, "WeightPenalty", 0.6f,
                 new ConfigDescription(
