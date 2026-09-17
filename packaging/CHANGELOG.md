@@ -7,6 +7,10 @@
   the bonus only applies to unarmed strikes. With ki on it now reads the unarmed punch plus
   the bonus; with ki off it still reads the equipped weapon. Expect the number to drop if
   you carry a weapon.
+- Fixed: charging the Kamehameha now holds you in place. On the ground you can no longer
+  walk or run while charging; in flight you hover still, with no climbing or diving. Aiming
+  stays free. You can't block or attack while charging. Jumping or dodging on the ground drops the
+  charge without firing.
 
 ## 0.2.0
 

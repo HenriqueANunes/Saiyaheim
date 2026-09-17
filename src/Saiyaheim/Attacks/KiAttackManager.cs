@@ -56,6 +56,14 @@ namespace Saiyaheim.Attacks
                 // não é mais o que a tecla dispara.
                 KiBeamCharge.Cancel();
             }
+            else if (KiBeamCharge.Current != null && IsJumpOrDodgePressed(player))
+            {
+                // Carregando no chão, pulo e esquiva largam a carga sem disparar e acontecem
+                // normalmente. Não passam pelo m_moveDir, então o HoldStill não os segura, e
+                // bloqueá-los exigiria patch no Player.SetControls. Decidido em 2026-09-17: vale
+                // como saída de emergência.
+                KiBeamCharge.Cancel();
+            }
             else if (KiBeamCharge.Current != null)
             {
                 // Carga em curso: ou o dedo saiu da tecla, ou a barra acabou. IsMainKeyHeld e não
@@ -76,6 +84,23 @@ namespace Saiyaheim.Attacks
             {
                 Press(player);
             }
+        }
+
+        /// <summary>
+        /// Pulo ou esquiva neste frame, fora do voo. Mesmos botões que o <c>PlayerController</c>
+        /// lê; no teclado a esquiva é agachar + pulo, então o <c>Jump</c> cobre as duas. Voando, o
+        /// pulo é o comando de subir e não cancela nada — ali quem segura é o <c>SE_Flight</c>.
+        /// </summary>
+        private static bool IsJumpOrDodgePressed(Player player)
+        {
+            if (Flight.FlightManager.IsFlying(player))
+            {
+                return false;
+            }
+
+            return ZInput.GetButtonDown("Jump")
+                   || ZInput.GetButtonDown("JoyJump")
+                   || ZInput.GetButtonDown("JoyDodge");
         }
 
         /// <summary>

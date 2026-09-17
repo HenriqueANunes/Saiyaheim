@@ -74,6 +74,31 @@ namespace Saiyaheim.Attacks
         }
 
         /// <summary>
+        /// Prende o jogador local no lugar enquanto ele carrega: zera o <c>m_moveDir</c>, no chão
+        /// e no voo, inclusive o componente vertical.
+        ///
+        /// A pose de mãos em concha deslizando pelo mapa não é o golpe, e o custo da carga perde o
+        /// sentido se dá para se reposicionar de graça enquanto paga. Corrigido em 2026-09-17.
+        ///
+        /// <b>Só funciona chamado de dentro do <c>SEMan.Update</c></b>, que é a janela entre o
+        /// <c>PlayerController</c> escrever o vetor e o <c>UpdateMotion</c> lê-lo — a mesma que o
+        /// <c>SE_Flight</c> usa para subir e descer. Por isso quem chama são os dois efeitos, e
+        /// não o <see cref="KiAttackManager"/>: o <c>SE_KiBody</c> cobre o chão (carregar exige ki
+        /// ligado, então ele está sempre aplicado), e o <c>SE_Flight</c> cobre o voo. A ordem
+        /// entre os dois no <c>SEMan</c> não importa, porque ambos zeram.
+        ///
+        /// Mirar continua livre: o <c>m_lookDir</c> não é tocado. Pulo e esquiva não passam por
+        /// este vetor; eles cancelam a carga, no <see cref="KiAttackManager"/>.
+        /// </summary>
+        internal static void HoldStill(Player player)
+        {
+            if (IsCharging(player))
+            {
+                player.SetMoveDir(Vector3.zero);
+            }
+        }
+
+        /// <summary>
         /// A carga do jogador local chegou ao topo?
         ///
         /// Segurar além disto não compra mais nada — o teto é o <c>BeamCount</c> — e é justamente

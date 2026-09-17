@@ -69,6 +69,17 @@ namespace Saiyaheim.Power
             return effect;
         }
 
+        public override void UpdateStatusEffect(float dt)
+        {
+            base.UpdateStatusEffect(dt);
+
+            // Kamehameha carregando prende o jogador no chão. Ver KiBeamCharge.HoldStill.
+            if (m_character is Player player)
+            {
+                Attacks.KiBeamCharge.HoldStill(player);
+            }
+        }
+
         public override void ModifyAttack(Skills.SkillType skill, ref HitData hitData)
         {
             if (IsPunch(skill))

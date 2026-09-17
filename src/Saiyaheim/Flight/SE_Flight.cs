@@ -158,6 +158,14 @@ namespace Saiyaheim.Flight
                 return;
             }
 
+            // Kamehameha carregando: pairar parado, sem subir nem descer. O SE_KiBody também zera,
+            // mas se ele rodar antes deste efeito o componente vertical voltaria aqui.
+            if (Attacks.KiBeamCharge.IsCharging(player))
+            {
+                Attacks.KiBeamCharge.HoldStill(player);
+                return;
+            }
+
             float vertical = 0f;
 
             // Character.TakeInput() seria o teste completo, mas é protected: compila por causa da
