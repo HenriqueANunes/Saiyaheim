@@ -353,6 +353,9 @@
             <input type="range" id="fkr" min="0" max="0.99" step="0.01" value="0.95"></div>
           <div class="ctl"><div class="row"><label for="fkc">KiSkillCurve</label><output id="fkc-out"></output></div>
             <input type="range" id="fkc" min="0.25" max="5" step="0.25" value="2"></div>
+          <div class="ctl"><div class="row"><label for="fdr">FallDamageSkillReduction</label><output id="fdr-out"></output></div>
+            <input type="range" id="fdr" min="0" max="1" step="0.05" value="0.8"></div>
+          <p class="hint">Fração do dano de queda tirada no nível 100 da skill de voo, <b>linear</b> no nível e só com o ki ligado. Vanilla, a queda tira <code>(altura − 4) ÷ 16 × 100</code>, com teto de 100 a partir de 20 m. Voando a queda já é zero; isto vale para pular de penhasco e cair do voo. 0,8 veio do playtest de 2026-09-17.</p>
           <div class="ctl"><div class="row"><label for="fb">BaseSpeed</label><output id="fb-out"></output></div>
             <input type="range" id="fb" min="1" max="20" step="0.5" value="2"></div>
           <div class="ctl"><div class="row"><label for="fp">SpeedFromPower</label><output id="fp-out"></output></div>
@@ -543,7 +546,7 @@
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
-               "fkp", "fki", "fkr", "fkc", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
+               "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "bxm", "boss",
                "kmax", "kper", "creg", "cfp"];
   const el = {};
@@ -679,6 +682,10 @@
     const powerCut = 1 / (1 + v("fkp") * lateBonus(L, k5));
     const flycost = Math.max(0, v("fki") * skillCut * powerCut);
 
+    // Dano de queda: o teto vanilla (100, de 20 m para cima) com a reducao linear da skill de voo.
+    // Nao le poder nenhum — so' a skill. Espelha SE_KiBody.ModifyFallDamage.
+    const fallCut = Math.min(1, Math.max(0, v("fdr"))) * flyLvl / MAXLVL;
+
     // Custo do soco: proporcional ao bonus, e o poder de combate desconta por cima. Mesma forma
     // hiperbolica do voo, mas lendo o poder INTEIRO e nao so' o termo de fim de jogo — o custo do
     // soco ja' e' proporcional ao poder, entao o desconto so' corrige um crescimento que ja'
@@ -727,6 +734,7 @@
       block: v("blkb") + power * v("blkp"),
       flycost,
       range: flycost > 0 ? kiMax / flycost : Infinity,
+      fall: 100 * (1 - fallCut),
       fly: Math.min(Math.max(flyRaw, 1), v("fm")),
       kimax: kiMax,
       refill,
@@ -779,6 +787,8 @@
       sub: "teto de ki ÷ custo — segundos no ar com a barra cheia. Sobe pelos dois eixos: o nível enche a barra, a skill de voo esvazia mais devagar" },
     fly: { btn: "velocidade", label: "Velocidade de voo", mode: "forms", dec: 1, unit: " m/s",
       sub: "lê só a parte linear: o termo de fim de jogo não a toca, de propósito. A forma multiplica, mas só a fração FormSpeedShare do ganho dela; o peso desconta em curva e o MaxSpeed corta por cima" },
+    fall: { btn: "dano de queda", label: "Dano de queda de 20 m", mode: "skill", dec: 0, unit: "",
+      sub: "a pior queda do jogo, que no vanilla tira 100 de vida. Cai em linha reta com a skill de voo (FallDamageSkillReduction) e não lê power level; vale só com o ki ligado" },
     kimax: { btn: "teto de ki", label: "Teto de ki", mode: "solo", dec: 0, unit: "",
       sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra" },
     drain: { btn: "dreno", label: "Dreno da forma", mode: "formonly", dec: 2, unit: " ki/s",
@@ -834,7 +844,7 @@
     fly: {
       title: "Voar é o segundo eixo de progressão",
       sub: "A skill de voo sobe por tempo no ar, não por power level. O nível enche a barra de ki; a skill esvazia ela mais devagar. Custo e autonomia leem os dois, e a velocidade lê só o power level — de propósito.",
-      stats: ["flycost", "range", "fly", "kimax"],
+      stats: ["flycost", "range", "fly", "fall", "kimax"],
       open: ["g-fly"],
       today: false,
       // O eixo por carga so' existe aqui: peso e' a unica entrada da pagina que nao e' nivel, e
@@ -843,7 +853,7 @@
       cfg: ["flight", "ki"],
       caption: "Voo nível a nível, com a skill de voo acompanhando",
       cols: [cmp("Voo ki/s", "flycost", 2), cmp("Autonomia", "range", 0, " s"), cmp("Voo m/s", "fly", 1),
-             cmp("Teto ki", "kimax", 0), cmp("Recarga", "refill", 0, " s")],
+             cmp("Queda 20 m", "fall", 0), cmp("Teto ki", "kimax", 0), cmp("Recarga", "refill", 0, " s")],
     },
     form: {
       title: "Quanto custa segurar a forma, e por quanto tempo",
@@ -1154,6 +1164,10 @@
       // no nivel 100 e' o mesmo numero do cartao ao lado, e dois cartoes iguais nao dizem nada.
       { k: "sem a skill de voo", v: fmt(skill0.range, 0) + " s",
         n: `a ${fmt(skill0.flycost, 2)} ki/s — o que o power level sozinho compra` },
+      // Referencia fixa (a queda de 20 m, teto vanilla) porque o dano de queda nao tem nivel de
+      // poder: so' a skill mexe nele, e o numero cru e' o que o jogador sente na barra de vida.
+      { k: "queda de 20 m no 100", v: fmt(skill100.fall, 0) + " de dano",
+        n: `vanilla são 100; na skill 50, ${fmt(model(100, k5, null, { flyLvl: 50 }).fall, 0)}. Só com o ki ligado` },
       // O cartao da forma mostra o fator amortecido junto: sem ele o "x1,6" do SSJ2 parece nao bater
       // com o PowerMultiplier 3 que o jogador acabou de ajustar no rail ao lado.
       { k: "velocidade no 100", v: fmt(m100.fly, 1) + " m/s",
@@ -1385,6 +1399,7 @@
     flight: () => block("5 - Flight", [
       kv("KiPowerReduction", n("fkp", 4)), kv("KiPerSecond", n("fki", 1)),
       kv("KiSkillReduction", n("fkr", 2)), kv("KiSkillCurve", n("fkc", 2)),
+      kv("FallDamageSkillReduction", n("fdr", 2)),
       kv("BaseSpeed", n("fb", 1)), kv("SpeedFromPower", n("fp", 3)),
       kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
@@ -1411,7 +1426,7 @@
 
   // ── render ────────────────────────────────────────────────────────────────
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
-                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
+                    blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
                     xps: 2, bxp: 2, bxm: 2, boss: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3 };
