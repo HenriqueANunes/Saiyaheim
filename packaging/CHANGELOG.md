@@ -6,6 +6,10 @@
   landing the killing blow on a creature gives 4. Both scale with your power, like the punch
   cost. Only with ki on; tamed creatures and players give nothing. Tune with
   `KiOnParryPunches` and `KiOnKillPunches` (0 turns each off).
+- New: the ki blast explodes on impact, hitting everything within 2 m for full damage —
+  buildings included (`ImpactRadius`, per attack; the Kamehameha stays at 0). To make up for
+  it, its damage went down 10% (`DamageBase` 10 → 9, `DamageFromPower` 0.04 → 0.036). Servers
+  with an existing config keep the old damage until those two lines are updated.
 - New: the flight skill now softens falls. With ki on, fall damage drops with your flight
   level, up to 80% less at level 100 (`FallDamageSkillReduction`). Turning ki off takes the
   protection away.

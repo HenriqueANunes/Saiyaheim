@@ -436,6 +436,9 @@ namespace Saiyaheim
             /// <summary>Empurrão no alvo atingido.</summary>
             public ConfigEntry<float> Knockback { get; internal set; }
 
+            /// <summary>Raio da explosão em metros. Zero = só o alvo acertado. Ver <c>KiProjectile.Defuse</c>.</summary>
+            public ConfigEntry<float> ImpactRadius { get; internal set; }
+
             /// <summary>Prefab do projétil, do <c>ZNetScene</c>. Ver [[Prefabs do Jogo]].</summary>
             public string ProjectilePrefab { get; internal set; }
 
@@ -1614,10 +1617,15 @@ namespace Saiyaheim
             //   jogo, so a atrasa: ver [[Em Aberto]].
             // O saiya_blast imprime dano/ki dos dois lado a lado — e' por ali que a calibracao sai.
             KiBlast = BindKiAttack(config, SecKiBlast,
-                damageBase: 10f,
-                damageFromPower: 0.04f,
+                // 10 / 0,04 ate' 2026-09-17, quando o blast ganhou area de 2 m. A area da' dano
+                // CHEIO a cada alvo no raio, e o Henrique pediu compensar no dano: -10%, que contra
+                // alvo sozinho quase nao se sente e com dois alvos ja' entrega mais que antes.
+                damageBase: 9f,
+                damageFromPower: 0.036f,
                 kiCost: 20f,
                 cooldown: 0.5f,
+                // 2 m, escolha do Henrique em 2026-09-17 antes de playtest. Danifica construcao.
+                impactRadius: 2f,
                 // Escolhido no playtest de 2026-08-20, ganhando do fireball Dvergr e do
                 // staff_greenroots_projectile. O estouro dele traz som e clarao bons e uma fumaca
                 // que nao combina com tiro de energia — dai o Strip abaixo, e nao um none no
@@ -2428,7 +2436,7 @@ namespace Saiyaheim
             float kiCost, float cooldown, string projectilePrefab, string impactEffect,
             string impactEffectStrip, string impactColor, string projectileColor,
             string requiredGlobalKey, int beamCount = 1, float beamInterval = 0.05f,
-            float knockback = 30f, float projectileSpeed = 30f, float projectileLifetime = 3f,
+            float knockback = 30f, float impactRadius = 0f, float projectileSpeed = 30f, float projectileLifetime = 3f,
             float projectileScale = 1f, float chargeTime = 0f, float minChargeRatio = 0.15f,
             float chargeMinScale = 0.4f, string chargeEffectPrefab = "",
             string chargeEffectColor = "", float chargeEffectScale = 1f,
@@ -2501,6 +2509,20 @@ namespace Saiyaheim
                         "impact rather than a scratch, and it buys back the distance the attack " +
                         "exists to keep.",
                         new AcceptableValueRange<float>(0f, 500f), AdminOnly(80))),
+
+                // O Projectile do jogo ja' sabe explodir (m_aoe): um OverlapSphere no impacto que
+                // aplica o mesmo m_damage, ja' escalado pelo poder, a todo alvo no raio. Sem queda
+                // por distancia — dano cheio em cada um —, e por isso o blast perdeu 10% de dano
+                // quando ganhou area (2026-09-17).
+                ImpactRadius = config.Bind(section, "ImpactRadius", impactRadius,
+                    new ConfigDescription(
+                        "Radius in meters of the explosion where the projectile lands. Everything " +
+                        "inside takes the FULL damage and knockback — the game has no falloff — " +
+                        "including buildings. Hitting the ground explodes too, so a near miss still " +
+                        "hits whoever is close. The shooter is never hit; other players only with " +
+                        "PvP on. 0 = only the target struck, as before. " +
+                        "On a beam (BeamCount above 1) this applies to every projectile of it.",
+                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(79))),
 
                 // A peca que faz o Kamehameha existir sem o jogo ter feixe. Descoberta no playtest
                 // de 2026-09-07: o projectile_beam do Yagluth NAO e' um raio sustentado — o boss

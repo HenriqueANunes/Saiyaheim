@@ -206,7 +206,7 @@ namespace Saiyaheim.Attacks
         private static void Defuse(Projectile projectile, KiAttack attack)
         {
             // O que o prefab instancia no impacto: a poça de fogo do Dvergr, estilhaços, o que for.
-            // Sai por duas razões: o ataque básico não tem área, e o dano daquilo não passa pelo
+            // Sai por duas razões: a área do mod é a do m_aoe abaixo, e o dano daquilo não passa pelo
             // battle power — seria dano fora da fórmula, invisível para qualquer cálculo do mod.
             //
             // ⚠️ E há uma armadilha se ficar: o Setup ZERA o dano do projétil quando o prefab tem
@@ -215,7 +215,18 @@ namespace Saiyaheim.Attacks
             projectile.m_spawnOnHit = null;
             projectile.m_randomSpawnOnHit.Clear();
             projectile.m_respawnItemOnHit = false;
-            projectile.m_aoe = 0f;
+
+            // A area NAO e' a mesma coisa que o m_spawnOnHit acima: o DoAOE aplica o proprio
+            // m_damage do projetil, que o Setup preenche com o HitData do mod — passa pela formula.
+            // O prefab traz a area dele; a do mod e' a da config, zero desliga. Decidido em
+            // 2026-09-17: sem pular construcao, e cada alvo uma vez so' por projetil.
+            projectile.m_aoe = Mathf.Max(0f, attack.Config.ImpactRadius.Value);
+            projectile.m_aoeSkipWearNTear = false;
+            projectile.m_aoeMaxHitOnce = true;
+
+            // Com area ligada, este campo faria o projetil explodir a cada intervalo EM VOO, e nao
+            // so' no impacto. Um prefab de magia pode trazer ligado.
+            projectile.m_hitMidFlight = false;
 
             projectile.m_ttl = Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);
             // Gravidade zero, e não uma chave: um tiro de energia voa reto. Com arco o projétil

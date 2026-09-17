@@ -359,7 +359,10 @@ namespace Saiyaheim.Debugging
 
             Print($"Projectile: {prefabName}{(exists ? "" : "  *** DOES NOT EXIST — nothing will fire ***")}");
             Print($"  {speed:0.#} m/s for {life:0.##} s = {speed * life:0} m range, " +
-                  $"knockback {attack.Config.Knockback.Value:0}");
+                  $"knockback {attack.Config.Knockback.Value:0}, " +
+                  (attack.Config.ImpactRadius.Value > 0f
+                      ? $"{attack.Config.ImpactRadius.Value:0.#} m explosion (full damage to each target)"
+                      : "no explosion"));
 
             int beam = attack.GetBeamCount();
             if (beam <= 1)
