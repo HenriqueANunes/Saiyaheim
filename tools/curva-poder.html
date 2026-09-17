@@ -480,6 +480,17 @@
       <details class="card group" id="g-rating" data-lens="rating">
         <summary><span class="chev">▶</span>Poder de luta</summary>
         <div class="group-body">
+          <div class="ctl is-hero"><div class="row"><label for="rlv">Nível do jogador (cartões e tabela de criaturas)</label><output id="rlv-out"></output></div>
+            <input type="range" id="rlv" min="0" max="100" step="1" value="50"></div>
+          <label class="check">
+            <input type="checkbox" id="rhptrack" checked>
+            HP extra acompanha o nível
+          </label>
+          <p class="hint">Marcado, o HP acima da base (slider do grupo Battle power) é o valor no nível 100, e cresce em linha reta desde 0 no nível 0: o jogador que começa sem comida e termina com a melhor. Desmarque para fixar o HP em todos os níveis. Vale só nesta aba.</p>
+          <p class="hint">A conta usa a armadura e o soco da forma <b>base</b> e multiplica o resultado por <code>1 + (PowerMultiplier − 1) × RatingFormShare</code>. Transformado, o número é o da forma base escalado; a armadura e o soco de dentro da forma continuam valendo no combate, não aqui.</p>
+          <div class="ctl is-hero"><div class="row"><label for="rfs">RatingFormShare</label><output id="rfs-out"></output></div>
+            <input type="range" id="rfs" min="0" max="1.5" step="0.05" value="1"></div>
+          <p class="hint">Quanto do multiplicador da forma chega ao número. Em 1 o SSJ lê exatamente 2×; em 0,5, 1,5×. Mesmo desenho do <code>FormSpeedShare</code> do voo.</p>
           <div class="ctl"><div class="row"><label for="rk1">RatingHealthWeight</label><output id="rk1-out"></output></div>
             <input type="range" id="rk1" min="0" max="3" step="0.05" value="0.8"></div>
           <div class="ctl"><div class="row"><label for="rc">RatingArmorScale</label><output id="rc-out"></output></div>
@@ -489,12 +500,10 @@
             <input type="range" id="rk2" min="0" max="30" step="0.5" value="10"></div>
           <div class="ctl"><div class="row"><label for="rhi">PlayerHitInterval (constante no código)</label><output id="rhi-out"></output></div>
             <input type="range" id="rhi" min="0.5" max="10" step="0.5" value="5"></div>
-          <p class="hint">Segundos entre dois socos que a conta supõe. Não é config: é <code>const</code> no <code>PowerRating.cs</code>. Está aqui para ver quanto ele achata o termo de dano, que é o termo que a forma multiplica.</p>
-          <div class="ctl is-hero"><div class="row"><label for="rlv">Nível do jogador na tabela de criaturas</label><output id="rlv-out"></output></div>
-            <input type="range" id="rlv" min="0" max="100" step="1" value="50"></div>
+          <p class="hint">Segundos entre dois socos que a conta supõe. Não é config: é <code>const</code> no <code>PowerRating.cs</code>.</p>
           <label class="check">
             <input type="checkbox" id="rstruct" checked>
-            contar dano em estrutura (chop, pickaxe)
+            contar dano em estrutura das criaturas (chop, pickaxe)
           </label>
           <p class="hint">Marcado é o que o mod faz hoje: o <code>GetTotalDamage()</code> do jogo soma <code>chop</code> e <code>pickaxe</code>, que só acertam construção. Troll, Stone Golem, Seeker e Morgen saem inflados por isso.</p>
         </div>
@@ -598,7 +607,7 @@
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "bxm", "boss",
-               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv"];
+               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
@@ -607,6 +616,7 @@
   const cmpForms = document.getElementById("cmp-forms");
   const cfgAll = document.getElementById("cfg-all");
   const rStruct = document.getElementById("rstruct");
+  const rHpTrack = document.getElementById("rhptrack");
   const DEFAULTS = Object.fromEntries(ids.map(i => [i, el[i].value]));
 
   let lens = "prog";
@@ -646,7 +656,10 @@
   //   linear  -> velocidade de voo, teto de ki, regen/carga  (GetRaw)
   //   combate -> soco, armadura, block, numero exibido       (GetCombatRaw)
   const lateBonus = (L, k5) => k5 * MAXLVL * Math.pow(L / MAXLVL, v("p"));
-  const linearPower = L => v("k1") * v("hp") + v("k4") * L;
+  // HP acima da base no nivel L. So' a aba de poder de luta faz o HP crescer com o nivel: nas outras
+  // o slider continua sendo um HP fixo, como sempre foi.
+  const hpAt = L => (lens === "rating" && rHpTrack.checked ? v("hp") * L / MAXLVL : v("hp"));
+  const linearPower = L => v("k1") * hpAt(L) + v("k4") * L;
   const combatPower = (L, k5) => linearPower(L) + lateBonus(L, k5);
 
   // HitData.ApplyArmor, copiada do assembly_valheim.
@@ -774,16 +787,29 @@
     // Poder de luta: o numero da tela, na mesma escala das criaturas. Espelha PowerRating.GetRaw
     // com o ki ligado: vida maxima (base 25 + comida) esticada pela armadura, mais o soco desarmado
     // vanilla (5) com o bonus do mod, dividido pela cadencia suposta.
-    const maxhp = 25 + v("hp");
-    const ehp = v("rc") > 0 ? maxhp * (1 + armor / v("rc")) : maxhp;
-    const rdps = (PLAYER_UNARMED + punch) / v("rhi");
+    const maxhp = 25 + hpAt(L);
+    // A conta do PowerRating para uma armadura e um soco quaisquer.
+    const ratingOf = (ac, pb) => {
+      const e = maxhp * (v("rc") > 0 ? 1 + ac / v("rc") : 1);
+      const d = (PLAYER_UNARMED + pb) / v("rhi");
+      return { e, d, r: v("rk1") * e + v("rk2") * d };
+    };
+    const inForm = ratingOf(armor, punch);
+    // A forma multiplica a conta da forma BASE (decisao de 2026-09-17). Espelha
+    // PowerRating.GetRaw com o GetFormFactor: vida efetiva e DPS saem da armadura e do soco sem a
+    // forma. As colunas ehp e dps continuam mostrando os de dentro da forma.
+    const basePower = combatPower(L, k5);
+    const baseRating = ratingOf(Math.round(v("armb") + basePower * v("armp")), basePower * v("dmg"));
+    const rating = baseRating.r * (form ? 1 + (mult - 1) * v("rfs") : 1);
+    const ehp = inForm.e;
+    const rdps = inForm.d;
 
     return {
       power,
       gain,
       ehp,
       rdps,
-      rating: v("rk1") * ehp + v("rk2") * rdps,
+      rating,
       eff: gain / xpCost[Math.max(nxt, 1)],
       armor,
       taken: applyArmor(v("hit"), armor),
@@ -952,7 +978,8 @@
       cfg: ["rating"],
       caption: "Poder de luta nível a nível, fora e dentro de cada forma",
       cols: [col("Vida ef.", c => c.m.ehp, 0), col("DPS", c => c.m.rdps, 1), col("Poder", c => c.m.rating, 0)].concat(
-        FORMS.map((f, i) => fcol("Poder", i, "rating", 0, "", { sep: i === 0, get: c => c.f[i].rating }))),
+        FORMS.map((f, i) => fcol("Poder", i, "rating", 0, "", { sep: i === 0, get: c => c.f[i].rating })),
+        [col("SSJ ÷ base", c => c.f[0].rating / c.m.rating, 2, "×", { sep: true })]),
     },
   };
 
@@ -977,7 +1004,7 @@
       FORMS.forEach(f => out.push({ color: f.color, label: f.name, short: f.name, of: L => model(L, k5, f)[key] }));
       return out;
     }
-    if (cmpToday.checked) {
+    if (cmpToday.checked && lens !== "rating") {
       out.push({ color: "var(--today)", dash: "5 4", label: "hoje (o termo desligado)", short: "hoje",
                  of: L => model(L, 0)[key] });
     }
@@ -1484,16 +1511,29 @@
 
   // Espelha PowerRating.GetCreatureDps: media, por arma, de dano / intervalo. O inventario real
   // depende do sorteio, entao a tabela usa a media dos inventarios possiveis.
-  function creatureDps(c) {
-    const hit = a => (a[1] + (rStruct.checked ? a[2] : 0)) / Math.max(0.05, a[3]);
-    const pools = [];
+  // Os inventarios que o sorteio pode dar: armas fixas + uma do m_randomWeapon + um conjunto.
+  function pools(c) {
+    const out = [];
     const picks = c.oneOf.length ? c.oneOf.map(a => [a]) : [[]];
     const sets = c.sets.length ? c.sets : [[]];
-    picks.forEach(p => sets.forEach(s => pools.push(c.fixed.concat(p, s))));
-    const each = pools.map(inv => inv.length ? inv.reduce((t, a) => t + hit(a), 0) / inv.length : 0);
+    picks.forEach(p => sets.forEach(s => out.push(c.fixed.concat(p, s))));
+    return out;
+  }
+
+  function creatureDps(c) {
+    const hit = a => (a[1] + (rStruct.checked ? a[2] : 0)) / Math.max(0.05, a[3]);
+    const each = pools(c).map(inv => inv.length ? inv.reduce((t, a) => t + hit(a), 0) / inv.length : 0);
     return each.reduce((t, x) => t + x, 0) / each.length;
   }
   const creatureRating = c => v("rk1") * c.hp + v("rk2") * creatureDps(c);
+
+  // Primeiro nivel em que o jogador empata com esta criatura, fora da forma e na forma pedida.
+  // Nao le a forma travada por boss: e' so' "a partir de que nivel o numero passa o dela".
+  function levelToMatch(c, k5, form = null) {
+    const r = creatureRating(c);
+    for (let L = 0; L <= MAXLVL; L++) if (model(L, k5, form).rating >= r) return L;
+    return Infinity;
+  }
 
   // O golpe que mais se ve: o ataque de menor intervalo, desempatado pelo maior dano.
   function mainHit(c) {
@@ -1510,16 +1550,17 @@
     document.getElementById("creatures-caption").textContent =
       `Criaturas por bioma, contra você no nível ${fmt(L, 0)}`;
     document.getElementById("creatures-thead").innerHTML =
-      `<tr class="groups"><th colspan="5"></th><th colspan="${you.length}" class="sep">você ÷ ela</th></tr>` +
+      `<tr class="groups"><th colspan="5"></th><th colspan="${you.length}" class="sep">você ÷ ela</th><th colspan="2" class="sep">empata no nível</th></tr>` +
       `<tr><th scope="col">Criatura</th><th scope="col">HP</th><th scope="col">Golpe</th><th scope="col">DPS</th><th scope="col">Poder</th>` +
-      names.map((n, i) => `<th scope="col"${i === 0 ? ' class="sep"' : ""}><span class="${cls[i]}" style="color: ${i ? FORMS[i - 1].color : "var(--ki)"}">${n} ${fmt(you[i].rating, 0)}</span></th>`).join("") + `</tr>`;
+      names.map((n, i) => `<th scope="col"${i === 0 ? ' class="sep"' : ""}><span class="${cls[i]}" style="color: ${i ? FORMS[i - 1].color : "var(--ki)"}">${n} ${fmt(you[i].rating, 0)}</span></th>`).join("") +
+      `<th scope="col" class="sep">base</th><th scope="col">${SSJ.name}</th></tr>`;
 
     let biome = null;
     const rows = [];
     CREATURES.forEach(c => {
       if (c.biome !== biome) {
         biome = c.biome;
-        rows.push(`<tr class="biome"><td colspan="${5 + you.length}">${c.biome}<span class="boss">${c.boss === "—" ? "desde o início" : "depois de " + c.boss}</span></td></tr>`);
+        rows.push(`<tr class="biome"><td colspan="${7 + you.length}">${c.biome}<span class="boss">${c.boss === "—" ? "desde o início" : "depois de " + c.boss}</span></td></tr>`);
       }
       const h = mainHit(c);
       const r = creatureRating(c);
@@ -1529,7 +1570,8 @@
         return `<td${i === 0 ? ' class="sep"' : ""}><span class="${q >= 1 ? "win" : "lose"}">${fmt(q, q >= 10 ? 0 : 1)}×</span></td>`;
       }).join("");
       rows.push(`<tr><td class="who">${c.name}<span class="pf">${c.prefab}</span>${c.common ? '<span class="ref">comum</span>' : ""}</td>` +
-        `<td>${fmt(c.hp, 0)}</td><td>${hitTxt}</td><td>${fmt(creatureDps(c), 1)}</td><td>${fmt(r, 0)}</td>${ratios}</tr>`);
+        `<td>${fmt(c.hp, 0)}</td><td>${hitTxt}</td><td>${fmt(creatureDps(c), 1)}</td><td>${fmt(r, 0)}</td>${ratios}` +
+        [null, SSJ].map((f, i) => { const m = levelToMatch(c, k5, f); return `<td${i === 0 ? ' class="sep"' : ""}>${isFinite(m) ? m : '<span class="lose">—</span>'}</td>`; }).join("") + `</tr>`);
     });
     document.getElementById("creatures-tbody").innerHTML = rows.join("");
   }
@@ -1538,29 +1580,31 @@
     const L = v("rlv");
     const b = model(L, k5);
     const cards = [{ k: `você no nível ${fmt(L, 0)}`, v: fmt(b.rating, 0), cls: "accent",
-      n: `vida efetiva ${fmt(b.ehp, 0)} (${fmt(v("rk1") * b.ehp / b.rating * 100, 0)}% do total) · DPS ${fmt(b.rdps, 1)}` }];
+      n: `HP ${fmt(25 + hpAt(L), 0)}, armadura ${fmt(b.armor, 0)}, vida efetiva ${fmt(b.ehp, 0)} · DPS ${fmt(b.rdps, 1)}` }];
     FORMS.forEach(f => {
       const c = model(L, k5, f);
       cards.push({ k: `${f.name} no nível ${fmt(L, 0)}`, v: fmt(c.rating / b.rating, 2) + "×", cls: f.cls,
-        n: `${fmt(c.rating, 0)} · battle power ${fmt(Math.max(1, v(f.m)), 1)}× · vida ef. ${fmt(c.ehp / b.ehp, 2)}× · DPS ${fmt(c.rdps / b.rdps, 2)}×` });
+        n: `${fmt(c.rating, 0)} · armadura ${fmt(c.armor, 0)} no combate, ${fmt(b.armor, 0)} na conta` });
     });
     const refs = CREATURES.filter(c => c.common);
-    const beaten = refs.filter(c => b.rating >= creatureRating(c));
-    cards.push({ k: "comuns que você vence", v: `${beaten.length} de ${refs.length}`,
-      n: `fora da forma. ${refs.map(c => `${c.name} ${fmt(creatureRating(c), 0)}`).join(" · ")}` });
+    const beats = m => refs.filter(c => m.rating >= creatureRating(c));
+    const top = model(L, k5, TOP);
+    cards.push({ k: "comuns que você vence", v: `${beats(b).length} de ${refs.length}`,
+      n: `fora da forma; em ${TOP.name}, ${beats(top).length}. ${refs.map(c => `${c.name} ${fmt(creatureRating(c), 0)}`).join(" · ")}` });
     return cards;
   }
 
   function verdictRating(k5) {
     const L = v("rlv");
-    const b = model(L, k5), s = model(L, k5, SSJ);
-    const q = s.rating / b.rating;
-    const hpShare = v("rk1") * b.ehp / b.rating * 100;
-    if (q < 1.6) {
-      return { warn: true, html: `<strong>A transformação mexe pouco no número:</strong> no nível ${fmt(L, 0)} o ${SSJ.name} lê ${fmt(q, 2)}× a forma base, com battle power ${fmt(Math.max(1, v(SSJ.m)), 1)}×. A vida efetiva é ${fmt(hpShare, 0)}% do total e sobe só ${fmt(s.ehp / b.ehp, 2)}×, porque a forma não dá HP e a armadura entra linear. O alvo anotado em 2026-09-16 é perto de 2×.` };
-    }
-    return { html: `<strong>O ${SSJ.name} lê ${fmt(q, 2)}× a forma base</strong> no nível ${fmt(L, 0)}: vida efetiva ${fmt(s.ehp / b.ehp, 2)}×, DPS ${fmt(s.rdps / b.rdps, 2)}×. ` +
-      FORMS.slice(1).map(f => `${f.name} ${fmt(model(L, k5, f).rating / b.rating, 2)}×`).join(" · ") + "." };
+    const b = model(L, k5), q = model(L, k5, SSJ).rating / b.rating;
+    const greyling = CREATURES.find(c => c.prefab === "Greyling");
+    const start = model(0, k5);
+    const startTxt = `No nível 0 você lê ${fmt(start.rating, 0)}, contra ${fmt(creatureRating(greyling), 0)} do Greyling.`;
+    const draugr = CREATURES.find(c => c.prefab === "Draugr");
+    const wolf = CREATURES.find(c => c.prefab === "Wolf");
+    const lv = (c, f) => { const m = levelToMatch(c, k5, f); return isFinite(m) ? `alcança o ${c.name} no nível ${m}` : `não alcança o ${c.name} nem no nível 100`; };
+    return { html: `<strong>O ${SSJ.name} lê ${fmt(q, 2)}× a forma base</strong>, em qualquer nível, porque a forma multiplica a conta da forma base. ${startTxt} ` +
+      `Fora da forma você ${lv(draugr, null)} e ${lv(wolf, null)}; em ${SSJ.name}, ${lv(draugr, SSJ)} e ${lv(wolf, SSJ)}.` };
   }
 
   const LENS_FN = {
@@ -1615,8 +1659,8 @@
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
     rating: () => block("6 - Battle Power", [
-      kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)),
-      kv("RatingDamageWeight", n("rk2", 1))]),
+      kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)), kv("RatingDamageWeight", n("rk2", 1))]
+      .concat([kv("RatingFormShare", n("rfs", 2))])),
     ki: () => block("2 - Ki", [
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
@@ -1635,7 +1679,7 @@
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
     fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido.`,
     form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
-    rating: `Espelha o <code>PowerRating.cs</code> com o ki ligado. O jogador entra com HP máximo = 25 + o slider de HP, a armadura do battle power de combate e o soco desarmado vanilla (5) mais o bônus do mod. A criatura entra com armadura 0, e por isso o fator de armadura dela é sempre 1. Os dados de criatura vêm dos prefabs e também estão no vault, em <code>Técnico/Criaturas.md</code>.`,
+    rating: `Espelha o <code>PowerRating.cs</code> com o ki ligado. O jogador entra com HP máximo = 25 + o slider de HP, a armadura do battle power de combate e o soco desarmado vanilla (5) mais o bônus do mod. A criatura entra com armadura 0, e por isso o fator de armadura dela é sempre 1. Transformado, a conta usa a armadura e o soco da forma <b>base</b> e multiplica o resultado por <code>1 + (PowerMultiplier − 1) × RatingFormShare</code> (<code>PowerRating.GetFormFactor</code>, desde 2026-09-17). <b>Empata no nível</b> é o primeiro nível em que o seu número passa o da criatura, com o HP do jogador seguindo o checkbox. Os dados de criatura vêm dos prefabs e também estão no vault, em <code>Técnico/Criaturas.md</code>.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -1644,7 +1688,7 @@
                     m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
                     xps: 2, bxp: 2, bxm: 2, boss: 0,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
-                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0 };
+                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2 };
 
   function setLens(id) {
     lens = id;
@@ -1690,7 +1734,7 @@
       : STATS[stat].sub;
     // display e nao o atributo `hidden`: `.check` declara display proprio, e regra de autor ganha
     // do `[hidden] { display: none }` da folha do navegador.
-    document.getElementById("cmp-today-wrap").style.display = mode === "formonly" ? "none" : "";
+    document.getElementById("cmp-today-wrap").style.display = mode === "formonly" || lens === "rating" ? "none" : "";
     document.getElementById("cmp-forms-wrap").style.display = mode === "forms" ? "" : "none";
 
     document.getElementById("legend").innerHTML = seriesFor(k5).map(s =>
@@ -1721,7 +1765,7 @@
   }
 
   ids.forEach(i => el[i].addEventListener("input", render));
-  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll, rStruct].forEach(c => c.addEventListener("change", render));
+  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll, rStruct, rHpTrack].forEach(c => c.addEventListener("change", render));
 
   document.getElementById("lenses").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return; setLens(b.dataset.lens);
@@ -1738,7 +1782,7 @@
   });
   document.getElementById("reset").addEventListener("click", () => {
     ids.forEach(i => el[i].value = DEFAULTS[i]);
-    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = true;
+    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = true; rHpTrack.checked = true;
     setLens(lens);
   });
   document.getElementById("copy").addEventListener("click", async e => {

@@ -40,7 +40,7 @@ mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 | `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
 | `applyArmor()` | `HitData.ApplyArmor` do Valheim, copiada da decompilação |
 | `xpCost[]` | `Skills.Skill.GetNextLevelRequirement()` |
-| `ehp`, `rdps`, `rating` (dentro de `model()`) | `PowerRating.GetRaw()` do jogador, com o ki ligado |
+| `ehp`, `rdps`, `rating` (dentro de `model()`) | `PowerRating.GetRaw()` do jogador com o ki ligado, com o `GetFormFactor()` |
 | `creatureDps()` | `PowerRating.GetCreatureDps()` |
 | `CREATURES` | prefabs do jogo, gerado por `tools/creature_stats.py` |
 
@@ -58,6 +58,12 @@ no nível escolhido.
 - O checkbox "contar dano em estrutura" existe porque o `GetTotalDamage()` do jogo soma `chop` e
   `pickaxe`, e o `PowerRating` herda isso. Marcado é o comportamento do mod hoje.
 - `PlayerHitInterval` tem slider, mas é `const` no `PowerRating.cs`: não sai no snippet de `.cfg`.
+- Transformado, o `rating` usa a armadura e o soco da forma **base** e multiplica por
+  `1 + (PowerMultiplier − 1) × RatingFormShare`, como o jogo desde 2026-09-17. As colunas `ehp` e
+  `rdps` mostram os valores de dentro da forma. Conferido contra o `saiya_power` no nível 48: 212 na
+  base, igual ao jogo.
+- "HP extra acompanha o nível" vem marcado e sobe o HP em linha reta até o slider no nível 100. É
+  pessimista no meio do jogo: no nível 48 o Henrique tinha 128 de HP extra, e a reta dá ~58.
 
 ### As Transformações (etapa 5) — feito em 2026-08-02
 
