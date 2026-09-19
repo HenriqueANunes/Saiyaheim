@@ -28,6 +28,25 @@ namespace Saiyaheim.Util
         /// </summary>
         internal static Sprite Load(string name)
         {
+            return Load(name, required: true);
+        }
+
+        /// <summary>
+        /// Igual ao <see cref="Load"/>, mas <b>ícone ausente não é erro</b>: devolve null em
+        /// silêncio.
+        ///
+        /// Existe para o menu radial, onde o ícone é enfeite e o rótulo é que carrega a
+        /// informação. Uma skill sem ícone é bug — o jogo desenha um quadrado vazio na aba de
+        /// skills; um elemento de anel sem ícone é só um elemento com o nome, e vai ganhar arte
+        /// quando houver. Logar erro por frame de menu aberto seria pior que o buraco.
+        /// </summary>
+        internal static Sprite LoadOptional(string name)
+        {
+            return Load(name, required: false);
+        }
+
+        private static Sprite Load(string name, bool required)
+        {
             if (Cache.TryGetValue(name, out Sprite cached))
             {
                 return cached;
@@ -39,7 +58,17 @@ namespace Saiyaheim.Util
                                       .FirstOrDefault(n => n.EndsWith(suffix, StringComparison.Ordinal));
             if (resource == null)
             {
-                SaiyaheimPlugin.Log.LogError($"Icon '{name}' not found in the DLL as '{suffix}'.");
+                if (required)
+                {
+                    SaiyaheimPlugin.Log.LogError($"Icon '{name}' not found in the DLL as '{suffix}'.");
+                }
+                else
+                {
+                    // Cacheado como ausente: sem isto, todo Refresh do menu varreria os recursos
+                    // da DLL de novo atrás de um arquivo que não existe.
+                    Cache[name] = null;
+                }
+
                 return null;
             }
 

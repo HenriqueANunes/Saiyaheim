@@ -5,6 +5,10 @@ namespace Saiyaheim.Util
     ///
     /// Sem essa guarda, digitar no chat aciona todas as teclas do mod: escrever "voo" decola.
     /// É literalmente o bug que o mod de referência de voo tem.
+    ///
+    /// <b>O menu radial conta como não-pilotando</b>, pela mesma razão que a vanilla checa
+    /// <c>Hud.InRadial()</c> em todo input de ataque, bloqueio e pulo: clicar num item da roda não
+    /// pode disparar um Kamehameha junto.
     /// </summary>
     internal static class InputGuard
     {
@@ -14,6 +18,7 @@ namespace Saiyaheim.Util
                    && !TextInput.IsVisible()
                    && !Menu.IsVisible()
                    && !InventoryGui.IsVisible()
+                   && !Hud.InRadial()
                    && (Chat.instance == null || !Chat.instance.HasFocus());
         }
     }

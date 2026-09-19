@@ -37,6 +37,46 @@ namespace Saiyaheim.Transformations
             return TransformationRegistry.GetActive(player) != null;
         }
 
+        /// <summary>
+        /// Entra numa forma escolhida <b>pelo nome dela</b>, e não pela posição na escada. É o que
+        /// o menu radial pede: lá o jogador aponta para o SSJ2, não para "um degrau acima".
+        ///
+        /// Devolve se a forma entrou mesmo. O menu usa a resposta para decidir se fecha: recusa
+        /// deixa a roda aberta com o motivo na tela, e o jogador escolhe outra coisa sem ter que
+        /// reabrir. Já estar na forma conta como recusa, pelo mesmo motivo — reaplicar o status
+        /// effect zeraria o tempo dele à toa.
+        /// </summary>
+        internal static bool TransformTo(Player player, Transformation form)
+        {
+            SEMan seman = player == null ? null : player.GetSEMan();
+
+            if (seman == null || form == null || TransformationRegistry.GetActive(player) == form)
+            {
+                return false;
+            }
+
+            return TryStart(player, seman, form);
+        }
+
+        /// <summary>
+        /// Volta à forma base agora, de qualquer degrau — o mesmo que o <c>PowerDownKey</c> faz.
+        /// Devolve false na forma base, onde não há o que desligar.
+        /// </summary>
+        internal static bool PowerDownNow(Player player)
+        {
+            SEMan seman = player == null ? null : player.GetSEMan();
+            Transformation active = TransformationRegistry.GetActive(player);
+
+            if (seman == null || active == null)
+            {
+                return false;
+            }
+
+            Stop(player, seman, $"{active.DisplayName} off");
+
+            return true;
+        }
+
         internal static void Update(Player player)
         {
             if (player == null)
@@ -215,17 +255,22 @@ namespace Saiyaheim.Transformations
             return null;
         }
 
-        private static void TryStart(Player player, SEMan seman, Transformation form)
+        /// <summary>
+        /// Devolve se a forma entrou. As teclas ignoram a resposta — a mensagem na tela já é o
+        /// feedback delas —, mas o menu radial usa para decidir se fecha. Ver
+        /// <see cref="TransformTo"/>.
+        /// </summary>
+        private static bool TryStart(Player player, SEMan seman, Transformation form)
         {
             if (form == null || !form.IsRegistered)
             {
-                return;
+                return false;
             }
 
             if (!KiManager.IsEnabled)
             {
                 Message(player, "Turn ki on to transform.");
-                return;
+                return false;
             }
 
             // Sem custo de ativação, mas com um piso: entrar numa forma com a barra vazia seria
@@ -234,7 +279,7 @@ namespace Saiyaheim.Transformations
             if (KiManager.Current <= 0f)
             {
                 Message(player, "Not enough ki to transform.");
-                return;
+                return false;
             }
 
             // A mensagem vem da própria forma: ela sabe qual das travas está fechada, e "mata o
@@ -243,12 +288,12 @@ namespace Saiyaheim.Transformations
             if (lockReason != null)
             {
                 Message(player, lockReason);
-                return;
+                return false;
             }
 
             if (player.IsDead() || player.IsSleeping() || player.IsTeleporting() || player.InCutscene())
             {
-                return;
+                return false;
             }
 
             // Uma forma de cada vez: subir um degrau tira o de baixo. Sem isto, SSJ e SSJ2 ativos
@@ -265,6 +310,8 @@ namespace Saiyaheim.Transformations
                 $"Transformed into {form.DisplayName}: x{form.GetPowerMultiplier():0.##} power, " +
                 $"{form.GetKiDrainPerSecond(player):0.##} ki/s drain " +
                 $"(mastery level {form.GetSkillLevel(player):0.#}).");
+
+            return true;
         }
 
         /// <summary>

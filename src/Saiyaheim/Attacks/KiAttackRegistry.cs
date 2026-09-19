@@ -114,6 +114,22 @@ namespace Saiyaheim.Attacks
             return null;
         }
 
+        /// <summary>
+        /// Escolhe um ataque direto, sem passar pelo ciclo. É o que o menu radial faz: lá o
+        /// jogador aponta para o ataque, e não pede "o próximo".
+        ///
+        /// Não checa a trava: quem chama já checou para poder mostrar o motivo. Guardar um ataque
+        /// travado seria inofensivo de qualquer jeito — o <see cref="Current"/> cai para o
+        /// primeiro destravado quando a seleção não serve mais.
+        /// </summary>
+        internal static void Select(KiAttack attack)
+        {
+            if (attack != null)
+            {
+                _selected = attack;
+            }
+        }
+
         /// <summary>Pronto para disparar? O piso comum, não o cooldown de um ataque.</summary>
         internal static bool IsGlobalCooldownReady()
         {

@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using UnityEngine;
+using Valheim.UI;
 
 namespace Saiyaheim.Util
 {
@@ -122,6 +123,56 @@ namespace Saiyaheim.Util
             }
         }
 
+        /// <summary>
+        /// <c>RadialMenuElement.Name</c> e <c>.SubTitle</c> têm setter <c>protected</c>: o menu
+        /// radial da vanilla espera que quem escreve o rótulo seja a subclasse do elemento
+        /// (<c>EmoteElement</c>, <c>ItemElement</c>...). Os elementos do mod nascem do
+        /// <c>EmptyElement</c>, que escreve "Empty" e nada mais, então o rótulo passa por aqui.
+        ///
+        /// É o único ponto do menu radial que pede reflexão. O resto — ícone, cor, e os quatro
+        /// delegates de interação — é público. Ver [[Menu Radial]].
+        ///
+        /// Pelo setter da propriedade e não pelo campo de apoio (<c>&lt;Name&gt;k__BackingField</c>):
+        /// o nome do campo é detalhe do compilador e muda sem aviso; a propriedade é a API.
+        /// </summary>
+        private static readonly Action<RadialMenuElement, string> ElementNameSetter =
+            CreatePropertySetter<RadialMenuElement, string>("Name");
+
+        private static readonly Action<RadialMenuElement, string> ElementSubTitleSetter =
+            CreatePropertySetter<RadialMenuElement, string>("SubTitle");
+
+        /// <summary>
+        /// Escreve o rótulo do elemento. Falha silenciosa e anotada no log: elemento sem nome
+        /// continua clicável, e derrubar o menu inteiro por causa de um rótulo seria pior.
+        /// </summary>
+        internal static void SetElementName(RadialMenuElement element, string name)
+        {
+            Invoke(ElementNameSetter, element, name, "RadialMenuElement.Name");
+        }
+
+        internal static void SetElementSubTitle(RadialMenuElement element, string subTitle)
+        {
+            Invoke(ElementSubTitleSetter, element, subTitle, "RadialMenuElement.SubTitle");
+        }
+
+        private static void Invoke(
+            Action<RadialMenuElement, string> setter, RadialMenuElement element, string value, string what)
+        {
+            if (setter == null || element == null)
+            {
+                return;
+            }
+
+            try
+            {
+                setter(element, value);
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to write {what}: {ex.Message}");
+            }
+        }
+
         // Aqui moraram dois acessos a emote, removidos em 2026-08-07 junto com o emote de
         // carregamento: `Character.StopEmote()` (protected) e `Player.m_emoteState` (private).
         //
@@ -136,6 +187,27 @@ namespace Saiyaheim.Util
         /// Cria o acessor sem derrubar o mod se o campo sumir numa atualização do jogo —
         /// o chamador usa o fallback.
         /// </summary>
+        /// <summary>
+        /// Delegate aberto para o setter de uma propriedade com setter não-público. Mesmo contrato
+        /// do <see cref="CreateFieldRef{TObject,TField}"/>: devolve null se a propriedade sumir
+        /// numa atualização, e quem chama trata.
+        /// </summary>
+        private static Action<TObject, TValue> CreatePropertySetter<TObject, TValue>(string propertyName)
+        {
+            try
+            {
+                return AccessTools.MethodDelegate<Action<TObject, TValue>>(
+                    AccessTools.PropertySetter(typeof(TObject), propertyName));
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning(
+                    $"Property '{typeof(TObject).Name}.{propertyName}' has no reachable setter " +
+                    $"({ex.GetType().Name}). The game may have been updated.");
+                return null;
+            }
+        }
+
         private static AccessTools.FieldRef<TObject, TField> CreateFieldRef<TObject, TField>(string fieldName)
         {
             try
