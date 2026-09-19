@@ -44,6 +44,12 @@ the moment ki goes off.
 - how much armor you have (equipment is ignored while ki is on),
 - how fast you fly.
 
+**Weighted training:** all Power Level XP is multiplied by how full your inventory is, up to
+**double** at maximum carry weight (`XpWeightBonus` in the config). It is Goku's weighted
+clothing, and it limits itself — the weight slows you down, eats stamina and cuts your flight
+speed. Forms raise your carry limit, so the same load is worth a little less XP while
+transformed.
+
 Battle Power is shown on the HUD, and enemies show theirs under their health bar, on the same
 scale. Reading power is a ki ability: turn ki off and the numbers disappear for you too.
 
