@@ -56,7 +56,7 @@ SSJ3.
 
 ### Flight
 
-Standing upright, Dragon Ball style, using the game's own flying movement — so no fall damage
+Standing upright, Dragon Ball style, using the game's own flying movement
 by construction.
 
 - Toggle key to take off and land, or a quick double tap of Jump to take off.
