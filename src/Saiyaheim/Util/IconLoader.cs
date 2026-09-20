@@ -8,13 +8,13 @@ using UnityEngine;
 namespace Saiyaheim.Util
 {
     /// <summary>
-    /// Carrega os ícones de skill embutidos na DLL (<c>Assets/icons/*.jpg</c>) como
+    /// Carrega os ícones de skill embutidos na DLL (<c>Assets/icons/*.png</c>) como
     /// <see cref="Sprite"/>.
     ///
     /// Mesmo motivo do bundle de cabelo em <c>CustomHair.LoadBundle</c>: ler o recurso inteiro
     /// para um <c>byte[]</c> antes de decodificar, para não depender de um stream que pode já
     /// ter sido fechado. Aqui o arquivo é pequeno (dezenas de KB), então o cache por nome evita
-    /// só o custo de decodificar JPEG de novo, não estoura memória.
+    /// só o custo de decodificar PNG de novo, não estoura memória.
     /// </summary>
     internal static class IconLoader
     {
@@ -23,7 +23,7 @@ namespace Saiyaheim.Util
 
         /// <summary>
         /// Carrega o ícone <paramref name="name"/> (sem extensão, ex. "ssj") de
-        /// <c>Assets/icons/{name}.jpg</c>. Devolve null e loga erro se o recurso não existir ou
+        /// <c>Assets/icons/{name}.png</c>. Devolve null e loga erro se o recurso não existir ou
         /// não decodificar — chamador trata como "sem ícone", igual ao comportamento anterior.
         /// </summary>
         internal static Sprite Load(string name)
@@ -34,7 +34,7 @@ namespace Saiyaheim.Util
             }
 
             Assembly assembly = typeof(IconLoader).Assembly;
-            string suffix = $"icons.{name}.jpg";
+            string suffix = $"icons.{name}.png";
             string resource = assembly.GetManifestResourceNames()
                                       .FirstOrDefault(n => n.EndsWith(suffix, StringComparison.Ordinal));
             if (resource == null)
