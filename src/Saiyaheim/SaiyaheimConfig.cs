@@ -971,8 +971,10 @@ namespace Saiyaheim
                     "Does nothing at the top of what you have unlocked.",
                     null, ClientSide(83)));
 
+            // Z e Shift+Z, e nao G: a l-1.0.7 do Valheim passou a abrir o menu radial em G, e as
+            // duas coisas na mesma tecla brigam. Calibrado no playtest de 2026-09-20.
             PowerDownKey = config.Bind(SecGeral, "PowerDownKey",
-                new KeyboardShortcut(KeyCode.G),
+                new KeyboardShortcut(KeyCode.Z),
                 new ConfigDescription(
                     "Key that drops you straight back to base form, from whatever step you are " +
                     "on — no walking back down the ladder. Running out of ki does the same thing " +
@@ -980,15 +982,15 @@ namespace Saiyaheim
                     null, ClientSide(82)));
 
             TransformStepDownKey = config.Bind(SecGeral, "TransformStepDownKey",
-                new KeyboardShortcut(KeyCode.G, KeyCode.LeftShift),
+                new KeyboardShortcut(KeyCode.Z, KeyCode.LeftShift),
                 new ConfigDescription(
                     "Key that goes DOWN one step, to trade power for a smaller ki drain without " +
                     "leaving the ladder entirely. From the first form it returns to base.",
                     null, ClientSide(81)));
 
-            // V e Shift+V pelo mesmo desenho de T/G: a acao comum num toque, a troca no Shift. Nao
-            // sao G nem H porque G ja e' o power down — e disparar e destransformar sao as duas
-            // teclas que mais se aperta com pressa, entao vizinhas seria pedir engano.
+            // V e Shift+V pelo mesmo desenho de T/Z: a acao comum num toque, a troca no Shift. Nao
+            // sao Z nem vizinha dele porque Z ja e' o power down — e disparar e destransformar sao
+            // as duas teclas que mais se aperta com pressa, entao vizinhas seria pedir engano.
             //
             // Passam pelo Hotkey e nao pelo KeyboardShortcut.IsDown cru: atirar parado e' justamente
             // o que nao se quer ensinar, e o IsDown do BepInEx recusa o atalho com W pressionado.

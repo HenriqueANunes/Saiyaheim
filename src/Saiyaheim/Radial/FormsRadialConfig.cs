@@ -13,10 +13,13 @@ namespace Saiyaheim.Radial
     /// o jogador já está não é um deles — clicar nele não teria o que fazer. Vale dos dois lados:
     /// transformado, o degrau ativo sai da roda; na forma base, é o "Base form" que sai.
     ///
-    /// <b>Degrau travado aparece assim mesmo</b>, com o motivo no subtítulo, em vez de sumir da
-    /// roda. A escada é a progressão do mod, e esconder o degrau travado esconde justamente o que
-    /// o jogador está perseguindo. Mesmo motivo de o <c>TryStart</c> responder com o que falta em
-    /// vez de ficar em silêncio.
+    /// <b>Degrau travado não aparece.</b> A roda mostra o que dá para fazer agora, e nada mais —
+    /// decidido em 2026-09-20, no lugar de mostrar o degrau travado com o motivo no subtítulo.
+    /// Quem quer saber o que falta para o próximo degrau tem a mensagem do <c>TryStart</c>, que
+    /// continua respondendo com o que falta em vez de ficar em silêncio.
+    ///
+    /// Com tudo travado e na forma base a roda fica sem item nenhum, e aí o grupo inteiro some do
+    /// anel principal — ver <see cref="HasContent"/>.
     /// </summary>
     internal sealed class FormsRadialConfig : IRadialConfig
     {
@@ -32,7 +35,7 @@ namespace Saiyaheim.Radial
 
             foreach (Transformation form in TransformationRegistry.All)
             {
-                if (form == active)
+                if (form == active || !form.IsUnlocked(player))
                 {
                     continue;
                 }
@@ -65,9 +68,9 @@ namespace Saiyaheim.Radial
         }
 
         /// <summary>
-        /// A linha de baixo do item: o que o jogador precisa saber <b>antes</b> de clicar. Na
-        /// forma destravada é o dreno, que é o único custo que a forma tem e o número que a
-        /// maestria melhora; na travada, o que falta para abrir.
+        /// A linha de baixo do item: o que o jogador precisa saber <b>antes</b> de clicar. É o
+        /// dreno, único custo que a forma tem e o número que a maestria melhora. Não há caso de
+        /// forma travada aqui — ela nem chega a virar item.
         /// </summary>
         private static string Subtitle(Player player, Transformation form)
         {
@@ -76,9 +79,36 @@ namespace Saiyaheim.Radial
                 return null;
             }
 
-            string lockReason = form.GetLockReason(player);
+            return $"{form.GetKiDrainPerSecond(player):0.#} ki/s";
+        }
 
-            return lockReason ?? $"{form.GetKiDrainPerSecond(player):0.#} ki/s";
+        /// <summary>
+        /// Este anel tem alguma coisa para mostrar? Chamado pelo <see cref="RadialMainMenuPatch"/>
+        /// antes de pendurar o grupo: um grupo que abre um anel vazio é um item morto na roda
+        /// principal, do mesmo tipo que o <c>EmptyElement</c> que o patch remove.
+        /// </summary>
+        internal static bool HasContent(Player player)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+
+            // Transformado, sempre há para onde ir: a volta à forma base.
+            if (TransformationRegistry.GetActive(player) != null)
+            {
+                return true;
+            }
+
+            foreach (Transformation form in TransformationRegistry.All)
+            {
+                if (form.IsUnlocked(player))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

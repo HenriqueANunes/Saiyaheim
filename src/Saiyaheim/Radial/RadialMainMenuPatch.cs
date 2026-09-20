@@ -21,7 +21,8 @@ namespace Saiyaheim.Radial
     ///
     /// <b>Cabe sem ajuste.</b> O <c>MaxElementsRange</c> do jogo é <c>[8, 12]</c>: a vanilla
     /// entrega 8 e enche a camada; com os dois do mod são 10, o <c>SetElementsPerLayer</c> passa
-    /// para 12 por camada, e continua sendo uma camada só — sem paginação e sem item cortado.
+    /// para 12 por camada, e continua sendo uma camada só — sem paginação e sem item cortado. O
+    /// pior caso é o teto, e o mod só tira itens daí para baixo.
     ///
     /// É o <b>único</b> patch Harmony do menu radial; todo o resto é API pública.
     /// Ver [[Menu Radial]].
@@ -61,7 +62,8 @@ namespace Saiyaheim.Radial
             // primeira abertura da roda sempre mostrava um desses; ele sumia depois porque
             // qualquer clique preenche o LastUsed.
             //
-            // Os dois itens do mod entram no lugar, então a roda não fica com buraco.
+            // Sai mesmo quando o mod não tem nada para pôr no lugar: o buraco é melhor que um
+            // item que não faz nada.
             elements.RemoveAll(element =>
             {
                 if (!(element is EmptyElement) || SaiyaRadial.IsOurs(element))
@@ -83,8 +85,19 @@ namespace Saiyaheim.Radial
 
             // back = a config que está montando: voltar de dentro de um grupo cai no anel
             // principal, como em qualquer outro grupo da roda.
-            elements.Add(SaiyaRadial.Group(__instance, new FormsRadialConfig(), __instance.CurrentConfig));
-            elements.Add(SaiyaRadial.Group(__instance, new KiAttacksRadialConfig(), __instance.CurrentConfig));
+            //
+            // Grupo sem nada dentro não entra: com as formas e os ataques travados escondidos,
+            // um jogador no começo do mod abriria um anel vazio. Os grupos aparecem conforme a
+            // progressão abre o que eles mostram.
+            if (FormsRadialConfig.HasContent(Player.m_localPlayer))
+            {
+                elements.Add(SaiyaRadial.Group(__instance, new FormsRadialConfig(), __instance.CurrentConfig));
+            }
+
+            if (KiAttacksRadialConfig.HasContent(Player.m_localPlayer))
+            {
+                elements.Add(SaiyaRadial.Group(__instance, new KiAttacksRadialConfig(), __instance.CurrentConfig));
+            }
         }
     }
 }

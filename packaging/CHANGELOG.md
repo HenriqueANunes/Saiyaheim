@@ -2,6 +2,14 @@
 
 ## 0.4.0
 
+- New: a radial menu for your forms and your ki attacks. Two groups sit in the game's own
+  wheel, next to consumables, weapons and emotes, so the mod costs you no extra key. Forms show
+  their ki drain, attacks show their ki cost, and picking an attack selects it — you still fire
+  it with your own key, after you aim. Only what you have unlocked shows up, with its own
+  artwork; the old keys keep working.
+- Changed: dropping back to base form is now `Z`, and stepping one form down is `Shift+Z`. They
+  used to be `G`, which current Valheim versions also use to open the radial menu. If you already
+  have a config file, yours keeps `G` until you change it — new installs get `Z`.
 - Changed: new artwork for the skill icons — Power Level, Flight and the three Super Saiyan
   forms. They now carry a transparent background, so they sit on the skill wheel and the HUD
   without the black square around them.

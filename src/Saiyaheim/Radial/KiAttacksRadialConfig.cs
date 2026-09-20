@@ -16,6 +16,10 @@ namespace Saiyaheim.Radial
     ///
     /// Selecionar não dispara de propósito. Mirar acontece depois de escolher, e um anel que
     /// atirasse no fechar mandaria o tiro para onde o cursor do menu estava.
+    ///
+    /// <b>Ataque travado não aparece</b>, decidido em 2026-09-20 junto com o anel das formas. Com
+    /// todos travados o anel fica vazio, e aí o grupo some do anel principal — ver
+    /// <see cref="HasContent"/>.
     /// </summary>
     internal sealed class KiAttacksRadialConfig : IRadialConfig
     {
@@ -33,6 +37,11 @@ namespace Saiyaheim.Radial
 
             foreach (KiAttack attack in KiAttackRegistry.All)
             {
+                if (!attack.IsUnlocked(player))
+                {
+                    continue;
+                }
+
                 // Cópia local: o foreach entrega a mesma variável a todas as closures.
                 KiAttack target = attack;
 
@@ -81,15 +90,33 @@ namespace Saiyaheim.Radial
                 return null;
             }
 
-            string lockReason = attack.GetLockReason(player);
-            if (lockReason != null)
-            {
-                return lockReason;
-            }
-
+            // Não há caso de ataque travado aqui: ele nem chega a virar item.
             string cost = $"{attack.GetKiCost():0} ki";
 
             return attack == current ? $"{cost} — selected" : cost;
+        }
+
+        /// <summary>
+        /// Este anel tem alguma coisa para mostrar? Chamado pelo <see cref="RadialMainMenuPatch"/>
+        /// antes de pendurar o grupo: um grupo que abre um anel vazio é um item morto na roda
+        /// principal, do mesmo tipo que o <c>EmptyElement</c> que o patch remove.
+        /// </summary>
+        internal static bool HasContent(Player player)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+
+            foreach (KiAttack attack in KiAttackRegistry.All)
+            {
+                if (attack.IsUnlocked(player))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
