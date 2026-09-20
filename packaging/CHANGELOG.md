@@ -55,6 +55,7 @@
   without the black square around them.
 
 - Fixed: SSJ2 and SSJ3 no longer spam `Light was null! This should never happen!` into the log.
+- Everyone must update: players on 0.3.x can't join a 0.4.0 server.
 
 ## 0.3.0
 
