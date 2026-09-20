@@ -920,8 +920,33 @@ namespace Saiyaheim
 
         public static ConfigEntry<bool> VerboseLogging { get; private set; }
 
+        // ---------- Escrituração do arquivo ----------
+
+        /// <summary>
+        /// Qual rodada de migração este <c>.cfg</c> já recebeu. Ver <see cref="Util.ConfigMigration"/>.
+        ///
+        /// Escondida da UI e <b>não</b> AdminOnly: é estado do arquivo de cada máquina, não
+        /// balanceamento. Se o servidor impusesse a versão dele, o cliente registraria ter recebido
+        /// uma migração que nunca rodou no arquivo dele.
+        /// </summary>
+        public static ConfigEntry<int> ConfigVersion { get; private set; }
+
         public static void Init(ConfigFile config)
         {
+            // Primeiro de todos: a migração no fim do Init precisa saber de onde este arquivo vem,
+            // e 0 é "de antes de existir migração". Instalação limpa também entra como 0 e sai
+            // migrada sem nada a fazer, porque o arquivo já nasce com os defaults novos.
+            ConfigVersion = config.Bind(SecDebug, "ConfigVersion", 0,
+                new ConfigDescription(
+                    "Bookkeeping: which round of balance migrations this file has already " +
+                    "received. Do not edit — lowering it makes the mod redo a migration and " +
+                    "overwrite balance keys you may have tuned.",
+                    null,
+                    new ConfigurationManagerAttributes
+                    {
+                        IsAdminOnly = false, Browsable = false, Order = 0,
+                    }));
+
             // Client-side: preferência de cada jogador, servidor não impõe.
             ToggleKiKey = config.Bind(SecGeral, "ToggleKiKey",
                 new KeyboardShortcut(KeyCode.K),
@@ -1135,17 +1160,22 @@ namespace Saiyaheim
             // desconto de fim de jogo (BattlePower.GetKiCostFactor), entao "um parry paga dois
             // socos" continua verdade do primeiro bioma ao ultimo sem recalibrar nada. Os numeros
             // 2 e 4 sao do Henrique, 2026-09-17, antes de qualquer playtest.
-            KiOnParryPunches = config.Bind(SecKi, "KiOnParryPunches", 2f,
+            //
+            // 2026-09-20, rework do custo de ki: subiram para 3 e 6. Sao a compensacao pelo que
+            // ficou de fora do rework — a regeneracao passiva continua desligada dentro da forma,
+            // e ganhar ki por soco foi recusado. Com o custo da acao subindo, luta longa precisa
+            // de alguma entrada, e a entrada escolhida exige jogar bem em vez de so acertar.
+            KiOnParryPunches = config.Bind(SecKi, "KiOnParryPunches", 3f,
                 new ConfigDescription(
                     "Ki gained on a successful parry (a block timed right), measured in punches: " +
-                    "2 means the ki cost of two punches at your current power. Only with ki on, " +
+                    "3 means the ki cost of three punches at your current power. Only with ki on, " +
                     "and only when the parry actually stopped damage. 0 disables it.",
                     new AcceptableValueRange<float>(0f, 50f), AdminOnly(45)));
 
-            KiOnKillPunches = config.Bind(SecKi, "KiOnKillPunches", 4f,
+            KiOnKillPunches = config.Bind(SecKi, "KiOnKillPunches", 6f,
                 new ConfigDescription(
                     "Ki gained for landing the killing blow on a creature, measured in punches: " +
-                    "4 means the ki cost of four punches at your current power. Any weapon or ki " +
+                    "6 means the ki cost of six punches at your current power. Any weapon or ki " +
                     "attack counts, as long as ki is on. Tamed creatures and players give nothing. " +
                     "0 disables it.",
                     new AcceptableValueRange<float>(0f, 50f), AdminOnly(40)));
@@ -1163,7 +1193,14 @@ namespace Saiyaheim
             // Substituiu a chave `PunchKiCost` (fixa, 6) em 2026-08-01. Renomeada de proposito:
             // o valor antigo num .cfg existente significaria 6 de ki por PONTO de dano bonus,
             // dezenas de ki por soco. O nome novo forca o default novo. Apagar a linha orfa.
-            PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 3f,
+            // (Aquele truque nao e' mais necessario: desde 2026-09-20 quem leva um .cfg existente
+            // para os defaults novos e' o Util.ConfigMigration, sem sujar o nome da chave.)
+            //
+            // 3 -> 7 em 2026-09-20, no rework do custo de ki: o dreno das formas despencou e o
+            // custo migrou para a ACAO. Estar transformado deixa de ser imposto por segundo e
+            // passa a ser caro quando se luta, que e' quando a forma esta' entregando alguma
+            // coisa. Ver Melhorias, "Ki deixa de ser imposto de existir".
+            PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 7f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the battle power ADDED to the punch — the " +
                     "mirror of DamageTakenKiCost, which charges per point the ki armor absorbed. " +
@@ -1176,7 +1213,8 @@ namespace Saiyaheim
                     "to disable the cost. " +
                     "(Playtest value, 2026-08-01: started at 1 to match DamageTakenKiCost and the " +
                     "punch was nearly free — the bar barely moved in a fight. 3 is what made the " +
-                    "cost readable.)",
+                    "cost readable. Raised to 7 on 2026-09-20, when the ki cost of a form moved " +
+                    "from per second held to per punch thrown.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             // O conserto da assimetria que o playtest de 2026-08-04 expos: os TRES custos de
@@ -1334,7 +1372,12 @@ namespace Saiyaheim
             // o custo mede o servico que a armadura de ki prestou, e o filtro de fontes de dano
             // sai de graça — veneno, queda e afogamento nao passam pela armadura no vanilla,
             // entao absorvem zero e custam zero sem precisar de lista de excecoes.
-            DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 1f,
+            //
+            // 1 -> 1,5 em 2026-09-20, junto com o PunchKiCostPerDamage e pelo mesmo motivo: os
+            // custos de combate sobem porque o dreno da forma desceu. Sobe MENOS que o soco (1,5x
+            // contra 2,3x) de proposito — apanhar nao e' uma escolha do jogador, e encarecer na
+            // mesma proporcao puniria quem esta' perdendo a luta.
+            DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 1.5f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the ki armor ABSORBED. Taking a hit costs ki " +
                     "the same way landing one does — the ki armor is sustained, not free. " +
@@ -1343,7 +1386,9 @@ namespace Saiyaheim
                     "Note the cost per hit is naturally capped near your armor value: armor can " +
                     "never absorb more than it is worth, so a huge hit does not drain the bar. " +
                     "(Playtest value, 2026-08-01. The conservative 0.15 it shipped with the same " +
-                    "day was barely noticeable; at 1 a blocked point of damage costs a point of ki.)",
+                    "day was barely noticeable; at 1 a blocked point of damage costs a point of ki. " +
+                    "Raised to 1.5 on 2026-09-20, when the cost of a form moved from per second " +
+                    "held to per action taken.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // O bloqueio desarmado era 2 de block power contra escudos de 18 a 156 — nao fraco,
@@ -1391,7 +1436,11 @@ namespace Saiyaheim
             // DUAS contas: o bloqueio barra primeiro, a armadura barra o resto, e cada uma cobra a
             // sua. Na mesma taxa o preco de apanhar dobraria so por o jogador estar segurando o
             // botao — que e o oposto do que esta mecanica quer ensinar.
-            BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 0.5f,
+            //
+            // 0,5 -> 1,2 em 2026-09-20, com o resto dos custos de combate. Continua abaixo do
+            // DamageTakenKiCost (1,5) pela mesma razao de sempre: um golpe bloqueado paga as duas
+            // contas, e na mesma taxa segurar o botao dobraria o preco de apanhar.
+            BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 1.2f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the ki BLOCK stopped, measured (not estimated) " +
                     "from the hit before and after Humanoid.BlockAttack. Same rule as the armor: if " +
@@ -1401,7 +1450,8 @@ namespace Saiyaheim
                     "This is the most expensive thing in the mod by design: blocking stops far more " +
                     "damage than armor absorbs, so it should be a beam, not a stance. Lower it if " +
                     "holding block for two hits empties the bar. Set to zero to make blocking free. " +
-                    "(Starting value, 2026-08-01. Not playtested yet.)",
+                    "(Starting value, 2026-08-01, raised from 0.5 to 1.2 on 2026-09-20 with the " +
+                    "rest of the combat ki costs. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
 
             KiBarOffsetX = config.Bind(SecHud, "KiBarOffsetX", 0f,
@@ -1490,7 +1540,12 @@ namespace Saiyaheim
             // em vez de um botao que sempre esteve la. Ver [[Progressao por Bosses]].
             Ssj = BindTransformation(config, SecSsj,
                 powerMultiplier: 2f,
-                kiDrainPerSecond: 5f,
+                // 5 -> 1 em 2026-09-20. O dreno deixa de cobrar por segundo de existencia e o
+                // custo da forma migra para a acao (PunchKiCostPerDamage, BlockKiCost). A escada
+                // inteira desceu na mesma proporcao, entao a razao entre os degraus — o que impede
+                // o degrau alto de tornar o baixo letra morta — esta' preservada: 1 / 2 / 3 contra
+                // os 5 / 10 / 15 de antes. Ver Melhorias, "Ki deixa de ser imposto de existir".
+                kiDrainPerSecond: 1f,
                 punchSlashFraction: 0.5f,
                 punchLightningFraction: 0f,
                 // Calibrado no playtest de 2026-08-16. Saiu em 300 — o limite base inteiro do
@@ -1533,7 +1588,8 @@ namespace Saiyaheim
                 // Calibrados no playtest de 2026-08-16, o primeiro do SSJ2.
                 // O multiplicador desceu de novo em 2026-08-17: 4 → 3,5 → 3.
                 powerMultiplier: 3f,
-                kiDrainPerSecond: 10f,
+                // 10 -> 2 em 2026-09-20, com a escada inteira. Continua o dobro do SSJ.
+                kiDrainPerSecond: 2f,
                 punchSlashFraction: 0f,
                 // Desceu de 0,5 para 0,2 em playtest posterior a 2026-08-17 — motivo nao
                 // registrado na hora. O soco do SSJ2 passa a ser contusao com sabor de raio,
@@ -1592,7 +1648,8 @@ namespace Saiyaheim
             Ssj3 = BindTransformation(config, SecSsj3,
                 // Calibrados no playtest de 2026-09-07, o primeiro do SSJ3.
                 powerMultiplier: 4f,
-                kiDrainPerSecond: 15f,
+                // 15 -> 3 em 2026-09-20, com a escada inteira. Continua uma vez e meia o SSJ2.
+                kiDrainPerSecond: 3f,
                 punchSlashFraction: 0f,
                 punchLightningFraction: 0.5f,
                 carryWeightBonus: 300f,
@@ -1779,7 +1836,12 @@ namespace Saiyaheim
                 chargeFullEffectReplaces: true);
 
             // --- Voo ---
-            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 5f,
+            // 5 -> 3,5 em 2026-09-20. O sintoma vem das issues 1 e 2 do GitHub: a 5/s contra uma
+            // barra de 50 no nivel 0, o comeco do jogo da' DEZ segundos de voo, e a resposta que os
+            // jogadores acharam sozinhos foi parar de jogar para farmar. Baixar a base e' metade do
+            // conserto; a outra metade e' a KiSkillCurve, que adiantava o alivio para depois do
+            // nivel 75. Ver Melhorias, "Voo: XP por distancia, e a forma paga o que acelera".
+            FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 3.5f,
                 new ConfigDescription(
                     "Ki per second while flying. Flight should be a tool, not the default way to " +
                     "get around — otherwise the game's hostile terrain turns into scenery. " +
@@ -1787,7 +1849,9 @@ namespace Saiyaheim
                     "(Playtest value, 2026-08-13. Went 4 → 15 on 2026-07-31, because at 4 flight " +
                     "was cheap enough to become the default way to travel, then 15 → 10 while " +
                     "playing the ki attack stage, then 10 → 5: with BaseSpeed at 2 the early-game " +
-                    "flight is slow enough to hold itself back without the ki cost doing it too.)",
+                    "flight is slow enough to hold itself back without the ki cost doing it too. " +
+                    "5 → 3.5 on 2026-09-20: at 5 the level-0 bar bought ten seconds of flight, and " +
+                    "players answered that by grinding the skill instead of playing.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2f,
@@ -1895,7 +1959,20 @@ namespace Saiyaheim
             // 0.95 e curva 1 (linear) o nivel 50 ja' pagaria metade do preco, e o voo viraria o
             // transporte padrao antes de o jogador ter treinado nada. Em 2 a mesma reducao chega
             // quase toda depois do nivel 75: 50 -> -24%, 75 -> -53%, 90 -> -77%, 100 -> -95%.
-            FlightKiSkillCurve = config.Bind(SecFlight, "KiSkillCurve", 2f,
+            //
+            // ⚠️ 2 -> 1 em 2026-09-20, e o paragrafo acima descreve exatamente o que se esta'
+            // trocando — de propósito. O back-load era o que mantinha o voo caro cedo, e foi ele
+            // que produziu a queixa da issue 2: "fui tirado do jogo por um tempo so' para grindar
+            // uma skill antes de ela ficar usavel". Quem paga o voo cedo passa a ser so' o
+            // KiPerSecond (3,5), e a reta entrega o alivio onde o jogador esta': 25 -> -24%,
+            // 50 -> -48%, 75 -> -71%, 100 -> -95%.
+            //
+            // O risco anotado em 2026-08-13 — voo virar o transporte padrao no meio do jogo —
+            // continua real e agora nao tem contrapeso nenhum no custo: o FlightKiPowerReduction
+            // abaixo nao faz nada com o K5 em zero. E' o numero a vigiar no playtest, e se ceder,
+            // cede aqui (1 -> 1,4 poe o nivel 50 em -33%) e nao no KiPerSecond, que calibra o
+            // comeco. Ver Melhorias, "Voo: XP por distancia, e a forma paga o que acelera".
+            FlightKiSkillCurve = config.Bind(SecFlight, "KiSkillCurve", 1f,
                 new ConfigDescription(
                     "Shape of the flight skill discount: reduction = KiSkillReduction * " +
                     "(level/100)^this. 1 is a straight line, so half the skill gives half the " +
@@ -2176,6 +2253,10 @@ namespace Saiyaheim
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
                 new ConfigDescription("Detailed logging in the BepInEx console.",
                     null, ClientSide(100)));
+
+            // Depois de todo Bind, de proposito: a tabela de migracao referencia as entradas, e
+            // antes daqui metade delas ainda e' null.
+            Util.ConfigMigration.Run(config);
 
             SaiyaheimPlugin.Log.LogInfo("Config loaded.");
         }

@@ -20,6 +20,13 @@ namespace Saiyaheim
         /// <summary>Escondido atrás do "Advanced settings" no ConfigurationManager.</summary>
         public bool? IsAdvanced;
 
+        /// <summary>
+        /// Aparece na UI do ConfigurationManager. <c>false</c> esconde a entrada por completo —
+        /// serve para escrituração do próprio arquivo, como a versão de config, que o jogador não
+        /// tem por que ver nem mexer.
+        /// </summary>
+        public bool? Browsable;
+
         /// <summary>Ordem de exibição dentro da seção (maior aparece primeiro).</summary>
         public int? Order;
 
