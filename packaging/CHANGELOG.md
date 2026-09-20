@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Changed: new artwork for the skill icons — Power Level, Flight and the three Super Saiyan
+  forms. They now carry a transparent background, so they sit on the skill wheel and the HUD
+  without the black square around them.
+
 ## 0.3.0
 
 - New: gain ki by fighting well. A successful parry gives the ki cost of 2 punches, and
