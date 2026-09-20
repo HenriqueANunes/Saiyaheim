@@ -24,7 +24,9 @@ Meadows and not only after Mistlands.
 
 - Regenerates over time; the vanilla `Rested` buff makes it regenerate faster.
 - Hold the charge key to charge it much faster than passive regeneration.
-- Spent on punches, damage taken, ki attacks, flight and the drain of staying transformed.
+- Spent on punches, blocking, damage taken, ki attacks, flight and a small drain while
+  transformed. Transforming does not cost much to *hold* — it costs more to *fight* in, and
+  mastering that form takes the difference away.
 
 ### Ki toggle
 
@@ -83,20 +85,24 @@ Three steps today, each gated behind a boss:
 | **SSJ2** | The Elder | ×3 | Brighter hair, blue lightning, heavier ki drain |
 | **SSJ3** | Bonemass | ×4 | Long spiked hair (changes your silhouette), white lightning, strongest glow |
 
-There is no activation cost — what a form costs is the continuous ki drain, so stepping up and
-down is free. One key transforms straight into the highest form you have unlocked; another drops
-you back to base. Shift plus those keys walks the ladder one step at a time. Running out of ki
-drops you out of the form on its own.
+There is no activation cost, so stepping up and down is free. What a form costs is a small
+continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and
+firing ki attacks all cost more while transformed, in proportion to the power the form gives you.
+One key transforms straight into the highest form you have unlocked; another drops you back to
+base. Shift plus those keys walks the ladder one step at a time. Running out of ki drops you out of
+the form on its own.
 
 Transformed characters glow, light up the terrain around them, and can be seen doing it by other
 players.
 
 ### Mastery
 
-**Each form has its own mastery skill.** The longer you hold a form, the more mastery you gain in
-it, and mastery pays in ki efficiency: the drain goes down, and the extra ki cost that the form
-charges you for fighting comes back. Early on you can barely hold a transformation; at mastery
-100 a form costs nothing to keep.
+**Each form has its own mastery skill.** It grows by **fighting inside that form** — damage dealt
+and damage taken — so standing around transformed, or flying, trains nothing. Mastery pays in ki
+efficiency: the drain goes down, and the surcharge the form charges you for fighting fades away.
+Early on a transformation costs you the same ki per point of damage as your base form, so what it
+buys is the bigger hit; at mastery 100 the form costs nothing to keep and nothing extra to fight
+in, and the whole multiplier is yours.
 
 Holding a high form also trains every form below it, so climbing the ladder never freezes the
 progress of the step you already use.

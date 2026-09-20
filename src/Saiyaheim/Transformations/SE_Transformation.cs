@@ -6,7 +6,8 @@ namespace Saiyaheim.Transformations
     /// A forma ativa: o <c>StatusEffect</c> que representa estar transformado.
     ///
     /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, paga XP de maestria pelo tempo
-    /// segurando a forma e levanta o limite de peso do inventário. O <b>poder</b> da transformação
+    /// segurando a forma e levanta o limite de peso do inventário. O XP de maestria NÃO sai daqui
+    /// desde 2026-09-20 — ele vem do dano trocado, pelo <c>DamageXpPatch</c>. O <b>poder</b> da transformação
     /// não está aqui: é o <c>BattlePower.GetKiCombatRaw</c> que consulta o
     /// <see cref="TransformationRegistry"/> e multiplica.
     ///
@@ -40,9 +41,6 @@ namespace Saiyaheim.Transformations
         /// Confirmado na decompilação de <c>StatusEffect</c>.
         /// </summary>
         private Transformation _form;
-
-        /// <summary>Segundos de forma ainda não convertidos em XP. Ver <see cref="FlushXp"/>.</summary>
-        private float _pendingXpSeconds;
 
         internal Transformation Form => _form;
 
@@ -86,8 +84,6 @@ namespace Saiyaheim.Transformations
             // effect de dentro do SEMan.Update corromperia o laço dele, que cacheia o Count antes
             // de iterar. Mesma divisão do voo.
             KiManager.Drain(_form.GetKiDrainPerSecond(player) * dt);
-
-            FlushXp(player, dt);
         }
 
         /// <summary>
@@ -124,39 +120,8 @@ namespace Saiyaheim.Transformations
             limit += _form.GetCarryWeightBonus();
         }
 
-        public override void Stop()
-        {
-            // Sem isto, uma forma segurada por menos de um segundo nunca pagaria XP — e no começo
-            // do jogo, com a barra pequena e o dreno cheio, formas curtas são a regra.
-            FlushXp(m_character as Player, 0f, force: true);
-
-            base.Stop();
-        }
-
-        /// <summary>
-        /// Acumula o tempo transformado e converte em XP uma vez por segundo. Chamar
-        /// <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo para o mesmo
-        /// efeito. Mesmo padrão do <c>SE_Flight.FlushXp</c>.
-        ///
-        /// Quem reparte é o <see cref="TransformationRegistry.RaiseMastery"/>, e não este efeito:
-        /// o tempo pago treina esta forma <b>e todos os degraus abaixo dela</b>, e quem sabe onde
-        /// a forma cai na escada é o registry. Este arquivo só sabe o seu próprio degrau.
-        /// </summary>
-        private void FlushXp(Player player, float dt, bool force = false)
-        {
-            _pendingXpSeconds += dt;
-
-            if (_pendingXpSeconds <= 0f || (!force && _pendingXpSeconds < 1f))
-            {
-                return;
-            }
-
-            if (_form != null)
-            {
-                TransformationRegistry.RaiseMastery(player, _form, _pendingXpSeconds);
-            }
-
-            _pendingXpSeconds = 0f;
-        }
+        // A maestria NAO e' paga aqui desde 2026-09-20. Ela vinha do tempo em forma, acumulado
+        // neste efeito; agora vem do dano trocado dentro dela, e quem mede dano e' o
+        // DamageXpPatch. Este efeito voltou a ter uma conta so: o dreno.
     }
 }

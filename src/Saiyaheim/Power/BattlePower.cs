@@ -225,12 +225,29 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            return bonus * SaiyaheimConfig.PunchKiCostPerDamage.Value * GetKiCostFactor(player);
+            // ⚠️ O `bonus` que chega aqui e' o da FORMA — o GetPunchDamageBonus le o poder ja
+            // multiplicado. Dividir por ela devolve o bonus da forma base, e a sobretaxa da forma
+            // entra depois, explicita. Parece rodeio e nao e': sem isso o multiplicador da forma
+            // entraria duas vezes, uma escondida no bonus e outra na sobretaxa.
+            //
+            // E' tambem o que torna a conta legivel numa frase: o soco custa o que custaria na
+            // forma base, vezes o que a forma cobra a mais. Ver GetFormKiCostMultiplier.
+            float form = Transformations.TransformationRegistry.GetPowerMultiplier(player);
+            float baseBonus = form > 0f ? bonus / form : bonus;
+
+            return baseBonus
+                   * SaiyaheimConfig.PunchKiCostPerDamage.Value
+                   * GetKiCostFactor(player)
+                   * GetFormKiCostMultiplier(player);
         }
 
         /// <summary>
-        /// O desconto que o poder dá nos <b>três</b> custos de ki do combate — socar, apanhar e
-        /// bloquear. Em 0–1; devolve 1 (sem desconto) enquanto o config estiver em zero.
+        /// O desconto que o poder dá no custo de ki do <b>soco</b>. Em 0–1; devolve 1 (sem
+        /// desconto) enquanto o config estiver em zero.
+        ///
+        /// ⚠️ <b>Valia para os três custos de combate até 2026-09-20</b>, e o texto abaixo defende
+        /// essa escolha. Ela estava errada para dois deles: ver
+        /// <see cref="GetDefenseKiCostFactor"/>, que agora atende apanhar e bloquear.
         ///
         /// <b>O problema que ele resolve</b> (playtest de 2026-08-04): os três custos nascem
         /// proporcionais ao serviço que o ki prestou, e esse serviço vem do poder de
@@ -241,9 +258,14 @@ namespace Saiyaheim.Power
         /// vanilla cru, e dois bloqueios esvaziam a barra. O SSJ apenas antecipou isso, dobrando os
         /// custos hoje em vez de daqui a vinte níveis.
         ///
-        /// <b>Um fator para os três</b>, e não um por consumidor: é o mesmo fenômeno nos três, e
-        /// separá-los convidaria a um estado incoerente — soco barato ao lado de bloqueio caro —
-        /// sem nenhuma pergunta de design por trás da diferença.
+        /// <b>Era um fator para os três</b>, e não um por consumidor, porque parecia ser o mesmo
+        /// fenômeno nos três. <b>Não é</b>, e o playtest de 2026-09-20 mostrou onde: o custo do
+        /// soco é proporcional ao <i>seu</i> poder, que cresce sem teto e por isso precisa do
+        /// desconto; o de bloquear e o de apanhar são proporcionais ao <b>golpe do inimigo</b>, que
+        /// não cresce com o seu poder nenhum. Ali o desconto não corrige crescimento nenhum — ele
+        /// só torna a defesa progressivamente grátis, e a forma acelera isso, porque é ela que
+        /// multiplica o poder que compra o desconto. Em SSJ3 um bloqueio barrava 3,4x mais dano
+        /// pelo mesmo ki.
         ///
         /// <b>Hiperbólico, e pela mesma razão do voo</b> (<c>FlightStats.GetPowerCostFactor</c>):
         /// a entrada não tem teto, então um <c>1 - r × poder</c> atravessaria o zero e viraria um
@@ -277,88 +299,126 @@ namespace Saiyaheim.Power
         /// </summary>
         internal static float GetKiCostFactor(Player player)
         {
-            return player == null
-                ? 1f
-                : KiCostFactorFor(GetKiCombatRaw(player), GetActiveFormCostPayback(player));
+            return player == null ? 1f : KiCostFactorFor(GetKiCombatRawWithoutForm(player));
         }
 
         /// <summary>
-        /// A devolução que a maestria da forma <b>ativa</b> paga, ou 0 fora de forma — o segundo
-        /// termo do divisor do <see cref="KiCostFactorFor"/>.
+        /// Quanto a forma ativa cobra a mais nos <b>três</b> custos de combate, em relação ao que
+        /// a forma base pagaria pelo mesmo serviço. 1 fora de forma.
         ///
-        /// <b>Da forma ativa, e não da mais alta destravada</b>: é isso que faz o degrau que o
-        /// jogador dominou ser o barato e o recém-destravado ser o caro. Trocar de forma troca o
-        /// desconto junto.
+        /// <code>1 + (multiplicador - 1) × CombatFormKiShare × (1 - MasteryFormCostReduction × maestria/100)</code>
         ///
-        /// ⚠️ Segue a mesma regra do <c>GetPowerMultiplier</c> e pelo mesmo motivo: <b>não pode
-        /// ler battle power</b>, direta ou indiretamente. Quem chama é o
-        /// <see cref="GetKiCostFactor"/>, que já recebeu o poder pronto — uma leitura de volta
-        /// fecharia recursão. Nível de skill, config e <c>SEMan</c> não passam nem perto disso.
+        /// <b>Por que passou a ser explícito em 2026-09-20.</b> Antes o acréscimo da forma era
+        /// implícito: o custo do soco é proporcional ao bônus de dano, o bônus é multiplicado pela
+        /// forma, e a devolução da maestria era um termo somado no divisor do desconto de poder.
+        /// Parecia equivalente e não era — o desconto de poder também lia o poder <b>multiplicado
+        /// pela forma</b>, então ele crescia junto e comia quase todo o acréscimo. Em SSJ3, no meio
+        /// do jogo, o soco dava 4x o dano por 1,28x o custo, e apanhar e bloquear ficavam mais
+        /// baratos transformado do que fora. O relato do playtest foi exatamente esse: "o custo é
+        /// sempre muito próximo ao da forma base".
+        ///
+        /// Agora as duas coisas são separadas e cada uma lê o que lhe diz respeito: o desconto de
+        /// poder lê o poder da <b>forma base</b> (<see cref="GetKiCostFactor"/>), e o preço da
+        /// forma é este multiplicador aqui.
+        ///
+        /// <b>Com os defaults (share 1, redução 1)</b>: na maestria 0 a forma cobra o
+        /// multiplicador cheio — 4x o custo por 4x o dano, ou seja, <i>dano por ki igual ao da
+        /// forma base</i>, e o que ela compra é o golpe maior, não eficiência. Na maestria 100 ela
+        /// cobra 1x, e aí sim o multiplicador inteiro é lucro. É a curva da progressão dita em
+        /// números: no começo você mal segura a forma, no fim você a veste.
+        ///
+        /// ⚠️ <b>Não pode ler battle power</b>, direta ou indiretamente — mesma regra do
+        /// <c>GetPowerMultiplier</c> e pelo mesmo motivo: quem chama está no meio da conta do
+        /// poder, e uma leitura de volta fecharia recursão. Config, <c>SEMan</c> e nível de skill
+        /// não passam nem perto disso.
         /// </summary>
-        private static float GetActiveFormCostPayback(Player player)
+        internal static float GetFormKiCostMultiplier(Player player)
         {
             Transformations.Transformation active =
                 Transformations.TransformationRegistry.GetActive(player);
 
             return active == null
-                ? 0f
-                : FormCostPayback(active.GetPowerMultiplier(), active.GetSkillLevel(player));
+                ? 1f
+                : FormKiCostMultiplier(active.GetPowerMultiplier(), active.GetSkillLevel(player));
         }
 
         /// <summary>
-        /// Quanto do acréscimo de custo que a forma cobra já foi devolvido pela maestria dela.
-        /// Entra somado no divisor do <see cref="KiCostFactorFor"/>.
-        ///
-        /// <code>(multiplicador - 1) × (maestria / 100) × MasteryFormCostReduction</code>
-        ///
-        /// <b>Por que contra o multiplicador.</b> O acréscimo que a forma cobra <i>é</i> o
-        /// multiplicador dela — ela multiplica o poder, e os três custos de combate são
-        /// proporcionais ao poder. Então a devolução tem que escalar junto. Com o config em 1 a
-        /// conta fecha exata: o divisor vira <c>multiplicador × (1 + taxa × poder_base)</c>, que é
-        /// o divisor de fora de forma multiplicado pelo mesmo fator que multiplicou o numerador —
-        /// e o soco da forma maxada custa <b>exatamente</b> o soco de fora dela, entregando o
-        /// multiplicador em dano. Vale para qualquer degrau, sem recalibrar.
-        ///
-        /// Público-interno porque o <c>saiya_form</c> precisa dele para uma forma
-        /// <b>hipotética</b>, do mesmo jeito que já precisa do <see cref="PunchBonusFor"/>.
+        /// O multiplicador de custo de uma forma <b>hipotética</b>. Existe pelo mesmo motivo que o
+        /// <see cref="PunchBonusFor"/>: o <c>saiya_form</c> mostra o antes e o depois sem
+        /// transformar o jogador nem copiar a fórmula.
         /// </summary>
-        internal static float FormCostPayback(float powerMultiplier, float masteryLevel)
+        internal static float FormKiCostMultiplier(float powerMultiplier, float masteryLevel)
         {
-            float rate = SaiyaheimConfig.MasteryFormCostReduction.Value;
-            if (rate <= 0f)
-            {
-                return 0f;
-            }
-
             float premium = Mathf.Max(0f, powerMultiplier - 1f);
-            float mastery = Mathf.Clamp01(masteryLevel / 100f);
-
-            return premium * mastery * rate;
-        }
-
-        /// <summary>
-        /// O fator de desconto de um poder de combate <b>hipotético</b>. Existe pelo mesmo motivo
-        /// que o <see cref="PunchBonusFor"/>: o <c>saiya_form</c> mostra o antes e o depois da
-        /// transformação sem transformar o jogador nem copiar a fórmula.
-        /// </summary>
-        internal static float KiCostFactorFor(float combatPower, float formCostPayback = 0f)
-        {
-            float rate = SaiyaheimConfig.KiCostPowerReduction.Value;
-
-            if (rate <= 0f && formCostPayback <= 0f)
+            if (premium <= 0f)
             {
                 return 1f;
             }
 
-            // Os dois descontos SOMADOS no divisor, e nao multiplicados um pelo outro: somar
-            // mantem a saturacao da hiperbolica (cada custo tende a taxa dele dividida pelo total
-            // e nunca passa disso) e deixa cada termo legivel sozinho no .cfg. E' tambem o que faz
-            // a conta do FormCostPayback fechar exata em 1 — com produto ela nao fecharia.
-            float divisor = 1f
-                            + rate * Mathf.Max(0f, combatPower)
-                            + Mathf.Max(0f, formCostPayback);
+            float share = Mathf.Max(0f, SaiyaheimConfig.CombatFormKiShare.Value);
+            float paid = Mathf.Clamp01(SaiyaheimConfig.MasteryFormCostReduction.Value)
+                         * Mathf.Clamp01(masteryLevel / 100f);
 
-            return 1f / divisor;
+            // Piso em 1: uma forma que deixasse o combate mais barato que a forma base seria um
+            // segundo multiplicador de forca escondido num dial de custo.
+            return Mathf.Max(1f, 1f + premium * share * (1f - paid));
+        }
+
+        /// <summary>
+        /// O desconto que o poder dá nos custos de ki da <b>defesa</b> — apanhar e bloquear.
+        /// <b>Nenhum</b> com o config no default (<c>DefenseKiCostPowerReduction</c> = 0).
+        ///
+        /// <b>Por que estes dois saíram do fator do soco em 2026-09-20.</b> O custo deles é
+        /// proporcional ao dano que o ki parou, e esse dano vem do <b>inimigo</b>: ele cresce por
+        /// bioma, não com o poder do jogador. Descontar pelo poder tornava a defesa mais barata
+        /// exatamente quando ela ficava mais forte, e transformar dobrava a dose. O sintoma
+        /// relatado no jogo foi "bloquear transformado não custa nada".
+        ///
+        /// <b>Chave própria, e não a remoção do desconto</b>, porque a pergunta de fim de jogo
+        /// continua legítima — se o dano dos biomas finais crescer mais que a barra de ki, é aqui
+        /// que se compra alívio, sem mexer no soco.
+        ///
+        /// <b>Inclui o multiplicador da forma</b> (<see cref="GetFormKiCostMultiplier"/>), e é a
+        /// única coisa que a forma faz com estes dois custos — aqui ela não tem um acréscimo
+        /// implícito para cancelar, como o soco tem no bônus de dano. Transformado, apanhar e
+        /// bloquear custam o multiplicador da forma a mais, e a maestria dissolve isso.
+        /// </summary>
+        internal static float GetDefenseKiCostFactor(Player player)
+        {
+            if (player == null)
+            {
+                return 1f;
+            }
+
+            float rate = SaiyaheimConfig.DefenseKiCostPowerReduction.Value;
+            float discount = rate <= 0f
+                ? 1f
+                : 1f / (1f + rate * Mathf.Max(0f, GetKiCombatRawWithoutForm(player)));
+
+            return discount * GetFormKiCostMultiplier(player);
+        }
+
+        /// <summary>
+        /// O fator de desconto de um poder de combate <b>hipotético</b>, sempre o da forma
+        /// <b>base</b>. Existe pelo mesmo motivo que o <see cref="PunchBonusFor"/>: o
+        /// <c>saiya_form</c> mostra o antes e o depois da transformação sem transformar o jogador
+        /// nem copiar a fórmula.
+        ///
+        /// ⚠️ <b>Recebia um segundo termo somado, a devolução da maestria, até 2026-09-20.</b> O
+        /// preço da forma saiu do divisor e virou um multiplicador próprio
+        /// (<see cref="FormKiCostMultiplier"/>) — misturar os dois no mesmo divisor era o que
+        /// fazia o acréscimo da forma quase desaparecer.
+        /// </summary>
+        internal static float KiCostFactorFor(float combatPower)
+        {
+            float rate = SaiyaheimConfig.KiCostPowerReduction.Value;
+
+            if (rate <= 0f)
+            {
+                return 1f;
+            }
+
+            return 1f / (1f + rate * Mathf.Max(0f, combatPower));
         }
 
         /// <summary>

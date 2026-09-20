@@ -18,8 +18,9 @@ namespace Saiyaheim.Transformations
     /// <b>Cada forma tem a skill dela</b>, registrada do mesmo jeito que <c>PowerSkill</c> e
     /// <c>FlightSkill</c>: skill nativa via <c>SkillManager.AddSkill</c> do Jotunn, com
     /// persistência no save, entrada no menu de skills e curva de ganho decrescente até 100 de
-    /// graça. Ela é a maestria — sobe segurando a forma e paga em <b>dreno menor</b>, que é a
-    /// única moeda dela.
+    /// graça. Ela é a maestria — sobe <b>lutando dentro da forma</b> (desde 2026-09-20; antes era
+    /// por tempo segurando) e paga em dreno menor e, principalmente, em custo de ki por golpe mais
+    /// barato dentro daquela forma (<c>BattlePower.FormCostPayback</c>).
     ///
     /// <b>Não confundir com Power Level.</b> Power Level é uma só, global, e mede quanto o
     /// jogador treinou lutando; maestria é uma por forma e mede quanto ele domina <i>aquela</i>
@@ -309,24 +310,46 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// XP de maestria por tempo segurando a forma. O chamador acumula os segundos e passa de
-        /// uma vez — <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo pelo
-        /// mesmo efeito.
+        /// XP de maestria por um golpe trocado dentro da forma — causado
+        /// (<paramref name="dealt"/>) ou sofrido.
         ///
-        /// <b>Isto é o pagamento de uma forma só.</b> Segurar um degrau treina também os degraus
-        /// abaixo dele, mas essa regra é da escada e mora no
-        /// <see cref="TransformationRegistry.RaiseMastery"/> — o normal é chamar por lá, não aqui.
+        /// <b>Por dano e não por tempo</b>, desde 2026-09-20. Segurar a forma parado era o segundo
+        /// grind que o feedback público relatou, e o rework que derrubou o dreno o tornaria
+        /// <i>mais</i> rentável, não menos: forma barata de manter + XP por segundo é um convite a
+        /// ficar parado em SSJ. Agora a forma só treina quando está sendo usada para o que ela
+        /// serve. Voar transformado também não paga nada — quem quer baratear a forma luta dentro
+        /// dela.
+        ///
+        /// <b>O grampo entra antes do multiplicador de boss</b>, e não depois como o do Power
+        /// Level: o bônus de boss corrige o degrau velho que ficou para trás
+        /// (<see cref="GetBossXpMultiplier"/>), e deixar o grampo comê-lo anularia a correção
+        /// justamente onde ela existe para fazer efeito.
+        ///
+        /// <b>Isto é o pagamento de uma forma só.</b> O golpe treina também os degraus abaixo, mas
+        /// essa regra é da escada e mora no
+        /// <see cref="TransformationRegistry.RaiseMasteryFromDamage"/> — o normal é chamar por lá.
         /// </summary>
-        internal void RaiseMastery(Player player, float seconds)
+        internal void RaiseMasteryFromDamage(Player player, float applied, bool dealt)
         {
             // Ki desligado não acumula progressão do mod — é a regra do toggle. Na prática não dá
             // para chegar aqui com ele desligado (a forma cai junto), mas a regra vale igual.
-            if (player == null || !IsRegistered || !Ki.KiManager.IsEnabled || seconds <= 0f)
+            if (player == null || !IsRegistered || !Ki.KiManager.IsEnabled || applied <= 0f)
             {
                 return;
             }
 
-            float xp = seconds * Config.MasteryXpPerSecond.Value * GetBossXpMultiplier();
+            float rate = dealt
+                ? Config.MasteryXpPerDamageDealt.Value
+                : Config.MasteryXpPerDamageTaken.Value;
+
+            if (rate <= 0f)
+            {
+                return;
+            }
+
+            float xp = Mathf.Min(applied * rate, Config.MasteryXpMaxPerEvent.Value)
+                       * GetBossXpMultiplier();
+
             if (xp <= 0f)
             {
                 return;

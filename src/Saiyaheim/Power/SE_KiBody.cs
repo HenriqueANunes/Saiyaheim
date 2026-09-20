@@ -264,11 +264,12 @@ namespace Saiyaheim.Power
                 return;
             }
 
-            // O mesmo desconto do soco, e pelo mesmo motivo: a armadura de ki cresce com o poder,
-            // então absorve mais e cobra mais, enquanto a barra parou de crescer no nível 100. Sem
-            // isto, apanhar fica progressivamente impagável junto com bater. Ver
-            // BattlePower.GetKiCostFactor.
-            float cost = absorbed * rate * BattlePower.GetKiCostFactor(player);
+            // O fator da DEFESA, e não o do soco — os dois se separaram em 2026-09-20. A armadura
+            // de ki cresce com o poder e por isso absorve mais, mas o que ela absorve vem do golpe
+            // do INIMIGO, que não cresce com o poder do jogador: descontar pelo poder fazia apanhar
+            // ficar mais barato exatamente quando a armadura ficava mais forte. No default o fator
+            // é 1. Ver BattlePower.GetDefenseKiCostFactor.
+            float cost = absorbed * rate * BattlePower.GetDefenseKiCostFactor(player);
 
             // Drain e não TryConsume: a barra vazia não impede o golpe de acontecer, e o
             // que sobrar do custo simplesmente não é cobrado.

@@ -181,6 +181,12 @@ namespace Saiyaheim.Flight
                 // velocidade nenhuma, e cobrar o FastKiMultiplier por um shift esquecido seria
                 // punir o jogador por um input que não fez nada.
                 cost *= SaiyaheimConfig.FlightHoverKiMultiplier.Value;
+
+                // A sobretaxa do cheese. Ver IsFightingSomething.
+                if (IsFightingSomething(player))
+                {
+                    cost *= Mathf.Max(1f, SaiyaheimConfig.FlightCombatHoverMultiplier.Value);
+                }
             }
             else if (fast)
             {
@@ -189,7 +195,61 @@ namespace Saiyaheim.Flight
 
             cost *= GetSkillCostFactor(player);
 
+            // A sobretaxa da forma entra ANTES das reducoes, e nao depois: as duas reducoes sao
+            // multiplicativas, entao a ordem nao muda a conta — mas ler "custo base, o que a forma
+            // acrescenta, o que as skills devolvem" e' a ordem em que as tres coisas acontecem na
+            // cabeca do jogador.
+            cost *= GetFormCostFactor(player);
+
             return Mathf.Max(0f, cost * GetPowerCostFactor(player));
+        }
+
+        /// <summary>
+        /// Quanto a forma ativa encarece o voo: <c>1 + (multiplicador - 1) × share × (1 - maestria)</c>.
+        /// Devolve 1 fora de forma, que e' o caso da esmagadora maioria das chamadas.
+        ///
+        /// <b>Por que a forma paga.</b> Ela multiplica a velocidade de voo
+        /// (<see cref="GetFormSpeedFactor"/>) e, desde que o dreno da forma virou manutencao
+        /// simbolica em 2026-09-20, praticamente nao paga nada por isso — a soma "dreno da forma +
+        /// custo do voo" que respondia pela conta virou troco. Sem esta sobretaxa, voar
+        /// transformado e' velocidade de graca.
+        ///
+        /// <b>Ancorada na fracao que vira velocidade</b>, e nao no multiplicador cheio: a forma so
+        /// entrega <c>FormSpeedShare</c> do ganho de poder no ar, e cobrar pelo resto seria cobrar
+        /// por uma coisa que ela nao da'. A chave e' propria mesmo assim
+        /// (<c>FlightFormKiShare</c>), porque numero de balanceamento nao se compartilha.
+        ///
+        /// <b>Quem paga e' a maestria da forma</b>, que treina lutando — nao a skill de voo. Com a
+        /// skill de voo o desconto seria duplo, ja' que ela tambem barateia o custo base, e o farm
+        /// voando voltaria pela porta dos fundos.
+        ///
+        /// ⚠️ Nao le battle power, direta nem indiretamente: so config, <c>SEMan</c> e nivel de
+        /// skill. Mesma regra do <c>TransformationRegistry.GetPowerMultiplier</c>, e pelo mesmo
+        /// motivo — o poder de combate ja' e' multiplicado pela forma e uma leitura de volta
+        /// fecharia recursao.
+        /// </summary>
+        internal static float GetFormCostFactor(Player player)
+        {
+            float share = SaiyaheimConfig.FlightFormKiShare.Value;
+            if (share <= 0f || player == null)
+            {
+                return 1f;
+            }
+
+            Transformations.Transformation active =
+                Transformations.TransformationRegistry.GetActive(player);
+
+            if (active == null)
+            {
+                return 1f;
+            }
+
+            // Piso em zero nos dois: um multiplicador abaixo de 1 seria forma que enfraquece (o
+            // GetPowerMultiplier ja' barra isso), e maestria fora de 0-100 nao existe.
+            float premium = Mathf.Max(0f, active.GetPowerMultiplier() - 1f);
+            float mastery = Mathf.Clamp01(active.GetSkillLevel(player) / 100f);
+
+            return 1f + premium * share * (1f - mastery);
         }
 
         /// <summary>
@@ -213,6 +273,96 @@ namespace Saiyaheim.Flight
             float progress = Mathf.Pow(FlightSkill.GetLevelFactor(player), curve);
 
             return 1f - SaiyaheimConfig.FlightKiSkillReduction.Value * progress;
+        }
+
+        /// <summary>
+        /// Há alguma coisa hostil e <b>alertada</b> por perto — ou seja, o jogador está numa luta
+        /// mesmo que ninguém consiga alcançá-lo.
+        ///
+        /// <b>Para que serve.</b> Pairar parado no ar enquanto um boss não alcança é o <i>cheese</i>
+        /// que o feedback público relata, e até 2026-09-20 o mod <b>pagava</b> por ele: pairar
+        /// custava metade de voar. Encarecer por altitude não resolveria — a faixa em que se fica
+        /// fora do alcance de um boss é a mesma em que se voa para não bater em árvore, então o
+        /// número puniria viajar sem tocar no cheese. As duas variáveis que separam os dois casos
+        /// são <b>parado</b> e <b>em combate</b>, e é o que esta pergunta responde.
+        ///
+        /// <b>Cacheado.</b> A varredura roda no máximo a cada <see cref="CombatScanInterval"/>
+        /// segundos, e não a cada tick de física. A lista de personagens do jogo é curta (dezenas),
+        /// mas o custo do voo é lido várias vezes por frame — pelo dreno, pela HUD e pelo
+        /// <c>saiya_fly</c> — e nenhuma delas precisa de resposta nova a cada leitura.
+        ///
+        /// Tudo por API pública do jogo, conferido na assembly não-publicizada em 2026-09-20:
+        /// <c>Character.GetAllCharacters</c>, <c>Character.GetBaseAI</c>, <c>BaseAI.IsAlerted</c>,
+        /// <c>IsTamed</c>, <c>IsDead</c> e <c>GetCenterPoint</c> são todos públicos.
+        /// </summary>
+        internal static bool IsFightingSomething(Player player)
+        {
+            if (player == null || SaiyaheimConfig.FlightCombatHoverMultiplier.Value <= 1f)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(player, _combatCachePlayer) && Time.time < _combatCacheUntil)
+            {
+                return _combatCacheValue;
+            }
+
+            _combatCachePlayer = player;
+            _combatCacheUntil = Time.time + CombatScanInterval;
+            _combatCacheValue = ScanForAlertedEnemies(player, SaiyaheimConfig.FlightCombatHoverRange.Value);
+
+            return _combatCacheValue;
+        }
+
+        /// <summary>Segundos entre duas varreduras. Fixo: é taxa de amostragem, não balanceamento.</summary>
+        private const float CombatScanInterval = 0.5f;
+
+        private static Player _combatCachePlayer;
+        private static float _combatCacheUntil;
+        private static bool _combatCacheValue;
+
+        /// <summary>
+        /// A varredura em si. Distância em <b>3D</b>, e não no plano: o inimigo do cheese está
+        /// justamente <i>embaixo</i> do jogador, e medir só o eixo horizontal daria zero metros
+        /// para quem está a cinquenta de altura.
+        /// </summary>
+        private static bool ScanForAlertedEnemies(Player player, float range)
+        {
+            System.Collections.Generic.List<Character> all = Character.GetAllCharacters();
+            if (all == null)
+            {
+                return false;
+            }
+
+            Vector3 center = player.GetCenterPoint();
+            float sqrRange = range * range;
+
+            // For sem enumerador e sem LINQ: isto roda duas vezes por segundo com o jogador no ar,
+            // e a lista e' do jogo — alocar aqui seria lixo por voo inteiro.
+            for (int i = 0; i < all.Count; i++)
+            {
+                Character other = all[i];
+
+                // Jogador nao conta nem em PvP: dois amigos voando lado a lado nao sao uma luta.
+                // Domesticado tambem nao — o lobo do jogador fica alertado o tempo todo.
+                if (other == null || other == player || other.IsPlayer() || other.IsTamed() || other.IsDead())
+                {
+                    continue;
+                }
+
+                if ((other.GetCenterPoint() - center).sqrMagnitude > sqrRange)
+                {
+                    continue;
+                }
+
+                BaseAI ai = other.GetBaseAI();
+                if (ai != null && ai.IsAlerted())
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -138,33 +138,38 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
-        /// Paga XP de maestria pelo tempo segurando <paramref name="active"/> — para ela
-        /// <b>e para todo degrau abaixo dela</b>.
+        /// Paga XP de maestria por um golpe trocado dentro de <paramref name="active"/> — para
+        /// ela <b>e para todo degrau abaixo dela</b>.
         ///
-        /// <b>Por que a escada inteira abaixo, e na taxa cheia.</b> A escada é linear: quem segura
-        /// o SSJ2 está segurando o SSJ por dentro, e não faz sentido a maestria do degrau que ele
+        /// <b>Por que a escada inteira abaixo, e na taxa cheia.</b> A escada é linear: quem luta
+        /// em SSJ2 está lutando em SSJ por dentro, e não faz sentido a maestria do degrau que ele
         /// já domina congelar no instante em que ele passa a viver no degrau de cima. Sem isto o
-        /// jogador que subiu é <b>punido</b> por usar a forma nova: o dreno do SSJ, para o qual ele
-        /// volta toda vez que a barra aperta, para de melhorar. A alternativa era vazar só uma
+        /// jogador que subiu é <b>punido</b> por usar a forma nova: o degrau de baixo, para o qual
+        /// ele volta toda vez que a barra aperta, para de melhorar. A alternativa era vazar só uma
         /// fração; foi descartada porque a fração transformaria o degrau baixo numa segunda barra
-        /// de grind, e a moeda da maestria — dreno menor — já é onde os degraus se diferenciam.
+        /// de grind.
         ///
-        /// <b>Cada forma na taxa dela</b>: o XP sai do <c>MasteryXpPerSecond</c> de <i>quem
-        /// recebe</i>, não do da forma ativa. Continua valendo que nenhum número de balanceamento
-        /// é compartilhado entre formas — cada degrau é dono da própria velocidade de treino.
+        /// <b>Cada forma na taxa dela</b>: o XP sai das chaves <c>MasteryXpPerDamage*</c> de
+        /// <i>quem recebe</i>, não das da forma ativa. Continua valendo que nenhum número de
+        /// balanceamento é compartilhado entre formas — cada degrau é dono da própria velocidade
+        /// de treino.
         ///
         /// Não checa se o degrau abaixo está destravado, de propósito: hoje a escada é monotônica
         /// e a checagem seria sempre verdadeira; se um dia deixar de ser, XP numa skill que o
         /// jogador ainda não pode usar não faz mal nenhum — ela só é lida quando ele entra
         /// naquela forma.
         /// </summary>
-        internal static void RaiseMastery(Player player, Transformation active, float seconds)
+        internal static void RaiseMasteryFromDamage(Player player, float applied, bool dealt)
         {
+            // A forma sai do SEMan do próprio jogador, e não vem por parâmetro: quem chama é o
+            // caminho do dano, que sabe do golpe e não da escada. Fora de forma não há o que pagar.
+            Transformation active = GetActive(player);
+
             int top = IndexOf(active);
 
             for (int i = 0; i <= top; i++)
             {
-                All[i].RaiseMastery(player, seconds);
+                All[i].RaiseMasteryFromDamage(player, applied, dealt);
             }
         }
 

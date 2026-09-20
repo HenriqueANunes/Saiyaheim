@@ -129,6 +129,33 @@ namespace Saiyaheim.Debugging
             Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running, " +
                   $"{hoverCost:0.##}/s hovering");
 
+            // A sobretaxa de pairar em combate e' invisivel: ela muda um numero que o jogador ja'
+            // nao ve, e so' enquanto alguma coisa estiver alertada perto dele. Sem esta linha nao
+            // ha como saber se ela ligou, nem calibrar o raio.
+            float combatMultiplier = Math.Max(1f, SaiyaheimConfig.FlightCombatHoverMultiplier.Value);
+            if (combatMultiplier > 1f)
+            {
+                bool fighting = FlightStats.IsFightingSomething(player);
+
+                Print($"  hovering in combat: x{combatMultiplier:0.##} " +
+                      $"(within {SaiyaheimConfig.FlightCombatHoverRange.Value:0} m — " +
+                      $"{(fighting ? "something alerted is nearby RIGHT NOW, the hover cost above includes it" : "nothing alerted nearby")})");
+            }
+
+            // A forma cobra pela velocidade que ela da', e a maestria devolve isso ate zerar. Sem
+            // esta linha o custo acima pula ao transformar sem nada na tela explicando por que.
+            float formCostFactor = FlightStats.GetFormCostFactor(player);
+            if (formCostFactor > 1f)
+            {
+                Transformations.Transformation form =
+                    Transformations.TransformationRegistry.GetActive(player);
+
+                Print($"  form surcharge: x{formCostFactor:0.###} " +
+                      $"(+{(formCostFactor - 1f) * 100f:0}%, {form?.DisplayName} at " +
+                      $"{SaiyaheimConfig.FlightFormKiShare.Value * 100f:0}% share, " +
+                      $"mastery {form?.GetSkillLevel(player) ?? 0f:0.#} pays it back)");
+            }
+
             // A economia do fim de jogo e invisivel no custo final — sem imprimir o fator nao da
             // para saber se o KiPowerReduction esta fazendo alguma coisa ou se o termo ainda dorme.
             float costFactor = FlightStats.GetPowerCostFactor(player);
@@ -138,7 +165,15 @@ namespace Saiyaheim.Debugging
                       $"({(1f - costFactor) * 100f:0}% cheaper, from +{BattlePower.GetLateGameBonus(player):0.#} power)");
             }
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#} " +
-                  $"— {SecondsOfFlight(slowCost):0} s of normal flight left");
+                  $"— {SecondsOfFlight(slowCost):0} s of normal flight left " +
+                  $"({SecondsOfFlight(slowCost) * slow:0} m)");
+
+            // XP e' por metro desde 2026-09-20, entao "por segundo" so existe multiplicado pela
+            // velocidade — e e' esse numero que responde "vale a pena voar rapido?" (vale o mesmo:
+            // o voo rapido dobra o XP e dobra o custo).
+            Print($"Flight XP: {SaiyaheimConfig.FlightXpPerMeter.Value:0.###}/m " +
+                  $"— {SaiyaheimConfig.FlightXpPerMeter.Value * slow:0.##}/s at this speed " +
+                  "(hovering pays nothing)");
         }
 
         /// <summary>Autonomia restante. É o número que decide se dá para atravessar aquele vale.</summary>

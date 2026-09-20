@@ -64,19 +64,25 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// XP por tempo de voo. O chamador acumula os segundos e passa de uma vez —
+        /// XP por distância percorrida no ar. O chamador acumula os metros e passa de uma vez —
         /// <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo por nada.
+        ///
+        /// <b>Por distância e não por tempo</b> desde 2026-09-20: por tempo, pairar parado pagava o
+        /// mesmo que atravessar o mapa, e mais barato, porque o <c>HoverKiMultiplier</c> corta o
+        /// custo justamente quando nada se move. Por metro, o XP acompanha o que custa ki — XP por
+        /// ki gasto fica constante entre o voo normal e o rápido — e a única forma de farmar é
+        /// voar de verdade. Ver <see cref="SE_Flight"/> para o odômetro.
         /// </summary>
-        internal static void RaiseFromFlightTime(Player player, float seconds)
+        internal static void RaiseFromFlightDistance(Player player, float meters)
         {
             // Ki desligado não acumula progressão do mod — é a regra do toggle. Na prática não dá
             // para chegar aqui com ele desligado (o voo cai junto), mas a regra vale igual.
-            if (player == null || !IsRegistered || !KiManager.IsEnabled || seconds <= 0f)
+            if (player == null || !IsRegistered || !KiManager.IsEnabled || meters <= 0f)
             {
                 return;
             }
 
-            float xp = seconds * SaiyaheimConfig.FlightXpPerSecond.Value;
+            float xp = meters * SaiyaheimConfig.FlightXpPerMeter.Value;
             if (xp <= 0f)
             {
                 return;

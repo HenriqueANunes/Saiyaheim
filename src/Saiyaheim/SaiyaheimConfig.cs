@@ -197,10 +197,25 @@ namespace Saiyaheim
         public static ConfigEntry<float> PunchKiCostPerDamage { get; private set; }
 
         /// <summary>
-        /// Taxa do desconto hiperbólico que o poder de combate dá nos <b>três</b> custos de ki do
-        /// combate: soco, dano recebido e bloqueio. 0 desliga. Ver <c>BattlePower.KiCostFactorFor</c>.
+        /// Taxa do desconto hiperbólico que o poder de combate dá no custo de ki do <b>soco</b>.
+        /// 0 desliga. Ver <c>BattlePower.KiCostFactorFor</c>.
+        ///
+        /// Valia para os três custos do combate até 2026-09-20; apanhar e bloquear passaram a ter
+        /// a chave própria abaixo.
         /// </summary>
         public static ConfigEntry<float> KiCostPowerReduction { get; private set; }
+
+        /// <summary>
+        /// Desconto de poder nos custos de ki da <b>defesa</b> (apanhar e bloquear). 0 = sem
+        /// desconto, que é o default. Ver <c>BattlePower.GetDefenseKiCostFactor</c>.
+        /// </summary>
+        public static ConfigEntry<float> DefenseKiCostPowerReduction { get; private set; }
+
+        /// <summary>
+        /// Quanto do ganho de poder da forma vira custo de ki a mais nos três custos de combate.
+        /// 1 = proporcional. Ver <c>BattlePower.FormKiCostMultiplier</c>.
+        /// </summary>
+        public static ConfigEntry<float> CombatFormKiShare { get; private set; }
 
         /// <summary>
         /// Quanto do <b>acréscimo</b> de custo de combate que a forma cobra é devolvido pela
@@ -324,8 +339,14 @@ namespace Saiyaheim
             /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
 
-            /// <summary>XP da skill desta forma por segundo transformado.</summary>
-            public ConfigEntry<float> MasteryXpPerSecond { get; internal set; }
+            /// <summary>XP da skill desta forma por ponto de dano causado dentro dela.</summary>
+            public ConfigEntry<float> MasteryXpPerDamageDealt { get; internal set; }
+
+            /// <summary>XP da skill desta forma por ponto de dano sofrido dentro dela.</summary>
+            public ConfigEntry<float> MasteryXpPerDamageTaken { get; internal set; }
+
+            /// <summary>Teto de XP de maestria de um único golpe, antes do multiplicador de boss.</summary>
+            public ConfigEntry<float> MasteryXpMaxPerEvent { get; internal set; }
 
             /// <summary>
             /// Quanto o ganho de XP desta forma sobe por boss derrotado <b>depois</b> do boss que
@@ -590,6 +611,15 @@ namespace Saiyaheim
         /// <summary>Multiplicador do custo de ki parado no ar, sem nenhum input de movimento.</summary>
         public static ConfigEntry<float> FlightHoverKiMultiplier { get; private set; }
 
+        /// <summary>
+        /// Quanto pairar parado custa a mais com inimigo alertado por perto. 1 desliga.
+        /// Ver <c>FlightStats.GetKiCostPerSecond</c>.
+        /// </summary>
+        public static ConfigEntry<float> FlightCombatHoverMultiplier { get; private set; }
+
+        /// <summary>Raio, em metros, em que um inimigo alertado conta para a sobretaxa acima.</summary>
+        public static ConfigEntry<float> FlightCombatHoverRange { get; private set; }
+
         public static ConfigEntry<float> FlightBaseSpeed { get; private set; }
 
         /// <summary>Velocidade somada por ponto de battle power bruto.</summary>
@@ -632,8 +662,14 @@ namespace Saiyaheim
         /// </summary>
         public static ConfigEntry<float> FlightKiPowerReduction { get; private set; }
 
-        /// <summary>XP da skill de voo por segundo voando.</summary>
-        public static ConfigEntry<float> FlightXpPerSecond { get; private set; }
+        /// <summary>XP da skill de voo por metro percorrido no ar.</summary>
+        public static ConfigEntry<float> FlightXpPerMeter { get; private set; }
+
+        /// <summary>
+        /// Quanto a forma ativa encarece o voo, como fração do ganho de poder dela. A maestria da
+        /// forma devolve isso até zerar no nível 100.
+        /// </summary>
+        public static ConfigEntry<float> FlightFormKiShare { get; private set; }
 
         /// <summary>Fração da velocidade perdida com o inventário no peso máximo.</summary>
         public static ConfigEntry<float> FlightWeightPenalty { get; private set; }
@@ -1229,6 +1265,39 @@ namespace Saiyaheim
             //
             // Hiperbolico e nao linear, pela mesma razao do voo: a entrada nao tem teto, e um
             // `1 - r * poder` atravessaria o zero e viraria golpe que DEVOLVE ki.
+            DefenseKiCostPowerReduction = config.Bind(SecCombat, "DefenseKiCostPowerReduction", 0f,
+                new ConfigDescription(
+                    "Same hyperbolic discount as KiCostPowerReduction, but for the two DEFENSIVE " +
+                    "ki costs: BlockKiCost and DamageTakenKiCost. 0 (the default) means no " +
+                    "discount at all. " +
+                    "Why it is separate and why it is zero: those two costs are charged per point " +
+                    "of the ENEMY's hit that ki stopped, and an enemy's hit does not grow with " +
+                    "your power — so there is no runaway growth here for a discount to correct. " +
+                    "Sharing the punch's discount made defending cheaper exactly as it got " +
+                    "stronger, and transforming multiplied the effect, because the form " +
+                    "multiplies the power that buys the discount. Playtested 2026-09-20: in SSJ3 " +
+                    "a block stopped 3.4x more damage for the same ki. " +
+                    "Raise it only if late-game biomes hit hard enough to make defending " +
+                    "unpayable — that is the one question this key is here to answer.",
+                    new AcceptableValueRange<float>(0f, 0.02f), AdminOnly(59)));
+
+            CombatFormKiShare = config.Bind(SecCombat, "CombatFormKiShare", 1f,
+                new ConfigDescription(
+                    "How much of a transformation's power gain turns into EXTRA ki cost for the " +
+                    "three combat costs — punching, blocking and taking hits: " +
+                    "cost is multiplied by 1 + (PowerMultiplier - 1) * this * " +
+                    "(1 - MasteryFormCostReduction * mastery/100). " +
+                    "At 1 a form with x4 power costs 4x the ki per punch at mastery 0, which " +
+                    "means the SAME damage per ki as base form — what the form buys there is the " +
+                    "bigger hit, not efficiency — and 1x at mastery 100, where the whole " +
+                    "multiplier becomes profit. That is the mastery curve stated in numbers: at " +
+                    "first you barely hold the form, in the end you wear it. " +
+                    "Lower it to make transforming cheaper from the start; 0 gives the form's " +
+                    "power away for free, which is how it behaved before 2026-09-20. " +
+                    "Mirrors FormKiShare in the flight section. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 3f), AdminOnly(57)));
+
             KiCostPowerReduction = config.Bind(SecCombat, "KiCostPowerReduction", 0.01f,
                 new ConfigDescription(
                     "How much the combat battle power makes the three COMBAT ki costs cheaper — " +
@@ -1281,37 +1350,33 @@ namespace Saiyaheim
             // alvos no mesmo dial e a escolha e' de playtest — por isso o teto da faixa e' 3.
             MasteryFormCostReduction = config.Bind(SecCombat, "MasteryFormCostReduction", 1f,
                 new ConfigDescription(
-                    "How much of the EXTRA combat ki cost that a transformation adds is paid back " +
-                    "by that form's mastery. Full formula for the discount on the three combat " +
-                    "costs: 1 / (1 + KiCostPowerReduction * combat power + (PowerMultiplier - 1) * " +
-                    "(mastery level / 100) * this). 0 disables it and the formula is exactly what " +
-                    "it was before this key existed. \n" +
-                    "1 is the meaningful point: at mastery 100 a punch in the form costs EXACTLY " +
-                    "what the same punch costs out of form, while still landing PowerMultiplier " +
-                    "times the damage. Mastering a form stops it from charging extra to fight in. \n" +
+                    "How much of the extra ki cost that a transformation charges is paid back by " +
+                    "that form's mastery. The form's surcharge is " +
+                    "1 + (PowerMultiplier - 1) * CombatFormKiShare * (1 - this * mastery/100), " +
+                    "and it multiplies all four ki costs of fighting: punching, blocking, taking " +
+                    "hits and ki attacks. 0 means mastery pays back nothing and the form charges " +
+                    "its full surcharge forever. \n" +
+                    "1 is the meaningful point: at mastery 100 the form costs EXACTLY what the " +
+                    "base form costs for the same action, while still landing PowerMultiplier " +
+                    "times the damage. Mastering a form stops it from charging extra to fight in, " +
+                    "and that is when the multiplier becomes pure profit. \n" +
                     "Why it is written against the multiplier and not as a flat rate per mastery " +
                     "level: the premium a form charges IS its multiplier, so the payback has to " +
-                    "scale with it. A flat rate would need 0.01 for a x2 form and 0.02 for a x3 " +
-                    "one, and no single number could hit both. This way every rung of the ladder, " +
-                    "including ones that do not exist yet, lands on its own base cost at " +
-                    "mastery 100 with no retuning. \n" +
-                    "Above 1 the maxed form costs LESS than the base, which is the dial for the " +
-                    "other problem: at 1 the freshly unlocked higher rung is still more ki " +
-                    "efficient than the mastered lower one, so there is no reason to step back " +
-                    "down. Around 2.5 the mastered SSJ overtakes a fresh SSJ2 in damage per ki " +
-                    "and the lower rung gets a niche of its own. Which of the two targets is " +
-                    "right is a playtest question, and this key is the whole answer to it. \n" +
-                    "Exact only for the punch: taking hits and blocking are charged per point the " +
-                    "ki armor absorbed, and absorption does not scale linearly with the " +
-                    "multiplier, so those two land near the base cost rather than on it. \n" +
+                    "scale with it. A flat rate would need one number for a x2 form and another " +
+                    "for a x3 one. This way every rung, including ones that do not exist yet, " +
+                    "lands on its own base cost at mastery 100 with no retuning. \n" +
                     "It reads the mastery of the ACTIVE form, which starts at zero on every new " +
-                    "rung. Out of form there is no mastery to read and only the power discount " +
-                    "applies. \n" +
+                    "rung — so the rung you have mastered is cheaper to fight in than the one you " +
+                    "just unlocked, which is the whole point. \n" +
                     "Note this gives mastery a SECOND payoff next to the drain reduction. It stays " +
                     "on the economy axis, not the power axis, so a form still never hits harder " +
                     "for being trained. \n" +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<float>(0f, 3f), AdminOnly(94)));
+                    "(Rewritten on 2026-09-20: it used to be a term added inside the power " +
+                    "discount's divisor, and that discount also read the form-multiplied power, " +
+                    "so the form's premium mostly cancelled itself out — in SSJ3 a punch landed " +
+                    "4x the damage for 1.28x the cost. The premium is now an explicit multiplier " +
+                    "and the power discount reads the BASE form's power.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(94)));
 
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
@@ -1377,7 +1442,13 @@ namespace Saiyaheim
             // custos de combate sobem porque o dreno da forma desceu. Sobe MENOS que o soco (1,5x
             // contra 2,3x) de proposito — apanhar nao e' uma escolha do jogador, e encarecer na
             // mesma proporcao puniria quem esta' perdendo a luta.
-            DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 1.5f,
+            //
+            // E 1,5 -> 0,6 no mesmo dia, depois do primeiro playtest do rework: a defesa deixou de
+            // levar o desconto de poder do soco (DefenseKiCostPowerReduction, 0), e esse desconto
+            // valia entre 0,1 e 0,3 — as taxas de antes ja' vinham infladas para compensa-lo. Sem
+            // ele a conta fica plana de ponta a ponta do jogo: o golpe do inimigo e a barra de ki
+            // crescem juntos, entao apanhar custa uma fatia parecida da barra em todo bioma.
+            DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 0.6f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the ki armor ABSORBED. Taking a hit costs ki " +
                     "the same way landing one does — the ki armor is sustained, not free. " +
@@ -1388,7 +1459,9 @@ namespace Saiyaheim
                     "(Playtest value, 2026-08-01. The conservative 0.15 it shipped with the same " +
                     "day was barely noticeable; at 1 a blocked point of damage costs a point of ki. " +
                     "Raised to 1.5 on 2026-09-20, when the cost of a form moved from per second " +
-                    "held to per action taken.)",
+                    "held to per action taken, and cut to 0.6 the same day, when the defensive " +
+                    "costs stopped taking the punch's power discount — see " +
+                    "DefenseKiCostPowerReduction.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // O bloqueio desarmado era 2 de block power contra escudos de 18 a 156 — nao fraco,
@@ -1437,10 +1510,12 @@ namespace Saiyaheim
             // sua. Na mesma taxa o preco de apanhar dobraria so por o jogador estar segurando o
             // botao — que e o oposto do que esta mecanica quer ensinar.
             //
-            // 0,5 -> 1,2 em 2026-09-20, com o resto dos custos de combate. Continua abaixo do
-            // DamageTakenKiCost (1,5) pela mesma razao de sempre: um golpe bloqueado paga as duas
-            // contas, e na mesma taxa segurar o botao dobraria o preco de apanhar.
-            BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 1.2f,
+            // 0,5 -> 1,2 e, no mesmo dia, 1,2 -> 0,3 pelo motivo do DamageTakenKiCost acima: a
+            // defesa perdeu o desconto de poder, e as taxas vinham infladas por causa dele.
+            // Continua sendo METADE do DamageTakenKiCost (0,6) pela razao de sempre: um golpe
+            // bloqueado paga as duas contas — o bloqueio barra primeiro, a armadura barra o resto —
+            // e na mesma taxa segurar o botao dobraria o preco de apanhar.
+            BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 0.3f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the ki BLOCK stopped, measured (not estimated) " +
                     "from the hit before and after Humanoid.BlockAttack. Same rule as the armor: if " +
@@ -1450,8 +1525,11 @@ namespace Saiyaheim
                     "This is the most expensive thing in the mod by design: blocking stops far more " +
                     "damage than armor absorbs, so it should be a beam, not a stance. Lower it if " +
                     "holding block for two hits empties the bar. Set to zero to make blocking free. " +
-                    "(Starting value, 2026-08-01, raised from 0.5 to 1.2 on 2026-09-20 with the " +
-                    "rest of the combat ki costs. Not playtested yet.)",
+                    "(2026-08-01: 0.5. Raised to 1.2 on 2026-09-20 with the rest of the combat ki " +
+                    "costs, then cut to 0.3 the same day: the first playtest of the rework found " +
+                    "blocking nearly free while transformed, the defensive costs stopped taking " +
+                    "the punch's power discount, and the rate had been inflated to compensate for " +
+                    "it.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
 
             KiBarOffsetX = config.Bind(SecHud, "KiBarOffsetX", 0f,
@@ -1870,13 +1948,47 @@ namespace Saiyaheim
             // 2 e um piso deliberadamente miseravel: e velocidade de caminhada no Valheim (correr
             // e ~5). Voar cedo no jogo e mais lento que andar, e quem paga a velocidade e o
             // SpeedFromPower. Voo virou privilegio de quem ja e forte, nao meio de transporte.
-            FlightHoverKiMultiplier = config.Bind(SecFlight, "HoverKiMultiplier", 0.5f,
+            // 0,5 -> 1 em 2026-09-20. O desconto tinha um motivo bom — parar no ar para mirar,
+            // olhar em volta ou conversar nao pode custar o mesmo que atravessar o mapa — e um
+            // efeito colateral ruim: pairar parado E' a postura do cheese de boss que as issues
+            // relatam, e o mod estava pagando metade do preco por ela. Quem precisa parar no ar
+            // fora de combate paga o preco cheio, que nao e' punicao; quem para no ar EM COMBATE
+            // paga a sobretaxa abaixo, que e'.
+            FlightHoverKiMultiplier = config.Bind(SecFlight, "HoverKiMultiplier", 1f,
                 new ConfigDescription(
                     "Ki cost multiplier while hovering — airborne with no movement input at all, " +
-                    "not even rising or descending. Holding position is cheaper than travelling, " +
-                    "so stopping in the air to look around, aim or talk is not charged at the " +
-                    "same rate as crossing the map. Set to 1 to charge the full cost regardless.",
+                    "not even rising or descending. Below 1 holding position is cheaper than " +
+                    "travelling, which is how this shipped until 2026-09-20; it was raised to 1 " +
+                    "because hovering is exactly the posture used to cheese bosses from out of " +
+                    "reach, and the discount was paying for it. See CombatHoverMultiplier for " +
+                    "the part that only charges when something is actually fighting you.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(94)));
+
+            // O recorte que separa o cheese do uso legitimo. Altitude nao serve para isso: a faixa
+            // em que se fica fora do alcance de um boss (uns 10 m) e' a mesma em que se voa para
+            // nao bater em arvore, entao encarecer por altura puniria viajar sem resolver o cheese.
+            // As duas variaveis que de fato distinguem os dois casos sao PARADO e EM COMBATE.
+            //
+            // So' pairando: voar em combate continua no preco normal, porque mergulhar, girar e
+            // sair e' lutar no ar — que e' a fantasia do mod, nao o problema.
+            FlightCombatHoverMultiplier = config.Bind(SecFlight, "CombatHoverMultiplier", 2f,
+                new ConfigDescription(
+                    "Extra ki cost multiplier for HOVERING while something hostile is alerted " +
+                    "nearby — hanging in the air out of reach while a boss or a pack cannot touch " +
+                    "you. Stacks on top of HoverKiMultiplier. " +
+                    "Flying in combat is NOT affected: diving, circling and pulling out is air " +
+                    "combat, which is the point of the mod. Only holding still is. " +
+                    "1 turns it off. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(1f, 10f), AdminOnly(93)));
+
+            FlightCombatHoverRange = config.Bind(SecFlight, "CombatHoverRange", 30f,
+                new ConfigDescription(
+                    "How far, in meters, an alerted hostile counts for CombatHoverMultiplier. " +
+                    "Measured in 3D from your body, so something 30 m below you still counts — " +
+                    "which is the whole point, since that is where it is when you are out of its " +
+                    "reach. Tamed creatures and other players never count.",
+                    new AcceptableValueRange<float>(5f, 100f), AdminOnly(92)));
 
             FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 2f,
                 new ConfigDescription(
@@ -2010,15 +2122,58 @@ namespace Saiyaheim
                     "0 disables it. Check it with saiya_fly.",
                     new AcceptableValueRange<float>(0f, 0.1f), AdminOnly(63)));
 
-            FlightXpPerSecond = config.Bind(SecFlight, "XpPerSecond", 0.5f,
+            // Por METRO, e nao por segundo no ar (2026-09-20). Por tempo, pairar parado pagava
+            // exatamente o mesmo que atravessar o mapa — e pagava mais barato, porque o
+            // HoverKiMultiplier corta o custo pela metade justamente quando nao ha deslocamento.
+            // O farm otimo era ficar parado no ar, e foi o que a issue 2 do GitHub relatou.
+            //
+            // Nao basta "XP enquanto se move": o IsHovering le o m_moveDir, ou seja INPUT. Voar
+            // contra um paredao segurando W pagaria XP cheio parado, e como o voo rapido custa 2x
+            // pelo mesmo XP por segundo, o otimo passaria a ser se mover o mais devagar possivel.
+            // Por distancia o XP acompanha o que custa ki: XP por ki gasto fica constante entre o
+            // voo normal e o rapido, e a unica forma de farmar e' voar de verdade.
+            //
+            // 0,15 e' o equivalente dos 0,5/s de antes na velocidade base. Ver Melhorias,
+            // "Voo: XP por distancia, e a forma paga o que acelera".
+            // A forma paga pela velocidade que ela da'. Ate 2026-09-20 voar transformado so
+            // somava o dreno da forma e ganhava velocidade de graca por cima; com o dreno da forma
+            // caindo para 1-3/s no rework do custo de ki, essa soma virou troco.
+            //
+            // Ancorado no que a forma ENTREGA e nao no multiplicador cheio: ela so converte uma
+            // fracao do poder em velocidade (FormSpeedShare), entao cobrar pelo multiplicador
+            // inteiro cobraria por uma coisa que ela nao da'. Chave propria e nao a mesma do
+            // FormSpeedShare porque numero de balanceamento nao se compartilha entre dois eixos.
+            //
+            // Quem paga e' a MAESTRIA da forma, nao a skill de voo. Tres motivos: quem cobra a
+            // sobretaxa e' a forma; a maestria ja' e' a moeda do custo de ki no resto do mod; e
+            // com a skill de voo o desconto seria duplo (ela ja' barateia o custo base) e o farm
+            // voando voltaria pela porta dos fundos — o jogador farmaria voo para baratear voar
+            // transformado. A consequencia aceita e' que voar transformado nao treina nada que
+            // barateie voar transformado: treina-se lutando dentro da forma.
+            FlightFormKiShare = config.Bind(SecFlight, "FormKiShare", 0.3f,
                 new ConfigDescription(
-                    "Flight skill XP per second airborne. Flying is its own training — there is " +
-                    "no other way to raise it. Valheim's own diminishing curve up to 100 applies. " +
-                    "(Playtest value, 2026-08-11. Went 1 → 0.3 on 2026-07-31, because the skill is " +
-                    "what makes flight cheap and reaching that quickly would undo the cost of " +
-                    "KiPerSecond; 0.3 turned out to be the other extreme, with the skill barely " +
-                    "moving over a whole session.)",
-                    new AcceptableValueRange<float>(0f, 20f), AdminOnly(60)));
+                    "How much a transformation makes flying cost, as a fraction of the power it " +
+                    "adds: cost is multiplied by 1 + (PowerMultiplier - 1) * this * (1 - mastery). " +
+                    "At 0.3, SSJ (x2 power) makes flight 30% more expensive and SSJ3 (x4) 90%, " +
+                    "and both fade to nothing at level 100 of THAT form's mastery. " +
+                    "It mirrors FormSpeedShare deliberately: the form pays for the speed it gives. " +
+                    "Note the payer is the form's mastery, which trains by FIGHTING transformed — " +
+                    "flying transformed does not make flying transformed any cheaper. " +
+                    "0 gives the form's flight speed away for free, which is what happened before " +
+                    "2026-09-20. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 2f), AdminOnly(62)));
+
+            FlightXpPerMeter = config.Bind(SecFlight, "XpPerMeter", 0.15f,
+                new ConfigDescription(
+                    "Flight skill XP per METER flown. Flying is its own training — there is no " +
+                    "other way to raise it — but hovering in place pays nothing, because nothing " +
+                    "moves. Distance here is the path travelled, not the distance from where you " +
+                    "took off: flying out and back pays for both legs, since both cost ki. " +
+                    "Valheim's own diminishing curve up to 100 applies. " +
+                    "(Replaced XpPerSecond on 2026-09-20 — 0.15/m is what 0.5/s was worth at base " +
+                    "speed. The old key stays behind in existing config files, inert.)",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // 0.8 veio do playtest de 2026-09-17 (comecou em 0.75, escolha do Henrique antes de
             // testar). Abaixo de 1 de proposito:
@@ -2273,7 +2428,8 @@ namespace Saiyaheim
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
-            string hairItem = "")
+            string hairItem = "", float masteryXpPerDamageDealt = 0.5f,
+            float masteryXpPerDamageTaken = 0.5f, float masteryXpMaxPerEvent = 50f)
         {
             return new TransformationConfig
             {
@@ -2377,25 +2533,59 @@ namespace Saiyaheim
                         "source of tension all game.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(80))),
 
-                // Referencia para calibrar: a curva do Valheim ((nivel+1)^1.5 * 0.5 + 0.5 por
-                // nivel) cobra ~20.000 de XP para ir do 0 ao 100, e ~1.600 para chegar ao 30.
-                // A 1/s, o nivel 30 sai com ~27 minutos DENTRO da forma — que nao e' o mesmo que
-                // 27 minutos de jogo, porque o dreno obriga a recarregar entre uma e outra.
-                MasteryXpPerSecond = config.Bind(section, "MasteryXpPerSecond", 1f,
+                // ⚠️ Substituiu o `MasteryXpPerSecond` (1/s) em 2026-09-20. A maestria treinava por
+                // TEMPO dentro da forma, e era o segundo grind que as issues 1 e 2 do GitHub
+                // relataram: com o dreno alto, o jogador ficava parado carregando ki; com o dreno
+                // baixo do rework, ele ficaria parado DENTRO da forma, que e' pior. Ficar parado
+                // em forma passa a nao pagar nada — treina-se lutando.
+                //
+                // A chave velha fica orfa e inerte nos .cfg existentes.
+                //
+                // ⚠️ A taxa NAO e' a do Power Level (SkillXpPerDamageDealt, 0,07). Aquela corre a
+                // sessao inteira; esta so corre durante o combate ATIVO, que e' algo entre 10% e
+                // 15% do tempo de jogo. Referencia para calibrar: a curva do Valheim cobra ~1.600
+                // de XP ate o nivel 30 e ~20.000 ate o 100; a 0,5 por ponto de dano, uma luta que
+                // troca ~950 pontos de dano em um minuto paga ~475 — equivalente aos ~8/s de
+                // combate que o 1/s de antes rendia espalhado pela sessao.
+                MasteryXpPerDamageDealt = config.Bind(section, "MasteryXpPerDamageDealt", masteryXpPerDamageDealt,
                     new ConfigDescription(
-                        "XP for this form's skill per second transformed. Holding the form is the " +
-                        "only way to train it, the same way flying is the only way to train Flight. " +
+                        "XP for this form's skill per point of damage DEALT while wearing it. " +
+                        "Fighting inside the form is the only way to train it: holding it while " +
+                        "standing still, flying or exploring pays nothing. " +
+                        "The damage counted is what the target actually lost, so overkill on a " +
+                        "weak creature does not pay, and weapon hits pay by XpWeaponFactor like " +
+                        "Power Level does — the form trains the mod's way of fighting. " +
                         "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
-                        "30 costs about 1600 XP and level 100 about 20000. \n" +
-                        "(Kept at 1 after the 2026-09-06 run, deliberately. That run read SSJ " +
-                        "mastery at level 52 with the third boss about to fall, where 80-90 was " +
-                        "the target, and raising this key was the obvious fix — it was rejected " +
-                        "because it speeds up the whole ladder from the first minute, including " +
-                        "the rung the player has just unlocked, which is exactly where the slow " +
-                        "climb is supposed to be felt. MasteryXpPerBossBonus below carries the " +
-                        "correction instead: the deficit is on the OLD rung and only in the last " +
-                        "stretch of play. This key sets the overall pace, that one sets the shape.)",
+                        "30 costs about 1600 XP and level 100 about 20000. " +
+                        "(Replaced MasteryXpPerSecond on 2026-09-20. Starting value, not " +
+                        "playtested yet — expect to calibrate this one first.)",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
+
+                // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
+                // tanto quanto bater, e a fonte ja' se auto-limita — o dano sofrido vem DEPOIS da
+                // armadura, entao apanhar de proposito de bicho fraco rende quase nada.
+                MasteryXpPerDamageTaken = config.Bind(section, "MasteryXpPerDamageTaken", masteryXpPerDamageTaken,
+                    new ConfigDescription(
+                        "XP for this form's skill per point of damage TAKEN while wearing it. " +
+                        "Counted after armor and resistances, so taking hits from something weak " +
+                        "is worth almost nothing. Same rate as damage dealt by default: holding " +
+                        "the form through a beating is training too.",
+                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(69))),
+
+                // Grampo de seguranca, e nao regulador: com 0,5 por ponto ele so morde a partir de
+                // 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
+                //
+                // Aplicado ANTES do multiplicador de boss abaixo, ao contrario do
+                // SkillXpMaxPerEvent do Power Level, que corta por ultimo. O bonus de boss existe
+                // para corrigir o degrau velho que ficou para tras, e deixar o grampo comer essa
+                // correcao a anularia justamente onde ela e' necessaria.
+                MasteryXpMaxPerEvent = config.Bind(section, "MasteryXpMaxPerEvent", masteryXpMaxPerEvent,
+                    new ConfigDescription(
+                        "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
+                        "before the boss multiplier. Stops one boss-sized hit from jumping " +
+                        "several levels at once. At the default rate it only bites above 100 " +
+                        "damage in one hit.",
+                        new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(68))),
 
                 // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
                 // derrotado DEPOIS do boss que o destravou, entao o SSJ acelera enquanto o SSJ2

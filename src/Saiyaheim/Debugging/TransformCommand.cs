@@ -212,17 +212,8 @@ namespace Saiyaheim.Debugging
             Print($"{form.DisplayName}: {(lockReason == null ? "unlocked" : "LOCKED — " + lockReason)}" +
                   "   (saiya_form gate for the whole ladder)");
 
-            // O multiplicador de boss e' invisivel em jogo — a barra de XP nao existe e o nivel
-            // sobe devagar demais para se notar a diferenca olhando. Sem esta linha nao ha como
-            // saber se a chave ligou, muito menos calibrar o passo dela.
-            float bossXp = form.GetBossXpMultiplier();
-            float xpRate = form.Config.MasteryXpPerSecond.Value * bossXp;
-
-            Print($"{form.DisplayName} mastery: level {form.GetSkillLevel(player):0.#}   " +
-                  $"gaining {xpRate:0.##} xp/s" +
-                  $"{(bossXp > 1f ? $" (base {form.Config.MasteryXpPerSecond.Value:0.##} x{bossXp:0.##} " +
-                                    $"from {BossGate.DefeatedCount()} bosses down)" : "")}");
-            PrintMasteryEta(player, form, xpRate);
+            Print($"{form.DisplayName} mastery: level {form.GetSkillLevel(player):0.#}" +
+                  "   (trained by FIGHTING in this form — see below)");
             Print($"Power multiplier: x{form.GetPowerMultiplier():0.##}");
             PrintCarryWeight(player, form, active);
             Print($"Ki drain: {drain:0.##}/s " +
@@ -246,12 +237,13 @@ namespace Saiyaheim.Debugging
                   $"{BattlePower.PunchBonusFor(inForm):0.#}");
 
             PrintDamageSplit(form, BattlePower.PunchBonusFor(inForm));
+            PrintMasteryXp(player, form, BattlePower.PunchBonusFor(inForm));
 
             // A maestria DESTA forma, e nao a da ativa: o saiya_form fala de um degrau por vez, e
             // "saiya_form ssj2" rodado em SSJ tem que responder o que o SSJ2 custaria, nao o que o
-            // SSJ custa agora. Fora de forma o lado esquerdo e' devolucao zero por definicao.
-            float payback = BattlePower.FormCostPayback(multiplier, form.GetSkillLevel(player));
-            PrintPunchEconomy(outOfForm, inForm, payback);
+            // SSJ custa agora. Fora de forma o multiplicador de custo e' 1 por definicao.
+            float costMult = BattlePower.FormKiCostMultiplier(multiplier, form.GetSkillLevel(player));
+            PrintPunchEconomy(outOfForm, multiplier, costMult);
         }
 
         /// <summary>
@@ -295,14 +287,19 @@ namespace Saiyaheim.Debugging
         /// se transformar melhora ou piora a luta. Se o valor em forma for menor que fora dela, a
         /// forma está cobrando mais do que entrega.
         /// </summary>
-        private void PrintPunchEconomy(float outOfForm, float inForm, float payback)
+        private void PrintPunchEconomy(float outOfForm, float multiplier, float costMult)
         {
-            float costOut = PunchCostFor(outOfForm, 0f);
-            float costIn = PunchCostFor(inForm, payback);
+            float inForm = outOfForm * multiplier;
+            float costOut = PunchCostFor(outOfForm, 1f);
+
+            // O custo em forma sai do bonus da forma BASE vezes a sobretaxa — a mesma conta do
+            // BattlePower.GetPunchKiCost, e nao o bonus multiplicado vezes um desconto. Escrever
+            // assim aqui e' o que garante que a linha impressa nao possa divergir do jogo.
+            float costIn = PunchCostFor(outOfForm, costMult);
             float max = KiManager.Max;
 
             Print($"  punch cost {costOut:0.#} → {costIn:0.#} ki" +
-                  $"{DescribeDiscount(inForm, payback)}");
+                  $"{DescribeFormCost(costMult, multiplier)}");
 
             if (costOut <= 0f || costIn <= 0f || max <= 0f)
             {
@@ -317,43 +314,39 @@ namespace Saiyaheim.Debugging
         }
 
         /// <summary>
-        /// O custo de ki de um soco a um poder de combate e um nível de maestria hipotéticos.
+        /// O custo de ki de um soco: o bônus da forma <b>base</b> pela taxa, pelo desconto do
+        /// poder base, e pela sobretaxa da forma. Espelha o <c>BattlePower.GetPunchKiCost</c>.
         /// </summary>
-        private static float PunchCostFor(float combatPower, float payback)
+        private static float PunchCostFor(float basePower, float formCostMultiplier)
         {
-            return BattlePower.PunchBonusFor(combatPower)
+            return BattlePower.PunchBonusFor(basePower)
                    * SaiyaheimConfig.PunchKiCostPerDamage.Value
-                   * BattlePower.KiCostFactorFor(combatPower, payback);
+                   * BattlePower.KiCostFactorFor(basePower)
+                   * formCostMultiplier;
         }
 
         /// <summary>
-        /// O desconto no soco em forma, ou string vazia se está desligado.
+        /// Quanto a forma cobra a mais pelo golpe, e quanto disso a maestria já dissolveu.
         ///
-        /// <b>As duas parcelas aparecem separadas</b> quando a maestria está pagando alguma: são
-        /// duas chaves diferentes do <c>.cfg</c>, e sem separá-las não dá para saber qual delas
-        /// mexer quando o número na tela estiver errado. É a mesma razão pela qual esta linha
-        /// existe desde 2026-08-04 — o custo do soco não aparece em lugar nenhum do jogo.
+        /// <b>Os dois números lado a lado</b> — o que a forma cobra agora e o que ela cobraria
+        /// sem maestria nenhuma — porque é a distância entre eles que diz se treinar está
+        /// valendo. Esta linha existe desde 2026-08-04 pelo mesmo motivo de sempre: o custo do
+        /// soco não aparece em lugar nenhum do jogo.
         /// </summary>
-        private static string DescribeDiscount(float inForm, float payback)
+        private static string DescribeFormCost(float costMultiplier, float powerMultiplier)
         {
-            float factor = BattlePower.KiCostFactorFor(inForm, payback);
-            if (factor >= 1f)
+            if (costMultiplier <= 1.0001f)
             {
-                return "";
+                return powerMultiplier > 1f
+                    ? "   (form surcharge fully paid off by mastery — the multiplier is free)"
+                    : "";
             }
 
-            string parts = $"   (discount in form: x{factor:0.###}, {(1f - factor) * 100f:0}% off";
+            float raw = BattlePower.FormKiCostMultiplier(powerMultiplier, 0f);
+            float paid = raw > 1f ? (raw - costMultiplier) / (raw - 1f) * 100f : 0f;
 
-            // Sem maestria treinada a segunda parcela vale zero, e imprimir "+0" so' polui a linha
-            // que ja' existia. Com ela treinada, o que interessa e' quanto de cada lado.
-            if (payback > 0f)
-            {
-                float fromPower = SaiyaheimConfig.KiCostPowerReduction.Value * Math.Max(0f, inForm);
-
-                parts += $" — power {fromPower:0.##} + mastery payback {payback:0.##}";
-            }
-
-            return parts + ")";
+            return $"   (form surcharge x{costMultiplier:0.##} of x{raw:0.##} at mastery 0" +
+                   $"{(paid > 0.5f ? $", {paid:0}% paid off" : "")})";
         }
 
         /// <summary>
@@ -717,24 +710,60 @@ namespace Saiyaheim.Debugging
         /// <summary>
         /// Quanto tempo de forma ainda falta para a maestria bater 100 — e para o próximo nível.
         ///
-        /// <b>Existe porque "0,5 xp/s" não responde a pergunta que se está fazendo ao ler a linha
-        /// de cima.</b> A curva de XP do Valheim custa <c>(nível + 1)^1,5 / 2 + 0,5</c> por degrau,
+        /// <b>Existe porque "0,5 xp por ponto de dano" não responde a pergunta que se está fazendo
+        /// ao ler a linha de cima.</b> A curva de XP do Valheim custa <c>(nível + 1)^1,5 / 2 + 0,5</c> por degrau,
         /// então o topo vale umas trinta vezes o primeiro nível: a mesma taxa que parece rápida no
         /// começo pode significar vinte horas de forma no fim, e não havia como saber disso sem
         /// esperar o playtest chegar lá. É o mesmo motivo do <c>saiya_form skill 100</c> — ver o
         /// fim da curva sem ter que fazer o grind dela.
         ///
-        /// <b>A conta imita o pagamento real, e não a integral da curva.</b> O XP é creditado uma
-        /// vez por segundo (<c>SE_Transformation.FlushXp</c>) e o <c>Skill.Raise</c> do jogo
-        /// <b>zera o acumulador ao subir de nível</b>, jogando fora o excesso da chamada que subiu.
-        /// Daí o arredondamento para cima em cada degrau: com XP por segundo alto, esse desperdício
-        /// é justamente a diferença entre a estimativa e o que o jogador vive.
+        /// <b>A conta imita o pagamento real, e não a integral da curva.</b> O XP é creditado um
+        /// golpe por vez (<c>DamageXpPatch</c>) e o <c>Skill.Raise</c> do jogo <b>zera o acumulador
+        /// ao subir de nível</b>, jogando fora o excesso da chamada que subiu. Daí o arredondamento
+        /// para cima em cada degrau: com XP por golpe alto, esse desperdício é justamente a
+        /// diferença entre a estimativa e o que o jogador vive.
         ///
-        /// Assume a taxa de agora e a forma segurada sem parar, e as duas coisas mentem um pouco: o
-        /// multiplicador de boss sobe quando o mundo anda, e ki nenhum segura uma forma por horas
-        /// seguidas. É número de calibragem, não previsão.
+        /// Assume que todo golpe é um soco do tamanho do de agora, e isso mente um pouco para os
+        /// dois lados: o multiplicador de boss sobe quando o mundo anda, o dano sofrido também paga
+        /// e nem todo alvo tem a mesma armadura. É número de calibragem, não previsão.
         /// </summary>
-        private void PrintMasteryEta(Player player, Transformation form, float xpPerSecond)
+        /// <summary>
+        /// Como esta forma treina, e quanto um golpe paga.
+        ///
+        /// <b>Mora aqui embaixo, e não junto do nível lá em cima</b>, porque desde 2026-09-20 a
+        /// resposta depende do dano: sem o poder de combate já calculado não dá para dizer quanto
+        /// um soco rende.
+        ///
+        /// <b>O soco é a unidade</b> pelo mesmo motivo que já é a unidade das recompensas de ki
+        /// (<c>KiOnParryPunches</c>): é o golpe que o jogador dá o tempo todo, e contar em socos é
+        /// a única forma de a estimativa dizer alguma coisa sobre a sessão dele.
+        ///
+        /// ⚠️ Usa o <b>bônus</b> de dano do soco como tamanho do golpe, não o dano aplicado: a
+        /// base vanilla desarmada e a armadura do alvo ficam de fora, então isto <b>subestima</b> o
+        /// golpe contra alvo mole e superestima contra alvo blindado. É número de calibragem.
+        /// </summary>
+        private void PrintMasteryXp(Player player, Transformation form, float punchDamage)
+        {
+            // O multiplicador de boss e' invisivel em jogo — a barra de XP nao existe e o nivel
+            // sobe devagar demais para se notar a diferenca olhando. Sem esta linha nao ha como
+            // saber se a chave ligou, muito menos calibrar o passo dela.
+            float bossXp = form.GetBossXpMultiplier();
+            float perDealt = form.Config.MasteryXpPerDamageDealt.Value;
+            float perTaken = form.Config.MasteryXpPerDamageTaken.Value;
+
+            Print($"Mastery XP: {perDealt:0.##} per damage dealt, {perTaken:0.##} per damage taken" +
+                  $"{(bossXp > 1f ? $"   x{bossXp:0.##} from {BossGate.DefeatedCount()} bosses down" : "")}" +
+                  "   (holding the form pays nothing)");
+
+            float xpPerPunch = Math.Min(punchDamage * perDealt, form.Config.MasteryXpMaxPerEvent.Value) * bossXp;
+
+            Print($"  a punch in this form adds ~{punchDamage:0.#} damage → {xpPerPunch:0.##} xp" +
+                  $"{(punchDamage * perDealt > form.Config.MasteryXpMaxPerEvent.Value ? "   (clamped by MasteryXpMaxPerEvent)" : "")}");
+
+            PrintMasteryEta(player, form, xpPerPunch);
+        }
+
+        private void PrintMasteryEta(Player player, Transformation form, float xpPerHit)
         {
             Skills.Skill skill = FindSkill(player, form);
             float level = skill == null ? 0f : skill.m_level;
@@ -750,7 +779,7 @@ namespace Saiyaheim.Debugging
             // pode ter mexido nele, e a estimativa feita só com o número do .cfg erraria por um
             // fator inteiro sem nada na tela denunciando.
             float step = skill == null || skill.m_info == null ? 1f : skill.m_info.m_increseStep;
-            float gain = xpPerSecond * step * Game.m_skillGainRate;
+            float gain = xpPerHit * step * Game.m_skillGainRate;
 
             if (gain <= 0f)
             {
@@ -760,16 +789,17 @@ namespace Saiyaheim.Debugging
 
             float accumulator = skill == null ? 0f : skill.m_accumulator;
 
-            Print($"  next level in {DescribeDuration(SecondsToLevel(level, level + 1f, accumulator, gain))}, " +
-                  $"level 100 in {DescribeDuration(SecondsToLevel(level, 100f, accumulator, gain))} " +
-                  "holding this form (or any above it), at the rate above");
+            Print($"  next level in {HitsToLevel(level, level + 1f, accumulator, gain):0} punches, " +
+                  $"level 100 in {HitsToLevel(level, 100f, accumulator, gain):0} " +
+                  "landing them in this form (or any above it) — damage taken pays too");
         }
 
         /// <summary>
-        /// Segundos de forma para ir do nível <paramref name="from"/> ao <paramref name="to"/>, no
-        /// ritmo de um pagamento por segundo — com o excesso perdido em cada subida de nível.
+        /// Golpes para ir do nível <paramref name="from"/> ao <paramref name="to"/> — com o
+        /// excesso perdido em cada subida de nível, porque o <c>Skill.Raise</c> zera o acumulador
+        /// ao subir.
         /// </summary>
-        private static float SecondsToLevel(float from, float to, float accumulator, float gainPerSecond)
+        private static float HitsToLevel(float from, float to, float accumulator, float gainPerHit)
         {
             float start = (float)Math.Floor(from);
             float seconds = 0f;
@@ -782,29 +812,10 @@ namespace Saiyaheim.Debugging
                 // zero, porque o Raise zera o acumulador ao subir.
                 float missing = required - (level == start ? accumulator : 0f);
 
-                seconds += (float)Math.Ceiling(Math.Max(0f, missing) / gainPerSecond);
+                seconds += (float)Math.Ceiling(Math.Max(0f, missing) / gainPerHit);
             }
 
             return seconds;
-        }
-
-        /// <summary>
-        /// Duração em unidade legível. "15130 s" é exatamente o número que esta linha existe para
-        /// traduzir — em segundos ninguém lê horas.
-        /// </summary>
-        private static string DescribeDuration(float seconds)
-        {
-            if (seconds < 60f)
-            {
-                return $"{seconds:0} s";
-            }
-
-            if (seconds < 3600f)
-            {
-                return $"{seconds / 60f:0} min";
-            }
-
-            return $"{Math.Floor(seconds / 3600f):0} h {seconds % 3600f / 60f:0} min";
         }
 
         /// <summary>

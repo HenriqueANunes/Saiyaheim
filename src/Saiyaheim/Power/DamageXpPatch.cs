@@ -68,6 +68,12 @@ namespace Saiyaheim.Power
                 // Dano recebido: já depois da armadura e das resistências, porque ApplyDamage é
                 // chamado depois delas. É o que torna inútil apanhar de propósito de bicho fraco.
                 PowerSkill.RaiseFromDamageTaken(local, applied);
+
+                // A maestria da forma ativa treina do mesmo golpe, e nao paga nada fora de forma.
+                // Desde 2026-09-20 e' a unica fonte de XP de maestria: segurar a forma parado
+                // deixou de pagar.
+                Transformations.TransformationRegistry.RaiseMasteryFromDamage(local, applied, dealt: false);
+
                 SaiyaheimPlugin.LogVerbose($"Power Level XP: took {applied:0.#} damage.");
             }
             else if (hit.GetAttacker() == local)
@@ -76,6 +82,12 @@ namespace Saiyaheim.Power
                 if (credited > 0f)
                 {
                     PowerSkill.RaiseFromDamageDealt(local, credited);
+
+                    // O mesmo numero creditado, e nao o applied cru: a maestria segue a regra do
+                    // XpWeaponFactor pelo mesmo motivo que o Power Level segue — a forma treina o
+                    // jeito do mod de lutar, e bater de espada ja tem a skill vanilla dela.
+                    Transformations.TransformationRegistry.RaiseMasteryFromDamage(local, credited, dealt: true);
+
                     SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {credited:0.#} damage.");
                 }
 

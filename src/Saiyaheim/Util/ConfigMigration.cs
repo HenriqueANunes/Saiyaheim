@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 1;
+        internal const int CurrentVersion = 4;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -236,6 +236,50 @@ namespace Saiyaheim.Util
                 new KeyboardShortcut(KeyCode.G), false);
             yield return new Change(1, SaiyaheimConfig.TransformStepDownKey,
                 new KeyboardShortcut(KeyCode.G, KeyCode.LeftShift), false);
+
+            // ---------- 2 (2026-09-20) — a defesa sai do desconto do soco ----------
+            //
+            // Primeiro playtest do rework: bloquear transformado nao custava nada. Causa em
+            // BattlePower.GetDefenseKiCostFactor — apanhar e bloquear levavam o desconto de poder
+            // do soco, que a forma multiplica. As duas taxas vinham infladas para compensar esse
+            // desconto, entao tirar o desconto sem baixar as taxas multiplicaria o custo por
+            // cinco a dezessete. Force pelo mesmo motivo da migracao 1: meio conserto e' pior que
+            // nenhum. A DefenseKiCostPowerReduction e' chave nova e nao precisa de linha aqui.
+            //
+            // Quem vem da versao 0 passa pelas DUAS linhas de cada chave e acerta assim mesmo: a
+            // linha da migracao 1 escreve o default de hoje (que ja e' o valor novo) e a linha
+            // daqui encontra a chave ja em ordem.
+            yield return new Change(2, SaiyaheimConfig.BlockKiCost, 1.2f, true);
+            yield return new Change(2, SaiyaheimConfig.DamageTakenKiCost, 1.5f, true);
+
+            // ---------- 3 (2026-09-20) — pairar parado deixa de ser subsidiado ----------
+            //
+            // O desconto de 50% para pairar estava pagando pela postura do cheese de boss que as
+            // issues relatam: ficar parado no ar fora do alcance. Force porque quem atualiza com o
+            // .cfg antigo continuaria com o subsidio e com a sobretaxa de combate nova por cima —
+            // a metade errada do conserto. A CombatHoverMultiplier e' chave nova e nao precisa de
+            // linha aqui.
+            yield return new Change(3, SaiyaheimConfig.FlightHoverKiMultiplier, 0.5f, true);
+
+            // ---------- 4 (2026-09-20) — as chaves cujo SIGNIFICADO mudou ----------
+            //
+            // Estas duas nao mudaram de default. Mudou o que o numero quer dizer, e um valor
+            // calibrado contra a formula velha nao e' mais o que o jogador pediu:
+            //
+            //   KiCostPowerReduction lia o poder JA multiplicado pela forma e agora le o da forma
+            //   base. Quem tinha subido essa chave — e o proprio veredito da calculadora mandava
+            //   subir, para "a forma se pagar" — teria agora um desconto muito maior do que quis.
+            //
+            //   MasteryFormCostReduction era um termo somado dentro daquele divisor e virou a
+            //   fracao da sobretaxa que a maestria devolve. A faixa caiu de 0-3 para 0-1, entao um
+            //   2,5 de antes nem cabe mais: o Bind grampeia em 1 em silencio.
+            //
+            // Force, e voltar ao default e' o unico destino seguro: nao ha como converter um valor
+            // de uma formula para a outra, e manter o numero seria manter uma intencao que a conta
+            // nova le ao contrario. Para quem esta no default — a esmagadora maioria — as duas
+            // linhas nao fazem nada.
+            yield return new Change(4, SaiyaheimConfig.KiCostPowerReduction, 0.01f, true);
+            yield return new Change(4, SaiyaheimConfig.MasteryFormCostReduction, 1f, true);
         }
     }
 }

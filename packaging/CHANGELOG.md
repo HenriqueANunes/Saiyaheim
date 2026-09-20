@@ -2,6 +2,46 @@
 
 ## 0.4.0
 
+- Changed: **ki is now the fuel for fighting, not a tax on existing.** Holding a form used to
+  cost the same whether you were crossing the map or trading blows, which pushed everyone into
+  standing still to charge ki before they could play. The drain is now small (1 / 2 / 3 per
+  second for SSJ / SSJ2 / SSJ3, down from 5 / 10 / 15) and the cost moved to what you do inside
+  the form: punching, blocking, taking hits and firing ki attacks. Living in a form is cheap;
+  fighting in one is what costs. Thanks to everyone who wrote this up in the issues.
+- Changed: **a form charges a surcharge on every combat cost, and its mastery pays it off.** At
+  mastery 0 a form with 4x power costs 4x the ki per action — the same damage per bar as base
+  form, so what the form buys you there is the bigger hit, not efficiency. At mastery 100 the
+  surcharge is gone and the whole multiplier is profit. Tune with `CombatFormKiShare` and
+  `MasteryFormCostReduction`.
+- Changed: **form mastery now trains by fighting inside the form**, from damage dealt and taken,
+  instead of by seconds spent transformed. Standing around transformed — or flying — no longer
+  trains anything. `MasteryXpPerDamageDealt` and `MasteryXpPerDamageTaken` replace
+  `MasteryXpPerSecond`.
+- Changed: **the flight skill now trains by distance flown, not time airborne.** Hovering in
+  place pays nothing, and flying out and back pays for both legs. `XpPerMeter` replaces
+  `XpPerSecond`.
+- Changed: early flight is no longer a grind wall. The base cost went from 5 to 3.5 ki/s, and
+  the skill discount is now linear instead of back-loaded (`KiSkillCurve` 2 → 1), so level 25
+  already flies 24% cheaper instead of 4%.
+- Changed: transforming now makes flying cost more, not just go faster — the surcharge matches
+  the speed the form gives, and fades to nothing as you master that form (`FormKiShare`).
+- Fixed: blocking and taking hits got cheaper the stronger you were, and transforming made it
+  worse — in SSJ3 a block stopped over three times more damage for the same ki. Those two costs
+  no longer take the punch's power discount (`DefenseKiCostPowerReduction`), and their rates
+  were recalibrated (`BlockKiCost` 0.5 → 0.3, `DamageTakenKiCost` 1 → 0.6).
+- Changed: **hovering in the air is no longer cheaper than flying**, and hovering while something
+  hostile is alerted nearby now costs double (`HoverKiMultiplier`, `CombatHoverMultiplier`,
+  `CombatHoverRange`). Hanging out of reach while a boss cannot touch you was the one thing the
+  mod was actively paying you to do — it cost half price. Flying in combat is untouched: diving,
+  circling and pulling out is air combat, and that is the point. Only holding still is charged.
+- Changed: **your existing config file is updated to the new balance automatically.** Keys you
+  never touched are moved to the new values; keys you tuned yourself are kept, and the log says
+  which. The balance keys of this rework are the exception — they are overwritten either way,
+  because half of this rework is worse than none of it, and the log tells you what your value
+  was so you can put it back. Two keys are reset even though their default did not change —
+  `KiCostPowerReduction` and `MasteryFormCostReduction` — because the formula around them did,
+  and a number tuned against the old one no longer means what you meant by it.
+
 - New: a radial menu for your forms and your ki attacks. Two groups sit in the game's own
   wheel, next to consumables, weapons and emotes, so the mod costs you no extra key. Forms show
   their ki drain, attacks show their ki cost, and picking an attack selects it — you still fire

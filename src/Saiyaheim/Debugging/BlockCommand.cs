@@ -199,6 +199,58 @@ namespace Saiyaheim.Debugging
             Print($"  final: {unblocked.GetTotalDamage():0.##} damage " +
                   $"({(damage - unblocked.GetTotalDamage()) / damage * 100f:0}% absorbed), " +
                   $"stagger +{stagger:0.##} {PercentOfThreshold(stagger, threshold)}");
+
+            // O ki que cada caminho custa, que e' a outra metade da decisao: ate 2026-09-20 os dois
+            // custos levavam o desconto de poder do SOCO, e a forma multiplica esse poder — o
+            // playtest daquele dia leu "bloquear transformado nao custa nada" e era isto. Sem o
+            // numero na tela, calibrar as duas taxas e' as cegas: o jogador so ve a barra andar.
+            PrintKiCost(player, damage, blockPower, kiArmor, unblocked);
+        }
+
+        /// <summary>
+        /// Quanto ki cada caminho do golpe cobra, e quanto da barra isso e'.
+        ///
+        /// A fatia da barra e' o numero que importa: um custo em ki cru nao diz nada sozinho,
+        /// porque o teto cresce com o Power Level. Os dois lados aparecem juntos porque bloquear
+        /// paga as DUAS contas — o bloqueio barra primeiro e a armadura barra o resto.
+        /// </summary>
+        private void PrintKiCost(Player player, float damage, float blockPower, float kiArmor,
+            HitData unblocked)
+        {
+            if (!KiManager.IsEnabled)
+            {
+                Print("--- Ki cost --- ki is off: nothing is charged, and the ki armor above is not applied either.");
+                return;
+            }
+
+            float factor = BattlePower.GetDefenseKiCostFactor(player);
+            float max = Mathf.Max(1f, KiManager.Max);
+
+            // Bloqueado: o mesmo delta que o BlockPowerPatch mede — o que o block power tirou do
+            // golpe antes de qualquer outra etapa.
+            HitData blocked = MakeHit(damage);
+            blocked.BlockDamage(blockPower);
+            float stopped = damage - blocked.GetTotalBlockableDamage();
+            float blockCost = stopped * SaiyaheimConfig.BlockKiCost.Value * factor;
+
+            // Nao bloqueado: o que a armadura de ki absorveu, que e' o que o SE_KiBody cobra.
+            float absorbed = damage - unblocked.GetTotalDamage();
+            float takenCost = absorbed * SaiyaheimConfig.DamageTakenKiCost.Value * factor;
+
+            Print("--- Ki cost ---");
+            Print($"Blocking: {stopped:0.##} stopped → {blockCost:0.##} ki " +
+                  $"({blockCost / max * 100f:0.#}% of the bar)");
+            Print($"NOT blocking: {absorbed:0.##} absorbed → {takenCost:0.##} ki " +
+                  $"({takenCost / max * 100f:0.#}% of the bar)");
+            Print($"Bar: {KiManager.Current:0.#}/{max:0.#}" +
+                  (factor < 1f ? $"   power discount x{factor:0.###} (DefenseKiCostPowerReduction)" : ""));
+
+            Transformations.Transformation form = Transformations.TransformationRegistry.GetActive(player);
+            if (form != null)
+            {
+                Print($"In {form.DisplayName}: the form pays here by stopping MORE of the hit, " +
+                      "not by a surcharge — the defensive costs take no form discount either.");
+            }
         }
 
         /// <summary>

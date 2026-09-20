@@ -130,14 +130,16 @@ namespace Saiyaheim.Power
                     return;
                 }
 
-                // O mesmo desconto do soco e do dano recebido, e pelo mesmo motivo: o block power
-                // cresce com o poder, então para mais golpe e cobra mais, enquanto a barra parou de
-                // crescer no nível 100. Ver BattlePower.GetKiCostFactor.
+                // O fator da DEFESA, e não o do soco — os dois se separaram em 2026-09-20. O que
+                // se cobra aqui é o dano do inimigo que o bloqueio parou, e esse número não cresce
+                // com o poder do jogador; descontá-lo pelo poder fazia bloquear ficar mais barato
+                // justamente quando o bloqueio ficava mais forte, e transformar dobrava a dose. No
+                // default o fator é 1. Ver BattlePower.GetDefenseKiCostFactor.
                 //
                 // O jogador local, e não o `__instance`: o Prefix só marca a janela quando os dois
                 // são o mesmo objeto, então aqui já é uma identidade verificada — e o KiManager é
                 // do jogador local de qualquer forma.
-                float cost = blocked * rate * BattlePower.GetKiCostFactor(Player.m_localPlayer);
+                float cost = blocked * rate * BattlePower.GetDefenseKiCostFactor(Player.m_localPlayer);
 
                 // Drain e não TryConsume: quando chegamos aqui o bloqueio já aconteceu e o dano já
                 // foi reduzido. Não há o que cancelar, então a barra vazia simplesmente deixa de

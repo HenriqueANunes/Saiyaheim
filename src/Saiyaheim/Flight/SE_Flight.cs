@@ -44,8 +44,25 @@ namespace Saiyaheim.Flight
         private float _originalTurnSpeed;
         private bool _speedsSaved;
 
-        /// <summary>Segundos de voo ainda não convertidos em XP. Ver <see cref="FlushXp"/>.</summary>
-        private float _pendingXpSeconds;
+        /// <summary>Metros percorridos no ar e ainda não convertidos em XP. Ver <see cref="FlushXp"/>.</summary>
+        private float _pendingXpMeters;
+
+        /// <summary>Posição no tique anterior, que é de onde sai a distância deste tique.</summary>
+        private Vector3 _lastPosition;
+
+        /// <summary>
+        /// Já houve um tique para comparar. Sem isto, o primeiro tique de um voo mediria a
+        /// distância desde a última vez que este efeito rodou — a pé, no chão, possivelmente
+        /// quilômetros atrás.
+        /// </summary>
+        private bool _hasLastPosition;
+
+        /// <summary>
+        /// Metros acumulados antes de pagar XP de uma vez. Mesmo papel do "um segundo" de antes:
+        /// evitar ~50 <c>RaiseSkill</c> por segundo sem atrasar o pagamento a ponto de um voo
+        /// curto não render nada (o <see cref="Stop"/> força a descarga do resto).
+        /// </summary>
+        private const float XpFlushMeters = 5f;
 
         internal static SE_Flight CreateTemplate()
         {
@@ -85,6 +102,12 @@ namespace Saiyaheim.Flight
             // pede o trigger "fly_takeoff". Esse trigger não existe no animator do jogador, mas o
             // ZSyncAnimation.Awake já desliga o logWarnings do Animator — não vira spam no console.
             character.TakeOff();
+
+            // Âncora do odômetro. Sem isto o primeiro tique cobraria o caminho andado desde a
+            // aterrissagem anterior, que é XP de graça por ter caminhado.
+            _lastPosition = character.transform.position;
+            _hasLastPosition = true;
+            _pendingXpMeters = 0f;
         }
 
         public override void UpdateStatusEffect(float dt)
@@ -102,6 +125,7 @@ namespace Saiyaheim.Flight
             ApplyVerticalInput(player);
             DrainKi(player, dt);
             FlushXp(player, dt);
+
         }
 
         public override void Stop()
@@ -119,7 +143,9 @@ namespace Saiyaheim.Flight
                     m_character.m_flyTurnSpeed = _originalTurnSpeed;
                 }
 
-                // Sem isto, um voo curto encerrado antes de completar 1s nunca pagaria XP.
+                // Sem isto, o resto do odômetro abaixo do XpFlushMeters se perderia — um voo
+                // curto nunca pagaria XP nenhum. dt zero: aqui só se descarrega o que já foi
+                // medido, não se mede mais nada.
                 FlushXp(m_character as Player, 0f, force: true);
             }
 
@@ -215,21 +241,78 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// Acumula o tempo de voo e converte em XP uma vez por segundo. Chamar
-        /// <c>RaiseSkill</c> a cada passo de física seriam ~50 chamadas por segundo para o mesmo
-        /// efeito.
+        /// Odômetro: mede o quanto o jogador andou neste tique e paga XP a cada
+        /// <see cref="XpFlushMeters"/> metros. Chamar <c>RaiseSkill</c> a cada passo de física
+        /// seriam ~50 chamadas por segundo para o mesmo efeito.
+        ///
+        /// <b>É caminho percorrido, não distância até a decolagem.</b> Ir e voltar paga as duas
+        /// pernas, porque as duas custaram ki. Medir contra o ponto de partida faria a volta para
+        /// casa pagar negativo e o círculo pagar zero gastando ki.
+        ///
+        /// <paramref name="dt"/> zero significa "só descarregue o que já foi medido": é como o
+        /// <see cref="Stop"/> chama, e é o que impede a última posição de ser reescrita quando não
+        /// houve tique de física nenhum.
         /// </summary>
         private void FlushXp(Player player, float dt, bool force = false)
         {
-            _pendingXpSeconds += dt;
-
-            if (_pendingXpSeconds <= 0f || (!force && _pendingXpSeconds < 1f))
+            if (player == null)
             {
                 return;
             }
 
-            FlightSkill.RaiseFromFlightTime(player, _pendingXpSeconds);
-            _pendingXpSeconds = 0f;
+            if (dt > 0f)
+            {
+                Vector3 position = player.transform.position;
+
+                if (_hasLastPosition)
+                {
+                    _pendingXpMeters += MeasureStep(player, position, dt);
+                }
+
+                _lastPosition = position;
+                _hasLastPosition = true;
+            }
+
+            if (_pendingXpMeters <= 0f || (!force && _pendingXpMeters < XpFlushMeters))
+            {
+                return;
+            }
+
+            FlightSkill.RaiseFromFlightDistance(player, _pendingXpMeters);
+            _pendingXpMeters = 0f;
+        }
+
+        /// <summary>
+        /// Quanto contar do salto de posição deste tique.
+        ///
+        /// <b>O clamp não é paranoia.</b> Posição do jogador também muda sem ele voar: portal,
+        /// respawn, knockback de um golpe pesado e o reposicionamento que o jogo faz ao carregar
+        /// uma zona. Qualquer um deles vira centenas de metros num tique, e o portal é o caso que
+        /// um jogador acha sozinho. Salto acima do que a velocidade máxima deste voo permite é
+        /// descartado inteiro — perder alguns metros legítimos é invisível, e XP de graça por
+        /// atravessar o mapa num portal não é.
+        ///
+        /// A margem de 2x cobre um tique mais longo que o normal (engasgo, carregamento de zona)
+        /// sem abrir espaço para um teleporte curto.
+        /// </summary>
+        private float MeasureStep(Player player, Vector3 position, float dt)
+        {
+            float step = Vector3.Distance(position, _lastPosition);
+
+            // O +1 é um piso: com dt pequeno e o jogador quase parado, um limite proporcional puro
+            // ficaria tão apertado que descartaria movimento real.
+            float limit = (FlightStats.GetFastSpeed(player) + 1f) * dt * 2f;
+
+            if (step <= limit)
+            {
+                return step;
+            }
+
+            SaiyaheimPlugin.LogVerbose(
+                $"Flight odometer: ignored a {step:0.#} m jump in {dt:0.###} s (limit {limit:0.#} m) " +
+                "— teleport, respawn or knockback.");
+
+            return 0f;
         }
     }
 }

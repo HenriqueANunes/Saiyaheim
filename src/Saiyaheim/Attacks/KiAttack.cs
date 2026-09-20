@@ -223,12 +223,22 @@ namespace Saiyaheim.Attacks
         }
 
         /// <summary>
-        /// O custo de <b>um projétil</b>. Fixo — não escala com poder nem com forma, e é a decisão
-        /// que [[Ataques de Ki]] registra como provisória.
+        /// O custo de <b>um projétil</b>: o número do <c>.cfg</c> vezes o que a forma ativa cobra
+        /// a mais.
+        ///
+        /// <b>Não escala com o poder</b> — essa parte continua sendo a decisão provisória que
+        /// [[Ataques de Ki]] registra. <b>Escala com a forma</b> desde 2026-09-20, pelo mesmo
+        /// motivo que o soco: o dano do tiro sai do poder de combate, que a forma multiplica, e
+        /// até aqui ele levava esse multiplicador de graça. A maestria daquela forma dissolve a
+        /// sobretaxa, como nos outros custos — ver <c>BattlePower.GetFormKiCostMultiplier</c>.
+        ///
+        /// Lê o <c>Player.m_localPlayer</c> porque ataque de ki é do jogador local: quem dispara é
+        /// o <c>KiAttackManager</c>, que só roda para ele, e o ki é estado local de qualquer forma.
         /// </summary>
         internal float GetKiCostPerProjectile()
         {
-            return Mathf.Max(0f, Config.KiCost.Value);
+            return Mathf.Max(0f, Config.KiCost.Value)
+                   * Power.BattlePower.GetFormKiCostMultiplier(Player.m_localPlayer);
         }
 
         /// <summary>

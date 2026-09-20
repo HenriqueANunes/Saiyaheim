@@ -336,13 +336,16 @@
             <input type="range" id="dmg" min="0" max="0.3" step="0.005" value="0.05"></div>
           <p class="hint">O custo do soco sai do poder de <b>combate</b>, que não tem teto; a barra de ki sai do <b>nível</b>, que para em 100. Sem o desconto abaixo essa tesoura só abre — e a forma, que multiplica o poder e não a barra, abre ela mais rápido.</p>
           <div class="ctl"><div class="row"><label for="pkc">PunchKiCostPerDamage</label><output id="pkc-out"></output></div>
-            <input type="range" id="pkc" min="0" max="10" step="0.1" value="3"></div>
+            <input type="range" id="pkc" min="0" max="20" step="0.1" value="7"></div>
           <div class="ctl"><div class="row"><label for="pkr">KiCostPowerReduction</label><output id="pkr-out"></output></div>
             <input type="range" id="pkr" min="0" max="0.02" step="0.0001" value="0.01"></div>
-          <p class="hint">Mas o desconto acima cresce <b>junto com a forma</b>, porque é ela que multiplica o poder que compra o desconto — então subir de degrau quase não encarece o soco, e o degrau velho fica sem nicho. O de baixo é a resposta: a maestria é <b>por forma</b> e nasce em zero a cada degrau.</p>
+          <p class="hint">⚠️ Até 2026-09-20 esse desconto lia o poder <b>já multiplicado pela forma</b>, então crescia junto com ela e comia quase todo o acréscimo: em SSJ3 o soco dava 4× o dano por 1,28× o custo. Agora ele lê o poder da forma <b>base</b>, e o preço da forma é o multiplicador explícito abaixo.</p>
+          <div class="ctl"><div class="row"><label for="cfk">CombatFormKiShare</label><output id="cfk-out"></output></div>
+            <input type="range" id="cfk" min="0" max="3" step="0.05" value="1"></div>
+          <p class="hint">Quanto do ganho de poder da forma vira <b>custo</b> a mais, nos quatro custos de luta: soco, bloqueio, dano recebido e ataque de ki. Em 1 uma forma x4 cobra 4× o ki por soco na maestria 0 — <b>o mesmo dano por ki da forma base</b>, ou seja, a forma compra o golpe maior e não eficiência. Em 0 ela leva o multiplicador de graça, que é como o mod se comportava até 2026-09-20.</p>
           <div class="ctl"><div class="row"><label for="mkr">MasteryFormCostReduction</label><output id="mkr-out"></output></div>
-            <input type="range" id="mkr" min="0" max="3" step="0.05" value="1"></div>
-          <p class="hint">Quanto do <b>acréscimo</b> que a forma cobra a maestria dela devolve: <code>1 / (1 + pkr × poder + (mult − 1) × (maestria/100) × isto)</code>. Escrito contra o multiplicador, não como taxa fixa — o acréscimo <i>é</i> o multiplicador, então taxa fixa precisaria de um número por degrau. <b>0</b> é a conta de antes; <b>1</b> é a forma maxada custando o mesmo que a base, com o multiplicador de dano de graça; acima de 1 ela fica mais barata que a base, que é onde o degrau velho ganha nicho.</p>
+            <input type="range" id="mkr" min="0" max="1" step="0.05" value="1"></div>
+          <p class="hint">Quanto do acréscimo acima a maestria daquela forma devolve. A sobretaxa inteira é <code>1 + (mult − 1) × CombatFormKiShare × (1 − isto × maestria/100)</code>. Em <b>1</b> a forma maxada custa exatamente o que a base custa pela mesma ação, com o multiplicador de dano de graça — é o fim da curva de maestria. Em <b>0</b> ela cobra a sobretaxa cheia para sempre.</p>
           <div class="ctl"><div class="row"><label for="armb">ArmorBase</label><output id="armb-out"></output></div>
             <input type="range" id="armb" min="0" max="40" step="1" value="1"></div>
           <div class="ctl"><div class="row"><label for="armp">ArmorFromPower</label><output id="armp-out"></output></div>
@@ -364,11 +367,11 @@
           <div class="ctl"><div class="row"><label for="fkp">KiPowerReduction</label><output id="fkp-out"></output></div>
             <input type="range" id="fkp" min="0" max="0.02" step="0.0001" value="0.0033"></div>
           <div class="ctl"><div class="row"><label for="fki">KiPerSecond</label><output id="fki-out"></output></div>
-            <input type="range" id="fki" min="0" max="60" step="0.5" value="5"></div>
+            <input type="range" id="fki" min="0" max="60" step="0.5" value="3.5"></div>
           <div class="ctl"><div class="row"><label for="fkr">KiSkillReduction</label><output id="fkr-out"></output></div>
             <input type="range" id="fkr" min="0" max="0.99" step="0.01" value="0.95"></div>
           <div class="ctl"><div class="row"><label for="fkc">KiSkillCurve</label><output id="fkc-out"></output></div>
-            <input type="range" id="fkc" min="0.25" max="5" step="0.25" value="2"></div>
+            <input type="range" id="fkc" min="0.25" max="5" step="0.25" value="1"></div>
           <div class="ctl"><div class="row"><label for="fdr">FallDamageSkillReduction</label><output id="fdr-out"></output></div>
             <input type="range" id="fdr" min="0" max="1" step="0.05" value="0.8"></div>
           <p class="hint">Fração do dano de queda tirada no nível 100 da skill de voo, <b>linear</b> no nível e só com o ki ligado. Vanilla, a queda tira <code>(altura − 4) ÷ 16 × 100</code>, com teto de 100 a partir de 20 m. Voando a queda já é zero; isto vale para pular de penhasco e cair do voo. 0,8 veio do playtest de 2026-09-17.</p>
@@ -380,6 +383,9 @@
             <input type="range" id="fs" min="0" max="3" step="0.05" value="0.5"></div>
           <div class="ctl"><div class="row"><label for="fss">FormSpeedShare</label><output id="fss-out"></output></div>
             <input type="range" id="fss" min="0" max="1" step="0.05" value="0.3"></div>
+          <div class="ctl"><div class="row"><label for="fks">FormKiShare</label><output id="fks-out"></output></div>
+            <input type="range" id="fks" min="0" max="2" step="0.05" value="0.3"></div>
+          <p class="hint">O espelho do slider acima, do lado do custo: a forma encarece o voo em <code>1 + (PowerMultiplier − 1) × isto × (1 − maestria/100)</code>. Existe desde 2026-09-20, porque com o dreno da forma em 1–3 ki/s a velocidade que ela dá no ar sairia de graça. Quem paga é a <b>maestria da forma</b>, que treina lutando — não a skill de voo, senão o desconto seria duplo e farmar voo barataria voar transformado. Em 0, a conta é a de antes.</p>
           <div class="ctl"><div class="row"><label for="fwp">WeightPenalty</label><output id="fwp-out"></output></div>
             <input type="range" id="fwp" min="0" max="0.95" step="0.05" value="0.6"></div>
           <div class="ctl"><div class="row"><label for="fwc">WeightCurve</label><output id="fwc-out"></output></div>
@@ -405,7 +411,7 @@
           <div class="ctl"><div class="row"><label for="m1">PowerMultiplier</label><output id="m1-out"></output></div>
             <input type="range" id="m1" min="1" max="10" step="0.1" value="2"></div>
           <div class="ctl"><div class="row"><label for="d1">KiDrainPerSecond</label><output id="d1-out"></output></div>
-            <input type="range" id="d1" min="0.5" max="40" step="0.5" value="5"></div>
+            <input type="range" id="d1" min="0" max="20" step="0.25" value="1"></div>
           <div class="ctl"><div class="row"><label for="r1">MasteryDrainReduction</label><output id="r1-out"></output></div>
             <input type="range" id="r1" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv1">Maestria de SSJ</label><output id="lv1-out"></output></div>
@@ -419,7 +425,7 @@
           <div class="ctl"><div class="row"><label for="m2">PowerMultiplier</label><output id="m2-out"></output></div>
             <input type="range" id="m2" min="1" max="10" step="0.1" value="3"></div>
           <div class="ctl"><div class="row"><label for="d2">KiDrainPerSecond</label><output id="d2-out"></output></div>
-            <input type="range" id="d2" min="0.5" max="40" step="0.5" value="10"></div>
+            <input type="range" id="d2" min="0" max="20" step="0.25" value="2"></div>
           <div class="ctl"><div class="row"><label for="r2">MasteryDrainReduction</label><output id="r2-out"></output></div>
             <input type="range" id="r2" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv2">Maestria de SSJ2</label><output id="lv2-out"></output></div>
@@ -433,7 +439,7 @@
           <div class="ctl"><div class="row"><label for="m3">PowerMultiplier</label><output id="m3-out"></output></div>
             <input type="range" id="m3" min="1" max="10" step="0.1" value="4"></div>
           <div class="ctl"><div class="row"><label for="d3">KiDrainPerSecond</label><output id="d3-out"></output></div>
-            <input type="range" id="d3" min="0.5" max="60" step="0.5" value="15"></div>
+            <input type="range" id="d3" min="0" max="20" step="0.25" value="3"></div>
           <div class="ctl"><div class="row"><label for="r3">MasteryDrainReduction</label><output id="r3-out"></output></div>
             <input type="range" id="r3" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv3">Maestria de SSJ3</label><output id="lv3-out"></output></div>
@@ -449,9 +455,17 @@
             maestria acompanha o nível da linha
           </label>
           <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
-          <div class="ctl"><div class="row"><label for="xps">MasteryXpPerSecond</label><output id="xps-out"></output></div>
-            <input type="range" id="xps" min="0.25" max="8" step="0.25" value="1"></div>
-          <p class="hint">Segurar a forma é o único jeito de treinar a skill dela. A curva do Valheim cobra ~20.000 de XP do 0 ao 100 — a 1/s são ~5,5 h <b>dentro</b> da forma, e as recargas de ki entram por cima. Este número regula a <b>velocidade da escada inteira</b>.</p>
+          <div class="ctl"><div class="row"><label for="xpd">MasteryXpPerDamageDealt</label><output id="xpd-out"></output></div>
+            <input type="range" id="xpd" min="0" max="3" step="0.05" value="0.5"></div>
+          <div class="ctl"><div class="row"><label for="xpt">MasteryXpPerDamageTaken</label><output id="xpt-out"></output></div>
+            <input type="range" id="xpt" min="0" max="3" step="0.05" value="0.5"></div>
+          <p class="hint">Desde 2026-09-20 a maestria treina <b>lutando dentro da forma</b>, e não por tempo segurando — ficar parado em SSJ, voar transformado ou explorar não pagam mais nada. A curva do Valheim continua cobrando ~20.000 de XP do 0 ao 100. ⚠️ O gráfico conta só o dano <b>causado</b>: o sofrido paga também, então a estimativa erra para o lado pessimista.</p>
+          <div class="ctl"><div class="row"><label for="xpmax">MasteryXpMaxPerEvent</label><output id="xpmax-out"></output></div>
+            <input type="range" id="xpmax" min="1" max="200" step="1" value="50"></div>
+          <p class="hint">Grampo de segurança por golpe, aplicado <b>antes</b> do bônus de boss — ao contrário do <code>XpMaxPerEvent</code> do Power Level, que corta por último. O bônus de boss existe para corrigir o degrau velho; deixar o grampo comê-lo anularia a correção justo onde ela deveria agir. Quando ele morde, o cartão de socos avisa.</p>
+          <div class="ctl"><div class="row"><label for="ppm">socos por minuto de luta</label><output id="ppm-out"></output></div>
+            <input type="range" id="ppm" min="5" max="120" step="5" value="30"></div>
+          <p class="hint">Não é config do mod: é a suposição que traduz <b>socos</b> em <b>horas</b>. Só isso. As horas que saem daqui são de <b>combate</b>, não de relógio — e é por isso que elas não se comparam com as de antes de 2026-09-20, que contavam as recargas de ki entre uma forma e outra.</p>
           <div class="ctl"><div class="row"><label for="bxp">MasteryXpPerBossBonus</label><output id="bxp-out"></output></div>
             <input type="range" id="bxp" min="0" max="5" step="0.25" value="2"></div>
           <div class="ctl"><div class="row"><label for="bxm">MasteryXpBossMultiplierMax</label><output id="bxm-out"></output></div>
@@ -604,9 +618,10 @@
   const XP_TOTAL = xpTo[MAXLVL];
   const COST_RATIO = xpCost[MAXLVL] / xpCost[1]; // ~1000x
 
-  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "armb", "armp", "blkb", "blkp",
+  const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "cfk", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
-               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3", "xps", "bxp", "bxm", "boss",
+               "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
+               "xpd", "xpt", "xpmax", "ppm", "bxp", "bxm", "boss", "fks",
                "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -681,32 +696,41 @@
   // Transformation.GetBossXpMultiplier. O degrau e' base zero, a contagem e' base um — dai o +1.
   const bossXp = form => Math.max(1, Math.min(v("bxm"), 1 + v("bxp") * (v("boss") - (form.rung + 1))));
 
-  // XP por segundo que ESTA forma recebe agora, ja com o bonus de boss.
-  const xpRate = form => v("xps") * bossXp(form);
+  // XP de maestria que UM golpe paga: o dano do golpe pela taxa, grampeado, e so' entao o bonus
+  // de boss — nessa ordem, como o Transformation.RaiseMasteryFromDamage faz.
+  const xpPerHit = (form, damage) =>
+    Math.min(Math.max(0, damage) * v("xpd"), v("xpmax")) * bossXp(form);
 
   // Dreno da forma ja com a maestria descontada. Espelha Transformation.GetKiDrainPerSecond.
   const formDrain = (form, L, over) =>
     Math.max(0, v(form.d) * (1 - v(form.r) * masteryLevel(form, L, over) / MAXLVL));
 
-  // Horas de RELOGIO ate maxar a maestria desta forma, partindo do zero, com o power level
-  // parado em L. Nao e' XP_TOTAL/xp por segundo: so' se treina dentro da forma, a forma acaba
-  // quando o ki acaba, e recarregar a barra e' tempo que nao conta XP nenhum. O dreno tambem
-  // encolhe conforme a propria maestria sobe, entao a conta e' nivel a nivel e nao uma divisao.
-  function masteryHours(form, L) {
-    const xps = xpRate(form);
-    if (xps <= 0) return Infinity;
-    const kiMax = v("kmax") + v("kper") * L;
-    const charge = v("creg") + v("cfp") * linearPower(L);
-    const refill = charge > 0 ? kiMax / charge : Infinity;
-    let wall = 0;
-    for (let m = 0; m < MAXLVL; m++) {
-      const inForm = xpCost[m + 1] / xps;              // segundos DENTRO da forma neste nivel
-      const dr = formDrain(form, L, m);
-      const ft = dr > 0 ? kiMax / dr : Infinity;        // quanto a barra cheia segura, aqui
-      wall += isFinite(ft) && isFinite(refill) ? inForm * (1 + refill / ft) : inForm;
-    }
-    return wall / 3600;
+  // SOCOS ate maxar a maestria desta forma, partindo do zero, com o power level parado em L.
+  //
+  // O soco e' a unidade porque desde 2026-09-20 a maestria treina por DANO, e o tempo deixou de
+  // ser a moeda: segurar a forma parado nao paga mais nada, entao "horas dentro da forma" nao e'
+  // mais uma pergunta que exista. A conta antiga somava as recargas de ki entre uma forma e a
+  // seguinte; aqui elas nao entram, porque quem paga e' o golpe e nao o relogio.
+  //
+  // Nao e' XP_TOTAL dividido por XP do golpe: o Skill.Raise do jogo zera o acumulador ao subir de
+  // nivel e joga fora o excesso do golpe que subiu, entao a conta e' nivel a nivel — a mesma que o
+  // saiya_form imprime em jogo.
+  //
+  // ⚠️ Conta so' o dano CAUSADO. O sofrido paga na mesma taxa e nao entra aqui, entao este numero
+  // e' um teto: na pratica o jogador maxa antes.
+  function masteryHits(form, L, k5) {
+    const damage = combatPower(L, k5) * Math.max(1, v(form.m)) * v("dmg");
+    const xp = xpPerHit(form, damage);
+    if (xp <= 0) return Infinity;
+
+    let hits = 0;
+    for (let m = 0; m < MAXLVL; m++) hits += Math.ceil(xpCost[m + 1] / xp);
+    return hits;
   }
+
+  // As mesmas socadas lidas em horas de LUTA — nao de relogio. O divisor e' a suposicao do
+  // slider, e nao uma chave do mod: e' o unico jeito de a pagina responder "isso e' muito?".
+  const masteryHours = (form, L, k5) => masteryHits(form, L, k5) / Math.max(1, v("ppm")) / 60;
 
   // Dano do PlayerUnarmed (blunt 5), do prefab do jogo.
   const PLAYER_UNARMED = 5;
@@ -742,12 +766,22 @@
     const charge = v("creg") + v("cfp") * lin;
     const refill = charge > 0 ? kiMax / charge : Infinity;
 
+    // A maestria da forma ativa, que daqui para baixo paga DUAS contas: a sobretaxa de voo logo
+    // abaixo e a devolucao do custo do soco mais adiante. Fora de forma e' zero por definicao.
+    const mst = form ? masteryLevel(form, L, opt.mastery) : 0;
+
     // Custo de voo: reducao em curva da skill, depois a hiperbolica do termo de fim de jogo.
     // O expoente joga a economia da skill para o fim: sem ele, 95% de desconto no 100 significaria
     // metade do preco ja' no nivel 50. Espelha FlightStats.GetSkillCostFactor.
+    //
+    // A sobretaxa da forma entra por cima desde 2026-09-20: ela multiplica a velocidade no ar
+    // (flyMult, acima) e, com o dreno da forma em 1-3 ki/s, nao pagava nada por isso. Ancorada na
+    // fracao que vira velocidade e paga pela MAESTRIA da forma — que treina lutando, e nao voando,
+    // justamente para o voo nao se auto-financiar. Espelha FlightStats.GetFormCostFactor.
     const skillCut = 1 - v("fkr") * Math.pow(flyLvl / MAXLVL, v("fkc"));
     const powerCut = 1 / (1 + v("fkp") * lateBonus(L, k5));
-    const flycost = Math.max(0, v("fki") * skillCut * powerCut);
+    const flySur = form ? 1 + (mult - 1) * v("fks") * (1 - Math.min(1, mst / MAXLVL)) : 1;
+    const flycost = Math.max(0, v("fki") * skillCut * powerCut * flySur);
 
     // Dano de queda: o teto vanilla (100, de 20 m para cima) com a reducao linear da skill de voo.
     // Nao le poder nenhum — so' a skill. Espelha SE_KiBody.ModifyFallDamage.
@@ -764,13 +798,23 @@
     //
     // (mult - 1) e nao uma taxa fixa por nivel: o acrescimo que a forma cobra E' o multiplicador
     // dela, entao a devolucao escala junto e todo degrau pousa no proprio custo base com o config
-    // em 1, sem numero por forma. Somado e nao multiplicado — e' o que faz a conta fechar exata.
-    // Fora de forma nao ha maestria e o divisor volta a ser so' o do poder.
-    // Espelha BattlePower.FormCostPayback.
-    const mst = form ? masteryLevel(form, L, opt.mastery) : 0;
-    const payback = form ? (mult - 1) * Math.min(1, mst / MAXLVL) * v("mkr") : 0;
+    // em 1, sem numero por forma.
+    //
+    // ⚠️ Ate 2026-09-20 isto era um termo SOMADO no divisor do desconto de poder, e o desconto lia
+    // o poder ja multiplicado pela forma: os dois cresciam juntos e o acrescimo quase sumia — em
+    // SSJ3, 4x de dano por 1,28x de custo. Agora a sobretaxa e' um multiplicador proprio e o
+    // desconto le o poder da forma BASE. Espelha BattlePower.FormKiCostMultiplier.
+    const formCost = form
+      ? Math.max(1, 1 + (mult - 1) * v("cfk") * (1 - Math.min(1, v("mkr")) * Math.min(1, mst / MAXLVL)))
+      : 1;
+
+    // Cobra sobre o bonus da forma BASE e aplica a sobretaxa por cima — senao o multiplicador
+    // entraria duas vezes, uma escondida no bonus e outra na sobretaxa. Espelha
+    // BattlePower.GetPunchKiCost.
+    const basePunch = combatPower(L, k5) * v("dmg");
     const punch = power * v("dmg");
-    const punchcost = Math.max(0, punch * v("pkc") / (1 + v("pkr") * power + payback));
+    const punchcost = Math.max(0,
+      basePunch * v("pkc") / (1 + v("pkr") * combatPower(L, k5)) * formCost);
 
     const armor = Math.round(v("armb") + power * v("armp"));
     const nxt = Math.min(L + 1, MAXLVL);
@@ -822,7 +866,9 @@
       // que a forma cobra o que entrega.
       punchbar: punchcost > 0 ? kiMax / punchcost * punch : Infinity,
       block: v("blkb") + power * v("blkp"),
+      formcost: formCost,
       flycost,
+      flysur: flySur,
       range: flycost > 0 ? kiMax / flycost : Infinity,
       fall: 100 * (1 - fallCut),
       fly: Math.min(Math.max(flyRaw, 1), v("fm")),
@@ -840,7 +886,14 @@
       // decide se o degrau alto vale o ki — o SSJ2 da' 1,5x de poder por 2x de dreno, entao por
       // barra ele entrega MENOS, e e' esse "menos" que mantem o SSJ vivo.
       powertime: isFinite(formtime) ? power * formtime : Infinity,
-      masteryhours: form ? masteryHours(form, L) : Infinity,
+
+      // ── a maestria, agora em socos ──
+      // O dano do golpe e' o BONUS que o poder acrescenta ao soco, o mesmo proxy que o saiya_form
+      // usa: a base vanilla desarmada e a armadura do alvo ficam de fora.
+      xpperhit: form ? xpPerHit(form, punch) : 0,
+      xpclamped: form ? punch * v("xpd") > v("xpmax") : false,
+      masteryhits: form ? masteryHits(form, L, k5) : Infinity,
+      masteryhours: form ? masteryHours(form, L, k5) : Infinity,
     };
   }
 
@@ -881,16 +934,26 @@
       sub: "a pior queda do jogo, que no vanilla tira 100 de vida. Cai em linha reta com a skill de voo (FallDamageSkillReduction) e não lê power level; vale só com o ki ligado" },
     kimax: { btn: "teto de ki", label: "Teto de ki", mode: "solo", dec: 0, unit: "",
       sub: "lê o nível cru — nem o termo de fim de jogo nem a forma inflam a barra" },
+    formcost: { btn: "sobretaxa da forma", label: "Multiplicador de custo da forma", mode: "formonly", dec: 2, unit: "×",
+      sub: "quanto a forma cobra a mais nos quatro custos de luta — soco, bloqueio, dano recebido e ataque de ki — em relação ao que a forma base pagaria. Cai até 1× conforme a maestria daquela forma sobe" },
     drain: { btn: "dreno", label: "Dreno da forma", mode: "formonly", dec: 2, unit: " ki/s",
-      sub: "ki por segundo enquanto a forma está de pé, já com a maestria descontada. É o único custo que a forma tem: não existe custo de ativação" },
+      sub: "ki por segundo enquanto a forma está de pé, já com a maestria descontada. Desde 2026-09-20 é só manutenção: o custo de verdade da forma é por AÇÃO — o soco, o bloqueio, apanhar e o voo" },
     formtime: { btn: "tempo em forma", label: "Segundos em forma", mode: "formonly", dec: 0, unit: " s",
       sub: "teto de ki ÷ dreno, partindo da barra cheia. Sobe com a barra (MaxKiPerPowerLevel) e com a maestria — o multiplicador não entra" },
     uptime: { btn: "% transformado", label: "Fatia do tempo transformado", mode: "formonly", dec: 1, unit: "%",
       sub: "um ciclo é segurar a forma até a barra zerar mais recarregar do zero. 50% = metade do tempo transformado, metade carregando" },
     powertime: { btn: "poder × tempo", label: "Poder × segundos por barra", mode: "formonly", dec: 0, unit: "",
       sub: "quanta força uma barra cheia de ki compra. É o número que decide se o degrau alto vale o ki — se um degrau passar o de baixo aqui, o de baixo vira letra morta" },
-    masteryhours: { btn: "horas até maestria", label: "Horas até maestria 100", mode: "formonly", dec: 1, unit: " h",
-      sub: "tempo de relógio, não de forma: soma o tempo dentro da forma e as recargas entre uma e outra, nível a nível, com o dreno encolhendo pelo caminho" },
+    masteryhits: { btn: "socos até maestria", label: "Socos até maestria 100", mode: "formonly", dec: 0, unit: "",
+      sub: "a maestria treina por DANO desde 2026-09-20, então a unidade é o golpe e não o segundo. Conta só o dano causado — o sofrido paga também, então é um teto" },
+    masteryhours: { btn: "horas de luta", label: "Horas de luta até maestria 100", mode: "formonly", dec: 1, unit: " h",
+      sub: "os mesmos socos divididos pelo slider de socos por minuto. São horas de COMBATE, não de relógio — não se comparam com as horas de antes do rework, que contavam as recargas de ki" },
+    xpperhit: { btn: "xp por soco", label: "XP de maestria por soco", mode: "formonly", dec: 2, unit: "",
+      sub: "dano do soco × MasteryXpPerDamageDealt, grampeado pelo MasteryXpMaxPerEvent e só então multiplicado pelo bônus de boss" },
+    flycostform: { btn: "voo ki/s", label: "Custo de voo, com a forma", mode: "forms", dec: 2, unit: " ki/s", of: "flycost",
+      sub: "a forma multiplica a velocidade no ar e, desde 2026-09-20, paga por isso: a sobretaxa cai a zero conforme a maestria daquela forma sobe" },
+    rangeform: { btn: "autonomia", label: "Autonomia de voo, com a forma", mode: "forms", dec: 0, unit: " s", of: "range",
+      sub: "segundos de voo com a barra cheia. Dentro de uma forma a barra vale menos tempo — é a sobretaxa lida do jeito que o jogador sente" },
     rating: { btn: "poder de luta", label: "Poder de luta (o número da HUD)", mode: "forms", dec: 0, unit: "",
       sub: "RatingHealthWeight × vida efetiva + RatingDamageWeight × dano por segundo. É o número que se compara com criatura" },
     ehp: { btn: "vida efetiva", label: "Vida efetiva", mode: "forms", dec: 0, unit: "",
@@ -928,7 +991,7 @@
     combat: {
       title: "O que o poder vira quando alguém bate em você",
       sub: "Armadura, block e o soco leem o poder de <b>combate</b> — o mesmo número que a transformação multiplica. Os três estouram por motivos diferentes, e é por isso que eles moram na mesma tela: mexer no multiplicador para o soco ficar bom costuma quebrar a armadura. O <code>MasteryFormCostReduction</code> é a segunda alavanca do custo, e a única que separa um degrau do outro.",
-      stats: ["powerform", "armor", "taken", "punch", "punchcost", "punches", "block"],
+      stats: ["powerform", "armor", "taken", "punch", "punchcost", "punches", "formcost", "block"],
       open: ["g-combat", "g-mastery"],
       today: false,
       forms: true,
@@ -939,9 +1002,9 @@
     },
     fly: {
       title: "Voar é o segundo eixo de progressão",
-      sub: "A skill de voo sobe por tempo no ar, não por power level. O nível enche a barra de ki; a skill esvazia ela mais devagar. Custo e autonomia leem os dois, e a velocidade lê só o power level — de propósito.",
-      stats: ["flycost", "range", "fly", "fall", "kimax"],
-      open: ["g-fly"],
+      sub: "A skill de voo sobe por <b>distância percorrida</b> desde 2026-09-20 — pairar parado não paga nada —, e não por power level. O nível enche a barra de ki; a skill esvazia ela mais devagar. E a forma, que acelera o voo, passou a pagar por isso: a sobretaxa <code>FormKiShare</code> some conforme a maestria daquela forma sobe.",
+      stats: ["flycost", "flycostform", "range", "rangeform", "fly", "fall", "kimax"],
+      open: ["g-fly", "g-mastery"],
       today: false,
       // O eixo por carga so' existe aqui: peso e' a unica entrada da pagina que nao e' nivel, e
       // e' o unico jeito de ver a FORMA da curva de peso em vez de um ponto dela.
@@ -949,12 +1012,13 @@
       cfg: ["flight", "ki"],
       caption: "Voo nível a nível, com a skill de voo acompanhando",
       cols: [cmp("Voo ki/s", "flycost", 2), cmp("Autonomia", "range", 0, " s"), cmp("Voo m/s", "fly", 1),
-             cmp("Queda 20 m", "fall", 0), cmp("Teto ki", "kimax", 0), cmp("Recarga", "refill", 0, " s")],
+             cmp("Queda 20 m", "fall", 0), cmp("Teto ki", "kimax", 0), cmp("Recarga", "refill", 0, " s")].concat(
+        FORMS.map((f, i) => fcol("Voo ki/s", i, "flycost", 2, "", { sep: i === 0 }))),
     },
     form: {
       title: "Quanto custa segurar a forma, e por quanto tempo",
-      sub: "A forma não tem custo de ativação: o preço inteiro é o dreno por segundo, e ele bloqueia a regeneração de fundo a cada tick. Então a pergunta de calibragem é <b>quanto tempo a barra cheia segura</b> — e se o degrau alto entrega, por barra de ki, mais do que o degrau baixo.",
-      stats: ["formtime", "uptime", "drain", "powertime", "powerform", "masteryhours"],
+      sub: "A forma não tem custo de ativação, e desde 2026-09-20 o dreno também não é o preço dela: ele caiu para 1–3 ki/s e o custo migrou para a <b>ação</b> — soco, bloqueio, apanhar e voo. Estar transformado ficou barato; <b>lutar</b> transformado é o que custa. A pergunta de calibragem deixou de ser quanto tempo a barra segura e passou a ser quantos golpes ela paga (lente de combate) — aqui fica o que sobrou do tempo, mais a maestria, que agora se mede em socos.",
+      stats: ["formtime", "uptime", "drain", "powertime", "powerform", "masteryhits", "masteryhours", "xpperhit"],
       open: FORMS.map(f => "g-" + f.id),
       today: false,
       cfg: FORMS.map(f => f.id).concat(["ki"]),
@@ -1284,6 +1348,12 @@
                                       : `em ${TOP.name}, ${fmt(model(100, k5, TOP).fly, 1)} m/s — ` +
                                         `x${fmt(1 + (Math.max(1, v(TOP.m)) - 1) * v("fss"), 2)} de velocidade ` +
                                         `para x${fmt(Math.max(1, v(TOP.m)), 1)} de poder` },
+      // A sobretaxa da forma lida nos dois extremos da maestria: e' o cartao que responde "vale a
+      // pena voar transformado?". No zero ela e' o preco cheio; no 100 ela nao existe mais.
+      { k: `voar em ${TOP.name}`, v: "x" + fmt(model(100, k5, TOP, { mastery: 0 }).flysur, 2) + " de custo",
+        n: `${fmt(model(100, k5, TOP, { mastery: 0 }).flycost, 2)} ki/s sem maestria contra ` +
+           `${fmt(model(100, k5, TOP, { mastery: MAXLVL }).flycost, 2)} com ela maxada — ` +
+           `x${fmt(1 + (Math.max(1, v(TOP.m)) - 1) * v("fss"), 2)} de velocidade em troca` },
       // Tres pontos da curva de peso num cartao so': o meio e' o que o expoente move, as pontas
       // sao fixas (0% nao custa nada, 100% custa a WeightPenalty inteira, em qualquer curva).
       { k: "peso, do meio ao limite", v: fmt(weightLoss(1), 0) + "% mais lento",
@@ -1332,9 +1402,11 @@
           (worst.ratio >= 1 ? `o ${worst.lo.name} virou letra morta` : "abaixo de 1 é o que mantém o degrau baixo vivo"),
     });
 
-    cards.push({ k: `maestria 100 em ${TOP.name}`, v: fmt(masteryHours(TOP, 100), 1) + " h",
-      n: `de relógio, contando as recargas. ` +
-         FORMS.slice(0, -1).map(f => `${f.name} ${fmt(masteryHours(f, 100), 1)} h`).join(" · ") });
+    const hits = f => model(100, k5, f).masteryhits;
+    cards.push({ k: `maestria 100 em ${TOP.name}`, v: fmtc(hits(TOP), 0) + " socos",
+      n: `${fmt(masteryHours(TOP, 100, k5), 1)} h de luta a ${fmt(v("ppm"), 0)} socos/min · ` +
+         FORMS.slice(0, -1).map(f => `${f.name} ${fmtc(hits(f), 0)}`).join(" · ") +
+         (at(TOP).xpclamped ? " · ⚠️ o grampo por golpe está mordendo" : "") });
 
     return cards;
   }
@@ -1359,8 +1431,19 @@
     if (m100.punches < 2) {
       return { warn: true, html: `<strong>O soco não cabe na barra:</strong> no nível 100 são ${fmt(m100.punches, 1)} socos com a barra cheia, e abaixo de 1 o golpe sai com o dano vanilla cru — o bônus simplesmente não é cobrado. Suba o <code>KiCostPowerReduction</code>.` };
     }
+    // A forma cobrando exatamente o que entrega e' o DESENHO na maestria 0 desde 2026-09-20: o
+    // que ela compra ali e' o golpe maior, nao eficiencia, e a eficiencia e' o que a maestria
+    // vende. So' vira alerta quando nem a maestria maxada separa os dois — aí a sobretaxa nunca
+    // e' devolvida e treinar nao compra nada.
     if (f100.punchbar <= m100.punchbar * 1.05) {
-      return { warn: true, html: `<strong>A transformação cobra o que entrega:</strong> no nível 100 o ${TOP.name} dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco, mas o dano total por barra de ki fica em ${fmt(f100.punchbar / m100.punchbar, 2)}× — a forma multiplica o custo junto com o dano e o teto de ki não acompanha. Suba o <code>KiCostPowerReduction</code>: é o poder que compra o desconto, então a forma passa a se pagar.` };
+      const maxed = model(100, k5, TOP, { mastery: MAXLVL });
+      const paysOff = maxed.punchbar > m100.punchbar * 1.05;
+
+      if (paysOff) {
+        return { html: `<strong>A forma cobra o que entrega, e a maestria é o que muda isso.</strong> Crua, o ${TOP.name} dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco e cobra ${fmt(f100.formcost, 2)}× de ki — mesmo dano por barra que a forma base, ${fmt(f100.punches, 1)} socos contra ${fmt(m100.punches, 1)}. Maxada, a sobretaxa vira 1× e a mesma barra compra ${fmt(maxed.punchbar / m100.punchbar, 2)}× de dano. É a curva da maestria dita em números.` };
+      }
+
+      return { warn: true, html: `<strong>Treinar a forma não compra nada:</strong> nem com a maestria no 100 o ${TOP.name} rende mais dano por barra que a forma base. A sobretaxa não está sendo devolvida — suba o <code>MasteryFormCostReduction</code> (1 devolve tudo) ou baixe o <code>CombatFormKiShare</code>.` };
     }
     if (m100.taken < v("hit") * 0.06) {
       return { warn: true, html: `<strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.` };
@@ -1446,7 +1529,7 @@
       }
       return { html: `<strong>A maestria termina de graça, e é isso que ela compra.</strong> No 100 nenhum degrau drena nada e o ki volta a regenerar por baixo deles — a forma vira permanente até o jogador soltar. O preço todo está no caminho: crus, os degraus seguram ` +
         FORMS.map(f => `${fmt(at(f, 0).formtime, 0)} s (${f.name})`).join(" · ") +
-        ` por barra, o par mais apertado é ${w.hi.name} contra ${w.lo.name} em ${fmt(w.r, 2)}× de poder×tempo, e maxar o ${TOP.name} custa ${fmt(masteryHours(TOP, 100), 1)} h de relógio contra ${fmt(masteryHours(SSJ, 100), 1)} h do ${SSJ.name}.` };
+        ` por barra, o par mais apertado é ${w.hi.name} contra ${w.lo.name} em ${fmt(w.r, 2)}× de poder×tempo, e maxar o ${TOP.name} custa ${fmtc(at(TOP, 0).masteryhits, 0)} socos contra ${fmtc(at(SSJ, 0).masteryhits, 0)} do ${SSJ.name} — ${fmt(masteryHours(TOP, 100, k5), 1)} h e ${fmt(masteryHours(SSJ, 100, k5), 1)} h de luta, no ritmo suposto.` };
     }
 
     const w = worstAt(MAXLVL);
@@ -1633,9 +1716,11 @@
   const n = (id, d) => fmt(v(id), d).replace(".", "").replace(",", ".");
   const formBlock = f => block(f.sec, [
     kv("PowerMultiplier", n(f.m, 1)),
-    kv("KiDrainPerSecond", n(f.d, 1)),
+    kv("KiDrainPerSecond", n(f.d, 2)),
     kv("MasteryDrainReduction", n(f.r, 2)),
-    kv("MasteryXpPerSecond", n("xps", 2)),
+    kv("MasteryXpPerDamageDealt", n("xpd", 2)),
+    kv("MasteryXpPerDamageTaken", n("xpt", 2)),
+    kv("MasteryXpMaxPerEvent", n("xpmax", 0)),
     kv("MasteryXpPerBossBonus", n("bxp", 2)),
     kv("MasteryXpBossMultiplierMax", n("bxm", 2)),
   ]);
@@ -1646,7 +1731,8 @@
       kv("K5_LateGameBonus", n("k5", 1)), kv("LateGameExponent", n("p", 1))]),
     combat: () => block("2.1 - Combat", [
       kv("PunchDamageFromPower", n("dmg", 3)), kv("PunchKiCostPerDamage", n("pkc", 1)),
-      kv("KiCostPowerReduction", n("pkr", 4)), kv("MasteryFormCostReduction", n("mkr", 2)),
+      kv("KiCostPowerReduction", n("pkr", 4)), kv("CombatFormKiShare", n("cfk", 2)),
+      kv("MasteryFormCostReduction", n("mkr", 2)),
       kv("ArmorBase", n("armb", 0)),
       kv("ArmorFromPower", n("armp", 3)), kv("BlockPowerBase", n("blkb", 0)),
       kv("BlockPowerFromPower", n("blkp", 3))]),
@@ -1656,6 +1742,7 @@
       kv("FallDamageSkillReduction", n("fdr", 2)),
       kv("BaseSpeed", n("fb", 1)), kv("SpeedFromPower", n("fp", 3)),
       kv("SpeedSkillBonus", n("fs", 2)), kv("FormSpeedShare", n("fss", 2)),
+      kv("FormKiShare", n("fks", 2)),
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
     rating: () => block("6 - Battle Power", [
@@ -1677,16 +1764,16 @@
   const FOOTERS = {
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
-    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido.`,
-    form: `A forma não tem custo de ativação — o <code>KiDrainPerSecond</code> é o preço inteiro, e ele bloqueia a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> é exato. A recarga usa o carregamento ativo (<code>ChargeKiPerSecond</code>), que é o que o jogador faz de verdade entre uma forma e outra. <b>Poder×tempo</b> é poder de combate multiplicado pelos segundos que a barra segura: é a leitura que compara os degraus, porque o degrau alto compra multiplicador com dreno. A maestria é <b>por forma</b> e só treina dentro dela, então as horas até 100 incluem as recargas.`,
+    fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido. Desde <b>2026-09-20</b> a forma também paga no <b>custo</b>, e não só ganha velocidade: <code>1 + (PowerMultiplier − 1) × FormKiShare × (1 − maestria/100)</code>, com a <b>maestria da forma</b> quitando a conta — não a skill de voo, que já barateia o custo base e faria o desconto contar duas vezes. No mesmo dia a curva da skill foi de 2 para 1 e a base de 5 para 3,5, porque o back-load era o que tirava o jogador do jogo para grindar antes de voar: ⚠️ com o <code>K5</code> em zero o <code>KiPowerReduction</code> não faz nada, então a skill de voo é a única coisa que barateia o voo — é aqui que se vigia se ele virou o transporte padrão cedo demais.`,
+    form: `A forma não tem custo de ativação, e desde <b>2026-09-20</b> o dreno deixou de ser o preço dela: caiu para 1–3 ki/s e o custo migrou para a ação — <code>PunchKiCostPerDamage</code>, <code>BlockKiCost</code>, <code>DamageTakenKiCost</code> e a sobretaxa de voo. O dreno continua bloqueando a regeneração de fundo a cada tick (<code>KiManager</code>, "manutenção também desliga a regeneração"), então <code>tempo = teto de ki ÷ dreno</code> segue exato — só que agora ele dá minutos, e a pergunta de calibragem mudou de lugar: ela é <b>socos por barra</b>, na lente de combate. <b>Poder×tempo</b> continua sendo a leitura que compara os degraus, mas com o dreno baixo ela satura: os degraus se separam pelo custo de <i>lutar</i>, não pelo de existir. A maestria treina por <b>dano trocado dentro da forma</b> — ficar parado transformado ou voar transformado não pagam nada —, e por isso o eixo dela aqui é o soco e não o segundo. As horas são de <b>luta</b>, a partir do slider de socos por minuto, e não de relógio.`,
     rating: `Espelha o <code>PowerRating.cs</code> com o ki ligado. O jogador entra com HP máximo = 25 + o slider de HP, a armadura do battle power de combate e o soco desarmado vanilla (5) mais o bônus do mod. A criatura entra com armadura 0, e por isso o fator de armadura dela é sempre 1. Transformado, a conta usa a armadura e o soco da forma <b>base</b> e multiplica o resultado por <code>1 + (PowerMultiplier − 1) × RatingFormShare</code> (<code>PowerRating.GetFormFactor</code>, desde 2026-09-17). <b>Empata no nível</b> é o primeiro nível em que o seu número passa o da criatura, com o HP do jogador seguindo o checkbox. Os dados de criatura vêm dos prefabs e também estão no vault, em <code>Técnico/Criaturas.md</code>.`,
   };
 
   // ── render ────────────────────────────────────────────────────────────────
-  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, armb: 0, armp: 3, blkb: 0,
+  const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, cfk: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
-                    m1: 1, d1: 1, r1: 2, lv1: 0, m2: 1, d2: 1, r2: 2, lv2: 0, m3: 1, d3: 1, r3: 2, lv3: 0,
-                    xps: 2, bxp: 2, bxm: 2, boss: 0,
+                    m1: 1, d1: 2, r1: 2, lv1: 0, m2: 1, d2: 2, r2: 2, lv2: 0, m3: 1, d3: 2, r3: 2, lv3: 0,
+                    xpd: 2, xpt: 2, xpmax: 0, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
                     rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2 };
 
