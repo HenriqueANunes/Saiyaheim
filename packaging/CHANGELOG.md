@@ -54,6 +54,8 @@
   forms. They now carry a transparent background, so they sit on the skill wheel and the HUD
   without the black square around them.
 
+- Fixed: SSJ2 and SSJ3 no longer spam `Light was null! This should never happen!` into the log.
+
 ## 0.3.0
 
 - New: gain ki by fighting well. A successful parry gives the ki cost of 2 punches, and

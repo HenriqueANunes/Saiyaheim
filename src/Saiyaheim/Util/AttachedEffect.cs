@@ -291,6 +291,14 @@ namespace Saiyaheim.Util
         ///
         /// <b>Zero destrói o componente</b> em vez de zerar a intensidade. Luz apagada ainda custa
         /// no pipeline de render, e um efeito preso ao jogador vive minutos, não frames.
+        ///
+        /// ⚠️ <b>Quem destrói o <c>Light</c> destrói junto os componentes do jogo presos a ele.</b>
+        /// O <c>LightFlicker</c> guarda o <c>Light</c> no <c>Awake</c> e o lê a cada frame; sem o
+        /// componente ele cai no ramo de erro e cospe <c>"Light was null! This should never
+        /// happen!"</c> no log enquanto o efeito viver. Aparecia no SSJ2/SSJ3, onde cada estalo do
+        /// <c>fx_Lightning</c> nasce com <c>FormLightningLightIntensity = 0</c> (issue #2). O
+        /// <c>LightLod</c> tem a mesma dependência, mas testa antes de usar — vai junto assim
+        /// mesmo, porque sem luz ele não tem o que fazer.
         /// </summary>
         private static void ApplyLightIntensity(GameObject instance, float intensity)
         {
@@ -303,11 +311,30 @@ namespace Saiyaheim.Util
             {
                 if (intensity <= 0f)
                 {
+                    DestroyLightDependents(light.gameObject);
                     Object.Destroy(light);
                     continue;
                 }
 
                 light.intensity *= intensity;
+            }
+        }
+
+        /// <summary>
+        /// Apaga os componentes do jogo que só existem para regular um <c>Light</c> do mesmo
+        /// objeto, antes de o <c>Light</c> ir embora. Ver o aviso em
+        /// <see cref="ApplyLightIntensity"/>.
+        /// </summary>
+        private static void DestroyLightDependents(GameObject lightObject)
+        {
+            foreach (LightFlicker flicker in lightObject.GetComponents<LightFlicker>())
+            {
+                Object.Destroy(flicker);
+            }
+
+            foreach (LightLod lod in lightObject.GetComponents<LightLod>())
+            {
+                Object.Destroy(lod);
             }
         }
 
