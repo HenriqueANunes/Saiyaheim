@@ -21,7 +21,9 @@ namespace Saiyaheim.Radial
     {
         public string LocalizedName => "Ki attacks";
 
-        public Sprite Sprite => IconLoader.LoadOptional("kiblast");
+        // O grupo usa o ícone do Ki Blast: é o ataque que todo mundo tem desde o começo, e
+        // reaproveitar o arquivo evita embutir a mesma arte duas vezes na DLL.
+        public Sprite Sprite => IconLoader.LoadOptional("blast");
 
         public void InitRadialConfig(RadialBase radial)
         {

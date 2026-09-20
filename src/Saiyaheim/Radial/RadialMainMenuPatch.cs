@@ -54,6 +54,33 @@ namespace Saiyaheim.Radial
             // destruído pelo próprio RadialBase assim que o jogador usar qualquer item da vanilla.
             elements.RemoveAll(SaiyaRadial.IsOurs);
 
+            // O anel principal tapa com EmptyElement os dois slots que pode não ter o que
+            // preencher: o do martelo, quando não há martelo no inventário, e o do último item
+            // usado, quando ainda não se usou nada. É um item sem nome, sem ícone e sem ação —
+            // clicar nele não faz nada. Ao entrar no mundo o LastUsed é sempre nulo, então a
+            // primeira abertura da roda sempre mostrava um desses; ele sumia depois porque
+            // qualquer clique preenche o LastUsed.
+            //
+            // Os dois itens do mod entram no lugar, então a roda não fica com buraco.
+            elements.RemoveAll(element =>
+            {
+                if (!(element is EmptyElement) || SaiyaRadial.IsOurs(element))
+                {
+                    return false;
+                }
+
+                // Destruir aqui porque o elemento sai da lista antes de virar filho do
+                // container, e o ClearElements do ConstructRadial só varre os filhos de lá —
+                // sem isto, cada abertura da roda deixaria um GameObject órfão na cena.
+                // O LastUsed é exceção: quem manda nele é o RadialBase.
+                if (element != __instance.LastUsed)
+                {
+                    UnityEngine.Object.Destroy(element.gameObject);
+                }
+
+                return true;
+            });
+
             // back = a config que está montando: voltar de dentro de um grupo cai no anel
             // principal, como em qualquer outro grupo da roda.
             elements.Add(SaiyaRadial.Group(__instance, new FormsRadialConfig(), __instance.CurrentConfig));
