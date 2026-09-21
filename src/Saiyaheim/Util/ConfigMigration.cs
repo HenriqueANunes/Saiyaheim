@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 5;
+        internal const int CurrentVersion = 6;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -304,6 +304,52 @@ namespace Saiyaheim.Util
             yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpMaxPerEvent, 50f, true);
 
             yield return new Change(5, SaiyaheimConfig.FlightXpPerMeter, 0.15f, true);
+
+            // ---------- 6 (2026-09-21) — a forma deixa de cobrar caro para lutar ----------
+            //
+            // O segundo playtest do rework, e ele derruba os dois numeros que a migração 5 não
+            // tinha acertado o bastante:
+            //
+            //   CombatFormKiShare 1 -> 0,2. Lutar transformado consumia a barra rápido demais:
+            //   com a sobretaxa proporcional, a forma entregava o mesmo dano por ki que a base e
+            //   o multiplicador virava só um golpe maior e mais caro. Em 0,2 a forma já nasce
+            //   pagando melhor que a base.
+            //
+            //   O XP de maestria cai de novo, agora para um vigésimo do original: o corte pela
+            //   metade da migração 5 e a divisão por 10 que veio depois não seguraram a subida.
+            //
+            // Force nas duas frentes, pelo mesmo motivo das migrações anteriores. A sobretaxa e o
+            // XP são as duas pontas da mesma promessa — "no começo você mal segura a forma, no fim
+            // você a veste": um .cfg que ficasse com a sobretaxa velha e o XP novo teria a forma
+            // cara E demorada para maxar, que é pior que qualquer um dos dois balanceamentos
+            // inteiros. O teto por golpe vai junto com a taxa pela razão de sempre — cortar só a
+            // taxa faria o grampo morder com o dobro do dano.
+            //
+            // O OldDefault do XP é 0,25, que é o default que saiu na 0.4.1 com a migração 5. Quem
+            // vem de uma versão anterior passa pelas duas linhas e acerta assim mesmo: a da
+            // migração 5 escreve o default de hoje e a daqui já a encontra em ordem.
+            yield return new Change(6, SaiyaheimConfig.CombatFormKiShare, 1f, true);
+
+            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpPerDamageDealt, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpPerDamageTaken, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpMaxPerEvent, 25f, true);
+
+            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpPerDamageDealt, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpPerDamageTaken, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpMaxPerEvent, 25f, true);
+
+            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpPerDamageDealt, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpPerDamageTaken, 0.25f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpMaxPerEvent, 25f, true);
+
+            // O teto do bonus de boss sobe junto, e pela mesma conta: ele existe para o degrau
+            // velho recuperar terreno conforme o mundo anda, e com a taxa base num vigesimo do que
+            // era um teto de x2 encerrava essa recuperacao quase no momento em que ela comecava.
+            // Force porque o teto e' parte do mesmo ajuste — corte de taxa com teto velho e' a
+            // metade que nao recupera nada.
+            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpBossMultiplierMax, 2f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpBossMultiplierMax, 2f, true);
+            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpBossMultiplierMax, 2f, true);
         }
     }
 }

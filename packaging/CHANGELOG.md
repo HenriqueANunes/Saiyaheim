@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.2
+
+- Changed: fighting inside a form costs far less ki. A form used to charge its whole power
+  multiplier as a surcharge on every punch, block and hit taken; it now charges a fifth of it
+  (`CombatFormKiShare` 1 → 0.2), so a 4x form lands 2.5x the damage per point of ki. Mastery
+  still clears the surcharge at level 100.
+- Changed: form mastery levels much more slowly — XP per point of damage went from 0.25 to
+  0.0125, and the per-hit cap from 25 to 1.25. The boss catch-up bonus for older forms now
+  climbs to x4 instead of x2 (`MasteryXpBossMultiplierMax`). Flight and Power Level are
+  unchanged.
+- Changed: existing config files are moved to these values on load even if you had tuned those
+  keys — they are one balance pass, and half of it is worse than none. The log says what your
+  old values were.
+
 ## 0.4.1
 
 - Changed: form mastery and the flight skill now level at half the speed. Mastery XP per point

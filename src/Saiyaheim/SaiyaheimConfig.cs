@@ -213,7 +213,8 @@ namespace Saiyaheim
 
         /// <summary>
         /// Quanto do ganho de poder da forma vira custo de ki a mais nos três custos de combate.
-        /// 1 = proporcional. Ver <c>BattlePower.FormKiCostMultiplier</c>.
+        /// 1 = proporcional; 0,2 (default) cobra um quinto da sobretaxa.
+        /// Ver <c>BattlePower.FormKiCostMultiplier</c>.
         /// </summary>
         public static ConfigEntry<float> CombatFormKiShare { get; private set; }
 
@@ -1281,7 +1282,14 @@ namespace Saiyaheim
                     "unpayable — that is the one question this key is here to answer.",
                     new AcceptableValueRange<float>(0f, 0.02f), AdminOnly(59)));
 
-            CombatFormKiShare = config.Bind(SecCombat, "CombatFormKiShare", 1f,
+            // 1 -> 0,5 -> 0,2 nos playtests de 2026-09-20 e 21: lutar transformado estava caro
+            // demais, e a metade nao bastou. Cortada a SOBRETAXA e nao as taxas base: o que
+            // incomodava era o custo DENTRO da forma, e soco, apanhar e bloquear na forma base
+            // estavam calibrados. Em 0,2 uma forma x4 custa 1,6x por soco em vez de 4x na maestria
+            // 0, entao ela ja' nasce entregando 2,5x mais dano por ki que a base — o que antes so'
+            // acontecia com maestria. A maestria continua zerando a sobretaxa no nivel 100, e o
+            // que ela paga agora e' bem menor, porque o que sobrou para devolver e' menor.
+            CombatFormKiShare = config.Bind(SecCombat, "CombatFormKiShare", 0.2f,
                 new ConfigDescription(
                     "How much of a transformation's power gain turns into EXTRA ki cost for the " +
                     "three combat costs — punching, blocking and taking hits: " +
@@ -1289,13 +1297,18 @@ namespace Saiyaheim
                     "(1 - MasteryFormCostReduction * mastery/100). " +
                     "At 1 a form with x4 power costs 4x the ki per punch at mastery 0, which " +
                     "means the SAME damage per ki as base form — what the form buys there is the " +
-                    "bigger hit, not efficiency — and 1x at mastery 100, where the whole " +
-                    "multiplier becomes profit. That is the mastery curve stated in numbers: at " +
-                    "first you barely hold the form, in the end you wear it. " +
+                    "bigger hit, not efficiency. At the default 0.2 that same form costs 1.6x, so " +
+                    "it already lands 2.5x the damage per ki before any mastery. Either way the " +
+                    "surcharge is gone at mastery 100 (see MasteryFormCostReduction), where the " +
+                    "whole multiplier becomes profit: at first you barely hold the form, in the " +
+                    "end you wear it. " +
                     "Lower it to make transforming cheaper from the start; 0 gives the form's " +
                     "power away for free, which is how it behaved before 2026-09-20. " +
                     "Mirrors FormKiShare in the flight section. " +
-                    "(Starting value. Not playtested yet.)",
+                    "(Playtest value, 2026-09-21: shipped at 1 and fighting transformed drained " +
+                    "the bar too fast; 0.5 was still too tight, and 0.2 is what made fighting in " +
+                    "a form read as a reward instead of a bill. The base combat rates were not " +
+                    "touched.)",
                     new AcceptableValueRange<float>(0f, 3f), AdminOnly(57)));
 
             KiCostPowerReduction = config.Bind(SecCombat, "KiCostPowerReduction", 0.01f,
@@ -2429,8 +2442,8 @@ namespace Saiyaheim
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
-            string hairItem = "", float masteryXpPerDamageDealt = 0.25f,
-            float masteryXpPerDamageTaken = 0.25f, float masteryXpMaxPerEvent = 25f)
+            string hairItem = "", float masteryXpPerDamageDealt = 0.0125f,
+            float masteryXpPerDamageTaken = 0.0125f, float masteryXpMaxPerEvent = 1.25f)
         {
             return new TransformationConfig
             {
@@ -2552,6 +2565,12 @@ namespace Saiyaheim
                 // teto por golpe e com o XP de voo. A maestria subia rapido demais — e o motivo de
                 // ela subir mais do que a taxa sugere esta' no RaiseMasteryFromDamage: um golpe
                 // paga TODAS as formas ate a ativa, e dano causado e sofrido pagam os dois.
+                //
+                // ⚠️ E 0,25 -> 0,0125 no playtest de 2026-09-21: a metade nao bastou e a divisao
+                // por 10 tambem nao — a maestria continuava subindo rapido demais. O numero final
+                // e' um vigesimo do original, com o teto por golpe cortado junto. O que faz a
+                // maestria correr mais do que a taxa sugere esta' no RaiseMasteryFromDamage: um
+                // golpe paga TODAS as formas ate a ativa, e dano causado e sofrido pagam os dois.
                 MasteryXpPerDamageDealt = config.Bind(section, "MasteryXpPerDamageDealt", masteryXpPerDamageDealt,
                     new ConfigDescription(
                         "XP for this form's skill per point of damage DEALT while wearing it. " +
@@ -2562,9 +2581,10 @@ namespace Saiyaheim
                         "Power Level does — the form trains the mod's way of fighting. " +
                         "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
                         "30 costs about 1600 XP and level 100 about 20000. " +
-                        "(Replaced MasteryXpPerSecond on 2026-09-20, then halved from 0.5 to " +
-                        "0.25 the same day: the first playtest found mastery levelling far too " +
-                        "fast. Remember a single hit pays every form up to the active one.)",
+                        "(Replaced MasteryXpPerSecond on 2026-09-20 and cut three times since, " +
+                        "0.5 to 0.25 to 0.025 to 0.0125: every playtest still found mastery " +
+                        "levelling far too fast. Remember a single hit pays every form up to the " +
+                        "active one.)",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
 
                 // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
@@ -2578,9 +2598,9 @@ namespace Saiyaheim
                         "the form through a beating is training too.",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(69))),
 
-                // Grampo de seguranca, e nao regulador: com 0,25 por ponto ele so morde a partir
+                // Grampo de seguranca, e nao regulador: com 0,0125 por ponto ele so morde a partir
                 // de 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
-                // Cortado junto com a taxa em 2026-09-20 justamente para o ponto em que ele morde
+                // Cortado junto com a taxa todas as vezes justamente para o ponto em que ele morde
                 // continuar sendo o mesmo dano.
                 //
                 // Aplicado ANTES do multiplicador de boss abaixo, ao contrario do
@@ -2592,8 +2612,8 @@ namespace Saiyaheim
                         "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
                         "before the boss multiplier. Stops one boss-sized hit from jumping " +
                         "several levels at once. At the default rate it only bites above 100 " +
-                        "damage in one hit. (Halved to 25 on 2026-09-20 together with the rate, " +
-                        "so it still bites at the same damage.)",
+                        "damage in one hit. (Cut from 50 to 25 to 2.5 to 1.25, each time together " +
+                        "with the rate, so it still bites at the same damage.)",
                         new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(68))),
 
                 // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
@@ -2638,13 +2658,23 @@ namespace Saiyaheim
 
                 // Teto do multiplicador acima. Sem ele o degrau velho acelera sem limite conforme o
                 // mundo anda (x3, x5...), e o bonus deixa de ser correcao para virar atalho.
-                MasteryXpBossMultiplierMax = config.Bind(section, "MasteryXpBossMultiplierMax", 2f,
+                //
+                // 2 -> 4 no playtest de 2026-09-21, junto com o corte do XP de maestria para um
+                // vigesimo. Os dois andam juntos: com a taxa base tao baixa, um teto de 2 fazia o
+                // degrau velho parar de recuperar terreno quase na hora — o bonus mal comecava a
+                // pagar e ja' estava no limite. Em 4 ele continua subindo por mais dois bosses,
+                // que e' o tempo que o degrau atrasado leva para voltar a fazer sentido.
+                MasteryXpBossMultiplierMax = config.Bind(section, "MasteryXpBossMultiplierMax", 4f,
                     new ConfigDescription(
                         "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
                         "multiplier is min(this, 1 + bonus * (bosses defeated - this form's " +
                         "rung)), floored at 1. 1 disables the boss bonus entirely. \n" +
-                        "With the default 2: a form pays x1 while its own boss is the newest " +
-                        "kill and x2 from the next boss on, no matter how many more fall.",
+                        "With the default 4 and a bonus of 2: a form pays x1 while its own boss " +
+                        "is the newest kill, x3 after the next one falls and x4 from the one " +
+                        "after that, no matter how many more fall. " +
+                        "(Raised from 2 on 2026-09-21, together with the mastery XP cut: at a " +
+                        "twentieth of the old rate a ceiling of 2 stopped the older form from " +
+                        "catching up almost as soon as the bonus started paying.)",
                         new AcceptableValueRange<float>(1f, 20f), AdminOnly(68))),
 
                 MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
