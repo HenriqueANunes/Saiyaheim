@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+- Fixed: on a server, players now use the server's config instead of their own.
+- Fixed: changes to the server's config apply live, without a restart.
+
 ## 0.4.2
 
 - Changed: fighting inside a form costs far less ki. A form used to charge its whole power

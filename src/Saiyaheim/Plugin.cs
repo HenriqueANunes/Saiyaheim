@@ -10,6 +10,7 @@ using Saiyaheim.Ki;
 using Saiyaheim.Net;
 using Saiyaheim.Power;
 using Saiyaheim.Transformations;
+using Saiyaheim.Util;
 using UnityEngine;
 
 namespace Saiyaheim
@@ -49,9 +50,10 @@ namespace Saiyaheim
         /// <summary>
         /// Recarrega a config quando o .cfg muda em disco. Sem isso, ajustar a posição da barra
         /// de ki exigiria fechar o jogo a cada 4 pixels — e ajuste de HUD é a parte mais
-        /// iterativa do projeto, já que só o Henrique vê a tela.
+        /// iterativa do projeto, já que só o Henrique vê a tela. No servidor dedicado é também o
+        /// que leva a mudança aos clientes sem reiniciar (ver <see cref="ConfigReloader"/>).
         /// </summary>
-        private ConfigFileWatcher _configWatcher;
+        private ConfigReloader _configReloader;
 
         private void Awake()
         {
@@ -60,14 +62,12 @@ namespace Saiyaheim
 
             SaiyaheimConfig.Init(Config);
 
-            _configWatcher = new ConfigFileWatcher(Config);
-            _configWatcher.OnConfigFileReloaded += () =>
+            _configReloader = new ConfigReloader(Config, () =>
             {
-                Log.LogInfo("Config reloaded from disk.");
                 KiHud.OnConfigReloaded();
                 PowerHud.OnConfigReloaded();
                 EnemyPowerHud.OnConfigReloaded();
-            };
+            });
 
             PowerSkill.Register();
             FlightSkill.Register();
@@ -110,6 +110,7 @@ namespace Saiyaheim
         private void Update()
         {
             float dt = Time.deltaTime;
+            _configReloader.Update(dt);
             KiManager.Update(dt);
             KiBodyManager.Update(Player.m_localPlayer);
             FlightManager.Update(Player.m_localPlayer);

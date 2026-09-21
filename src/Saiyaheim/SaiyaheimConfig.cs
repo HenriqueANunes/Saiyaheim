@@ -979,7 +979,7 @@ namespace Saiyaheim
                     "received. Do not edit — lowering it makes the mod redo a migration and " +
                     "overwrite balance keys you may have tuned.",
                     null,
-                    new ConfigurationManagerAttributes
+                    new global::ConfigurationManagerAttributes
                     {
                         IsAdminOnly = false, Browsable = false, Order = 0,
                     }));
@@ -3092,12 +3092,21 @@ namespace Saiyaheim
             };
         }
 
-        /// <summary>Entrada imposta pelo servidor no multiplayer (etapa 8).</summary>
-        private static ConfigurationManagerAttributes AdminOnly(int order) =>
-            new ConfigurationManagerAttributes { IsAdminOnly = true, Order = order };
+        /// <summary>
+        /// Entrada imposta pelo servidor no multiplayer (etapa 8).
+        ///
+        /// <b>Tem que ser o <c>ConfigurationManagerAttributes</c> do Jotunn</b>, o do namespace
+        /// global — daí o <c>global::</c>. O <c>SynchronizationManager</c> reconhece a entrada
+        /// sincronizável por <c>x is ConfigurationManagerAttributes</c>, identidade de tipo e não
+        /// nome. Até 2026-09-21 o mod tinha uma cópia própria em <c>Saiyaheim</c>, que fazia sombra
+        /// à do Jotunn: nenhuma chave era sincronizada, o servidor mandava um pacote vazio e cada
+        /// cliente jogava com o próprio <c>.cfg</c>.
+        /// </summary>
+        private static global::ConfigurationManagerAttributes AdminOnly(int order) =>
+            new global::ConfigurationManagerAttributes { IsAdminOnly = true, Order = order };
 
         /// <summary>Entrada local de cada jogador; o servidor não interfere.</summary>
-        private static ConfigurationManagerAttributes ClientSide(int order) =>
-            new ConfigurationManagerAttributes { IsAdminOnly = false, Order = order };
+        private static global::ConfigurationManagerAttributes ClientSide(int order) =>
+            new global::ConfigurationManagerAttributes { IsAdminOnly = false, Order = order };
     }
 }
