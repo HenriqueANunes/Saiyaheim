@@ -111,17 +111,28 @@ namespace Saiyaheim.Power
                 }
 
                 float blocked = __state - hit.GetTotalBlockableDamage();
+
+                // O ModifyTimedBlockBonus roda antes do teste de stamina e de stagger, então sozinho
+                // ele também marca o parry que falhou. Quem filtra é o estado do bloqueio logo
+                // depois: o jogo só sustenta o bloqueio com stamina e sem stagger — são as duas
+                // condições do `flag3` lá dentro, e são o que decide se o BlockDamage é chamado.
+                //
+                // ⚠️ Foi assim que o dano barrado deixou de ser o teste, em 2026-09-20. Exigir
+                // `blocked > 0` parecia equivalente e não é: o T.W.I.G., o boneco de treino do
+                // jogo, bate sem dano nenhum, então o parry nele acontecia de verdade — efeito,
+                // stagger no boneco, skill de Blocking subindo — e não pagava ki. Justamente no
+                // alvo feito para treinar parry.
+                if (parry &&
+                    Player.m_localPlayer.HaveStamina() && !Player.m_localPlayer.IsStaggering())
+                {
+                    KiRewards.OnParry(Player.m_localPlayer);
+                }
+
+                // Daqui para baixo é o CUSTO do bloqueio, que só existe sobre dano barrado: golpe
+                // sem dano não custa nada.
                 if (blocked <= 0f)
                 {
                     return;
-                }
-
-                // O ModifyTimedBlockBonus roda antes do teste de stamina e de stagger, então sozinho
-                // ele também marca o parry que falhou. Exigir dano barrado é o que filtra: o jogo só
-                // chama o BlockDamage quando o bloqueio se sustentou.
-                if (parry)
-                {
-                    KiRewards.OnParry(Player.m_localPlayer);
                 }
 
                 float rate = SaiyaheimConfig.BlockKiCost.Value;

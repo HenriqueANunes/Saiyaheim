@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 4;
+        internal const int CurrentVersion = 5;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -280,6 +280,30 @@ namespace Saiyaheim.Util
             // linhas nao fazem nada.
             yield return new Change(4, SaiyaheimConfig.KiCostPowerReduction, 0.01f, true);
             yield return new Change(4, SaiyaheimConfig.MasteryFormCostReduction, 1f, true);
+
+            // ---------- 5 (2026-09-20) — maestria e voo subiam rapido demais ----------
+            //
+            // Playtest do Henrique: o XP das formas e o do voo estavam altos demais. Tudo cortado
+            // pela metade. O teto por golpe vai junto com a taxa, e nao por gosto: cortar so' a
+            // taxa faria o grampo passar a morder com o DOBRO de dano, ou seja, o conserto
+            // desandaria justamente nos golpes grandes.
+            //
+            // Force porque taxa e teto sao o mesmo ajuste partido em dois — um .cfg com a taxa
+            // nova e o teto velho nao e' nenhum dos dois balanceamentos. O Power Level nao foi
+            // tocado, entao nao ha linha dele aqui.
+            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpPerDamageDealt, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpPerDamageTaken, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpMaxPerEvent, 50f, true);
+
+            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpPerDamageDealt, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpPerDamageTaken, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpMaxPerEvent, 50f, true);
+
+            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpPerDamageDealt, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpPerDamageTaken, 0.5f, true);
+            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpMaxPerEvent, 50f, true);
+
+            yield return new Change(5, SaiyaheimConfig.FlightXpPerMeter, 0.15f, true);
         }
     }
 }

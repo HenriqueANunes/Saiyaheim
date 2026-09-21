@@ -2164,7 +2164,7 @@ namespace Saiyaheim
                     "(Starting value. Not playtested yet.)",
                     new AcceptableValueRange<float>(0f, 2f), AdminOnly(62)));
 
-            FlightXpPerMeter = config.Bind(SecFlight, "XpPerMeter", 0.15f,
+            FlightXpPerMeter = config.Bind(SecFlight, "XpPerMeter", 0.075f,
                 new ConfigDescription(
                     "Flight skill XP per METER flown. Flying is its own training — there is no " +
                     "other way to raise it — but hovering in place pays nothing, because nothing " +
@@ -2172,7 +2172,8 @@ namespace Saiyaheim
                     "took off: flying out and back pays for both legs, since both cost ki. " +
                     "Valheim's own diminishing curve up to 100 applies. " +
                     "(Replaced XpPerSecond on 2026-09-20 — 0.15/m is what 0.5/s was worth at base " +
-                    "speed. The old key stays behind in existing config files, inert.)",
+                    "speed. The old key stays behind in existing config files, inert. Halved to " +
+                    "0.075 on 2026-09-20: the first playtest of the rework levelled far too fast.)",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // 0.8 veio do playtest de 2026-09-17 (comecou em 0.75, escolha do Henrique antes de
@@ -2428,8 +2429,8 @@ namespace Saiyaheim
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
-            string hairItem = "", float masteryXpPerDamageDealt = 0.5f,
-            float masteryXpPerDamageTaken = 0.5f, float masteryXpMaxPerEvent = 50f)
+            string hairItem = "", float masteryXpPerDamageDealt = 0.25f,
+            float masteryXpPerDamageTaken = 0.25f, float masteryXpMaxPerEvent = 25f)
         {
             return new TransformationConfig
             {
@@ -2544,9 +2545,13 @@ namespace Saiyaheim
                 // ⚠️ A taxa NAO e' a do Power Level (SkillXpPerDamageDealt, 0,07). Aquela corre a
                 // sessao inteira; esta so corre durante o combate ATIVO, que e' algo entre 10% e
                 // 15% do tempo de jogo. Referencia para calibrar: a curva do Valheim cobra ~1.600
-                // de XP ate o nivel 30 e ~20.000 ate o 100; a 0,5 por ponto de dano, uma luta que
-                // troca ~950 pontos de dano em um minuto paga ~475 — equivalente aos ~8/s de
-                // combate que o 1/s de antes rendia espalhado pela sessao.
+                // de XP ate o nivel 30 e ~20.000 ate o 100; a 0,25 por ponto de dano, uma luta que
+                // troca ~950 pontos de dano em um minuto paga ~240.
+                //
+                // ⚠️ Playtest de 2026-09-20: cortada pela metade, de 0,5 para 0,25, junto com o
+                // teto por golpe e com o XP de voo. A maestria subia rapido demais — e o motivo de
+                // ela subir mais do que a taxa sugere esta' no RaiseMasteryFromDamage: um golpe
+                // paga TODAS as formas ate a ativa, e dano causado e sofrido pagam os dois.
                 MasteryXpPerDamageDealt = config.Bind(section, "MasteryXpPerDamageDealt", masteryXpPerDamageDealt,
                     new ConfigDescription(
                         "XP for this form's skill per point of damage DEALT while wearing it. " +
@@ -2557,8 +2562,9 @@ namespace Saiyaheim
                         "Power Level does — the form trains the mod's way of fighting. " +
                         "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
                         "30 costs about 1600 XP and level 100 about 20000. " +
-                        "(Replaced MasteryXpPerSecond on 2026-09-20. Starting value, not " +
-                        "playtested yet — expect to calibrate this one first.)",
+                        "(Replaced MasteryXpPerSecond on 2026-09-20, then halved from 0.5 to " +
+                        "0.25 the same day: the first playtest found mastery levelling far too " +
+                        "fast. Remember a single hit pays every form up to the active one.)",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
 
                 // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
@@ -2572,8 +2578,10 @@ namespace Saiyaheim
                         "the form through a beating is training too.",
                         new AcceptableValueRange<float>(0f, 20f), AdminOnly(69))),
 
-                // Grampo de seguranca, e nao regulador: com 0,5 por ponto ele so morde a partir de
-                // 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
+                // Grampo de seguranca, e nao regulador: com 0,25 por ponto ele so morde a partir
+                // de 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
+                // Cortado junto com a taxa em 2026-09-20 justamente para o ponto em que ele morde
+                // continuar sendo o mesmo dano.
                 //
                 // Aplicado ANTES do multiplicador de boss abaixo, ao contrario do
                 // SkillXpMaxPerEvent do Power Level, que corta por ultimo. O bonus de boss existe
@@ -2584,7 +2592,8 @@ namespace Saiyaheim
                         "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
                         "before the boss multiplier. Stops one boss-sized hit from jumping " +
                         "several levels at once. At the default rate it only bites above 100 " +
-                        "damage in one hit.",
+                        "damage in one hit. (Halved to 25 on 2026-09-20 together with the rate, " +
+                        "so it still bites at the same damage.)",
                         new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(68))),
 
                 // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss

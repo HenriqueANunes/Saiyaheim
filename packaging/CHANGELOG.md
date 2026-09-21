@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1
+
+- Changed: form mastery and the flight skill now level at half the speed. Mastery XP per point
+  of damage, dealt and taken, went from 0.5 to 0.25 for every form (and the per-hit cap from 50
+  to 25, so it still bites at the same damage), and flight XP went from 0.15 to 0.075 per metre.
+  Power Level is unchanged. Existing configs are updated on load, even if you had tuned these
+  keys yourself — the log says what your old values were.
+- Fixed: parrying the training dummy (T.W.I.G.) now gives ki, like any other parry. A parry
+  that fails — no stamina left, or staggered by the hit — still gives nothing.
+
 ## 0.4.0
 
 - Changed: **ki is now the fuel for fighting, not a tax on existing.** Holding a form used to
