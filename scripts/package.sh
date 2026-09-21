@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# Monta o zip de distribuição no formato Thunderstore, que o r2modman importa direto
-# por "Import local mod". Não publica nada — quem publica este zip é o scripts/release.sh.
+# Monta os zips de distribuição. Não publica nada — quem publica é o scripts/release.sh.
+#
+#   dist/Saiyaheim-X.Y.Z.zip        formato Thunderstore, que o r2modman também importa direto
+#                                   por "Import local mod"
+#   dist/nexus/Saiyaheim-X.Y.Z.zip  formato Nexus: só a DLL
+#
+# O do Nexus é separado porque manifest.json e icon.png são metadados DO THUNDERSTORE. No Nexus
+# os equivalentes são campos do formulário (Requirements, Main image), e um manifest solto no zip
+# só confunde quem abre o arquivo. O upload lá é manual — o Nexus não tem API de escrita.
 #
 # Uso:  ./scripts/package.sh [Release|Debug]
 #
@@ -65,6 +72,24 @@ rm -f "$ZIP"
 
 echo "$ZIP"
 unzip -l "$ZIP"
+
+# ---------- Nexus ----------
+# Mesmo BepInEx/ do zip acima, sem os metadados do Thunderstore. Montado a partir de um stage
+# próprio, e não apagando arquivos do outro, para que os dois zips sejam sempre o mesmo build.
+NEXUS_STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE" "$NEXUS_STAGE"' EXIT
+
+mkdir -p "$NEXUS_STAGE/BepInEx/plugins/Saiyaheim"
+cp "$DLL" "$NEXUS_STAGE/BepInEx/plugins/Saiyaheim/"
+
+mkdir -p "$DIST/nexus"
+NEXUS_ZIP="$DIST/nexus/Saiyaheim-$VERSION.zip"
+rm -f "$NEXUS_ZIP"
+(cd "$NEXUS_STAGE" && zip -qr "$NEXUS_ZIP" .)
+
+echo
+echo "$NEXUS_ZIP"
+unzip -l "$NEXUS_ZIP"
 
 # Aviso, não erro: a tag é o que liga uma versão publicada no Thunderstore ao commit que a
 # gerou. Versão publicada não pode ser republicada, então um bug report que chegue citando

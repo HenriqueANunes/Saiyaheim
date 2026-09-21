@@ -6,6 +6,10 @@
 # Uso:  ./scripts/release.sh                      # GitHub + Thunderstore
 #       ./scripts/release.sh --only-thunderstore  # repete só o Thunderstore (ex.: upload falhou)
 #
+# O zip do Nexus sai junto, pelo package.sh, mas o upload lá continua sendo à mão: o Nexus não
+# tem API de escrita. No fim este script imprime o caminho do arquivo e o que falta fazer no
+# navegador.
+#
 # Não cria commit nem tag — isso continua sendo à mão. A ordem esperada é:
 #   1. subir PluginVersion e escrever a seção no packaging/CHANGELOG.md
 #   2. commitar
@@ -36,6 +40,22 @@ fail() {
   echo "erro: $*" >&2
   exit 1
 }
+
+# O Nexus é o único canal sem automação, então o script termina dizendo o que sobrou para o
+# navegador. Sai por trap, e não por uma linha no fim: recusar o Thunderstore ou o servidor
+# encerra o script antes, e o zip do Nexus continua tendo que subir do mesmo jeito.
+PACKAGED=0
+nexus_reminder() {
+  (( PACKAGED )) || return 0
+
+  echo
+  echo "Falta o Nexus, que é manual (https://www.nexusmods.com/valheim/mods/3895):"
+  echo "  1. Files -> Add file, versão $VERSION, com"
+  echo "     $NEXUS_ZIP"
+  echo "  2. Description: colar packaging/nexus-description.bbcode, se mudou"
+  echo "  3. Changelog: colar a seção $VERSION do packaging/CHANGELOG.md na aba própria"
+}
+trap nexus_reminder EXIT
 
 ONLY_THUNDERSTORE=0
 case "${1:-}" in
@@ -137,6 +157,10 @@ NOTES="$(awk -v header="## $VERSION" '
 
 ZIP="$REPO_ROOT/dist/Saiyaheim-$VERSION.zip"
 [[ -f "$ZIP" ]] || fail "o package.sh não gerou $ZIP."
+
+NEXUS_ZIP="$REPO_ROOT/dist/nexus/Saiyaheim-$VERSION.zip"
+[[ -f "$NEXUS_ZIP" ]] || fail "o package.sh não gerou $NEXUS_ZIP."
+PACKAGED=1
 
 # ---------- GitHub ----------
 

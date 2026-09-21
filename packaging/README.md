@@ -87,7 +87,8 @@ Three steps today, each gated behind a boss:
 
 There is no activation cost, so stepping up and down is free. What a form costs is a small
 continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and
-firing ki attacks all cost more while transformed, in proportion to the power the form gives you.
+firing ki attacks all cost more while transformed, though the surcharge is far smaller than the
+power the form hands you.
 One key transforms straight into the highest form you have unlocked; another drops you back to
 base. Shift plus those keys walks the ladder one step at a time. Running out of ki drops you out of
 the form on its own.
@@ -100,9 +101,8 @@ players.
 **Each form has its own mastery skill.** It grows by **fighting inside that form** — damage dealt
 and damage taken — so standing around transformed, or flying, trains nothing. Mastery pays in ki
 efficiency: the drain goes down, and the surcharge the form charges you for fighting fades away.
-Early on a transformation costs you the same ki per point of damage as your base form, so what it
-buys is the bigger hit; at mastery 100 the form costs nothing to keep and nothing extra to fight
-in, and the whole multiplier is yours.
+A form already pays better than your base form from the moment you unlock it, and at mastery 100
+it costs nothing to keep and nothing extra to fight in, so the whole multiplier is yours.
 
 Holding a high form also trains every form below it, so climbing the ladder never freezes the
 progress of the step you already use.
