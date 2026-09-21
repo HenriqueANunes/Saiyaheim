@@ -5,6 +5,7 @@
 - Fixed: on a server, players now use the server's config instead of their own.
 - Fixed: changes to the server's config apply live, without a restart.
 - Fixed: typing in the build menu's search field no longer triggers the mod's keys.
+- Fixed: flying over a creature no longer ends the flight.
 
 ## 0.4.2
 

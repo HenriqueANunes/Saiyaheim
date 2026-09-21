@@ -174,12 +174,28 @@ namespace Saiyaheim.Flight
             // Pousar. O _leftGround é o que impede que decolar de pé no chão pouse na mesma hora:
             // com a gravidade desligada o jogador paira à altura do chão até apertar Jump, e o
             // IsOnGround() continua verdadeiro esse tempo todo.
-            if (_leftGround && SaiyaheimConfig.FlightAutoLandOnGround.Value && player.IsOnGround())
+            if (_leftGround && SaiyaheimConfig.FlightAutoLandOnGround.Value && player.IsOnGround()
+                && !IsStandingOnCreature(player))
             {
                 return "";
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Criatura não é chão: passar rasante por cima de um inimigo não pode desligar o voo.
+        ///
+        /// O <c>IsOnGround()</c> vale para qualquer contato de baixo. Para bicho o
+        /// <c>Character.UpdateGroundContact</c> descarta colisor do mesmo layer, mas para o jogador
+        /// não — o colisor da criatura fica registrado como chão. <c>GetComponentInParent</c>
+        /// porque o colisor costuma estar num filho do objeto que carrega o <c>Character</c>.
+        /// Cadáver e ragdoll não têm <c>Character</c>, então cair em cima de um ainda pousa.
+        /// </summary>
+        private static bool IsStandingOnCreature(Player player)
+        {
+            Collider ground = player.GetLastGroundCollider();
+            return ground != null && ground.GetComponentInParent<Character>() != null;
         }
 
         private static void TryStart(Player player, SEMan seman)
