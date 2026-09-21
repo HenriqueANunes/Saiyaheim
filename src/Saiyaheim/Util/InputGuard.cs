@@ -9,6 +9,9 @@ namespace Saiyaheim.Util
     /// <b>O menu radial conta como não-pilotando</b>, pela mesma razão que a vanilla checa
     /// <c>Hud.InRadial()</c> em todo input de ataque, bloqueio e pulo: clicar num item da roda não
     /// pode disparar um Kamehameha junto.
+    ///
+    /// <b>O menu de construção também</b>: ele tem campo de pesquisa, e digitar o nome de uma peça
+    /// acionava as teclas do mod — a letra do voo desligava o voo e o jogador caía.
     /// </summary>
     internal static class InputGuard
     {
@@ -19,6 +22,7 @@ namespace Saiyaheim.Util
                    && !Menu.IsVisible()
                    && !InventoryGui.IsVisible()
                    && !Hud.InRadial()
+                   && !Hud.InBuildUi()
                    && (Chat.instance == null || !Chat.instance.HasFocus());
         }
     }
