@@ -1,0 +1,208 @@
+[color=#ffffff][size=6][b]Saiyaheim[/b][/size][/color]
+
+A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and Super Saiyan transformations gated behind the game's bosses.
+
+[quote][b]This is my first mod, and it is a work in progress.[/b] It is playable from start to finish of what it currently covers, but it is not finished — more transformations and more ki attacks are the whole point of the next versions. Feedback is very welcome, and so is patience.[/quote]
+
+[line]
+
+[size=5][b]What it does[/b][/size]
+
+Saiyaheim adds a second progression path next to the vanilla one. Turn ki on and your gear stops mattering: damage, armor, flight speed and everything else come from your own power instead. Turn it off and you are back to plain Valheim.
+
+[size=4][b]Ki[/b][/size]
+
+A resource of its own, with its own bar — [b]not[/b] Eitr, so it works from the very first day in Meadows and not only after Mistlands.
+
+[list]
+[*]Regenerates over time; the vanilla [b]Rested[/b] buff makes it regenerate faster.
+[*]Hold the charge key to charge it much faster than passive regeneration.
+[*]Spent on punches, blocking, damage taken, ki attacks, flight and a small drain while transformed. Transforming does not cost much to [i]hold[/i] — it costs more to [i]fight[/i] in, and mastering that form takes the difference away.
+[/list]
+
+[size=4][b]Ki toggle[/b][/size]
+
+One key switches the mod's mechanics on and off per player. With ki [b]off[/b], the mod behaves as if you had zero ki: vanilla damage, vanilla armor from equipment, no XP, and no power readings on the HUD. Useful for fair PvP, or for playing a normal Valheim session without uninstalling anything. Switching is instant and destroys nothing — your gear stays equipped and counts again the moment ki goes off.
+
+[size=4][b]Battle Power and the Power Level skill[/b][/size]
+
+[b]Power Level[/b] is a custom 0–100 skill and the axis of progression while ki is on. It feeds [b]Battle Power[/b], a derived number built from your health and your level that decides:
+
+[list]
+[*]how hard your punches hit (added to base damage, not multiplied — so it stays sane against Valheim's roughly linear enemy HP curve),
+[*]how much armor you have (equipment is ignored while ki is on),
+[*]how fast you fly.
+[/list]
+
+[b]Weighted training:[/b] all Power Level XP is multiplied by how full your inventory is, up to [b]double[/b] at maximum carry weight ([i]XpWeightBonus[/i] in the config). It is Goku's weighted clothing, and it limits itself — the weight slows you down, eats stamina and cuts your flight speed. Forms raise your carry limit, so the same load is worth a little less XP while transformed.
+
+Battle Power is shown on the HUD, and enemies show theirs under their health bar, on the same scale. Reading power is a ki ability: turn ki off and the numbers disappear for you too.
+
+[size=4][b]Unarmed combat[/b][/size]
+
+Punching is the core of the mod. Damage does not come from multiplying Valheim's very weak vanilla unarmed hit — it comes from Battle Power, so it scales predictably from Meadows to Plains. Transformations add their own flavor on top: slash damage on SSJ, lightning damage on SSJ3.
+
+[size=4][b]Flight[/b][/size]
+
+Standing upright, Dragon Ball style, using the game's own flying movement by construction.
+
+[list]
+[*]Toggle key to take off and land, or a quick double tap of Jump to take off.
+[*]While flying, the usual controls apply: Jump climbs, Crouch descends, Run flies fast.
+[*]Costs ki continuously. Running out in mid-air means you fall.
+[*]Speed scales with your [b]Flight[/b] skill (its own custom skill) and with Battle Power, and drops with carried weight — on a curve, so a light load costs almost nothing and a full inventory costs a lot. Goku's weighted clothing, essentially.
+[*]Touching the ground lands you.
+[/list]
+
+[size=4][b]Transformations[/b][/size]
+
+Three steps today, each gated behind a boss:
+
+[list]
+[*][b]SSJ[/b] — unlocked by Eikthyr, ×2 power. Yellow spiked version of your own hair, golden aura, slash damage.
+[*][b]SSJ2[/b] — unlocked by the Elder, ×3 power. Brighter hair, blue lightning, heavier ki drain.
+[*][b]SSJ3[/b] — unlocked by Bonemass, ×4 power. Long spiked hair that changes your silhouette, white lightning, strongest glow.
+[/list]
+
+There is no activation cost, so stepping up and down is free. What a form costs is a small continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and firing ki attacks all cost more while transformed, in proportion to the power the form gives you. One key transforms straight into the highest form you have unlocked; another drops you back to base. Shift plus those keys walks the ladder one step at a time. Running out of ki drops you out of the form on its own.
+
+Transformed characters glow, light up the terrain around them, and can be seen doing it by other players.
+
+[size=4][b]Mastery[/b][/size]
+
+[b]Each form has its own mastery skill.[/b] It grows by [b]fighting inside that form[/b] — damage dealt and damage taken — so standing around transformed, or flying, trains nothing. Mastery pays in ki efficiency: the drain goes down, and the surcharge the form charges you for fighting fades away. Early on a transformation costs you the same ki per point of damage as your base form, so what it buys is the bigger hit; at mastery 100 the form costs nothing to keep and nothing extra to fight in, and the whole multiplier is yours.
+
+Holding a high form also trains every form below it, so climbing the ladder never freezes the progress of the step you already use.
+
+[size=4][b]Ki attacks[/b][/size]
+
+Aimed where you are looking, costing ki whether they hit or not:
+
+[list]
+[*][b]Ki Blast[/b] — unlocked by Eikthyr.
+[*][b]Kamehameha[/b] — unlocked by the Elder. Charges up, with three charge tells on the hands, and fires a beam.
+[/list]
+
+One key fires the selected attack, Shift plus that key cycles through the ones you have unlocked.
+
+[size=4][b]Radial menu[/b][/size]
+
+Forms and ki attacks are also on [b]Valheim's own radial menu[/b], the wheel you already open to switch weapons, eat or emote. The mod adds two groups to it — [b]Forms[/b] and [b]Ki attacks[/b] — so it costs you no extra key, and the hotkeys above keep working for anyone who prefers them.
+
+[list]
+[*]Every item shows what you need to know before you click it: a form shows its ki drain per second, an attack shows its ki cost and which one is currently selected.
+[*]Picking an attack [b]selects[/b] it, it does not fire. You aim and fire with your own key afterwards, which is the point — it replaces cycling blind through Shift+V.
+[*]Picking a form transforms you. The form you are already in is not on the wheel, and while transformed a [b]Base form[/b] item is there to drop back.
+[*][b]Only what you have unlocked shows up.[/b] A group whose items are all still locked does not appear on the wheel at all, so the menu grows as your world beats bosses.
+[/list]
+
+[size=4][b]Boss gating[/b][/size]
+
+Unlocks use Valheim's own global keys, which means they are [b]per world, not per character[/b]. Whoever joins your server later arrives with whatever the world has already unlocked. For a world played with friends this is the intended behavior.
+
+[line]
+
+[size=5][b]Default keys[/b][/size]
+
+All of them are configurable.
+
+[list]
+[*][b]K[/b] — toggle ki on/off
+[*][b]R[/b] (hold) — charge ki
+[*][b]F[/b] — take off / land (or double tap Jump to take off)
+[*][b]T[/b] — transform into your highest unlocked form
+[*][b]Shift+T[/b] — step up one form
+[*][b]Z[/b] — drop straight back to base form
+[*][b]Shift+Z[/b] — step down one form
+[*][b]V[/b] — fire the selected ki attack
+[*][b]Shift+V[/b] — cycle ki attacks
+[*][b]G[/b] (vanilla) — open the radial menu, where the Forms and Ki attacks groups are
+[/list]
+
+[size=4][b]Keys the base game already uses[/b][/size]
+
+The mod picks keys that Valheim leaves free where it can, but it cannot avoid every clash, and your own rebinds may create new ones. [b]When two things share a key, both of them fire[/b] — the mod does not steal the press from the game. Some of these are harmless; others are not, so it is worth a look before you play.
+
+Known cases with the default bindings:
+
+[list]
+[*][b]G — the radial menu.[/b] The mod used to drop you back to base form with G too. Since 0.4.0 it uses Z instead, but a config file generated by an older version keeps G: if the wheel opens while you power down, set [i]PowerDownKey[/i] to Z yourself.
+[/list]
+
+To change them: the game's own keys are in [b]Settings → Controls[/b], and the mod's are in [i]com.hman.saiyaheim.cfg[/i] ([i]ChargeKiKey[/i], [i]TransformKey[/i], [i]PowerDownKey[/i] and friends, all in the [i]1 - General[/i] section). The config file is read while the game runs, so a keybind change applies without a restart.
+
+[line]
+
+[size=5][b]Installation[/b][/size]
+
+[b]Requires:[/b]
+
+[list]
+[*][b]BepInExPack Valheim[/b] (by denikson)
+[*][b]Jotunn[/b] (by ValheimModding)
+[/list]
+
+Install those two first, then drop [i]Saiyaheim.dll[/i] into [i]BepInEx/plugins/[/i]. The archive here already has that folder structure, so extracting it into your Valheim folder works, and so does installing it with Vortex.
+
+If you use r2modman or the Thunderstore Mod Manager instead, the mod is on Thunderstore as [b]Hman/Saiyaheim[/b] and the manager pulls both dependencies for you.
+
+[line]
+
+[size=5][b]Multiplayer[/b][/size]
+
+It works, and everyone on the server needs the mod at the same version — the plugin enforces that. Transformations, auras, glow and ki attacks are synchronized, and boss unlocks come from the world itself.
+
+That said, multiplayer is the least tested part of the mod: it has only been played by a handful of friends on one server. If something desynchronizes, please report it.
+
+[line]
+
+[size=5][b]Configuration[/b][/size]
+
+Everything that can be balanced lives in [i]com.hman.saiyaheim.cfg[/i], generated on first launch: multipliers, drains, ki costs, XP rates, HUD positions, colors, keybinds and the global key each form and attack is gated behind. Gameplay values are server-enforced; keybinds and HUD tweaks are per client.
+
+The config file is watched, so editing it while the game runs applies the change without a restart. Handy for nudging the HUD around.
+
+[line]
+
+[size=5][b]About the art (and my limits)[/b][/size]
+
+I am a programmer, not an artist, and the visual side of this mod is where that shows. I would rather say it up front than have you find out.
+
+[b]The hair is generated by a script.[/b] I do not know how to use Blender. The spiked hair of the Super Saiyan forms is not sculpted by hand — a Python script reads Valheim's own hair meshes, grows strands out of them, and the result gets packed into an AssetBundle. It is good enough to read as Super Saiyan from a distance, which is what I was after, but it is not the work of an artist and I know it.
+
+[b]The visual effects are Valheim's own prefabs.[/b] I do not know how to author new particle effects either, so nothing here is made from scratch: the auras, the ki charge, the lightning, the blast and the beam are all existing game effects, recolored, rescaled, sometimes stripped down to a piece of themselves and recombined. It goes further than it sounds — the game has around 1200 effect prefabs, and a fair amount of this mod's look came out of digging through them — but it is still assembly, not creation.
+
+I would like to improve both later, either by learning the tools properly or with help from someone who already has. If you are a 3D or VFX artist and any of this makes you wince, I am genuinely open to advice.
+
+[line]
+
+[size=5][b]Roadmap[/b][/size]
+
+The mod is far from done. What I want to add next, roughly in this order:
+
+[list]
+[*][b]More transformations[/b]
+[*][b]More ki attacks[/b]
+[*][b]New items[/b] — gear and consumables of its own, so ki progression has things to find and craft instead of only numbers to raise.
+[*][b]Polish[/b]: better visual effects, sounds, and eventually better hair.
+[/list]
+
+[line]
+
+[size=5][b]Bugs and feedback[/b][/size]
+
+The [b]Bugs[/b] tab here is the place for something broken, and the [b]Posts[/b] tab for everything else. The issue tracker on GitHub works just as well if you prefer it:
+
+[url=https://github.com/HenriqueANunes/Saiyaheim/issues]github.com/HenriqueANunes/Saiyaheim/issues[/url]
+
+Report anything — a crash, a form that will not unlock, something desynchronizing in multiplayer, a number that feels wrong, or advice on the art. For a bug, the useful things to include are your Valheim and Saiyaheim versions, whether you were on a server or in singleplayer, and your [i]BepInEx/LogOutput.log[/i].
+
+Balance complaints are welcome too, and you do not have to wait for me: almost every number in this mod lives in the config file, so you can try your own value first and tell me if it plays better.
+
+[line]
+
+[size=5][b]Credits and disclaimer[/b][/size]
+
+Built with [url=https://github.com/BepInEx/BepInEx]BepInEx[/url] and [url=https://github.com/Valheim-Modding/Jotunn]Jotunn[/url]. Visual effects reuse Valheim's own prefabs.
+
+Dragon Ball is the property of Akira Toriyama, Shueisha, Toei Animation and Bird Studio. This is a free, non-commercial fan project with no affiliation to any of them, made because I wanted to throw a Kamehameha at a troll.

@@ -241,25 +241,30 @@ genuinely open to advice.
 
 ## Roadmap
 
-This is the first public version, and the mod is far from done. What I want to add next, roughly
-in this order:
+The mod is far from done. What I want to add next, roughly in this order:
 
 - **More transformations** — the ladder is designed to grow, and each new step is mostly
   configuration.
 - **More ki attacks** — the radial menu is already there to pick them from.
-- **Finishing the multiplayer pass**, including comparing Battle Power between players and a
-  proper scan.
+- **New items** — gear and consumables of its own, so ki progression has things to find and
+  craft instead of only numbers to raise.
 - **Polish**: better visual effects, sounds, and eventually better hair.
 
 ---
 
 ## Bugs and feedback
 
-Thunderstore pages have no comment section, so everything goes through GitHub:
+Thunderstore pages have no comment section, so there are two places to reach me.
+
+The issue tracker on GitHub:
 
 **[github.com/HenriqueANunes/Saiyaheim/issues](https://github.com/HenriqueANunes/Saiyaheim/issues)**
 
-Open an issue for anything — a crash, a form that will not unlock, something desynchronizing in
+Or, if you would rather not open a GitHub account, the mod's page on Nexus, which has a tab for
+each: **[Bugs](https://www.nexusmods.com/valheim/mods/3895?tab=bugs)** for something broken,
+**[Posts](https://www.nexusmods.com/valheim/mods/3895?tab=posts)** for everything else.
+
+Either one works for anything — a crash, a form that will not unlock, something desynchronizing in
 multiplayer, a number that feels wrong, or advice on the art. For a bug, the useful things to
 include are your Valheim and Saiyaheim versions, whether you were on a server or in singleplayer,
 and your `BepInEx/LogOutput.log`.
