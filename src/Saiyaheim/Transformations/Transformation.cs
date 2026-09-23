@@ -1,3 +1,4 @@
+using BepInEx.Configuration;
 using Jotunn.Configs;
 using Jotunn.Managers;
 using Saiyaheim.Power;
@@ -284,6 +285,39 @@ namespace Saiyaheim.Transformations
         internal float GetCarryWeightBonus()
         {
             return Mathf.Max(0f, Config.CarryWeightBonus.Value);
+        }
+
+        /// <summary>
+        /// Quanto da sobretaxa de combate compartilhada (<c>CombatFormKiShare</c>) esta forma
+        /// cobra. 1 cobra a sobretaxa inteira; o SSJ God cobra menos, que é o que ele compra no
+        /// lugar de um golpe maior. Ver <c>BattlePower.FormKiCostMultiplier</c>.
+        /// </summary>
+        /// <summary>
+        /// Quantas vezes mais rápido o relógio da cura passiva anda nesta forma. 1 deixa o
+        /// relógio da vanilla em paz, que é o caso de toda forma menos o SSJ God — as outras nem
+        /// têm a chave, e a entrada chega null.
+        /// </summary>
+        internal float GetHealthRegenSpeed()
+        {
+            ConfigEntry<float> entry = Config.HealthRegenSpeed;
+
+            return entry == null ? 1f : Mathf.Max(1f, entry.Value);
+        }
+
+        /// <summary>
+        /// Esta forma cura através de Molhado, Frio e Congelando? False em toda forma que não tem
+        /// a chave — hoje todas menos o SSJ God.
+        /// </summary>
+        internal bool GetHealthRegenIgnoresBlockers()
+        {
+            ConfigEntry<bool> entry = Config.HealthRegenIgnoresBlockers;
+
+            return entry != null && entry.Value;
+        }
+
+        internal float GetCombatKiCostScale()
+        {
+            return Mathf.Max(0f, Config.CombatKiCostScale.Value);
         }
 
         /// <summary>

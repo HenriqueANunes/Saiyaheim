@@ -306,7 +306,7 @@ namespace Saiyaheim.Power
         /// Quanto a forma ativa cobra a mais nos <b>três</b> custos de combate, em relação ao que
         /// a forma base pagaria pelo mesmo serviço. 1 fora de forma.
         ///
-        /// <code>1 + (multiplicador - 1) × CombatFormKiShare × (1 - MasteryFormCostReduction × maestria/100)</code>
+        /// <code>1 + (multiplicador - 1) × CombatFormKiShare × CombatKiCostScale × (1 - MasteryFormCostReduction × maestria/100)</code>
         ///
         /// <b>Por que passou a ser explícito em 2026-09-20.</b> Antes o acréscimo da forma era
         /// implícito: o custo do soco é proporcional ao bônus de dano, o bônus é multiplicado pela
@@ -339,15 +339,20 @@ namespace Saiyaheim.Power
 
             return active == null
                 ? 1f
-                : FormKiCostMultiplier(active.GetPowerMultiplier(), active.GetSkillLevel(player));
+                : FormKiCostMultiplier(active.GetPowerMultiplier(), active.GetSkillLevel(player),
+                    active.GetCombatKiCostScale());
         }
 
         /// <summary>
         /// O multiplicador de custo de uma forma <b>hipotética</b>. Existe pelo mesmo motivo que o
         /// <see cref="PunchBonusFor"/>: o <c>saiya_form</c> mostra o antes e o depois sem
         /// transformar o jogador nem copiar a fórmula.
+        ///
+        /// <paramref name="costScale"/> é a fração da sobretaxa compartilhada que a forma cobra
+        /// (<c>CombatKiCostScale</c>, por forma): 1 em quase todas, menos no SSJ God, que é a
+        /// forma do controle e compra fôlego em vez de golpe.
         /// </summary>
-        internal static float FormKiCostMultiplier(float powerMultiplier, float masteryLevel)
+        internal static float FormKiCostMultiplier(float powerMultiplier, float masteryLevel, float costScale)
         {
             float premium = Mathf.Max(0f, powerMultiplier - 1f);
             if (premium <= 0f)
@@ -355,7 +360,7 @@ namespace Saiyaheim.Power
                 return 1f;
             }
 
-            float share = Mathf.Max(0f, SaiyaheimConfig.CombatFormKiShare.Value);
+            float share = Mathf.Max(0f, SaiyaheimConfig.CombatFormKiShare.Value) * Mathf.Max(0f, costScale);
             float paid = Mathf.Clamp01(SaiyaheimConfig.MasteryFormCostReduction.Value)
                          * Mathf.Clamp01(masteryLevel / 100f);
 

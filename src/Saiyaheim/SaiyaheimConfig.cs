@@ -89,6 +89,12 @@ namespace Saiyaheim
         /// </summary>
         private const string SecSsj3 = "3.3 - SSJ3";
 
+        /// <summary>
+        /// O quarto degrau. Seção própria pelo mesmo motivo dos anteriores. Ver
+        /// <see cref="SecSsj"/>.
+        /// </summary>
+        private const string SecSsjGod = "3.4 - SSJ God";
+
         // A seção "4 - Ki Attacks", que valia para todos os ataques, ficou vazia em 2026-09-13:
         // o piso entre disparos e as três chaves de mira eram tudo o que ela tinha, e nenhuma era
         // balanceamento. As duas teclas seguem na seção 1, e o que é de um ataque só segue nas
@@ -337,6 +343,26 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<float> CarryWeightBonus { get; internal set; }
 
+            /// <summary>
+            /// Quantas vezes mais rápido o relógio da cura passiva anda enquanto a forma está
+            /// ativa. <b>Null nas formas que não têm a chave</b>, como a acima. Ver
+            /// <c>Transformations.HealthRegenPatch</c>.
+            /// </summary>
+            public ConfigEntry<float> HealthRegenSpeed { get; internal set; }
+
+            /// <summary>
+            /// Se a cura desta forma ignora o que corta ou zera a regeneração de vida — Molhado,
+            /// Frio e Congelando. <b>Null nas formas que não têm a chave.</b> Ver
+            /// <c>Transformations.HealthRegenFloorPatch</c>.
+            /// </summary>
+            public ConfigEntry<bool> HealthRegenIgnoresBlockers { get; internal set; }
+
+            /// <summary>
+            /// Fração da sobretaxa de combate compartilhada (<see cref="CombatFormKiShare"/>) que
+            /// esta forma cobra. 1 cobra inteira. Ver <c>BattlePower.FormKiCostMultiplier</c>.
+            /// </summary>
+            public ConfigEntry<float> CombatKiCostScale { get; internal set; }
+
             /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
 
@@ -424,6 +450,9 @@ namespace Saiyaheim
 
         /// <summary>O terceiro degrau. Ver <see cref="Ssj"/>.</summary>
         public static TransformationConfig Ssj3 { get; private set; }
+
+        /// <summary>O quarto degrau. Ver <see cref="Ssj"/>.</summary>
+        public static TransformationConfig SsjGod { get; private set; }
 
         // ---------- 4.x - Ki Attacks ----------
 
@@ -1752,6 +1781,56 @@ namespace Saiyaheim
                 glowIntensity: 2f,
                 hairItem: "SaiyaHair6");
 
+            // O SSJ God atras do Moder — o quarto boss, mantendo o ritmo de um degrau por boss.
+            // Decidido em 2026-09-21: ver [[Decisoes Tomadas]], "O degrau do Moder e' o SSJ God"
+            // e "O SSJ God e' a forma do controle, nao da forca bruta".
+            //
+            // Este degrau NAO sobe o teto como os anteriores. O SSJ2 ja' ensinou que o problema de
+            // uma forma forte demais e' absoluto — ela trivializa o conteudo —, e repetir o passo
+            // de sempre so' repetiria o problema. O que o God compra e' folego:
+            //   PowerMultiplier 3,5 = ABAIXO do SSJ3 (4), entre ele e o SSJ2. Saiu em 4,5 — pouco
+            //     acima do SSJ3, seguindo a escada — e o playtest de 2026-09-22 inverteu o sinal:
+            //     o God troca forca por folego, e nao "um pouco mais de tudo". E' o primeiro
+            //     degrau da escada que bate menos que o anterior. Ver [[Transformacoes]].
+            //   KiDrainPerSecond 2 = MENOS que o SSJ3 (3), no nivel do SSJ2. E' o primeiro degrau
+            //     em que o dreno desce, de proposito: a forma do controle nao devora o dono.
+            //   CombatKiCostScale 0,5 = metade da sobretaxa de combate. Com o CombatFormKiShare em
+            //     0,2, o soco na maestria 0 custa 1,35x o da base, contra 1,6x no SSJ3 — mais
+            //     barato que o degrau de baixo mesmo batendo mais forte.
+            //   HealthRegenSpeed 3 = a cura passiva da comida chega tres vezes mais rapido, de 10
+            //     em 10 segundos para a cada 3,3. Pedido do Henrique, e a unica forma que mexe
+            //     nisso. Saiu em 2 e subiu no playtest de 2026-09-22.
+            //   HealthRegenIgnoresBlockers = a cura atravessa Molhado, Frio e Congelando, que
+            //     cortam ou zeram o multiplicador compartilhado da vanilla. Sem isso a forma do
+            //     folego nao curaria nada na Montanha. Ver [[Transformacoes]].
+            //   Soco meio contusao, meio CORTE, sem raio nenhum — os mesmos numeros do SSJ.
+            //     Saiu partido em tres (0,33 de corte e 0,33 de raio), pela leitura de que o golpe
+            //     repartido e' o menos punido por qualquer resistencia isolada; o playtest de
+            //     2026-09-22 tirou o raio inteiro e devolveu o corte para 0,5. O raio e' o sabor
+            //     do SSJ2 e do SSJ3, as duas formas da furia, e o God sem raio no corpo tambem
+            //     nao bate com raio — o visual e o golpe passam a dizer a mesma coisa.
+            //   CarryWeightBonus 350 = pouco acima do SSJ3, pelo mesmo motivo do multiplicador.
+            //
+            // Visual: sem raios (calma, nao furia), cabelo e aura vermelhos, e o penteado volta
+            // ao espetado do proprio personagem, como no SSJ — o cabelo curto e' como o genero
+            // desenha o God, e sem malha nova. O brilho segue o passo de 0,5 por degrau.
+            SsjGod = BindTransformation(config, SecSsjGod,
+                powerMultiplier: 3.5f,
+                kiDrainPerSecond: 2f,
+                // Calibrados no playtest de 2026-09-22, o primeiro do SSJ God.
+                punchSlashFraction: 0.5f,
+                punchLightningFraction: 0f,
+                carryWeightBonus: 350f,
+                hairColor: "#E8303A",
+                requiredGlobalKey: "defeated_dragon",
+                lightning: false,
+                glowIntensity: 2.5f,
+                hairItem: "Spiked",
+                // Calibrado no playtest de 2026-09-22: saiu em 2, o tique de 5 s ainda demorava.
+                healthRegenSpeed: 3f,
+                healthRegenIgnoresBlockers: true,
+                combatKiCostScale: 0.5f);
+
             // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
             // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de
             // dois mornos. Espacar custaria mexer numa trava de forma ja calibrada em playtest.
@@ -2443,7 +2522,9 @@ namespace Saiyaheim
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
             string hairItem = "", float masteryXpPerDamageDealt = 0.0125f,
-            float masteryXpPerDamageTaken = 0.0125f, float masteryXpMaxPerEvent = 1.25f)
+            float masteryXpPerDamageTaken = 0.0125f, float masteryXpMaxPerEvent = 1.25f,
+            float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
+            float combatKiCostScale = 1f)
         {
             return new TransformationConfig
             {
@@ -2533,6 +2614,59 @@ namespace Saiyaheim
                         "Power Level XP (XpWeightBonus). " +
                         "Playtested 2026-08-16: started at 300 and came down to 100.",
                         new AcceptableValueRange<float>(0f, 2000f), AdminOnly(83))),
+
+                // O sabor do SSJ God (2026-09-21): a forma do controle compra folego, e nao golpe.
+                // So' e' ligada na forma que passa o parametro — as outras nao ganham a chave no
+                // .cfg, a pedido do Henrique: uma chave que so' existe para ficar em 1 e' ruido.
+                //
+                // ⚠️ Houve uma segunda chave aqui, o HealthRegenMultiplier, que engordava cada
+                // tique de cura. Ela saiu em 2026-09-22, depois do playtest: as duas se
+                // MULTIPLICAVAM (2 e 2 davam 4x a cura por segundo), e das duas a que se sente e'
+                // esta — degrau menor e mais frequente le como regeneracao, degrau grande e raro
+                // le como pocao. Quem quer mais cura sobe a velocidade.
+                HealthRegenSpeed = healthRegenSpeed == null ? null : config.Bind(section, "HealthRegenSpeed", healthRegenSpeed.Value,
+                    new ConfigDescription(
+                        "How many times faster the passive healing CLOCK runs while this form is " +
+                        "active. Vanilla heals once every 10 seconds, so 2 heals every 5 and 4 " +
+                        "every 2.5. It does not change how much each tick heals — it changes how " +
+                        "often the tick comes, which is what makes the healing readable during a " +
+                        "fight instead of arriving in one lump. Total healing per second is " +
+                        "(food regen x this) / 10, times whatever the weather and Rested do to " +
+                        "the shared regen multiplier. " +
+                        "1 leaves the vanilla clock alone. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(1f, 10f), AdminOnly(80))),
+
+                // A terceira chave da cura, e a que muda o sinal da mecanica em vez do numero: o
+                // multiplicador da cura e' COMPARTILHADO, e Molhado, Frio e Congelando entram nele
+                // depois da forma — o ultimo ZERA. Sem esta chave, a forma do folego nao cura nada
+                // exatamente onde folego importa, que e' a Montanha.
+                HealthRegenIgnoresBlockers = healthRegenIgnoresBlockers == null ? null : config.Bind(section, "HealthRegenIgnoresBlockers", healthRegenIgnoresBlockers.Value,
+                    new ConfigDescription(
+                        "Whether this form's healing ignores everything that cuts or stops health " +
+                        "regeneration — Wet, Cold and Freezing. Valheim's regen multiplier is " +
+                        "SHARED: every status effect edits the same number, and Freezing sets it " +
+                        "to zero, which no multiplier can survive. With this on, the normal food " +
+                        "rate becomes a FLOOR: the weather can raise the healing (Rested still " +
+                        "adds) but not lower it below the rate you get in good weather. " +
+                        "Only affects the passive healing from food; the Freezing DAMAGE keeps " +
+                        "coming, so the mountain still hurts, it just stops being a wall. " +
+                        "(Starting value. Not playtested yet.)",
+                        null, AdminOnly(79))),
+
+                // A outra metade do sabor do God: o custo de lutar dentro dele. A sobretaxa em si
+                // e' compartilhada (CombatFormKiShare); esta chave diz quanto dela a forma cobra.
+                // Por forma, e nao um segundo CombatFormKiShare, para a conta continuar tendo um
+                // dial global so' — este so' desloca um degrau em relacao aos outros.
+                CombatKiCostScale = config.Bind(section, "CombatKiCostScale", combatKiCostScale,
+                    new ConfigDescription(
+                        "How much of the shared combat surcharge (CombatFormKiShare in the Combat " +
+                        "section) THIS form charges on punching, blocking, taking hits and ki " +
+                        "attacks. 1 = the full surcharge; 0.5 = half of it; 0 = fighting in this " +
+                        "form costs the same ki as base form from mastery 0. Mastery still pays " +
+                        "off whatever is left. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 3f), AdminOnly(81))),
 
                 MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", masteryDrainReduction,
                     new ConfigDescription(

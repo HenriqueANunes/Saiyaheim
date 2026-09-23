@@ -208,6 +208,67 @@ namespace Saiyaheim.Util
             }
         }
 
+        /// <summary>
+        /// <c>SEMan.m_character</c> é private. É o caminho do postfix de
+        /// <c>ModifyHealthRegen</c> de volta para o dono dos status effects — o método não recebe
+        /// o personagem por parâmetro, e sem ele o patch não sabe de quem é a cura que está
+        /// passando.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<SEMan, Character> SEManCharacterRef =
+            CreateFieldRef<SEMan, Character>("m_character");
+
+        internal static Character GetSEManCharacter(SEMan seman)
+        {
+            if (SEManCharacterRef == null || seman == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return SEManCharacterRef(seman);
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_character: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// <c>Player.m_foodRegenTimer</c> é private. É o relógio da cura passiva da comida: o
+        /// <c>Player.UpdateFood</c> soma <c>dt</c> nele e cura quando passa de 10 segundos.
+        ///
+        /// O intervalo de 10 segundos é uma constante dentro daquele método, então não há como
+        /// encurtá-lo sem transpiler. Adiantar o relógio dá o mesmo resultado e cabe num postfix.
+        /// Ver <c>Transformations.HealthRegenPatch</c>.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Player, float> FoodRegenTimerRef =
+            CreateFieldRef<Player, float>("m_foodRegenTimer");
+
+        /// <summary>
+        /// Adianta o relógio da cura passiva em <paramref name="seconds"/>. Devolve false se o
+        /// campo sumiu numa atualização do jogo — quem chama desliga o efeito em vez de insistir.
+        /// </summary>
+        internal static bool AdvanceFoodRegenTimer(Player player, float seconds)
+        {
+            if (FoodRegenTimerRef == null || player == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                FoodRegenTimerRef(player) += seconds;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to write m_foodRegenTimer: {ex.Message}");
+                return false;
+            }
+        }
+
         private static AccessTools.FieldRef<TObject, TField> CreateFieldRef<TObject, TField>(string fieldName)
         {
             try

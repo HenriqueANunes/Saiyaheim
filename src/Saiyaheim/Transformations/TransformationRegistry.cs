@@ -18,7 +18,7 @@ namespace Saiyaheim.Transformations
         /// teclas de degrau percorrem, e é ela que define qual é o "mais alto destravado" que a
         /// tecla de transformar direto procura.
         ///
-        /// Três degraus. Cada um é uma linha aqui e uma chamada de <c>BindTransformation</c> na
+        /// Quatro degraus. Cada um é uma linha aqui e uma chamada de <c>BindTransformation</c> na
         /// config — a promessa de "forma é dado, não código" foi cobrada quando o SSJ2 entrou, e
         /// de novo quando o SSJ3 entrou, e o preço foi exatamente esse das duas vezes. O SSJ3
         /// custou uma coisa a mais, mas fora daqui: o penteado da forma, que é a primeira mudança
@@ -31,7 +31,8 @@ namespace Saiyaheim.Transformations
         {
             new Transformation("ssj", "SSJ", SaiyaheimConfig.Ssj),
             new Transformation("ssj2", "SSJ2", SaiyaheimConfig.Ssj2),
-            new Transformation("ssj3", "SSJ3", SaiyaheimConfig.Ssj3)
+            new Transformation("ssj3", "SSJ3", SaiyaheimConfig.Ssj3),
+            new Transformation("ssjgod", "SSJ God", SaiyaheimConfig.SsjGod)
         };
 
         /// <summary>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Added: the **SSJ God**, a fourth form, unlocked by defeating Moder. It hits a little harder
+  than SSJ2 and a little softer than SSJ3, and what it buys instead is staying power: less ki
+  drain, half the combat surcharge on punching, blocking and taking hits, and passive healing
+  that ticks three times as often and keeps going through Wet, Cold and Freezing.
+
 ## 0.4.3
 
 - Fixed: on a server, players now use the server's config instead of their own.
