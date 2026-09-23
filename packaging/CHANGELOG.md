@@ -7,6 +7,7 @@
   drain, half the combat surcharge on punching, blocking and taking hits, and passive healing
   that ticks three times as often and keeps going through Wet, Cold and Freezing.
 - Fixed: you can now take off while swimming; you pop out of the water and start flying.
+- Fixed: going through a portal or a dungeon entrance no longer drops your form or your flight.
 
 ## 0.4.3
 

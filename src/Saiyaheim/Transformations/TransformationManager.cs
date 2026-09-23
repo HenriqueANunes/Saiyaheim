@@ -247,7 +247,10 @@ namespace Saiyaheim.Transformations
                 return "Out of ki — you power down.";
             }
 
-            if (player.IsDead() || player.IsSleeping() || player.IsTeleporting() || player.InCutscene())
+            // Teleporte não entra: portal e entrada de dungeon passam pelo mesmo Player.TeleportTo,
+            // e o jogador tem que chegar do outro lado na forma em que estava (bug do Nexus,
+            // 2026-09-23). O dreno pausa durante a tela de carregamento — ver SE_Transformation.
+            if (player.IsDead() || player.IsSleeping() || player.InCutscene())
             {
                 return "";
             }

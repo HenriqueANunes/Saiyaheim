@@ -122,6 +122,15 @@ namespace Saiyaheim.Flight
             // Recalculado todo tick de propósito: pegar um item muda o peso, e a config pode ser
             // editada com o jogo aberto.
             ApplySpeeds(player);
+
+            // Tela de carregamento do portal ou da dungeon: não é jogo, não cobra ki nem mede
+            // caminho. O primeiro tique depois dela vê o salto até o destino, e o MeasureStep
+            // descarta.
+            if (player.IsTeleporting())
+            {
+                return;
+            }
+
             ApplyVerticalInput(player);
             DrainKi(player, dt);
             FlushXp(player, dt);

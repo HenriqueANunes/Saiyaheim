@@ -79,6 +79,13 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
+            // A tela de carregamento do portal ou da dungeon dura de 2 a 15 segundos e não é
+            // jogo: cobrar ali derrubaria a forma de quem entrou com pouco ki sem ter feito nada.
+            if (player.IsTeleporting())
+            {
+                return;
+            }
+
             // UpdateStatusEffect vem do FixedUpdate, então isto já é tick fixo — a regra do projeto
             // de nunca cobrar recurso por frame está atendida sem acumulador próprio.
             //

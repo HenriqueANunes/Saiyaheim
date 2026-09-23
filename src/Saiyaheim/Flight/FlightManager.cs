@@ -84,7 +84,14 @@ namespace Saiyaheim.Flight
 
             if (flying)
             {
-                if (!player.IsOnGround())
+                // O voo sobrevive ao teleporte (portal, entrada de dungeon) e chega do outro lado
+                // como uma decolagem nova: o destino costuma ser no chão, e sem zerar isto o pouso
+                // automático derrubaria o jogador no primeiro passo depois da tela de carregamento.
+                if (player.IsTeleporting())
+                {
+                    _leftGround = false;
+                }
+                else if (!player.IsOnGround())
                 {
                     _leftGround = true;
                 }
@@ -188,7 +195,10 @@ namespace Saiyaheim.Flight
                 return "Out of ki — you are falling!";
             }
 
-            if (player.IsDead() || player.IsSleeping() || player.IsTeleporting() || player.InCutscene())
+            // Teleporte não entra, pelo mesmo motivo da forma: o jogador chega do outro lado do portal
+            // ou da dungeon como estava (2026-09-23). O dreno pausa na tela de carregamento — ver
+            // SE_Flight.UpdateStatusEffect.
+            if (player.IsDead() || player.IsSleeping() || player.InCutscene())
             {
                 return "";
             }
