@@ -87,8 +87,15 @@ namespace Saiyaheim.Net
         private const int FlagBeamCharged = 1 << 4;
 
         /// <summary>
+        /// Voo guiado pela mira. A pose de quem olha precisa saber disto: no modo mira, descer é
+        /// mergulhar de cabeça, e no clássico é baixar em pé. A velocidade sozinha não distingue
+        /// os dois. Ver <c>FlightPose.PitchForward</c>.
+        /// </summary>
+        private const int FlagFlightSteersByAim = 1 << 5;
+
+        /// <summary>
         /// Onde começa o índice da forma. Os oito bits baixos ficam para as bandeiras — hoje
-        /// sobram cinco, o que dá folga para a etapa 11 sem mexer no leiaute.
+        /// sobram duas, o que dá folga para a etapa 11 sem mexer no leiaute.
         /// </summary>
         private const int FormShift = 8;
 
@@ -104,7 +111,7 @@ namespace Saiyaheim.Net
         /// </summary>
         internal static void Publish(
             Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
-            bool beamCharged, int formIndex)
+            bool beamCharged, bool flightSteersByAim, int formIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -139,6 +146,11 @@ namespace Saiyaheim.Net
                 value |= FlagBeamCharged;
             }
 
+            if (flightSteersByAim)
+            {
+                value |= FlagFlightSteersByAim;
+            }
+
             // +1 porque zero precisa significar "forma base": um jogador sem o mod, ou que ainda
             // não publicou nada, lê zero na ZDO e não pode ser confundido com o primeiro degrau.
             value |= ((formIndex + 1) & FormMask) << FormShift;
@@ -157,6 +169,10 @@ namespace Saiyaheim.Net
 
         /// <summary>A carga deste jogador chegou ao topo.</summary>
         internal static bool IsBeamCharged(Player player) => HasFlag(player, FlagBeamCharged);
+
+        /// <summary>Voo no modo guiado pela mira. Ver <see cref="FlagFlightSteersByAim"/>.</summary>
+        internal static bool FlightSteersByAim(Player player) =>
+            HasFlag(player, FlagFlightSteersByAim);
 
         /// <summary>Índice da forma ativa na escada do <c>TransformationRegistry</c>, ou -1 na base.</summary>
         internal static int GetFormIndex(Player player)

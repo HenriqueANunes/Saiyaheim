@@ -673,6 +673,12 @@ namespace Saiyaheim
         /// <summary>Velocidade de giro no ar. Vai direto para <c>Character.m_flyTurnSpeed</c>.</summary>
         public static ConfigEntry<float> FlightTurnSpeed { get; private set; }
 
+        /// <summary>
+        /// Inclinação do corpo, em graus, mergulhando na vertical no modo mira. Ver
+        /// <c>FlightPose.PitchForward</c>.
+        /// </summary>
+        public static ConfigEntry<float> FlightAimDivePitch { get; private set; }
+
         /// <summary>Bônus de velocidade no nível 100 da skill de voo. 0.5 = +50%.</summary>
         public static ConfigEntry<float> FlightSpeedSkillBonus { get; private set; }
 
@@ -2154,6 +2160,15 @@ namespace Saiyaheim
                     "reported exactly that. 200 turns around in about a second. Lower feels " +
                     "heavier and makes high speed harder to steer.",
                     new AcceptableValueRange<float>(1f, 720f), AdminOnly(75)));
+
+            // Chute de 2026-09-23, ainda sem playtest: visual e em aberto, por isso no .cfg.
+            FlightAimDivePitch = config.Bind(SecFlight, "AimDivePitch", 150f,
+                new ConfigDescription(
+                    "Body tilt, in degrees, when diving straight down in aim flight mode. " +
+                    "0 is upright, 90 is lying flat belly down, 180 is head straight down. " +
+                    "Shallower dives blend between the level-flight tilt and this value by the " +
+                    "dive angle. Climbing and classic mode are not affected.",
+                    new AcceptableValueRange<float>(0f, 180f), ClientSide(74)));
 
             FlightSpeedSkillBonus = config.Bind(SecFlight, "SpeedSkillBonus", 0.5f,
                 new ConfigDescription("Speed bonus at level 100 of the flight skill. 0.5 = +50%.",

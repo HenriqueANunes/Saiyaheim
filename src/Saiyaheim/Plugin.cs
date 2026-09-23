@@ -149,6 +149,7 @@ namespace Saiyaheim
                 KiManager.IsCharging,
                 KiBeamCharge.IsCharging(player),
                 KiBeamCharge.IsFull(player),
+                FlightManager.SteersByAim(player),
                 TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)));
 
             // Publicado sempre, inclusive com o ki desligado: o alvo é sempre calculável, e quem

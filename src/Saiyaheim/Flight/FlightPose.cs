@@ -247,10 +247,24 @@ namespace Saiyaheim.Flight
                 // levantar o nariz ao subir e baixar ao descer.
                 float vertical01 = Mathf.Clamp(verticalSpeed / slow, -1f, 1f);
 
+                // Modo mira descendo: mergulho. A horizontal encolhe conforme o olhar desce, e a
+                // inclinação base, que sai dela, caía junto — mergulhar a 45° dava o mesmo ângulo
+                // de voar reto (playtest de 2026-09-23). Aqui a base vem da velocidade total, e o
+                // ângulo da trajetória leva o corpo em direção ao AimDivePitch.
+                float dive01 = 0f;
+                if (verticalSpeed < 0f && NetState.FlightSteersByAim(player))
+                {
+                    float total = Mathf.Sqrt(speed * speed + verticalSpeed * verticalSpeed);
+                    speed01 = Mathf.Clamp01(total / slow);
+                    fast01 = Mathf.Clamp01((total - slow) / (fast - slow));
+                    dive01 = Mathf.Atan2(-verticalSpeed, speed) * Mathf.Rad2Deg / 90f * speed01;
+                    vertical01 = 0f;
+                }
+
                 // Guinada e inclinação são orientação do quadril: saem junto com o resto do corpo,
                 // senão volta a torção do primeiro playtest.
                 SquareToHeading(ref pose, muscles, action);
-                PitchForward(ref pose, speed01, fast01, vertical01, action);
+                PitchForward(ref pose, speed01, fast01, vertical01, dive01, action);
                 ApplyMuscles(muscles, speed01, fast01, action, legs);
             }
         }
@@ -279,14 +293,21 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            // O bodyRotation é relativo à raiz do avatar, cujo +Z é a frente do personagem — então
-            // a guinada é o ângulo entre o Z do corpo e o Z da raiz, no plano horizontal.
-            Vector3 forward = pose.bodyRotation * Vector3.forward;
-            forward.y = 0f;
+            // O bodyRotation é relativo à raiz do avatar, cujo +X é o lado direito do personagem —
+            // então a guinada é o ângulo entre o X do corpo e o X da raiz, no plano horizontal.
+            //
+            // Pelo lado e não pela frente: o PitchForward gira o corpo justamente em torno do X, e
+            // o lado não se mexe com a inclinação. Medida pela frente, a guinada virava 180° assim
+            // que o mergulho do modo mira passava de 90° (a frente aponta para trás), e perto de
+            // 90° era ruído puro. Nos frames em que o Animator devolve a nossa própria pose, isso
+            // girava o corpo de costas — a pose piscando no começo do mergulho, playtest de
+            // 2026-09-23.
+            Vector3 right = pose.bodyRotation * Vector3.right;
+            right.y = 0f;
 
-            if (forward.sqrMagnitude > 0.0001f)
+            if (right.sqrMagnitude > 0.0001f)
             {
-                float yaw = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
+                float yaw = Mathf.Atan2(-right.z, right.x) * Mathf.Rad2Deg;
                 pose.bodyRotation = Quaternion.Euler(0f, -yaw * amount, 0f) * pose.bodyRotation;
             }
 
@@ -323,7 +344,8 @@ namespace Saiyaheim.Flight
         /// idempotente por construção — zerar duas vezes é zerar.
         /// </summary>
         private static void PitchForward(
-            ref HumanPose pose, float speed01, float fast01, float vertical01, float weight)
+            ref HumanPose pose, float speed01, float fast01, float vertical01, float dive01,
+            float weight)
         {
             // Cruzeiro e corrida se revezam: a inclinação leve da velocidade lenta some conforme a
             // forte entra, em vez de as duas se somarem.
@@ -339,13 +361,20 @@ namespace Saiyaheim.Flight
             // subir na vertical, parado, é o Goku subindo em pé, não um avião cabrando.
             float climb = ClimbPitch * vertical01 * speed01;
 
-            float target = (basePitch - climb) * weight;
+            float pitch = basePitch - climb;
 
-            // Inclinação atual do corpo, no referencial da raiz. Depois do SquareToHeading a frente
-            // do corpo é a frente da raiz, então o Y da frente é seno da inclinação: negativo é
-            // nariz para baixo, e o sinal é invertido para "positivo = barriga para baixo".
+            // Mergulho do modo mira: 0 é voo reto, 1 é de cabeça na vertical. Interpola em vez de
+            // somar para o mergulho vertical cair exatamente no valor configurado.
+            pitch = Mathf.Lerp(pitch, SaiyaheimConfig.FlightAimDivePitch.Value, dive01);
+
+            float target = pitch * weight;
+
+            // Inclinação atual do corpo, no referencial da raiz: negativo é nariz para cima, e
+            // "positivo = barriga para baixo". Atan2 e não Asin: o mergulho passa de 90°, e o seno
+            // não distingue 80° de 100° — a medida erraria, o delta nunca zeraria, e o corpo
+            // giraria sem parar.
             Vector3 forward = pose.bodyRotation * Vector3.forward;
-            float current = -Mathf.Asin(Mathf.Clamp(forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+            float current = Mathf.Atan2(-forward.y, forward.z) * Mathf.Rad2Deg;
 
             float delta = target - current;
             if (Mathf.Abs(delta) < 0.01f)
