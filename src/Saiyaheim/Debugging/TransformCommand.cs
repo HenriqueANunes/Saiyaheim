@@ -216,6 +216,7 @@ namespace Saiyaheim.Debugging
                   "   (trained by FIGHTING in this form — see below)");
             Print($"Power multiplier: x{form.GetPowerMultiplier():0.##}");
             PrintCarryWeight(player, form, active);
+            PrintHealthRegen(player, form, active);
             Print($"Ki drain: {drain:0.##}/s " +
                   $"(base {form.Config.KiDrainPerSecond.Value:0.##}, " +
                   $"mastery cuts {(1f - SafeRatio(drain, form.Config.KiDrainPerSecond.Value)) * 100f:0}%)");
@@ -242,9 +243,103 @@ namespace Saiyaheim.Debugging
             // A maestria DESTA forma, e nao a da ativa: o saiya_form fala de um degrau por vez, e
             // "saiya_form ssj2" rodado em SSJ tem que responder o que o SSJ2 custaria, nao o que o
             // SSJ custa agora. Fora de forma o multiplicador de custo e' 1 por definicao.
-            float costMult = BattlePower.FormKiCostMultiplier(multiplier, form.GetSkillLevel(player));
-            PrintPunchEconomy(outOfForm, multiplier, costMult);
+            float costMult = BattlePower.FormKiCostMultiplier(multiplier, form.GetSkillLevel(player),
+                form.GetCombatKiCostScale());
+            PrintPunchEconomy(outOfForm, multiplier, costMult, form.GetCombatKiCostScale());
         }
+
+        /// <summary>
+        /// O que a forma faz com a <b>cura passiva</b>, e quem mais está mexendo nela agora.
+        ///
+        /// <b>Existe por causa do playtest de 2026-09-22</b>, em que a cura do SSJ God saiu menor
+        /// que o dobro prometido e, nas Montanhas, não saiu de jeito nenhum. Não era bug: a cura
+        /// passiva da vanilla é um multiplicador <b>compartilhado</b> — Descansado soma, Molhado e
+        /// Frio cortam, Congelando zera —, e nenhuma tela do jogo mostra o número final. Sem esta
+        /// linha o diagnóstico só sai contando vida na mão.
+        ///
+        /// <b>O multiplicador impresso é o de verdade</b>: sai do <c>SEMan.ModifyHealthRegen</c>
+        /// do próprio jogador, o mesmo caminho que o <c>Player.UpdateFood</c> usa para curar. Não
+        /// é a conta da forma refeita aqui — se divergir do que a forma promete, é porque algo
+        /// mais está mexendo, e é exatamente isso que se quer ver.
+        ///
+        /// Omitida quando a forma não mexe na cura, como a linha de peso: forma sem cura não tem
+        /// o que dizer.
+        /// </summary>
+        private void PrintHealthRegen(Player player, Transformation form, Transformation active)
+        {
+            float formSpeed = form.GetHealthRegenSpeed();
+            bool ignoresBlockers = form.GetHealthRegenIgnoresBlockers();
+
+            if (formSpeed <= 1f && !ignoresBlockers)
+            {
+                return;
+            }
+
+            // A cura vem TODA da comida: sem comida, o dobro de zero continua zero, e essa é a
+            // primeira coisa que a linha precisa responder.
+            float food = 0f;
+            List<Player.Food> foods = player.GetFoods();
+            if (foods != null)
+            {
+                foreach (Player.Food entry in foods)
+                {
+                    if (entry?.m_item?.m_shared != null)
+                    {
+                        food += entry.m_item.m_shared.m_foodRegen;
+                    }
+                }
+            }
+
+            // O multiplicador que o jogo vai usar no proximo tique, com tudo que estiver ativo.
+            float multiplier = 1f;
+            SEMan seman = player.GetSEMan();
+            if (seman != null)
+            {
+                seman.ModifyHealthRegen(ref multiplier);
+            }
+
+            // O intervalo so' encurta com a forma ATIVA — o patch le a forma ativa, nao a que o
+            // comando esta' mostrando.
+            float interval = VanillaRegenInterval / (active == form ? formSpeed : 1f);
+
+            Print($"Health regen: {food:0.#} hp per tick from food x{multiplier:0.##} now = " +
+                  $"{food * multiplier:0.#} every {interval:0.#} s " +
+                  $"({food * multiplier / interval:0.##} hp/s)");
+
+            Print($"  {form.DisplayName} gives a {VanillaRegenInterval / formSpeed:0.#} s tick" +
+                  $"{(ignoresBlockers ? ", and heals through Wet, Cold and Freezing" : "")}" +
+                  $"{DescribeRegenGap(active == form, ignoresBlockers, multiplier)}");
+        }
+
+        /// <summary>
+        /// Por que o multiplicador na tela não bate com o que a forma promete, quando não bate.
+        ///
+        /// A soma é a da vanilla e não é óbvia: o <c>SE_Stats</c> <b>soma</b> a parte acima de 1 e
+        /// <b>multiplica</b> o que estiver abaixo dela, na ordem em que os efeitos entraram no
+        /// <c>SEMan</c>. Um Congelando depois da forma zera tudo, por mais alta que a forma seja.
+        /// </summary>
+        private static string DescribeRegenGap(bool isActive, bool ignoresBlockers, float current)
+        {
+            if (!isActive)
+            {
+                return "   (not the active form)";
+            }
+
+            if (current <= 0.001f)
+            {
+                return "   — SOMETHING IS ZEROING IT: Freezing stops health regen entirely";
+            }
+
+            if (current < 1f - 0.01f && !ignoresBlockers)
+            {
+                return "   — something else is cutting it: Wet and Cold reduce health regen";
+            }
+
+            return "";
+        }
+
+        /// <summary>Intervalo da cura passiva na vanilla, em segundos. Constante no <c>Player.UpdateFood</c>.</summary>
+        private const float VanillaRegenInterval = 10f;
 
         /// <summary>
         /// O que a forma faz com o limite de peso, com os dois lados na mesma linha.
@@ -287,7 +382,7 @@ namespace Saiyaheim.Debugging
         /// se transformar melhora ou piora a luta. Se o valor em forma for menor que fora dela, a
         /// forma está cobrando mais do que entrega.
         /// </summary>
-        private void PrintPunchEconomy(float outOfForm, float multiplier, float costMult)
+        private void PrintPunchEconomy(float outOfForm, float multiplier, float costMult, float costScale)
         {
             float inForm = outOfForm * multiplier;
             float costOut = PunchCostFor(outOfForm, 1f);
@@ -299,7 +394,7 @@ namespace Saiyaheim.Debugging
             float max = KiManager.Max;
 
             Print($"  punch cost {costOut:0.#} → {costIn:0.#} ki" +
-                  $"{DescribeFormCost(costMult, multiplier)}");
+                  $"{DescribeFormCost(costMult, multiplier, costScale)}");
 
             if (costOut <= 0f || costIn <= 0f || max <= 0f)
             {
@@ -333,7 +428,7 @@ namespace Saiyaheim.Debugging
         /// valendo. Esta linha existe desde 2026-08-04 pelo mesmo motivo de sempre: o custo do
         /// soco não aparece em lugar nenhum do jogo.
         /// </summary>
-        private static string DescribeFormCost(float costMultiplier, float powerMultiplier)
+        private static string DescribeFormCost(float costMultiplier, float powerMultiplier, float costScale)
         {
             if (costMultiplier <= 1.0001f)
             {
@@ -342,7 +437,7 @@ namespace Saiyaheim.Debugging
                     : "";
             }
 
-            float raw = BattlePower.FormKiCostMultiplier(powerMultiplier, 0f);
+            float raw = BattlePower.FormKiCostMultiplier(powerMultiplier, 0f, costScale);
             float paid = raw > 1f ? (raw - costMultiplier) / (raw - 1f) * 100f : 0f;
 
             return $"   (form surcharge x{costMultiplier:0.##} of x{raw:0.##} at mastery 0" +

@@ -59,8 +59,8 @@ scale. Reading power is a ki ability: turn ki off and the numbers disappear for 
 
 Punching is the core of the mod. Damage does not come from multiplying Valheim's very weak
 vanilla unarmed hit — it comes from Battle Power, so it scales predictably from Meadows to
-Plains. Transformations add their own flavor on top: slash damage on SSJ, lightning damage on
-SSJ3.
+Plains. Transformations add their own flavor on top: slash damage on SSJ and SSJ God,
+lightning damage on SSJ2 and SSJ3.
 
 ### Flight
 
@@ -77,13 +77,17 @@ by construction.
 
 ### Transformations
 
-Three steps today, each gated behind a boss:
+Four steps today, each gated behind a boss:
 
 | Form | Unlocked by | Power | What sets it apart |
 |---|---|---|---|
 | **SSJ** | Eikthyr | ×2 | Yellow spiked version of your own hair, golden aura, slash damage |
 | **SSJ2** | The Elder | ×3 | Brighter hair, blue lightning, heavier ki drain |
 | **SSJ3** | Bonemass | ×4 | Long spiked hair (changes your silhouette), white lightning, strongest glow |
+| **SSJ God** | Moder | ×3.5 | Red hair and aura, cheaper to fight in, and passive healing that ticks three times as often and keeps going through Wet, Cold and Freezing |
+
+SSJ God is the odd one: it hits softer than SSJ3 on purpose. It is the control form, and what it
+buys is staying power rather than a bigger punch.
 
 There is no activation cost, so stepping up and down is free. What a form costs is a small
 continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and

@@ -5,9 +5,12 @@ namespace Saiyaheim.Transformations
     /// <summary>
     /// A forma ativa: o <c>StatusEffect</c> que representa estar transformado.
     ///
-    /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, paga XP de maestria pelo tempo
-    /// segurando a forma e levanta o limite de peso do inventário. O XP de maestria NÃO sai daqui
-    /// desde 2026-09-20 — ele vem do dano trocado, pelo <c>DamageXpPatch</c>. O <b>poder</b> da transformação
+    /// <b>Ele faz duas coisas, e só.</b> Drena ki por segundo e levanta o limite de peso do
+    /// inventário. A cura passiva do SSJ God <b>não</b> passa por aqui: ela é intervalo e piso, e
+    /// nenhum dos dois cabe num modificador de <c>SE_Stats</c> — ver <c>HealthRegenPatch</c>.
+    ///
+    /// O XP de maestria NÃO sai daqui desde 2026-09-20 — ele vem do dano trocado, pelo
+    /// <c>DamageXpPatch</c>. O <b>poder</b> da transformação
     /// não está aqui: é o <c>BattlePower.GetKiCombatRaw</c> que consulta o
     /// <see cref="TransformationRegistry"/> e multiplica.
     ///
