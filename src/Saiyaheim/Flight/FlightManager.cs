@@ -38,6 +38,23 @@ namespace Saiyaheim.Flight
         /// </summary>
         private static float _lastJumpTapTime = float.NegativeInfinity;
 
+        /// <summary>
+        /// Prazo para uma decolagem na água sair do nado. Não é balanceamento: com o empurrão
+        /// padrão o jogador sai em menos de um segundo. Só estoura com algo em cima — casco de
+        /// barco, teto de caverna alagada —, e aí o voo desiste em vez de drenar ki parado.
+        /// </summary>
+        private const float WaterTakeOffTimeout = 2f;
+
+        /// <summary>
+        /// Instante em que a decolagem na água começou, ou <c>NaN</c> fora dela. Enquanto vale,
+        /// o <see cref="WaterTakeOffPatch"/> empurra o jogador para cima e nadar não derruba o
+        /// voo.
+        /// </summary>
+        private static float _waterTakeOffStart = float.NaN;
+
+        /// <summary>O jogador local está subindo da água para o voo.</summary>
+        internal static bool IsTakingOffFromWater => !float.IsNaN(_waterTakeOffStart);
+
         internal static bool IsFlying(Player player)
         {
             SEMan seman = player == null ? null : player.GetSEMan();
@@ -59,11 +76,23 @@ namespace Saiyaheim.Flight
 
             bool flying = seman.HaveStatusEffect(SE_Flight.NameHashValue);
 
+            // O efeito pode sair sem passar pelo Stop (morte limpa os efeitos, por exemplo).
+            if (!flying)
+            {
+                _waterTakeOffStart = float.NaN;
+            }
+
             if (flying)
             {
                 if (!player.IsOnGround())
                 {
                     _leftGround = true;
+                }
+
+                // Fim da decolagem na água: a partir daqui o UpdateMotion já cai no UpdateFlying.
+                if (IsTakingOffFromWater && !player.IsSwimming())
+                {
+                    _waterTakeOffStart = float.NaN;
                 }
 
                 string stopReason = GetStopReason(player);
@@ -164,9 +193,16 @@ namespace Saiyaheim.Flight
                 return "";
             }
 
+            if (IsTakingOffFromWater && Time.time - _waterTakeOffStart > WaterTakeOffTimeout)
+            {
+                return "";
+            }
+
             // Nadar tem prioridade sobre voar dentro do próprio UpdateMotion: o voo continuaria
-            // ligado sem fazer nada e o ki iria embora à toa.
-            if (player.IsSwimming() || player.IsAttached() || player.InBed())
+            // ligado sem fazer nada e o ki iria embora à toa. É também o que impede voar debaixo
+            // d'água — descer voando até a água derruba o voo. A exceção é a decolagem na água,
+            // que ainda está nadando por definição.
+            if ((player.IsSwimming() && !IsTakingOffFromWater) || player.IsAttached() || player.InBed())
             {
                 return "";
             }
@@ -174,8 +210,7 @@ namespace Saiyaheim.Flight
             // Pousar. O _leftGround é o que impede que decolar de pé no chão pouse na mesma hora:
             // com a gravidade desligada o jogador paira à altura do chão até apertar Jump, e o
             // IsOnGround() continua verdadeiro esse tempo todo.
-            if (_leftGround && SaiyaheimConfig.FlightAutoLandOnGround.Value && player.IsOnGround()
-                && !IsStandingOnCreature(player))
+            if (_leftGround && player.IsOnGround() && !IsStandingOnCreature(player))
             {
                 return "";
             }
@@ -219,8 +254,9 @@ namespace Saiyaheim.Flight
                 return;
             }
 
+            // Nadar não impede: decolar da água é o WaterTakeOffPatch empurrando para cima.
             if (player.IsDead() || player.IsSleeping() || player.IsTeleporting() || player.InCutscene()
-                || player.IsSwimming() || player.IsAttached() || player.InBed())
+                || player.IsAttached() || player.InBed())
             {
                 return;
             }
@@ -232,6 +268,7 @@ namespace Saiyaheim.Flight
 
             _leftGround = false;
             _lastJumpTapTime = float.NegativeInfinity;
+            _waterTakeOffStart = player.IsSwimming() ? Time.time : float.NaN;
             seman.AddStatusEffect(_template);
             SaiyaheimPlugin.LogVerbose("Flight started.");
         }
@@ -243,6 +280,7 @@ namespace Saiyaheim.Flight
         private static void Stop(Player player, SEMan seman, string message)
         {
             _leftGround = false;
+            _waterTakeOffStart = float.NaN;
 
             // Sem isto, o último toque de subida antes de pousar ficaria valendo como primeiro
             // toque do próximo par e um único pulo depois do pouso decolaria de novo.

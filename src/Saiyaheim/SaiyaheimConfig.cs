@@ -720,9 +720,6 @@ namespace Saiyaheim
         /// </summary>
         public static ConfigEntry<float> FlightMaxSpeed { get; private set; }
 
-        /// <summary>Pousar encosta no chão desliga o voo sozinho.</summary>
-        public static ConfigEntry<bool> FlightAutoLandOnGround { get; private set; }
-
         // O voo não tem config de pose nenhuma. Os números da pose procedural viraram constantes
         // em <c>FlightPose</c> no playtest de 2026-07-31; o corpo na horizontal e a pose em pé
         // forçada no animator seguiram o mesmo caminho em 2026-09-13, direto no
@@ -2321,13 +2318,6 @@ namespace Saiyaheim
                     "above a certain speed zone streaming cannot keep up and the world loads in " +
                     "chunks.",
                     new AcceptableValueRange<float>(5f, 100f), AdminOnly(45)));
-
-            FlightAutoLandOnGround = config.Bind(SecFlight, "AutoLandOnGround", true,
-                new ConfigDescription(
-                    "Touching the ground ends the flight by itself, so you do not walk around " +
-                    "still burning ki. Only after you have actually left the ground once — " +
-                    "otherwise taking off would land you on the same frame.",
-                    null, AdminOnly(42)));
 
             // --- Battle Power ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:
