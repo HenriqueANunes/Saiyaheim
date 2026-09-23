@@ -136,6 +136,9 @@ namespace Saiyaheim
         /// <summary>Tecla que decola e pousa. Client-side, como as outras.</summary>
         public static ConfigEntry<KeyboardShortcut> ToggleFlightKey { get; private set; }
 
+        /// <summary>Tecla que alterna o voo entre o modo clássico e o guiado pela mira.</summary>
+        public static ConfigEntry<KeyboardShortcut> ToggleFlightAimKey { get; private set; }
+
         /// <summary>Tecla que vai direto à forma mais alta já destravada.</summary>
         public static ConfigEntry<KeyboardShortcut> TransformKey { get; private set; }
 
@@ -1034,6 +1037,18 @@ namespace Saiyaheim
                     "Key that takes off and lands. Once airborne, movement is the usual one: " +
                     "the game's Jump button climbs, Crouch descends and Run flies fast.",
                     null, ClientSide(85)));
+
+            // Alt+F e nao F sozinho: F ja e' decolar e pousar, e o Hotkey exige os modificadores
+            // soltos, entao os dois atalhos nunca disparam juntos. Pedido do Henrique, 2026-09-23.
+            ToggleFlightAimKey = config.Bind(SecGeral, "ToggleFlightAimKey",
+                new KeyboardShortcut(KeyCode.F, KeyCode.LeftAlt),
+                new ConfigDescription(
+                    "Key that switches flight between classic and aim mode. Classic: forward is " +
+                    "always level and only Jump and Crouch change altitude. Aim: moving forward " +
+                    "flies where you are looking, up and down included, and moving back flies the " +
+                    "opposite way; strafing stays level and Jump and Crouch still work on top. " +
+                    "Works on the ground or in the air, and the choice is saved with the character.",
+                    null, ClientSide(77)));
 
             // Quatro teclas, em dois pares: T/G resolvem o caso comum de um toque so — "poder
             // maximo agora" e "sai da forma agora" — e Shift+T/Shift+G percorrem a escada degrau a

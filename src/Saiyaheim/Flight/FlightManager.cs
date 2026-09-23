@@ -55,6 +55,30 @@ namespace Saiyaheim.Flight
         /// <summary>O jogador local está subindo da água para o voo.</summary>
         internal static bool IsTakingOffFromWater => !float.IsNaN(_waterTakeOffStart);
 
+        /// <summary>
+        /// Modo do voo, salvo no personagem. Estado e não preferência, então fica fora do .cfg: o
+        /// <c>m_customData</c> é serializado pelo próprio jogo junto do save, como o ki do
+        /// <c>KiState</c>. Ausente é o modo clássico.
+        /// </summary>
+        private const string KeySteerByAim = "saiyaheim.flightSteerByAim";
+
+        /// <summary>Voo guiado pela mira ligado neste personagem. Ver <see cref="SE_Flight"/>.</summary>
+        internal static bool SteersByAim(Player player)
+        {
+            return player != null && player.m_customData != null
+                   && player.m_customData.TryGetValue(KeySteerByAim, out string raw) && raw == "1";
+        }
+
+        private static void SetSteersByAim(Player player, bool steerByAim)
+        {
+            if (player == null || player.m_customData == null)
+            {
+                return;
+            }
+
+            player.m_customData[KeySteerByAim] = steerByAim ? "1" : "0";
+        }
+
         internal static bool IsFlying(Player player)
         {
             SEMan seman = player == null ? null : player.GetSEMan();
@@ -112,6 +136,15 @@ namespace Saiyaheim.Flight
 
             if (!InputGuard.AcceptsInput())
             {
+                return;
+            }
+
+            // No chão também: escolher o modo antes de decolar é o caso comum.
+            if (Hotkey.IsDown(SaiyaheimConfig.ToggleFlightAimKey))
+            {
+                bool steerByAim = !SteersByAim(player);
+                SetSteersByAim(player, steerByAim);
+                Message(player, steerByAim ? "Flight: aim mode" : "Flight: classic mode");
                 return;
             }
 

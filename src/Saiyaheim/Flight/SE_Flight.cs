@@ -218,7 +218,12 @@ namespace Saiyaheim.Flight
             }
 
             Vector3 dir = player.GetMoveDir();
-            dir.y = vertical * SaiyaheimConfig.FlightVerticalSpeedFactor.Value;
+            if (FlightManager.SteersByAim(player))
+            {
+                dir = SteerByAim(player, dir);
+            }
+
+            dir.y += vertical * SaiyaheimConfig.FlightVerticalSpeedFactor.Value;
 
             // Normalizar só acima de 1: subir enquanto anda para frente daria magnitude 1.25 e o
             // jogador voaria mais rápido na diagonal do que na reta.
@@ -228,6 +233,32 @@ namespace Saiyaheim.Flight
             }
 
             player.SetMoveDir(dir);
+        }
+
+        /// <summary>
+        /// Modo mira: a parte "para frente" do movimento passa a seguir o olhar inteiro, com a
+        /// inclinação. Olhando 30° para cima, W sobe em diagonal; S faz o caminho oposto. O
+        /// strafe fica no plano, como no modo clássico.
+        ///
+        /// O <c>PlayerController</c> monta o <c>m_moveDir</c> com o olhar projetado no plano, então
+        /// basta trocar essa componente pelo olhar de verdade. A magnitude não muda: voar pela
+        /// mira não é mais rápido que voar reto.
+        /// </summary>
+        private static Vector3 SteerByAim(Player player, Vector3 dir)
+        {
+            Vector3 look = player.GetLookDir().normalized;
+            Vector3 flat = Vector3.ProjectOnPlane(look, Vector3.up);
+
+            // Olhando reto para cima ou para baixo o olhar some do plano; o corpo ainda tem frente.
+            if (flat.sqrMagnitude < 0.0001f)
+            {
+                flat = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up);
+            }
+
+            flat.Normalize();
+
+            float forward = Vector3.Dot(dir, flat);
+            return dir - flat * forward + look * forward;
         }
 
         /// <summary>

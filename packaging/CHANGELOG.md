@@ -6,6 +6,7 @@
   than SSJ2 and a little softer than SSJ3, and what it buys instead is staying power: less ki
   drain, half the combat surcharge on punching, blocking and taking hits, and passive healing
   that ticks three times as often and keeps going through Wet, Cold and Freezing.
+- Added: aim flight. Alt+F switches between classic flight and flying where you look, up and down included.
 - Fixed: you can now take off while swimming; you pop out of the water and start flying.
 - Fixed: going through a portal or a dungeon entrance no longer drops your form or your flight.
 
