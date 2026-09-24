@@ -156,6 +156,7 @@ All of them are configurable.
 | `K` | Toggle ki on/off |
 | `R` (hold) | Charge ki |
 | `F` | Take off / land (or double tap Jump to take off) |
+| `Alt+F` | Switch between classic and aim flight |
 | `T` | Transform into your highest unlocked form |
 | `Shift+T` | Step up one form |
 | `Z` | Drop straight back to base form |
