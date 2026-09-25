@@ -351,7 +351,7 @@ namespace Saiyaheim.Util
             yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpBossMultiplierMax, 2f, true);
             yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpBossMultiplierMax, 2f, true);
 
-            // ---------- 7 (2026-09-25) — Kamehameha carrega mais rápido ----------
+            // ---------- 7 (2026-09-25) — Kamehameha carrega mais rápido, pairar em combate encarece ----------
             //
             // ChargeTime 5 -> 4. Na 0.5.1 carregar ki deixou de funcionar durante a carga do
             // Kamehameha, e a janela parada passou a custar de verdade; um segundo a menos a deixa
@@ -360,6 +360,11 @@ namespace Saiyaheim.Util
             // Sem Force: é um ajuste fino isolado, não metade de um conjunto. Quem mexeu no tempo
             // de carga de propósito fica com o dele.
             yield return new Change(7, SaiyaheimConfig.Kamehameha.ChargeTime, 5f, false);
+
+            // CombatHoverMultiplier 2 -> 3, vindo de playtest: pairar fora do alcance com inimigo
+            // alertado ainda compensava. Sem Force pelo mesmo motivo: ajuste isolado, e quem
+            // escolheu outro valor fica com ele.
+            yield return new Change(7, SaiyaheimConfig.FlightCombatHoverMultiplier, 2f, false);
         }
     }
 }

@@ -2085,15 +2085,17 @@ namespace Saiyaheim
             //
             // So' pairando: voar em combate continua no preco normal, porque mergulhar, girar e
             // sair e' lutar no ar — que e' a fantasia do mod, nao o problema.
-            FlightCombatHoverMultiplier = config.Bind(SecFlight, "CombatHoverMultiplier", 2f,
+            //
+            // 2 -> 3 em 2026-09-25 (0.5.1), vindo de playtest: com 2 pairar fora do alcance ainda
+            // compensava.
+            FlightCombatHoverMultiplier = config.Bind(SecFlight, "CombatHoverMultiplier", 3f,
                 new ConfigDescription(
                     "Extra ki cost multiplier for HOVERING while something hostile is alerted " +
                     "nearby — hanging in the air out of reach while a boss or a pack cannot touch " +
                     "you. Stacks on top of HoverKiMultiplier. " +
                     "Flying in combat is NOT affected: diving, circling and pulling out is air " +
                     "combat, which is the point of the mod. Only holding still is. " +
-                    "1 turns it off. " +
-                    "(Starting value. Not playtested yet.)",
+                    "1 turns it off.",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(93)));
 
             FlightCombatHoverRange = config.Bind(SecFlight, "CombatHoverRange", 30f,
