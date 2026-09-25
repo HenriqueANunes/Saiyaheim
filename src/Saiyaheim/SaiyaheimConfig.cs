@@ -1976,7 +1976,11 @@ namespace Saiyaheim
                 // inimigo vindo. Curto demais e ele vira um ki blast mais caro — e 2 s, com a pose
                 // de duas maos entrando em 0,25 s e a bola crescendo, mal davam tempo de o gesto
                 // ser lido antes de acabar. Playtest de 2026-09-07.
-                chargeTime: 5f,
+                //
+                // 5 -> 4 em 2026-09-25 (0.5.1): carregar ki durante a carga do Kamehameha deixou
+                // de ser possivel, entao a janela parada ficou mais cara de verdade e um segundo a
+                // menos a deixa viavel sem virar um ki blast mais caro.
+                chargeTime: 4f,
                 // 0,15 x 60 = 9 projeteis no minimo. Encostar na tecla sem querer nao gasta nada.
                 minChargeRatio: 0.15f,
                 // 0,2 e nao 0,4: a bola comeca menor para o CRESCIMENTO ser o que se le na tela.

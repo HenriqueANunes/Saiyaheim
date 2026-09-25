@@ -211,12 +211,26 @@ namespace Saiyaheim.Ki
                 return false;
             }
 
+            // Kamehameha carregando: as duas cargas são gestos diferentes e não se somam. Sem
+            // isto dava para repor o ki que o próprio disparo vai gastar enquanto ele carrega.
+            if (Attacks.KiBeamCharge.IsCharging(player))
+            {
+                return false;
+            }
+
             // Carregar parado é o gesto clássico de Dragon Ball, mas atrapalha em combate.
             // Fica em config para descobrir no playtest qual dos dois é mais divertido.
             if (SaiyaheimConfig.ChargeRequiresStandingStill.Value)
             {
+                // No chão o Y fica de fora: cair de um degrau ou assentar no terreno não é "andar".
+                // Voando, subir e descer são movimento controlado pelo jogador (Jump/Crouch, ou W
+                // olhando para cima no modo mira) e contam como qualquer outra direção — sem isso
+                // dava para ganhar altitude carregando ki (bug reportado no Nexus).
                 Vector3 velocity = player.GetVelocity();
-                velocity.y = 0f;
+                if (!Flight.FlightManager.IsFlying(player))
+                {
+                    velocity.y = 0f;
+                }
                 if (velocity.sqrMagnitude > 0.25f)
                 {
                     return false;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- Changed: the Kamehameha reaches a full charge in 4 seconds instead of 5.
+- Fixed: you can no longer gain altitude while charging ki in flight; rising or diving now interrupts the charge.
+- Fixed: you can no longer charge ki while charging a Kamehameha.
+
 ## 0.5.0
 
 - Added: the **SSJ God**, a fourth form, unlocked by defeating Moder. It hits a little harder

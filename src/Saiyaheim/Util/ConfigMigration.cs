@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 6;
+        internal const int CurrentVersion = 7;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -350,6 +350,16 @@ namespace Saiyaheim.Util
             yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpBossMultiplierMax, 2f, true);
             yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpBossMultiplierMax, 2f, true);
             yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpBossMultiplierMax, 2f, true);
+
+            // ---------- 7 (2026-09-25) — Kamehameha carrega mais rápido ----------
+            //
+            // ChargeTime 5 -> 4. Na 0.5.1 carregar ki deixou de funcionar durante a carga do
+            // Kamehameha, e a janela parada passou a custar de verdade; um segundo a menos a deixa
+            // viável.
+            //
+            // Sem Force: é um ajuste fino isolado, não metade de um conjunto. Quem mexeu no tempo
+            // de carga de propósito fica com o dele.
+            yield return new Change(7, SaiyaheimConfig.Kamehameha.ChargeTime, 5f, false);
         }
     }
 }
