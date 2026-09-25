@@ -194,11 +194,11 @@ namespace Saiyaheim
         /// <summary>Se true, andar interrompe o carregamento.</summary>
         public static ConfigEntry<bool> ChargeRequiresStandingStill { get; private set; }
 
-        /// <summary>Ki ganho num parry, em socos: múltiplos do custo de ki de um soco agora.</summary>
-        public static ConfigEntry<float> KiOnParryPunches { get; private set; }
+        /// <summary>Ki ganho num parry, em fração da barra cheia.</summary>
+        public static ConfigEntry<float> KiOnParryBarFraction { get; private set; }
 
-        /// <summary>Ki ganho ao matar, em socos: múltiplos do custo de ki de um soco agora.</summary>
-        public static ConfigEntry<float> KiOnKillPunches { get; private set; }
+        /// <summary>Ki ganho ao matar, em fração da barra cheia.</summary>
+        public static ConfigEntry<float> KiOnKillBarFraction { get; private set; }
 
         // ---------- 2.1 - Combat ----------
 
@@ -1239,30 +1239,31 @@ namespace Saiyaheim
                     "leaves you exposed. (Both tested in the 2026-07-28 playtest; standing still won.)",
                     null, AdminOnly(50)));
 
-            // Recompensa de luta boa, e nao so de ficar parado recarregando. Medida em SOCOS, e
-            // nao em ki nem em fracao da barra: o custo do soco ja escala com o poder e ja leva o
-            // desconto de fim de jogo (BattlePower.GetKiCostFactor), entao "um parry paga dois
-            // socos" continua verdade do primeiro bioma ao ultimo sem recalibrar nada. Os numeros
-            // 2 e 4 sao do Henrique, 2026-09-17, antes de qualquer playtest.
+            // Recompensa de luta boa, e nao so de ficar parado recarregando.
             //
-            // 2026-09-20, rework do custo de ki: subiram para 3 e 6. Sao a compensacao pelo que
-            // ficou de fora do rework — a regeneracao passiva continua desligada dentro da forma,
-            // e ganhar ki por soco foi recusado. Com o custo da acao subindo, luta longa precisa
-            // de alguma entrada, e a entrada escolhida exige jogar bem em vez de so acertar.
-            KiOnParryPunches = config.Bind(SecKi, "KiOnParryPunches", 3f,
+            // Em FRACAO DA BARRA desde 2026-09-25 (0.5.1). Antes era em socos — multiplos do custo
+            // de ki de um soco agora —, com a ideia de a recompensa acompanhar o poder sem
+            // calibragem propria. Nao acompanhou: o custo do soco e a barra crescem por caminhos
+            // diferentes (o soco pelo poder de combate, a barra pelo nivel), e com os 6 socos do
+            // rework de 2026-09-20 uma kill enchia a barra inteira do nivel 15 ao 30. Bug
+            // reportado no Nexus. E a unidade soco ainda carregava a sobretaxa da forma, entao
+            // matar transformado pagava mais, o contrario do que a sobretaxa existe para fazer.
+            //
+            // Fracao da barra diz o mesmo do primeiro bioma ao ultimo, e e' o numero que o
+            // jogador ve. Os valores (metade por kill, um quarto por parry) sao do Henrique.
+            KiOnParryBarFraction = config.Bind(SecKi, "KiOnParryBarFraction", 0.25f,
                 new ConfigDescription(
-                    "Ki gained on a successful parry (a block timed right), measured in punches: " +
-                    "3 means the ki cost of three punches at your current power. Only with ki on, " +
-                    "and only when the parry actually stopped damage. 0 disables it.",
-                    new AcceptableValueRange<float>(0f, 50f), AdminOnly(45)));
+                    "Ki gained on a successful parry (a block timed right), as a fraction of your " +
+                    "full ki bar: 0.25 refills a quarter of it. Only with ki on, and only when the " +
+                    "parry actually stopped damage. 0 disables it.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(45)));
 
-            KiOnKillPunches = config.Bind(SecKi, "KiOnKillPunches", 6f,
+            KiOnKillBarFraction = config.Bind(SecKi, "KiOnKillBarFraction", 0.5f,
                 new ConfigDescription(
-                    "Ki gained for landing the killing blow on a creature, measured in punches: " +
-                    "6 means the ki cost of six punches at your current power. Any weapon or ki " +
-                    "attack counts, as long as ki is on. Tamed creatures and players give nothing. " +
-                    "0 disables it.",
-                    new AcceptableValueRange<float>(0f, 50f), AdminOnly(40)));
+                    "Ki gained for landing the killing blow on a creature, as a fraction of your " +
+                    "full ki bar: 0.5 refills half of it. Any weapon or ki attack counts, as long " +
+                    "as ki is on. Tamed creatures and players give nothing. 0 disables it.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(40)));
 
             // --- Combate ---
             // O numero mais arriscado da etapa 3: alto demais e o combate vira gerenciamento

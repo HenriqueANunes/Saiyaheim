@@ -1,14 +1,13 @@
-using Saiyaheim.Power;
-
 namespace Saiyaheim.Ki
 {
     /// <summary>
     /// Ki ganho por lutar bem: acertar um parry e dar o golpe final.
     ///
-    /// <b>A unidade é o soco.</b> O valor da config multiplica o custo de ki de um soco do jogador
-    /// <b>agora</b> (<see cref="BattlePower.GetPunchKiCost"/>). Esse custo já cresce com o poder e já
-    /// leva o desconto de fim de jogo, então a recompensa acompanha a barra sem calibragem própria.
-    /// Pedido pelo Henrique em 2026-09-17: parry vale dois socos, kill vale quatro.
+    /// <b>A unidade é a barra.</b> O valor da config é a fração do ki máximo do jogador
+    /// <b>agora</b>: kill devolve metade, parry um quarto. Até 2026-09-25 a unidade era o soco
+    /// (múltiplos do custo de ki de um soco), e isso enchia a barra inteira numa kill no meio do
+    /// jogo, porque o custo do soco e a barra crescem por caminhos diferentes. Ver o comentário das
+    /// chaves no <see cref="SaiyaheimConfig"/>.
     ///
     /// <b>Tudo aqui roda na máquina do jogador que ganha</b>, porque o ki é estado local. Quem
     /// detecta o parry é o <c>BlockPowerPatch</c>, que já roda no dono do <c>Player</c>. Quem detecta
@@ -19,12 +18,12 @@ namespace Saiyaheim.Ki
     {
         internal static void OnParry(Player player)
         {
-            Grant(player, SaiyaheimConfig.KiOnParryPunches.Value, "parry");
+            Grant(player, SaiyaheimConfig.KiOnParryBarFraction.Value, "parry");
         }
 
         internal static void OnKill(Player player)
         {
-            Grant(player, SaiyaheimConfig.KiOnKillPunches.Value, "kill");
+            Grant(player, SaiyaheimConfig.KiOnKillBarFraction.Value, "kill");
         }
 
         /// <summary>
@@ -36,20 +35,19 @@ namespace Saiyaheim.Ki
             return target != null && !target.IsPlayer() && !target.IsTamed();
         }
 
-        private static void Grant(Player player, float punches, string reason)
+        private static void Grant(Player player, float fraction, string reason)
         {
-            if (player == null || player != Player.m_localPlayer || punches <= 0f || !KiManager.IsEnabled)
+            if (player == null || player != Player.m_localPlayer || fraction <= 0f || !KiManager.IsEnabled)
             {
                 return;
             }
 
-            float perPunch = BattlePower.GetPunchKiCost(player, BattlePower.GetPunchDamageBonus(player));
-            float amount = perPunch * punches;
+            float amount = KiManager.MaxFor(player) * fraction;
 
             KiManager.Gain(amount);
 
             SaiyaheimPlugin.LogVerbose(
-                $"Ki reward: {reason} → +{amount:0.#} ki ({punches:0.#} x {perPunch:0.#} per punch, " +
+                $"Ki reward: {reason} → +{amount:0.#} ki ({fraction:0.##} of the bar, " +
                 $"{KiManager.Current:0.#} now).");
         }
     }

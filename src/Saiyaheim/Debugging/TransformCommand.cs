@@ -829,9 +829,8 @@ namespace Saiyaheim.Debugging
         /// resposta depende do dano: sem o poder de combate já calculado não dá para dizer quanto
         /// um soco rende.
         ///
-        /// <b>O soco é a unidade</b> pelo mesmo motivo que já é a unidade das recompensas de ki
-        /// (<c>KiOnParryPunches</c>): é o golpe que o jogador dá o tempo todo, e contar em socos é
-        /// a única forma de a estimativa dizer alguma coisa sobre a sessão dele.
+        /// <b>O soco é a unidade</b> porque é o golpe que o jogador dá o tempo todo, e contar em
+        /// socos é a única forma de a estimativa dizer alguma coisa sobre a sessão dele.
         ///
         /// ⚠️ Usa o <b>bônus</b> de dano do soco como tamanho do golpe, não o dano aplicado: a
         /// base vanilla desarmada e a armadura do alvo ficam de fora, então isto <b>subestima</b> o

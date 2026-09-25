@@ -115,6 +115,16 @@ namespace Saiyaheim.Util
                 }
             }
 
+            int removed = 0;
+
+            foreach (Removal removal in Removals())
+            {
+                if (removal.Version > from && Remove(config, removal))
+                {
+                    removed++;
+                }
+            }
+
             SaiyaheimConfig.ConfigVersion.Value = CurrentVersion;
             config.Save();
 
@@ -122,7 +132,75 @@ namespace Saiyaheim.Util
             // nada casou com um default antigo. É o caso normal e não merece alarde.
             SaiyaheimPlugin.Log.LogInfo(
                 $"Config migrated from version {from} to {CurrentVersion}: " +
-                $"{applied} key(s) updated, {kept} customized key(s) kept.");
+                $"{applied} key(s) updated, {kept} customized key(s) kept, {removed} obsolete key(s) removed.");
+        }
+
+        /// <summary>Uma chave que saiu do mod e deve sumir do <c>.cfg</c> de quem já a tinha.</summary>
+        private readonly struct Removal
+        {
+            internal Removal(int version, string section, string key)
+            {
+                Version = version;
+                Section = section;
+                Key = key;
+            }
+
+            internal int Version { get; }
+            internal string Section { get; }
+            internal string Key { get; }
+        }
+
+        /// <summary>
+        /// Apaga uma chave órfã do arquivo.
+        ///
+        /// O BepInEx guarda a linha de uma chave que ninguém mais registra num dicionário privado
+        /// (<c>OrphanedEntries</c>) e a devolve ao arquivo a cada <c>Save</c> — é por isso que
+        /// renomear chave deixava a velha para sempre. O caminho sem reflexão: um <c>Bind</c> na
+        /// chave velha tira a linha do dicionário de órfãs e a transforma em entrada, e o
+        /// <c>Remove</c> público apaga a entrada. O <c>Save</c> do fim do <c>Run</c> grava sem ela.
+        ///
+        /// Devolve false quando a chave não estava no arquivo: instalação nova, ou apagada à mão.
+        /// </summary>
+        private static bool Remove(ConfigFile config, Removal removal)
+        {
+            var definition = new ConfigDefinition(removal.Section, removal.Key);
+
+            // Sem o Bind nao ha como saber se a linha existia: o dicionario de orfas e' privado.
+            // Um default que o arquivo nunca teria distingue "veio do arquivo" de "acabou de nascer".
+            const string Absent = "<saiyaheim: absent>";
+
+            // O Bind grava o arquivo na hora quando SaveOnConfigSet esta' ligado, e gravaria a
+            // chave velha de volta (ou o marcador acima, numa instalacao nova) ate' o Save do fim.
+            bool saveOnSet = config.SaveOnConfigSet;
+            config.SaveOnConfigSet = false;
+
+            ConfigEntry<string> entry = config.Bind(definition, Absent);
+            bool existed = entry.Value != Absent;
+            config.Remove(definition);
+
+            config.SaveOnConfigSet = saveOnSet;
+
+            if (existed)
+            {
+                SaiyaheimPlugin.Log.LogInfo($"[{removal.Section}] {removal.Key}: removed (was {entry.Value}).");
+            }
+
+            return existed;
+        }
+
+        /// <summary>
+        /// As chaves que saíram do mod. Como a tabela de <see cref="Changes"/>, linha antiga nunca
+        /// sai: é ela que limpa o arquivo de quem pulou versões.
+        /// </summary>
+        private static IEnumerable<Removal> Removals()
+        {
+            // ---------- 7 (2026-09-25) — recompensa de ki passa de socos para fracao da barra ----------
+            //
+            // Nao ha conversao: N socos nao correspondem a fracao nenhuma fixa, porque o custo do
+            // soco e a barra crescem por caminhos diferentes — foi esse o bug. Quem tinha as chaves
+            // velhas recebe as novas com o default, e o log diz qual era o valor apagado.
+            yield return new Removal(7, "2 - Ki", "KiOnParryPunches");
+            yield return new Removal(7, "2 - Ki", "KiOnKillPunches");
         }
 
         /// <summary>O que a migração fez com uma chave. Separa "preservei o teu valor" de "não havia nada a fazer".</summary>
@@ -222,8 +300,9 @@ namespace Saiyaheim.Util
             yield return new Change(1, SaiyaheimConfig.BlockKiCost, 0.5f, true);
             yield return new Change(1, SaiyaheimConfig.DamageTakenKiCost, 1f, true);
 
-            yield return new Change(1, SaiyaheimConfig.KiOnParryPunches, 2f, true);
-            yield return new Change(1, SaiyaheimConfig.KiOnKillPunches, 4f, true);
+            // Aqui moravam KiOnParryPunches 2 -> 3 e KiOnKillPunches 4 -> 6. As duas chaves sairam
+            // do mod na migracao 7 (2026-09-25), trocadas por fracao da barra, e sao apagadas do
+            // arquivo por ela — ver Removals().
 
             yield return new Change(1, SaiyaheimConfig.FlightKiPerSecond, 5f, true);
             yield return new Change(1, SaiyaheimConfig.FlightKiSkillCurve, 2f, true);
