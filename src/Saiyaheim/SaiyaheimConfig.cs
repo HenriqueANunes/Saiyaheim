@@ -1053,7 +1053,8 @@ namespace Saiyaheim
                     "always level and only Jump and Crouch change altitude. Aim: moving forward " +
                     "flies where you are looking, up and down included, and moving back flies the " +
                     "opposite way; strafing stays level and Jump and Crouch still work on top. " +
-                    "Works on the ground or in the air, and the choice is saved with the character.",
+                    "Aim is the default. Works on the ground or in the air, and the choice is " +
+                    "saved with the character.",
                     null, ClientSide(77)));
 
             // Quatro teclas, em dois pares: T/G resolvem o caso comum de um toque so — "poder

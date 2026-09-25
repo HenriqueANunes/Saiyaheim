@@ -69,8 +69,9 @@ by construction.
 
 - Toggle key to take off and land, or a quick double tap of Jump to take off.
 - While flying, the usual controls apply: Jump climbs, Crouch descends, Run flies fast.
-- Alt+F switches to **aim flight**: moving forward flies where you are looking, up and down
-  included. The choice is saved with the character.
+- Flight follows your aim by default: moving forward flies where you are looking, up and down
+  included. Alt+F switches to **classic flight**, where forward stays level. The choice is saved
+  with the character.
 - Costs ki continuously. Running out in mid-air means you fall.
 - Speed scales with your **Flight** skill (its own custom skill) and with Battle Power, and
   drops with carried weight — on a curve, so a light load costs almost nothing and a full

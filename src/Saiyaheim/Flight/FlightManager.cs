@@ -58,7 +58,9 @@ namespace Saiyaheim.Flight
         /// <summary>
         /// Modo do voo, salvo no personagem. Estado e não preferência, então fica fora do .cfg: o
         /// <c>m_customData</c> é serializado pelo próprio jogo junto do save, como o ki do
-        /// <c>KiState</c>. Ausente é o modo clássico.
+        /// <c>KiState</c>. Ausente é o modo da mira: é o padrão desde a 0.5.1, para quem cria
+        /// personagem novo não precisar descobrir o Alt+F. "0" só existe depois de alternar para o
+        /// clássico.
         /// </summary>
         private const string KeySteerByAim = "saiyaheim.flightSteerByAim";
 
@@ -66,7 +68,7 @@ namespace Saiyaheim.Flight
         internal static bool SteersByAim(Player player)
         {
             return player != null && player.m_customData != null
-                   && player.m_customData.TryGetValue(KeySteerByAim, out string raw) && raw == "1";
+                   && !(player.m_customData.TryGetValue(KeySteerByAim, out string raw) && raw == "0");
         }
 
         private static void SetSteersByAim(Player player, bool steerByAim)

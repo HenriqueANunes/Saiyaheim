@@ -4,6 +4,7 @@
 
 - Changed: the Kamehameha reaches a full charge in 4 seconds instead of 5.
 - Changed: hovering in place while enemies are alerted nearby now costs 3x ki instead of 2x.
+- Changed: aim flight is now the default; Alt+F switches to classic flight. Characters that already picked a mode keep it.
 - Changed: a kill now restores half of your ki bar and a parry a quarter;
 - Fixed: you can no longer gain altitude while charging ki in flight; rising or diving now interrupts the charge.
 - Fixed: you can no longer charge ki while charging a Kamehameha.
