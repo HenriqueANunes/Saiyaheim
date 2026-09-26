@@ -30,6 +30,14 @@
          ausência do arquivo seria erro de compilação. -->
     <EmbeddedResource Include="Assets\saiyaheim_hair" Condition="Exists('Assets\saiyaheim_hair')" />
 
+    <!-- Bundle dos efeitos próprios (aura de carregar ki), mesmo esquema do de cabelo. Este leva
+         shader, que é compilado por plataforma, então vão os dois e o CustomEffects escolhe em
+         runtime. LogicalName fixa o nome do recurso: sem ele o MSBuild monta o nome pelo caminho. -->
+    <EmbeddedResource Include="Assets\fx\linux\saiyaheim_fx" LogicalName="saiyaheim_fx.linux"
+                      Condition="Exists('Assets\fx\linux\saiyaheim_fx')" />
+    <EmbeddedResource Include="Assets\fx\win\saiyaheim_fx" LogicalName="saiyaheim_fx.win"
+                      Condition="Exists('Assets\fx\win\saiyaheim_fx')" />
+
     <!-- Ícones das skills (Power Level, Flight, maestrias). Arte final, versionada direto —
          diferente do bundle de cabelo, não é saída de pipeline gerada fora do repo. -->
     <EmbeddedResource Include="Assets\icons\*.png" />

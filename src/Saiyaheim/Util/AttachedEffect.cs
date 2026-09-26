@@ -10,8 +10,9 @@ namespace Saiyaheim.Util
     /// compartilhado, não criar ZDO, e desarmar o autodestruir dos prefabs — são sutis o bastante
     /// para que ter duas cópias significasse consertar cada bug duas vezes.
     ///
-    /// Nada de asset novo: tudo são prefabs <c>fx_</c>/<c>sfx_</c> que o jogo já carrega. Ver
-    /// [[Prefabs do Jogo]] no vault para a paleta levantada.
+    /// Quase tudo são prefabs <c>fx_</c>/<c>sfx_</c> que o jogo já carrega — ver [[Prefabs do
+    /// Jogo]] no vault para a paleta levantada. Nome que o jogo não conhece é procurado no bundle
+    /// do mod, pelo <see cref="CustomEffects"/>.
     /// </summary>
     internal static class AttachedEffect
     {
@@ -32,6 +33,12 @@ namespace Saiyaheim.Util
         /// corpo — um offset em espaço de mundo escorregaria para as costas ao virar.
         /// <c>Vector3.zero</c> é o comportamento de sempre, no chão sob o jogador.
         /// </param>
+        /// <param name="fadeDuration">
+        /// Só no estouro: segundos finais de <paramref name="burstDuration"/> em que o efeito
+        /// encolhe e fica transparente em vez de sumir de uma vez. Ver <see cref="BurstFade"/>.
+        /// 0 é o corte seco de sempre.
+        /// </param>
+        /// <param name="fadeEndScale">Fração do tamanho em que o fade termina. 1 só apaga.</param>
         /// <param name="parent">
         /// Onde prender. Null é o transform do jogador, que é o de sempre — o efeito no chão sob os
         /// pés. Passar o osso de uma mão faz o efeito ser <b>carregado pela animação</b> em vez de
@@ -41,14 +48,23 @@ namespace Saiyaheim.Util
         internal static GameObject Spawn(
             Player player, string prefabName, string colorHex, float scale, bool forceLoop,
             float lightIntensity = 1f, float burstDuration = 0f, Vector3 localOffset = default,
-            Transform parent = null)
+            Transform parent = null, float fadeDuration = 0f, float fadeEndScale = 1f)
         {
             if (player == null || string.IsNullOrEmpty(prefabName) || ZNetScene.instance == null)
             {
                 return null;
             }
 
+            // Efeito do jogo primeiro; o nosso bundle só é consultado (e carregado) para nome que
+            // o jogo não conhece. Ver CustomEffects.
             GameObject prefab = ZNetScene.instance.GetPrefab(prefabName);
+            bool custom = false;
+            if (prefab == null)
+            {
+                prefab = CustomEffects.GetPrefab(prefabName);
+                custom = prefab != null;
+            }
+
             if (prefab == null)
             {
                 SaiyaheimPlugin.Log.LogWarning(
@@ -80,7 +96,7 @@ namespace Saiyaheim.Util
             }
             else
             {
-                PrepareForBurst(instance, burstDuration);
+                PrepareForBurst(instance, burstDuration, fadeDuration, fadeEndScale);
             }
 
             ApplyTint(instance, colorHex);
@@ -97,6 +113,15 @@ namespace Saiyaheim.Util
             if (localOffset != Vector3.zero)
             {
                 instance.transform.localPosition = localOffset;
+            }
+            else if (custom)
+            {
+                // Prefab nosso foi montado no Unity em cima do boneco do jogador, com os pés na
+                // origem: a posição da raiz dele JÁ É a calibragem (a "Goku aura" tem a raiz em
+                // Y = 1 e os filhos de chão em Y = -1). O Instantiate acima jogou isso fora ao
+                // receber posição de mundo; aqui volta, acompanhando a escala para os filhos de
+                // chão continuarem no chão.
+                instance.transform.localPosition = prefab.transform.localPosition * scale;
             }
 
             return instance;
@@ -429,7 +454,8 @@ namespace Saiyaheim.Util
         /// <paramref name="duration"/> zero devolve a decisão ao prefab — escotilha para quando
         /// alguém apontar a chave para um prefab que já se comporta bem sozinho.
         /// </summary>
-        private static void PrepareForBurst(GameObject instance, float duration)
+        private static void PrepareForBurst(
+            GameObject instance, float duration, float fadeDuration, float fadeEndScale)
         {
             if (duration <= 0f)
             {
@@ -457,6 +483,17 @@ namespace Saiyaheim.Util
             // O TimedDestruction do jogo destrói o GameObject inteiro quando não acha ZNetView
             // válido — e o nosso não tem, porque o m_forceDisableInit do Spawn matou o dele. É
             // exatamente o caminho que queremos: efeito local, morte local.
+            if (fadeDuration > 0f)
+            {
+                // Quem destrói é o BurstFade, no fim do fade — um TimedDestruction junto seria o
+                // segundo relógio que este método existe para evitar.
+                BurstFade fade = instance.AddComponent<BurstFade>();
+                fade.Duration = duration;
+                fade.FadeDuration = fadeDuration;
+                fade.EndScale = fadeEndScale;
+                return;
+            }
+
             instance.AddComponent<TimedDestruction>().Trigger(duration);
         }
     }

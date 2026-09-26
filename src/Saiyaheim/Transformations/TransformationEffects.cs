@@ -275,7 +275,11 @@ namespace Saiyaheim.Transformations
                 SaiyaheimConfig.TransformAuraScale,
                 SaiyaheimConfig.TransformAuraForceLoop,
                 SaiyaheimConfig.TransformAuraLightIntensity,
-                SaiyaheimConfig.TransformAuraDuration);
+                SaiyaheimConfig.TransformAuraDuration,
+                fadeDuration: SaiyaheimConfig.TransformAuraFadeDuration,
+                // O BurstFade quer fração do tamanho de partida; o config dá o tamanho absoluto.
+                fadeEndScale: SaiyaheimConfig.TransformAuraFadeEndScale
+                              / Mathf.Max(0.01f, SaiyaheimConfig.TransformAuraScale));
         }
 
         private static void PlayEmote(Player player, string emote)

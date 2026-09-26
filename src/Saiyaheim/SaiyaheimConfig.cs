@@ -809,23 +809,30 @@ namespace Saiyaheim
         // Antes delas, aqui morava o ChargeEmote, removido em 2026-08-07: o emote de carregamento
         // saiu inteiro quando a pose procedural entrou. Ver KiChargePose.
 
-        /// <summary>Efeito preso ao jogador enquanto ele carrega ki.</summary>
-        public const string ChargeEffectPrefab = "fx_DvergerMage_Support_start";
+        /// <summary>
+        /// Efeito preso ao jogador enquanto ele carrega ki. Desde 2026-09-26 é a aura do pacote
+        /// "Goku aura" do Hovl Studio (a versão azul, renomeada para "Aura base"), que vem do bundle próprio do mod (ver
+        /// CustomEffects) — escala e altura foram calibradas no próprio prefab, no Unity, em cima
+        /// do boneco do jogador. Antes era o <c>fx_DvergerMage_Support_start</c> do jogo.
+        /// </summary>
+        public const string ChargeEffectPrefab = "Aura base";
 
         /// <summary>Som em loop enquanto carrega.</summary>
         public const string ChargeSoundPrefab = "sfx_charred_mage_attack_charge";
 
         /// <summary>
-        /// Cor do efeito de carregamento. Azul de ki, o mesmo da barra. Ignorada transformado: ali
-        /// o brilho sai na <c>AuraColor</c> da forma, para os dois lerem como uma coisa só.
+        /// Cor do efeito de carregamento. Vazia: a aura do Hovl já vem azul, e o tom dela foi o
+        /// aprovado no Unity — tingir por cima trocaria o azul dela pelo nosso. Era "#4FC3F7"
+        /// quando o efeito era o do Dverger. Ignorada transformado: ali o brilho sai na
+        /// <c>AuraColor</c> da forma, para os dois lerem como uma coisa só.
         /// </summary>
-        public const string ChargeEffectColor = "#4FC3F7";
+        public const string ChargeEffectColor = "";
 
         /// <summary>
-        /// Escala do efeito. O suporte do Dverger nasce pequeno demais na escala do jogador e
-        /// precisa dobrar. Calibrado no playtest de 2026-07-28.
+        /// Escala do efeito, multiplicando a do prefab. 1 porque a aura já sai do Unity no tamanho
+        /// certo. Era 2 com o suporte do Dverger (playtest de 2026-07-28), que nascia pequeno.
         /// </summary>
-        public const float ChargeEffectScale = 2f;
+        public const float ChargeEffectScale = 1f;
 
         /// <summary>
         /// Força partículas e áudio a repetir. Prefab do jogo é feito para um estouro curto; sem
@@ -842,15 +849,18 @@ namespace Saiyaheim
         /// <summary>
         /// Estouro da transformação. Mesmo prefab do carregamento de propósito: ele já se provou
         /// legível preso ao jogador, e quem separa os dois estados é a cor — azul carregando, a
-        /// cor da forma transformado. A cor não mora aqui: é por forma.
+        /// cor da forma transformado. A cor não mora aqui: é por forma. Seguiu o carregamento na
+        /// troca para a aura do Hovl Studio em 2026-09-26; antes os dois eram o
+        /// <c>fx_DvergerMage_Support_start</c>.
         /// </summary>
-        public const string TransformAuraPrefab = "fx_DvergerMage_Support_start";
+        public const string TransformAuraPrefab = "Aura base";
 
         /// <summary>
         /// Escala do estouro. Um pouco maior que o carregamento de propósito: transformar tem que
-        /// ler maior que carregar até lá.
+        /// ler maior que carregar até lá. 1.25 mantém a proporção que valia com o Dverger (2.5
+        /// contra 2 do carregamento); ainda não julgado na tela com a aura do Hovl.
         /// </summary>
-        public const float TransformAuraScale = 2.5f;
+        public const float TransformAuraScale = 1.25f;
 
         /// <summary>
         /// Segundos que o estouro dura, impostos por nós e não herdados do prefab — o
@@ -858,6 +868,21 @@ namespace Saiyaheim
         /// confiar nisso foi o que deixou o efeito aceso a forma inteira (2026-08-02).
         /// </summary>
         public const float TransformAuraDuration = 2f;
+
+        /// <summary>
+        /// Segundos finais do estouro em que a aura encolhe e fica transparente, em vez de sumir
+        /// de uma vez. Pedido no playtest de 2026-09-26: a aura do Hovl ainda está cheia quando o
+        /// <see cref="TransformAuraDuration"/> acaba. Ver <c>BurstFade</c>.
+        /// </summary>
+        public const float TransformAuraFadeDuration = 1f;
+
+        /// <summary>
+        /// Tamanho em que o fade do estouro termina, na mesma unidade do
+        /// <see cref="TransformAuraScale"/> e do <see cref="ChargeEffectScale"/> — não fração do
+        /// estouro. Playtest de 2026-09-26: a aura cresce ao transformar (1.25) e volta ao tamanho
+        /// da de carregar enquanto some. 0.5 do estouro e 0.9 absoluto encolhiam demais.
+        /// </summary>
+        public const float TransformAuraFadeEndScale = ChargeEffectScale;
 
         /// <summary>
         /// Manter o estouro aceso enquanto a forma durar. <b>false por playtest</b> (2026-08-02):

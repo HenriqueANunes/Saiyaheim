@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0
+
+- Changed: new aura when charging ki and when transforming;
+
 ## 0.5.1
 
 - Changed: the Kamehameha reaches a full charge in 4 seconds instead of 5.

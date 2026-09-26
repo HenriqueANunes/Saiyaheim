@@ -27,3 +27,7 @@ dist/
 # ~/Documents/projetos/Saiyaheim-Unity, com BundleBuilder.Build. Receita no vault, em
 # "Técnico/Malhas Custom.md". Sem ele o mod compila e roda — só não registra o cabelo custom.
 src/Saiyaheim/Assets/saiyaheim_hair
+
+# AssetBundle dos efeitos próprios (aura), um por plataforma. Mesma origem do de cabelo: sai do
+# BundleBuilder.Build. Sem ele o mod compila e roda — só fica sem a aura de carregar ki.
+src/Saiyaheim/Assets/fx/
