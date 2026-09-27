@@ -129,6 +129,33 @@ namespace Saiyaheim.Debugging
                       "— flight speed included, ki cap and regen excluded");
             }
             Print($"Damage added to punch: {(kiOn ? BattlePower.GetPunchDamageBonus(player).ToString("0.#") : "0 (ki off)")}");
+            if (kiOn)
+            {
+                // A tabela que calibra o 2.2 - Environment: o tier alcancado e, por tier, quanto um
+                // soco tira. "x1" no tier que acabou de liberar e' o desenho funcionando.
+                Print($"Tool tier reached: {EnvironmentDamage.GetToolTier(combat)} (combat power {combat:0})");
+                for (int tier = 0; tier <= EnvironmentDamage.MaxTier; tier++)
+                {
+                    float ratio = EnvironmentDamage.GetRatio(combat, tier);
+                    Print($"  tier {tier}: x{ratio:0.##} → " +
+                          $"{SaiyaheimConfig.EnvironmentChopDamage.Value * ratio:0.#} chop, " +
+                          $"{SaiyaheimConfig.EnvironmentPickaxeDamage.Value * ratio:0.#} pickaxe per punch" +
+                          $"{(tier > 0 && ratio < 1f ? " (locked)" : "")}" +
+                          $"{(EnvironmentDamage.IsKiOnly(tier) ? " — ki attacks only" : "")}");
+                }
+
+                // Ataque de ki alcanca tier com o poder multiplicado, mas o dano segue a tabela
+                // acima, com o poder de verdade, vezes quantos socos o projetil vale no inimigo.
+                foreach (Attacks.KiAttack attack in Attacks.KiAttackRegistry.All)
+                {
+                    float multiplier = attack.Config.TierPowerMultiplier.Value;
+                    float punch = BattlePower.GetPunchDamage(player);
+                    float weight = punch > 0f ? attack.GetDamage(player) / punch : 0f;
+                    Print($"  {attack.DisplayName}: x{multiplier:0.##} power for the tier → tier " +
+                          $"{EnvironmentDamage.GetToolTier(combat * multiplier)}; damage per " +
+                          $"projectile x{weight:0.##} the punch above, same as against an enemy");
+                }
+            }
             Print($"Armor: {player.GetBodyArmor():0.#} {(kiOn ? "(from power, equipment ignored)" : "(from equipment)")}");
             Print($"Ki: {KiManager.State?.Current ?? 0f:0.#}/{KiManager.Max:0.#}");
 

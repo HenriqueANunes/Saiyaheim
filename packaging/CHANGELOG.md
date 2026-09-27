@@ -4,6 +4,8 @@
 
 - Changed: new aura when charging ki and when transforming;
 - Fixed: the Kamehameha no longer stops at the water surface; it now hits enemies underwater.
+- Added: punches and ki attacks break trees, rocks and ore; the stronger you are, the harder the material you can break (based on BP).
+- Added: ki attacks break harder materials than punches (based on BP).
 
 ## 0.5.1
 

@@ -70,6 +70,13 @@ namespace Saiyaheim
         private const string SecCombat = "2.1 - Combat";
 
         /// <summary>
+        /// Soco e ki em árvore e minério. Seção própria porque nada aqui é combate: são os
+        /// limiares de battle power por tier de ferramenta e o dano de referência. Ver
+        /// <c>Power/EnvironmentDamage.cs</c>.
+        /// </summary>
+        private const string SecEnvironment = "2.2 - Environment";
+
+        /// <summary>
         /// Uma seção por forma. Não existe seção "3 - Transformations" genérica de propósito:
         /// <b>não há número compartilhado entre formas</b>. Multiplicador, dreno e maestria são
         /// da forma, e uma escada de cinco formas ([[Progressão por Bosses]]) precisa que cada
@@ -236,6 +243,13 @@ namespace Saiyaheim
 
         /// <summary>Fração do battle power somada ao dano do soco.</summary>
         public static ConfigEntry<float> PunchDamageFromPower { get; private set; }
+
+        /// <summary>Dano de corte em árvore com o battle power exatamente no limiar do tier dela.</summary>
+        public static ConfigEntry<float> EnvironmentChopDamage { get; private set; }
+
+        /// <summary>Dano em pedra e minério com o battle power exatamente no limiar do tier dela.</summary>
+        public static ConfigEntry<float> EnvironmentPickaxeDamage { get; private set; }
+
 
         /// <summary>Armadura garantida com o ki ligado, antes da parcela vinda do poder.</summary>
         public static ConfigEntry<float> ArmorBase { get; private set; }
@@ -547,6 +561,12 @@ namespace Saiyaheim
 
             /// <summary>Segundos entre um projétil e o seguinte do mesmo feixe.</summary>
             public ConfigEntry<float> BeamInterval { get; internal set; }
+
+            /// <summary>
+            /// Multiplicador do battle power quando este ataque bate em árvore e minério: vale para o
+            /// tier alcançado e para o dano. Ver <c>Power/EnvironmentDamage.cs</c>.
+            /// </summary>
+            public ConfigEntry<float> TierPowerMultiplier { get; internal set; }
 
             /// <summary>
             /// Segundos de tecla segurada até a carga cheia. 0 desliga o carregamento: o ataque
@@ -1474,6 +1494,32 @@ namespace Saiyaheim
                     "the punch was outscaling the biomes.)",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
+            // --- 2.2 - Environment ---
+            // O dano em arvore e minerio e' RELATIVO ao tier do alvo, nao ao poder cru — decisao
+            // de 2026-09-27. Com dano proporcional ao poder, o jogador chegava num tier novo ja'
+            // forte o bastante para derrubar a arvore recem-liberada em dois socos: o HP das
+            // arvores quase nao cresce entre tiers (faia 80, carvalho 200, Yggdrasil 100), e o
+            // poder cresce umas 4x no mesmo caminho. Pela razao, toda arvore recem-liberada custa
+            // o mesmo numero de socos, em qualquer tier.
+            EnvironmentChopDamage = config.Bind(SecEnvironment, "ChopDamage", 8f,
+                new ConfigDescription(
+                    "Chop damage a punch deals to a tree you have JUST become strong enough to " +
+                    "damage. Twice that strength deals twice this, so a newly unlocked tree always " +
+                    "takes the same number of punches, whatever the tier, and old ones fall fast. " +
+                    "Reference: a birch has 80 HP, an oak 200, the bronze axe deals 40. " +
+                    "Ki attacks use the same formula, weighted by how many punches one projectile " +
+                    "is worth against an enemy. The punch costs the same ki it costs against an " +
+                    "enemy, and with the bar empty it does nothing here. " +
+                    "(Starting value, 2026-09-27. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 500f), AdminOnly(100)));
+
+            EnvironmentPickaxeDamage = config.Bind(SecEnvironment, "PickaxeDamage", 6f,
+                new ConfigDescription(
+                    "Same as ChopDamage, for rocks and ore veins. " +
+                    "Reference: a chunk of copper vein has 50 HP, the antler pickaxe deals 18. " +
+                    "(Starting value, 2026-09-27. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 500f), AdminOnly(99)));
+
             ArmorBase = config.Bind(SecCombat, "ArmorBase", 1f,
                 new ConfigDescription(
                     "Armor guaranteed while ki is on, before the share that comes from power. " +
@@ -1903,6 +1949,10 @@ namespace Saiyaheim
                 cooldown: 0.5f,
                 // 2 m, escolha do Henrique em 2026-09-17 antes de playtest. Danifica construcao.
                 impactRadius: 2f,
+                // Um pouco acima do soco: o blast alcanca um tier antes da hora, que e' a sensacao de
+                // poder que o ataque de ki tem que passar. A area de 2 m pega as arvores vizinhas, e
+                // o custo fixo de 20 de ki ja' e' o preco — nada a mais por acertar arvore.
+                tierPowerMultiplier: 1.2f,
                 // Escolhido no playtest de 2026-08-20, ganhando do fireball Dvergr e do
                 // staff_greenroots_projectile. O estouro dele traz som e clarao bons e uma fumaca
                 // que nao combina com tiro de energia — dai o Strip abaixo, e nao um none no
@@ -1985,6 +2035,8 @@ namespace Saiyaheim
                 // o que se via era uma rajada curta. Playtest de 2026-09-07 subiu para 60, e a
                 // cadencia por segundo ficou igual — o que mudou foi quanto tempo o feixe DURA.
                 beamCount: 60,
+                // Acima do blast, e o feixe acerta uma vez por projetil: 60 golpes na carga cheia.
+                tierPowerMultiplier: 1.5f,
                 // 0,03 e nao 0,025: calibrado no .cfg e promovido em 2026-09-15. A 50 m/s sao 1,5 m
                 // entre um projetil e o seguinte.
                 beamInterval: 0.03f,
@@ -2963,7 +3015,7 @@ namespace Saiyaheim
             bool chargeFullEffectReplaces = true, float chargeEffectForward = 0f,
             EffectAnchor chargeEffectAnchor = EffectAnchor.RightHand,
             string chargeBallPrefab = "", string chargeBallColor = "", float chargeBallScale = 1f,
-            string chargeBallStrip = "")
+            string chargeBallStrip = "", float tierPowerMultiplier = 1f)
         {
             return new KiAttackConfig
             {
@@ -3071,6 +3123,27 @@ namespace Saiyaheim
                         "Aim is recomputed for every projectile, so a long beam follows the " +
                         "crosshair instead of pointing where it started.",
                         new AcceptableValueRange<float>(0.01f, 1f), AdminOnly(83))),
+
+                // Multiplica o PODER, nao o dano do ataque — decisao de 2026-09-27. O dano do ataque
+                // contra criatura cresce com o poder cru, e usa-lo em arvore trazia de volta o
+                // problema que a razao pelo tier resolveu: arvore recem-liberada caindo em dois
+                // tiros. Multiplicando o poder, o ataque alcanca tier antes do soco e bate mais
+                // forte na mesma proporcao, pela mesma formula.
+                TierPowerMultiplier = config.Bind(section, "TierPowerMultiplier", tierPowerMultiplier,
+                    new ConfigDescription(
+                        "Battle power multiplier this attack uses against trees, rocks and ore. " +
+                        "It raises ONLY the tier the attack reaches (at 1.2, a character at 1000 " +
+                        "power breaks what needs 1200). Damage there uses your real power, through " +
+                        "the same formula as the punch (ChopDamage and PickaxeDamage in the " +
+                        "Environment section, times your power over the target's tier threshold), " +
+                        "so a tier reached only thanks to this is chipped slowly. That damage is then " +
+                        "weighted by how many punches one projectile is worth against an enemy, " +
+                        "so a beam of weak projectiles stays weak on trees too. It does NOT touch " +
+                        "damage against enemies. Applies per projectile: a beam hits once per " +
+                        "projectile, and every tree inside the explosion radius takes the hit. " +
+                        "0 turns off damage to trees, rocks and ore. " +
+                        "(Starting value, 2026-09-27. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 10f), AdminOnly(78))),
 
                 // O carregamento e' o que separa o Kamehameha do ki blast: nao a cor nem o prefab,
                 // mas a decisao de quanto gastar, tomada com o dedo na tecla e o inimigo vindo.

@@ -125,9 +125,17 @@ namespace Saiyaheim.Power
             {
                 // Contusão pura: é o soco base. O sabor por forma entra logo abaixo, repartindo
                 // este total — nunca somando.
-                hitData.m_damage.m_blunt += ResolveBonusForThisFrame();
+                float bonus = ResolveBonusForThisFrame();
+                hitData.m_damage.m_blunt += bonus;
 
                 ApplyFormFlavor(hitData);
+
+                // Árvore e minério: o mesmo ki do soco comum, já pago acima. Sem ki, sem bônus e
+                // sem marcador — o soco volta a ser vanilla, que não faz nada em árvore.
+                if (bonus > 0f)
+                {
+                    EnvironmentDamage.Mark(hitData, 1f);
+                }
             }
 
             // Base por último: o SE_Stats multiplica, e queremos (base + poder) * mult,

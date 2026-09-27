@@ -529,6 +529,10 @@ namespace Saiyaheim.Attacks
             // Zero apaga o status effect que o prefab trazia — ver Defuse.
             hit.m_statusEffectHash = 0;
 
+            // Árvore e minério. Vai no m_damage porque é a única parte do HitData que o Projectile
+            // copia para o golpe de cada impacto. Ver Power/EnvironmentDamage.
+            Power.EnvironmentDamage.Mark(hit, attack.Config.TierPowerMultiplier.Value);
+
             return hit;
         }
     }

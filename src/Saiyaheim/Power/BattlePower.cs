@@ -205,6 +205,23 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
+        /// O soco inteiro contra inimigo, com a forma: o desarmado vanilla mais o bônus do poder.
+        /// É a régua com que o <see cref="EnvironmentDamage"/> mede os ataques de ki.
+        /// </summary>
+        internal static float GetPunchDamage(Player player)
+        {
+            if (player == null)
+            {
+                return 0f;
+            }
+
+            ItemDrop.ItemData unarmed = player.m_unarmedWeapon?.m_itemData;
+            float vanilla = unarmed == null ? 0f : unarmed.GetDamage().GetTotalDamage();
+
+            return vanilla + GetPunchDamageBonus(player);
+        }
+
+        /// <summary>
         /// O bônus de soco de um poder de combate <b>hipotético</b>. Existe para o
         /// <c>saiya_form</c> poder mostrar o antes e o depois da transformação sem copiar a
         /// fórmula — e sem transformar o jogador para descobrir.
