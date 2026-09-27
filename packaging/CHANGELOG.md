@@ -3,6 +3,7 @@
 ## 0.6.0
 
 - Changed: new aura when charging ki and when transforming;
+- Fixed: the Kamehameha no longer stops at the water surface; it now hits enemies underwater.
 
 ## 0.5.1
 

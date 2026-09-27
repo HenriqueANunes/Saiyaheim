@@ -228,6 +228,13 @@ namespace Saiyaheim.Attacks
             // so' no impacto. Um prefab de magia pode trazer ligado.
             projectile.m_hitMidFlight = false;
 
+            // Com este campo o FixedUpdate trata a superficie da agua como impacto: o projetil
+            // explode ali e morre, e o alvo meio submerso (sanguessuga) fica fora da area. O
+            // projectile_beam do Kamehameha vem com ele ligado; a bola de fogo do ki blast nao, e
+            // por isso so' o feixe parava na agua. Relatado no Nexus em 2026-09-27. Desligado, o
+            // projetil segue por baixo da agua ate' terreno, alvo ou ttl — como o ki blast.
+            projectile.m_canHitWater = false;
+
             projectile.m_ttl = Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);
             // Gravidade zero, e não uma chave: um tiro de energia voa reto. Com arco o projétil
             // cair é o que se mira; aqui seria pedra atirada. Esteve no .cfg até 2026-09-13, nos
