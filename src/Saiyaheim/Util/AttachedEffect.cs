@@ -416,7 +416,18 @@ namespace Saiyaheim.Util
             foreach (ParticleSystem particles in instance.GetComponentsInChildren<ParticleSystem>(true))
             {
                 ParticleSystem.MainModule main = particles.main;
-                main.loop = true;
+
+                // ⚠️ Sistema com ring buffer já é sustentado por construção: a partícula não morre
+                // no fim da vida, fica parada até ser substituída. É assim que a "Goku aura" do
+                // Hovl mantém a casca da aura acesa com um único disparo sem loop. Forçar o loop
+                // ali disparava uma casca nova por ciclo sem que a anterior morresse, e as cascas
+                // se somavam — a aura nascia translúcida e ia ficando opaca segundo a segundo
+                // (playtest de 2026-09-27).
+                if (main.ringBufferMode == ParticleSystemRingBufferMode.Disabled)
+                {
+                    main.loop = true;
+                }
+
                 particles.Play();
             }
 
