@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 7;
+        internal const int CurrentVersion = 8;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -201,6 +201,27 @@ namespace Saiyaheim.Util
             // velhas recebe as novas com o default, e o log diz qual era o valor apagado.
             yield return new Removal(7, "2 - Ki", "KiOnParryPunches");
             yield return new Removal(7, "2 - Ki", "KiOnKillPunches");
+
+            // ---------- 8 (2026-09-28) — XP de maestria vira uma regra so' para a escada ----------
+            //
+            // As chaves de XP saem das secoes de cada forma e vao para "3 - Transformations",
+            // junto com a MasteryXpCurveCompensation nova. Nao ha copia do valor velho para a
+            // secao nova, e isso e' de proposito: a taxa caiu de 0,0125 para 0,0045 PORQUE a
+            // compensacao entrou, e um valor calibrado contra a curva velha lido pela nova
+            // deixaria o comeco 2,8x mais rapido. E' o mesmo raciocinio do Force das migracoes
+            // anteriores — rework que nao funciona pela metade. O log diz qual era cada valor
+            // apagado, para quem quiser refazer a conta a mao.
+            //
+            // O MasteryXpPerSecond ja' era orfao desde 2026-09-20 e sai de carona.
+            foreach (string section in new[] { "3.1 - SSJ", "3.2 - SSJ2", "3.3 - SSJ3", "3.4 - SSJ God" })
+            {
+                yield return new Removal(8, section, "MasteryXpPerDamageDealt");
+                yield return new Removal(8, section, "MasteryXpPerDamageTaken");
+                yield return new Removal(8, section, "MasteryXpMaxPerEvent");
+                yield return new Removal(8, section, "MasteryXpPerBossBonus");
+                yield return new Removal(8, section, "MasteryXpBossMultiplierMax");
+                yield return new Removal(8, section, "MasteryXpPerSecond");
+            }
         }
 
         /// <summary>O que a migração fez com uma chave. Separa "preservei o teu valor" de "não havia nada a fazer".</summary>
@@ -370,17 +391,10 @@ namespace Saiyaheim.Util
             // Force porque taxa e teto sao o mesmo ajuste partido em dois — um .cfg com a taxa
             // nova e o teto velho nao e' nenhum dos dois balanceamentos. O Power Level nao foi
             // tocado, entao nao ha linha dele aqui.
-            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpPerDamageDealt, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpPerDamageTaken, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj.MasteryXpMaxPerEvent, 50f, true);
-
-            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpPerDamageDealt, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpPerDamageTaken, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj2.MasteryXpMaxPerEvent, 50f, true);
-
-            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpPerDamageDealt, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpPerDamageTaken, 0.5f, true);
-            yield return new Change(5, SaiyaheimConfig.Ssj3.MasteryXpMaxPerEvent, 50f, true);
+            // Aqui moravam as linhas de XP de maestria das tres formas (0,5 -> 0,25, teto 50 -> 25).
+            // As chaves por forma sairam do mod na migracao 8 (2026-09-28), trocadas pela secao
+            // compartilhada "3 - Transformations", e sao apagadas do arquivo por ela — ver
+            // Removals().
 
             yield return new Change(5, SaiyaheimConfig.FlightXpPerMeter, 0.15f, true);
 
@@ -409,26 +423,9 @@ namespace Saiyaheim.Util
             // migração 5 escreve o default de hoje e a daqui já a encontra em ordem.
             yield return new Change(6, SaiyaheimConfig.CombatFormKiShare, 1f, true);
 
-            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpPerDamageDealt, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpPerDamageTaken, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpMaxPerEvent, 25f, true);
-
-            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpPerDamageDealt, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpPerDamageTaken, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpMaxPerEvent, 25f, true);
-
-            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpPerDamageDealt, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpPerDamageTaken, 0.25f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpMaxPerEvent, 25f, true);
-
-            // O teto do bonus de boss sobe junto, e pela mesma conta: ele existe para o degrau
-            // velho recuperar terreno conforme o mundo anda, e com a taxa base num vigesimo do que
-            // era um teto de x2 encerrava essa recuperacao quase no momento em que ela comecava.
-            // Force porque o teto e' parte do mesmo ajuste — corte de taxa com teto velho e' a
-            // metade que nao recupera nada.
-            yield return new Change(6, SaiyaheimConfig.Ssj.MasteryXpBossMultiplierMax, 2f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj2.MasteryXpBossMultiplierMax, 2f, true);
-            yield return new Change(6, SaiyaheimConfig.Ssj3.MasteryXpBossMultiplierMax, 2f, true);
+            // Aqui moravam as linhas de XP de maestria das tres formas (0,25 -> 0,0125, teto 25 ->
+            // 1,25, teto do bonus de boss 2 -> 4). Sairam pelo mesmo motivo das da migracao 5: as
+            // chaves por forma deixaram de existir na migracao 8 — ver Removals().
 
             // ---------- 7 (2026-09-25) — Kamehameha carrega mais rápido, pairar em combate encarece ----------
             //

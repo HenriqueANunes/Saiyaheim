@@ -354,10 +354,16 @@ namespace Saiyaheim.Transformations
         /// serve. Voar transformado também não paga nada — quem quer baratear a forma luta dentro
         /// dela.
         ///
-        /// <b>O grampo entra antes do multiplicador de boss</b>, e não depois como o do Power
-        /// Level: o bônus de boss corrige o degrau velho que ficou para trás
-        /// (<see cref="GetBossXpMultiplier"/>), e deixar o grampo comê-lo anularia a correção
+        /// <code>min(dano × taxa, grampo) × compensação de curva × multiplicador de boss</code>
+        ///
+        /// <b>O grampo entra antes dos dois multiplicadores</b>, e não depois como o do Power
+        /// Level: a compensação corrige o fim da curva (<see cref="GetCurveXpMultiplier"/>) e o
+        /// bônus de boss corrige o degrau velho que ficou para trás
+        /// (<see cref="GetBossXpMultiplier"/>). Deixar o grampo comê-los anularia a correção
         /// justamente onde ela existe para fazer efeito.
+        ///
+        /// As chaves de XP são as mesmas para todas as formas, desde 2026-09-28. O que é desta
+        /// forma é o <b>nível</b> que entra na compensação de curva.
         ///
         /// <b>Isto é o pagamento de uma forma só.</b> O golpe treina também os degraus abaixo, mas
         /// essa regra é da escada e mora no
@@ -373,15 +379,16 @@ namespace Saiyaheim.Transformations
             }
 
             float rate = dealt
-                ? Config.MasteryXpPerDamageDealt.Value
-                : Config.MasteryXpPerDamageTaken.Value;
+                ? SaiyaheimConfig.MasteryXpPerDamageDealt.Value
+                : SaiyaheimConfig.MasteryXpPerDamageTaken.Value;
 
             if (rate <= 0f)
             {
                 return;
             }
 
-            float xp = Mathf.Min(applied * rate, Config.MasteryXpMaxPerEvent.Value)
+            float xp = Mathf.Min(applied * rate, SaiyaheimConfig.MasteryXpMaxPerEvent.Value)
+                       * GetCurveXpMultiplier(player)
                        * GetBossXpMultiplier();
 
             if (xp <= 0f)
@@ -390,6 +397,50 @@ namespace Saiyaheim.Transformations
             }
 
             player.RaiseSkill(SkillType, xp);
+        }
+
+        /// <summary>
+        /// Quanto do custo crescente dos níveis do Valheim o XP de maestria devolve, no nível em
+        /// que <b>esta</b> forma está.
+        ///
+        /// <code>custo do próximo nível ^ MasteryXpCurveCompensation</code>
+        ///
+        /// <b>Por que existe.</b> O XP pago é linear no dano, e o custo de cada nível cresce como
+        /// <c>(nível+1)^1,5</c>. Os três cortes da taxa até 2026-09-21 acertaram o começo e
+        /// afundaram o fim: o SSJ no nível 66 pedia 399 socos por nível. Com o expoente em 0,8
+        /// (playtest de 2026-09-28) o custo em golpes continua subindo, só que como
+        /// <c>req^0,2</c> em vez da curva inteira. Ver [[Melhorias]], "Maestria das formas trava no meio da curva".
+        ///
+        /// <b>O nível é desta forma</b>, não o da ativa: um golpe em SSJ2 paga o SSJ também, e o
+        /// SSJ no 80 tem de receber a compensação do 80. É o <c>GetSkillLevel</c>, que já vem
+        /// sem fração — a mesma conta do <c>Skills.Skill.GetNextLevelRequirement</c>, que é
+        /// privado e por isso foi copiada aqui.
+        /// </summary>
+        internal float GetCurveXpMultiplier(Player player)
+        {
+            // Mesmo guarda do GetBossXpMultiplier, pelo mesmo motivo: perder a compensacao e'
+            // invisivel e recuperavel, travar o personagem nao.
+            if (SaiyaheimConfig.MasteryXpCurveCompensation == null)
+            {
+                return 1f;
+            }
+
+            float exponent = SaiyaheimConfig.MasteryXpCurveCompensation.Value;
+            if (exponent <= 0f)
+            {
+                return 1f;
+            }
+
+            return Mathf.Pow(NextLevelRequirement(GetSkillLevel(player)), exponent);
+        }
+
+        /// <summary>
+        /// XP que o nível <paramref name="level"/> custa para subir, copiado do
+        /// <c>Skills.Skill.GetNextLevelRequirement</c> (privado). Muda se o Valheim mudar a curva.
+        /// </summary>
+        internal static float NextLevelRequirement(float level)
+        {
+            return Mathf.Pow(Mathf.Floor(level + 1f), 1.5f) * 0.5f + 0.5f;
         }
 
         /// <summary>
@@ -425,12 +476,12 @@ namespace Saiyaheim.Transformations
             // Perder o multiplicador é invisível e recuperável; travar o personagem, não. Quando as
             // duas falhas são desse tamanho, a silenciosa é a certa — e o saiya_form imprime o
             // multiplicador justamente para que ela não fique escondida.
-            if (Config.MasteryXpPerBossBonus == null || Config.RequiredGlobalKey == null)
+            if (SaiyaheimConfig.MasteryXpPerBossBonus == null || Config.RequiredGlobalKey == null)
             {
                 return 1f;
             }
 
-            float step = Config.MasteryXpPerBossBonus.Value;
+            float step = SaiyaheimConfig.MasteryXpPerBossBonus.Value;
             if (step <= 0f)
             {
                 return 1f;
@@ -454,9 +505,9 @@ namespace Saiyaheim.Transformations
             // Teto: o bônus corrige o atraso do degrau velho, não acelera sem limite. Entrada não
             // ligada cai no comportamento sem teto, pelo mesmo motivo do guarda lá em cima.
             float multiplier = 1f + step * ahead;
-            return Config.MasteryXpBossMultiplierMax == null
+            return SaiyaheimConfig.MasteryXpBossMultiplierMax == null
                 ? multiplier
-                : Mathf.Min(multiplier, Mathf.Max(1f, Config.MasteryXpBossMultiplierMax.Value));
+                : Mathf.Min(multiplier, Mathf.Max(1f, SaiyaheimConfig.MasteryXpBossMultiplierMax.Value));
         }
     }
 }

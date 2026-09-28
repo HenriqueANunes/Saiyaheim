@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Changed: form mastery no longer slows to a crawl at higher levels (mastery XP settings moved to "3 - Transformations" and reset to the new defaults).
+
 ## 0.6.0
 
 - Changed: new aura when charging ki and when transforming;

@@ -456,23 +456,26 @@
           </label>
           <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
           <div class="ctl"><div class="row"><label for="xpd">MasteryXpPerDamageDealt</label><output id="xpd-out"></output></div>
-            <input type="range" id="xpd" min="0" max="3" step="0.05" value="0.5"></div>
+            <input type="range" id="xpd" min="0" max="0.03" step="0.0005" value="0.0045"></div>
           <div class="ctl"><div class="row"><label for="xpt">MasteryXpPerDamageTaken</label><output id="xpt-out"></output></div>
-            <input type="range" id="xpt" min="0" max="3" step="0.05" value="0.5"></div>
+            <input type="range" id="xpt" min="0" max="0.03" step="0.0005" value="0.0045"></div>
           <p class="hint">Desde 2026-09-20 a maestria treina <b>lutando dentro da forma</b>, e não por tempo segurando — ficar parado em SSJ, voar transformado ou explorar não pagam mais nada. A curva do Valheim continua cobrando ~20.000 de XP do 0 ao 100. ⚠️ O gráfico conta só o dano <b>causado</b>: o sofrido paga também, então a estimativa erra para o lado pessimista.</p>
           <div class="ctl"><div class="row"><label for="xpmax">MasteryXpMaxPerEvent</label><output id="xpmax-out"></output></div>
-            <input type="range" id="xpmax" min="1" max="200" step="1" value="50"></div>
+            <input type="range" id="xpmax" min="0.05" max="5" step="0.05" value="0.45"></div>
           <p class="hint">Grampo de segurança por golpe, aplicado <b>antes</b> do bônus de boss — ao contrário do <code>XpMaxPerEvent</code> do Power Level, que corta por último. O bônus de boss existe para corrigir o degrau velho; deixar o grampo comê-lo anularia a correção justo onde ela deveria agir. Quando ele morde, o cartão de socos avisa.</p>
+          <div class="ctl"><div class="row"><label for="cxp">MasteryXpCurveCompensation</label><output id="cxp-out"></output></div>
+            <input type="range" id="cxp" min="0" max="1" step="0.05" value="0.8"></div>
+          <p class="hint">Desde 2026-09-28. O XP de cada golpe é multiplicado por <code>custo do próximo nível ^ isto</code>, com o nível <b>da forma que recebe</b>. Em 0 cada nível cobra a curva inteira do Valheim (o 99 custa ~60× os socos do 5); em 1 todo nível custa o mesmo número de socos; em 0,5 o 99 custa ~8× o 5; no default 0,8, do playtest de 2026-09-28, ~2×. ⚠️ Mexer aqui mexe no começo também: a taxa acima caiu de 0,0125 para 0,0045 pensando no 0,5, e com o 0,8 o nível 5 ficou ~2× mais rápido que antes.</p>
           <div class="ctl"><div class="row"><label for="ppm">socos por minuto de luta</label><output id="ppm-out"></output></div>
             <input type="range" id="ppm" min="5" max="120" step="5" value="30"></div>
           <p class="hint">Não é config do mod: é a suposição que traduz <b>socos</b> em <b>horas</b>. Só isso. As horas que saem daqui são de <b>combate</b>, não de relógio — e é por isso que elas não se comparam com as de antes de 2026-09-20, que contavam as recargas de ki entre uma forma e outra.</p>
           <div class="ctl"><div class="row"><label for="bxp">MasteryXpPerBossBonus</label><output id="bxp-out"></output></div>
-            <input type="range" id="bxp" min="0" max="5" step="0.25" value="2"></div>
+            <input type="range" id="bxp" min="0" max="5" step="0.25" value="3"></div>
           <div class="ctl"><div class="row"><label for="bxm">MasteryXpBossMultiplierMax</label><output id="bxm-out"></output></div>
-            <input type="range" id="bxm" min="1" max="10" step="0.25" value="2"></div>
+            <input type="range" id="bxm" min="1" max="10" step="0.25" value="6"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 2, teto 2), com três bosses no chão, o SSJ e o SSJ2 pagam x2 e o SSJ3 — destravado por esse terceiro boss — x1. Sem o teto seriam x5 e x3. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 3, teto 6), com três bosses no chão, o SSJ paga x6, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Sem o teto o SSJ pagaria x7. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -621,7 +624,7 @@
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "cfk", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
-               "xpd", "xpt", "xpmax", "ppm", "bxp", "bxm", "boss", "fks",
+               "xpd", "xpt", "xpmax", "cxp", "ppm", "bxp", "bxm", "boss", "fks",
                "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
@@ -696,10 +699,16 @@
   // Transformation.GetBossXpMultiplier. O degrau e' base zero, a contagem e' base um — dai o +1.
   const bossXp = form => Math.max(1, Math.min(v("bxm"), 1 + v("bxp") * (v("boss") - (form.rung + 1))));
 
-  // XP de maestria que UM golpe paga: o dano do golpe pela taxa, grampeado, e so' entao o bonus
-  // de boss — nessa ordem, como o Transformation.RaiseMasteryFromDamage faz.
-  const xpPerHit = (form, damage) =>
-    Math.min(Math.max(0, damage) * v("xpd"), v("xpmax")) * bossXp(form);
+  // Quanto da curva do Valheim a maestria devolve no nivel `level` da forma. Espelha
+  // Transformation.GetCurveXpMultiplier: custo do proximo nivel ^ MasteryXpCurveCompensation.
+  // xpCost[level + 1] e' exatamente esse custo (ver a tabela la' em cima).
+  const curveXp = level => Math.pow(xpCost[Math.min(MAXLVL, Math.floor(level) + 1)], v("cxp"));
+
+  // XP de maestria que UM golpe paga no nivel `level` da forma: o dano do golpe pela taxa,
+  // grampeado, e so' entao a compensacao de curva e o bonus de boss — nessa ordem, como o
+  // Transformation.RaiseMasteryFromDamage faz.
+  const xpPerHit = (form, damage, level) =>
+    Math.min(Math.max(0, damage) * v("xpd"), v("xpmax")) * curveXp(level) * bossXp(form);
 
   // Dreno da forma ja com a maestria descontada. Espelha Transformation.GetKiDrainPerSecond.
   const formDrain = (form, L, over) =>
@@ -720,11 +729,12 @@
   // e' um teto: na pratica o jogador maxa antes.
   function masteryHits(form, L, k5) {
     const damage = combatPower(L, k5) * Math.max(1, v(form.m)) * v("dmg");
-    const xp = xpPerHit(form, damage);
-    if (xp <= 0) return Infinity;
-
     let hits = 0;
-    for (let m = 0; m < MAXLVL; m++) hits += Math.ceil(xpCost[m + 1] / xp);
+    for (let m = 0; m < MAXLVL; m++) {
+      const xp = xpPerHit(form, damage, m);
+      if (xp <= 0) return Infinity;
+      hits += Math.ceil(xpCost[m + 1] / xp);
+    }
     return hits;
   }
 
@@ -890,7 +900,7 @@
       // ── a maestria, agora em socos ──
       // O dano do golpe e' o BONUS que o poder acrescenta ao soco, o mesmo proxy que o saiya_form
       // usa: a base vanilla desarmada e a armadura do alvo ficam de fora.
-      xpperhit: form ? xpPerHit(form, punch) : 0,
+      xpperhit: form ? xpPerHit(form, punch, mst) : 0,
       xpclamped: form ? punch * v("xpd") > v("xpmax") : false,
       masteryhits: form ? masteryHits(form, L, k5) : Infinity,
       masteryhours: form ? masteryHours(form, L, k5) : Infinity,
@@ -949,7 +959,7 @@
     masteryhours: { btn: "horas de luta", label: "Horas de luta até maestria 100", mode: "formonly", dec: 1, unit: " h",
       sub: "os mesmos socos divididos pelo slider de socos por minuto. São horas de COMBATE, não de relógio — não se comparam com as horas de antes do rework, que contavam as recargas de ki" },
     xpperhit: { btn: "xp por soco", label: "XP de maestria por soco", mode: "formonly", dec: 2, unit: "",
-      sub: "dano do soco × MasteryXpPerDamageDealt, grampeado pelo MasteryXpMaxPerEvent e só então multiplicado pelo bônus de boss" },
+      sub: "dano do soco × MasteryXpPerDamageDealt, grampeado pelo MasteryXpMaxPerEvent e só então multiplicado pela compensação de curva (no nível de maestria da linha) e pelo bônus de boss" },
     flycostform: { btn: "voo ki/s", label: "Custo de voo, com a forma", mode: "forms", dec: 2, unit: " ki/s", of: "flycost",
       sub: "a forma multiplica a velocidade no ar e, desde 2026-09-20, paga por isso: a sobretaxa cai a zero conforme a maestria daquela forma sobe" },
     rangeform: { btn: "autonomia", label: "Autonomia de voo, com a forma", mode: "forms", dec: 0, unit: " s", of: "range",
@@ -1021,7 +1031,7 @@
       stats: ["formtime", "uptime", "drain", "powertime", "powerform", "masteryhits", "masteryhours", "xpperhit"],
       open: FORMS.map(f => "g-" + f.id),
       today: false,
-      cfg: FORMS.map(f => f.id).concat(["ki"]),
+      cfg: ["transformations"].concat(FORMS.map(f => f.id), ["ki"]),
       caption: "Os degraus lado a lado, nível a nível",
       // Tres colunas por degrau e nao quatro: com o terceiro degrau, "Transf." levava a tabela a
       // quinze colunas e o scroll horizontal virava o jeito normal de le-la. A fatia do tempo
@@ -1718,11 +1728,6 @@
     kv("PowerMultiplier", n(f.m, 1)),
     kv("KiDrainPerSecond", n(f.d, 2)),
     kv("MasteryDrainReduction", n(f.r, 2)),
-    kv("MasteryXpPerDamageDealt", n("xpd", 2)),
-    kv("MasteryXpPerDamageTaken", n("xpt", 2)),
-    kv("MasteryXpMaxPerEvent", n("xpmax", 0)),
-    kv("MasteryXpPerBossBonus", n("bxp", 2)),
-    kv("MasteryXpBossMultiplierMax", n("bxm", 2)),
   ]);
 
   const CFG = {
@@ -1748,13 +1753,21 @@
     rating: () => block("6 - Battle Power", [
       kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)), kv("RatingDamageWeight", n("rk2", 1))]
       .concat([kv("RatingFormShare", n("rfs", 2))])),
+    // O XP de maestria e' uma secao so' para a escada inteira desde 2026-09-28.
+    transformations: () => block("3 - Transformations", [
+      kv("MasteryXpPerDamageDealt", n("xpd", 4)),
+      kv("MasteryXpPerDamageTaken", n("xpt", 4)),
+      kv("MasteryXpMaxPerEvent", n("xpmax", 2)),
+      kv("MasteryXpCurveCompensation", n("cxp", 2)),
+      kv("MasteryXpPerBossBonus", n("bxp", 2)),
+      kv("MasteryXpBossMultiplierMax", n("bxm", 2))]),
     ki: () => block("2 - Ki", [
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
   };
   // Uma entrada por forma, montada da escada: o degrau novo entra no snippet sem tocar aqui.
   FORMS.forEach(f => { CFG[f.id] = () => formBlock(f); });
-  const CFG_ORDER = ["power", "rating", "combat", "flight"].concat(FORMS.map(f => f.id), ["ki"]);
+  const CFG_ORDER = ["power", "rating", "combat", "flight", "transformations"].concat(FORMS.map(f => f.id), ["ki"]);
 
   function drawSnippet() {
     const want = cfgAll.checked ? CFG_ORDER : LENSES[lens].cfg;
@@ -1773,7 +1786,7 @@
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, cfk: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 2, r1: 2, lv1: 0, m2: 1, d2: 2, r2: 2, lv2: 0, m3: 1, d3: 2, r3: 2, lv3: 0,
-                    xpd: 2, xpt: 2, xpmax: 0, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
+                    xpd: 4, xpt: 4, xpmax: 2, cxp: 2, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
                     rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2 };
 

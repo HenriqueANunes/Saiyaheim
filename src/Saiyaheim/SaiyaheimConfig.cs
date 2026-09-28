@@ -77,10 +77,19 @@ namespace Saiyaheim
         private const string SecEnvironment = "2.2 - Environment";
 
         /// <summary>
-        /// Uma seção por forma. Não existe seção "3 - Transformations" genérica de propósito:
-        /// <b>não há número compartilhado entre formas</b>. Multiplicador, dreno e maestria são
-        /// da forma, e uma escada de cinco formas ([[Progressão por Bosses]]) precisa que cada
-        /// degrau seja calibrável sozinho. Adicionar a segunda forma é copiar este bloco.
+        /// A regra de XP de maestria, a mesma para todas as formas. Existe desde 2026-09-28: até
+        /// ali cada forma tinha as próprias chaves de XP, com o mesmo valor em todas, e a curva
+        /// nova (<c>MasteryXpCurveCompensation</c>) só faz sentido como regra da escada — cinco
+        /// cópias do mesmo número eram cinco lugares para o ajuste esquecer um. Ver [[Decisões
+        /// Tomadas]], "XP de maestria é uma regra só para todas as formas".
+        /// </summary>
+        private const string SecTransformations = "3 - Transformations";
+
+        /// <summary>
+        /// Uma seção por forma. Multiplicador, dreno e o que a maestria desconta são da forma, e
+        /// uma escada de cinco formas ([[Progressão por Bosses]]) precisa que cada degrau seja
+        /// calibrável sozinho. A exceção é a <b>velocidade</b> da maestria, que mora em
+        /// <see cref="SecTransformations"/>. Adicionar uma forma é copiar este bloco.
         /// </summary>
         private const string SecSsj = "3.1 - SSJ";
 
@@ -380,29 +389,12 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<float> CombatKiCostScale { get; internal set; }
 
-            /// <summary>Fração do dreno removida no nível 100 da skill desta forma.</summary>
+            /// <summary>
+            /// Fração do dreno removida no nível 100 da skill desta forma. As chaves de
+            /// <b>velocidade</b> da maestria não moram aqui: são compartilhadas, ver
+            /// <see cref="MasteryXpPerDamageDealt"/>.
+            /// </summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
-
-            /// <summary>XP da skill desta forma por ponto de dano causado dentro dela.</summary>
-            public ConfigEntry<float> MasteryXpPerDamageDealt { get; internal set; }
-
-            /// <summary>XP da skill desta forma por ponto de dano sofrido dentro dela.</summary>
-            public ConfigEntry<float> MasteryXpPerDamageTaken { get; internal set; }
-
-            /// <summary>Teto de XP de maestria de um único golpe, antes do multiplicador de boss.</summary>
-            public ConfigEntry<float> MasteryXpMaxPerEvent { get; internal set; }
-
-            /// <summary>
-            /// Quanto o ganho de XP desta forma sobe por boss derrotado <b>depois</b> do boss que
-            /// a destravou. 0 desliga. Ver <c>Transformation.GetBossXpMultiplier</c>.
-            /// </summary>
-            public ConfigEntry<float> MasteryXpPerBossBonus { get; internal set; }
-
-            /// <summary>
-            /// Teto do multiplicador de XP por boss. 1 desliga o bônus. Ver
-            /// <c>Transformation.GetBossXpMultiplier</c>.
-            /// </summary>
-            public ConfigEntry<float> MasteryXpBossMultiplierMax { get; internal set; }
 
             /// <summary>Nível mínimo de Power Level para entrar na forma. 0 desliga a trava.</summary>
             public ConfigEntry<float> MinPowerLevel { get; internal set; }
@@ -455,6 +447,39 @@ namespace Saiyaheim
             /// </summary>
             public string GlowColor { get; internal set; }
         }
+
+        // ---------- 3 - Transformations ----------
+
+        /// <summary>XP de maestria por ponto de dano causado dentro de uma forma.</summary>
+        public static ConfigEntry<float> MasteryXpPerDamageDealt { get; private set; }
+
+        /// <summary>XP de maestria por ponto de dano sofrido dentro de uma forma.</summary>
+        public static ConfigEntry<float> MasteryXpPerDamageTaken { get; private set; }
+
+        /// <summary>
+        /// Teto de XP de maestria de um único golpe, antes da compensação de curva e do
+        /// multiplicador de boss.
+        /// </summary>
+        public static ConfigEntry<float> MasteryXpMaxPerEvent { get; private set; }
+
+        /// <summary>
+        /// Quanto da curva de XP do Valheim a maestria devolve: o XP de cada golpe é multiplicado
+        /// por <c>custo do próximo nível ^ isto</c>. 0 desliga. Ver
+        /// <c>Transformation.GetCurveXpMultiplier</c>.
+        /// </summary>
+        public static ConfigEntry<float> MasteryXpCurveCompensation { get; private set; }
+
+        /// <summary>
+        /// Quanto o ganho de XP de uma forma sobe por boss derrotado <b>depois</b> do boss que a
+        /// destravou. 0 desliga. Ver <c>Transformation.GetBossXpMultiplier</c>.
+        /// </summary>
+        public static ConfigEntry<float> MasteryXpPerBossBonus { get; private set; }
+
+        /// <summary>
+        /// Teto do multiplicador de XP por boss. 1 desliga o bônus. Ver
+        /// <c>Transformation.GetBossXpMultiplier</c>.
+        /// </summary>
+        public static ConfigEntry<float> MasteryXpBossMultiplierMax { get; private set; }
 
         /// <summary>
         /// O primeiro degrau da escada. Cada degrau novo é outra propriedade como esta, com seção
@@ -1741,6 +1766,170 @@ namespace Saiyaheim
                     "unreadable at the distance you actually scan an enemy from.)",
                     new AcceptableValueRange<float>(4f, 40f), ClientSide(37)));
 
+            // --- XP de maestria, compartilhado pela escada inteira (desde 2026-09-28) ---
+            // Ate' 2026-09-28 estas chaves eram por forma, com o MESMO valor nas quatro. A curva
+            // nova tornou isso insustentavel: ela e' uma regra da escada, e cada ajuste teria de
+            // ser repetido em quatro secoes. O que continua por forma e' o QUANTO a maestria
+            // desconta (MasteryDrainReduction); a VELOCIDADE com que se chega la' e' uma so'.
+            // Ver [[Decisoes Tomadas]], "XP de maestria e' uma regra so' para todas as formas".
+            //
+            // Ordem no Transformation.RaiseMasteryFromDamage:
+            //   min(dano * taxa, grampo) * compensacao de curva * multiplicador de boss
+
+            // ⚠️ Substituiu o `MasteryXpPerSecond` (1/s) em 2026-09-20. A maestria treinava por
+            // TEMPO dentro da forma, e era o segundo grind que as issues 1 e 2 do GitHub
+            // relataram: com o dreno alto, o jogador ficava parado carregando ki; com o dreno
+            // baixo do rework, ele ficaria parado DENTRO da forma, que e' pior. Ficar parado
+            // em forma passa a nao pagar nada — treina-se lutando.
+            //
+            // ⚠️ A taxa NAO e' a do Power Level (SkillXpPerDamageDealt, 0,07). Aquela corre a
+            // sessao inteira; esta so corre durante o combate ATIVO, que e' algo entre 10% e
+            // 15% do tempo de jogo.
+            //
+            // Historico: 0,5 -> 0,25 (2026-09-20) -> 0,0125 (2026-09-21), cada corte porque a
+            // maestria subia rapido demais. O que faz ela correr mais do que a taxa sugere esta' no
+            // TransformationRegistry.RaiseMasteryFromDamage: um golpe paga TODAS as formas ate a
+            // ativa, e dano causado e sofrido pagam os dois.
+            //
+            // ⚠️ 0,0125 -> 0,0045 em 2026-09-28, JUNTO com a MasteryXpCurveCompensation abaixo.
+            // Os cortes consertaram o comeco e afundaram o fim (SSJ no 66 pedia 399 socos por
+            // nivel). Com a compensacao em 0,5 o XP ja' sai x2,8 no nivel 5, e a taxa caiu o
+            // mesmo tanto para o comeco ficar como estava: 0,0125 / 2,8 = 0,0045. O playtest
+            // subiu a compensacao para 0,8 e manteve a taxa, entao o nivel 5 ficou ~2x mais
+            // rapido que antes de 2026-09-28 — escolha do playtest, nao acidente. Mexer numa sem
+            // a outra desloca o comeco.
+            MasteryXpPerDamageDealt = config.Bind(SecTransformations, "MasteryXpPerDamageDealt", 0.0045f,
+                new ConfigDescription(
+                    "Mastery XP per point of damage DEALT while wearing a form. Every form uses " +
+                    "the same rate. Fighting inside the form is the only way to train it: " +
+                    "holding it while standing still, flying or exploring pays nothing. " +
+                    "The damage counted is what the target actually lost, so overkill on a " +
+                    "weak creature does not pay, and weapon hits pay by XpWeaponFactor like " +
+                    "Power Level does — the form trains the mod's way of fighting. " +
+                    "A single hit pays every form up to the active one, each at its own level. " +
+                    "This rate and MasteryXpCurveCompensation go together: raising the curve " +
+                    "compensation also speeds up the first levels, so the rate has to come " +
+                    "down with it. " +
+                    "(0.0125 until 2026-09-28, cut to 0.0045 when the curve compensation " +
+                    "arrived, so the first levels cost the same as before.)",
+                    new AcceptableValueRange<float>(0f, 20f), AdminOnly(70)));
+
+            // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
+            // tanto quanto bater, e a fonte ja' se auto-limita — o dano sofrido vem DEPOIS da
+            // armadura, entao apanhar de proposito de bicho fraco rende quase nada.
+            MasteryXpPerDamageTaken = config.Bind(SecTransformations, "MasteryXpPerDamageTaken", 0.0045f,
+                new ConfigDescription(
+                    "Mastery XP per point of damage TAKEN while wearing a form. " +
+                    "Counted after armor and resistances, so taking hits from something weak " +
+                    "is worth almost nothing. Same rate as damage dealt by default: holding " +
+                    "the form through a beating is training too.",
+                    new AcceptableValueRange<float>(0f, 20f), AdminOnly(69)));
+
+            // Grampo de seguranca, e nao regulador: com 0,0045 por ponto ele so morde a partir
+            // de 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
+            // Cortado junto com a taxa todas as vezes justamente para o ponto em que ele morde
+            // continuar sendo o mesmo dano.
+            //
+            // Aplicado ANTES da compensacao de curva e do multiplicador de boss, ao contrario do
+            // SkillXpMaxPerEvent do Power Level, que corta por ultimo. Os dois existem para
+            // corrigir alguma coisa (o fim da curva, o degrau velho), e deixar o grampo comer a
+            // correcao a anularia justamente onde ela e' necessaria.
+            MasteryXpMaxPerEvent = config.Bind(SecTransformations, "MasteryXpMaxPerEvent", 0.45f,
+                new ConfigDescription(
+                    "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
+                    "before the curve compensation and the boss multiplier. Stops one " +
+                    "boss-sized hit from jumping several levels at once. At the default rate " +
+                    "it only bites above 100 damage in one hit. (Cut from 50 to 25 to 2.5 to " +
+                    "1.25 to 0.45, each time together with the rate, so it still bites at the " +
+                    "same damage.)",
+                    new AcceptableValueRange<float>(0.01f, 1000f), AdminOnly(68)));
+
+            // O fim da curva, que os cortes da taxa afundaram (Melhorias, "Maestria das formas
+            // trava no meio da curva"). O XP do Valheim por nivel cresce como (nivel+1)^1,5, e o
+            // XP pago aqui e' linear no dano: um numero so' nao acerta as duas pontas. Este
+            // expoente devolve PARTE da curva — o custo em socos por nivel passa a crescer como
+            // req^(1 - isto). Em 1 o custo por nivel fica plano, e o alvo era explicitamente que o
+            // fim continuasse mais caro que o comeco.
+            //
+            // 0,5 no papel em 2026-09-28 (o 99 custava ~8x o 5, contra ~60x antes); 0,8 no
+            // playtest do mesmo dia, com a taxa mantida em 0,0045. O 99 fica em ~2x o 5, e os
+            // niveis do 5 em diante ficam mais baratos que no 0,5 — o fim ainda pedia demais.
+            //
+            // Sem nivel de referencia de proposito: uma chave a menos no .cfg vale mais que
+            // isolar o comeco. O preco e' que mexer nesta chave mexe no comeco tambem, e por isso
+            // cada ajuste dela vem com o da taxa acima.
+            MasteryXpCurveCompensation = config.Bind(SecTransformations, "MasteryXpCurveCompensation", 0.8f,
+                new ConfigDescription(
+                    "How much of Valheim's rising XP curve mastery gives back. Each hit's XP " +
+                    "is multiplied by (XP the form's next level costs) ^ this, so higher levels " +
+                    "pay more per hit. 0 turns it off: every level costs Valheim's full curve " +
+                    "(level 99 about 60 times the hits of level 5). 1 makes every level cost " +
+                    "the same number of hits. The default 0.8 leans toward flat: level 99 " +
+                    "costs about twice the hits of level 5. " +
+                    "Changing this also changes how fast the FIRST levels go, so adjust " +
+                    "MasteryXpPerDamageDealt and MasteryXpPerDamageTaken with it. " +
+                    "(Added 2026-09-28: mastery was fine early and crawled from the middle on. " +
+                    "0.5 on paper, 0.8 after the first playtest.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(67)));
+
+            // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
+            // derrotado DEPOIS do boss que o destravou, entao o SSJ acelera enquanto o SSJ2
+            // ainda engatinha. Nao e' a mesma pergunta que a compensacao de curva acima — aquela
+            // regula o fim da curva de TODO degrau, este regula a diferenca entre os degraus.
+            // Multiplica por cima dela.
+            //
+            // Global key e nao estado do jogador, pelas mesmas tres razoes do BossGate: o
+            // servidor sincroniza de graca, persiste no save do MUNDO e vale para todo mundo do
+            // mundo. E' funcao pura do mundo + config, sem nenhum estado novo para serializar —
+            // nao ha evento de "boss morreu" para escutar nem nada que se perca offline.
+            //
+            // 2 -> 3 no playtest de 2026-09-28, junto com o teto 4 -> 6: com a curva compensada,
+            // o degrau velho precisava de uma vantagem maior para ainda se destacar.
+            MasteryXpPerBossBonus = config.Bind(SecTransformations, "MasteryXpPerBossBonus", 3f,
+                new ConfigDescription(
+                    "How much a form's mastery XP speeds up for each boss defeated AFTER " +
+                    "the one that unlocked it. The multiplier is 1 + this * (bosses defeated " +
+                    "- the form's rung), floored at 1 and capped by " +
+                    "MasteryXpBossMultiplierMax. 0 disables it. \n" +
+                    "With the defaults a form pays x1 while its own boss is the newest kill, " +
+                    "x4 after the next boss falls and x6 from the one after that. \n" +
+                    "What it is for: the form unlocked first is always the one furthest up " +
+                    "the expensive end of the XP curve, and it crawls exactly when a stronger " +
+                    "form has just made it look useless. This makes the older rung train " +
+                    "faster the further the world has moved past it, which is also the " +
+                    "reading that makes sense in fiction: the form is trivial to you now. " +
+                    "It multiplies on top of MasteryXpCurveCompensation. \n" +
+                    "It reads the world's global keys, so a server syncs it for free and " +
+                    "someone joining late arrives with whatever the group has already killed " +
+                    "— the same rule the unlock gate itself follows. \n" +
+                    "Only the five classic bosses count. A form tied to a key this build does " +
+                    "not know, which today means the Queen and the Fader, gets no bonus at " +
+                    "all rather than a wrong one. \n" +
+                    "(Raised from 2 on 2026-09-28, with the cap going from 4 to 6.)",
+                    new AcceptableValueRange<float>(0f, 5f), AdminOnly(66)));
+
+            // Teto do multiplicador acima. Sem ele o degrau velho acelera sem limite conforme o
+            // mundo anda (x3, x5...), e o bonus deixa de ser correcao para virar atalho.
+            //
+            // 2 -> 4 no playtest de 2026-09-21, junto com o corte do XP de maestria para um
+            // vigesimo. Os dois andam juntos: com a taxa base tao baixa, um teto de 2 fazia o
+            // degrau velho parar de recuperar terreno quase na hora — o bonus mal comecava a
+            // pagar e ja' estava no limite. Em 4 ele continua subindo por mais dois bosses,
+            // que e' o tempo que o degrau atrasado leva para voltar a fazer sentido.
+            //
+            // 4 -> 6 no playtest de 2026-09-28, junto com o passo 2 -> 3. Mesma forma de antes:
+            // o teto chega dois bosses depois do da forma.
+            MasteryXpBossMultiplierMax = config.Bind(SecTransformations, "MasteryXpBossMultiplierMax", 6f,
+                new ConfigDescription(
+                    "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
+                    "multiplier is min(this, 1 + bonus * (bosses defeated - the form's " +
+                    "rung)), floored at 1. 1 disables the boss bonus entirely. " +
+                    "(Raised from 2 on 2026-09-21, together with the mastery XP cut: at a " +
+                    "twentieth of the old rate a ceiling of 2 stopped the older form from " +
+                    "catching up almost as soon as the bonus started paying. Raised again to " +
+                    "6 on 2026-09-28, with the step going from 2 to 3.)",
+                    new AcceptableValueRange<float>(1f, 20f), AdminOnly(65)));
+
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir
             // esta linha com outra secao, outros numeros e a global key do boss dele.
@@ -2626,9 +2815,7 @@ namespace Saiyaheim
             float punchSlashFraction, float punchLightningFraction, float carryWeightBonus,
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
-            string hairItem = "", float masteryXpPerDamageDealt = 0.0125f,
-            float masteryXpPerDamageTaken = 0.0125f, float masteryXpMaxPerEvent = 1.25f,
-            float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
+            string hairItem = "", float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
             float combatKiCostScale = 1f)
         {
             return new TransformationConfig
@@ -2785,136 +2972,6 @@ namespace Saiyaheim
                         "means level 100 still pays a fifth of the level 0 drain, and ki stays a " +
                         "source of tension all game.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(80))),
-
-                // ⚠️ Substituiu o `MasteryXpPerSecond` (1/s) em 2026-09-20. A maestria treinava por
-                // TEMPO dentro da forma, e era o segundo grind que as issues 1 e 2 do GitHub
-                // relataram: com o dreno alto, o jogador ficava parado carregando ki; com o dreno
-                // baixo do rework, ele ficaria parado DENTRO da forma, que e' pior. Ficar parado
-                // em forma passa a nao pagar nada — treina-se lutando.
-                //
-                // A chave velha fica orfa e inerte nos .cfg existentes.
-                //
-                // ⚠️ A taxa NAO e' a do Power Level (SkillXpPerDamageDealt, 0,07). Aquela corre a
-                // sessao inteira; esta so corre durante o combate ATIVO, que e' algo entre 10% e
-                // 15% do tempo de jogo. Referencia para calibrar: a curva do Valheim cobra ~1.600
-                // de XP ate o nivel 30 e ~20.000 ate o 100; a 0,25 por ponto de dano, uma luta que
-                // troca ~950 pontos de dano em um minuto paga ~240.
-                //
-                // ⚠️ Playtest de 2026-09-20: cortada pela metade, de 0,5 para 0,25, junto com o
-                // teto por golpe e com o XP de voo. A maestria subia rapido demais — e o motivo de
-                // ela subir mais do que a taxa sugere esta' no RaiseMasteryFromDamage: um golpe
-                // paga TODAS as formas ate a ativa, e dano causado e sofrido pagam os dois.
-                //
-                // ⚠️ E 0,25 -> 0,0125 no playtest de 2026-09-21: a metade nao bastou e a divisao
-                // por 10 tambem nao — a maestria continuava subindo rapido demais. O numero final
-                // e' um vigesimo do original, com o teto por golpe cortado junto. O que faz a
-                // maestria correr mais do que a taxa sugere esta' no RaiseMasteryFromDamage: um
-                // golpe paga TODAS as formas ate a ativa, e dano causado e sofrido pagam os dois.
-                MasteryXpPerDamageDealt = config.Bind(section, "MasteryXpPerDamageDealt", masteryXpPerDamageDealt,
-                    new ConfigDescription(
-                        "XP for this form's skill per point of damage DEALT while wearing it. " +
-                        "Fighting inside the form is the only way to train it: holding it while " +
-                        "standing still, flying or exploring pays nothing. " +
-                        "The damage counted is what the target actually lost, so overkill on a " +
-                        "weak creature does not pay, and weapon hits pay by XpWeaponFactor like " +
-                        "Power Level does — the form trains the mod's way of fighting. " +
-                        "Valheim's own diminishing curve up to 100 applies on top: reaching level " +
-                        "30 costs about 1600 XP and level 100 about 20000. " +
-                        "(Replaced MasteryXpPerSecond on 2026-09-20 and cut three times since, " +
-                        "0.5 to 0.25 to 0.025 to 0.0125: every playtest still found mastery " +
-                        "levelling far too fast. Remember a single hit pays every form up to the " +
-                        "active one.)",
-                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(70))),
-
-                // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
-                // tanto quanto bater, e a fonte ja' se auto-limita — o dano sofrido vem DEPOIS da
-                // armadura, entao apanhar de proposito de bicho fraco rende quase nada.
-                MasteryXpPerDamageTaken = config.Bind(section, "MasteryXpPerDamageTaken", masteryXpPerDamageTaken,
-                    new ConfigDescription(
-                        "XP for this form's skill per point of damage TAKEN while wearing it. " +
-                        "Counted after armor and resistances, so taking hits from something weak " +
-                        "is worth almost nothing. Same rate as damage dealt by default: holding " +
-                        "the form through a beating is training too.",
-                        new AcceptableValueRange<float>(0f, 20f), AdminOnly(69))),
-
-                // Grampo de seguranca, e nao regulador: com 0,0125 por ponto ele so morde a partir
-                // de 100 de dano num unico golpe, que e' pancada de boss e nao troca de socos.
-                // Cortado junto com a taxa todas as vezes justamente para o ponto em que ele morde
-                // continuar sendo o mesmo dano.
-                //
-                // Aplicado ANTES do multiplicador de boss abaixo, ao contrario do
-                // SkillXpMaxPerEvent do Power Level, que corta por ultimo. O bonus de boss existe
-                // para corrigir o degrau velho que ficou para tras, e deixar o grampo comer essa
-                // correcao a anularia justamente onde ela e' necessaria.
-                MasteryXpMaxPerEvent = config.Bind(section, "MasteryXpMaxPerEvent", masteryXpMaxPerEvent,
-                    new ConfigDescription(
-                        "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
-                        "before the boss multiplier. Stops one boss-sized hit from jumping " +
-                        "several levels at once. At the default rate it only bites above 100 " +
-                        "damage in one hit. (Cut from 50 to 25 to 2.5 to 1.25, each time together " +
-                        "with the rate, so it still bites at the same damage.)",
-                        new AcceptableValueRange<float>(0.1f, 1000f), AdminOnly(68))),
-
-                // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
-                // derrotado DEPOIS do boss que o destravou, entao o SSJ acelera enquanto o SSJ2
-                // ainda engatinha. Nao e' a mesma pergunta que o MasteryXpPerSecond acima — aquele
-                // regula a velocidade da escada inteira, este regula a diferenca entre os degraus.
-                //
-                // Global key e nao estado do jogador, pelas mesmas tres razoes do BossGate: o
-                // servidor sincroniza de graca, persiste no save do MUNDO e vale para todo mundo do
-                // mundo. E' funcao pura do mundo + config, sem nenhum estado novo para serializar —
-                // nao ha evento de "boss morreu" para escutar nem nada que se perca offline.
-                //
-                // Por forma e nao global, seguindo a regra da secao: nenhum numero e' compartilhado
-                // entre degraus, e um degrau distante do inicio pode querer passo proprio.
-                MasteryXpPerBossBonus = config.Bind(section, "MasteryXpPerBossBonus", 2f,
-                    new ConfigDescription(
-                        "How much this form's mastery XP speeds up for each boss defeated AFTER " +
-                        "the one that unlocked it. The multiplier is 1 + this * (bosses defeated " +
-                        "- this form's rung), floored at 1 and capped by " +
-                        "MasteryXpBossMultiplierMax. 0 disables it. \n" +
-                        "Uncapped, the default 2 would pay x1 while the form's own boss is the " +
-                        "newest kill, x3 after the next boss falls, x5 after the one after that; " +
-                        "with the default cap of 2 it pays x1 and then x2 for good. \n" +
-                        "What it is for: the mastery curve is the same for every rung, so the form " +
-                        "unlocked first is always the one furthest up the expensive end of " +
-                        "Valheim's XP curve, and it crawls exactly when a stronger form has just " +
-                        "made it look useless. This makes the older rung train faster the further " +
-                        "the world has moved past it, which is also the reading that makes sense " +
-                        "in fiction: the form is trivial to you now. \n" +
-                        "It reads the world's global keys, so a server syncs it for free and " +
-                        "someone joining late arrives with whatever the group has already killed " +
-                        "— the same rule the unlock gate itself follows. \n" +
-                        "Only the five classic bosses count. A form tied to a key this build does " +
-                        "not know, which today means the Queen and the Fader, gets no bonus at " +
-                        "all rather than a wrong one. \n" +
-                        "(2 rather than 1, sized against the 2026-09-06 run: SSJ mastery was at " +
-                        "level 52 with the third boss about to fall, where 80-90 was the target. " +
-                        "At 2 that stretch pays the SSJ x5 instead of x3, which is what closes " +
-                        "the gap without touching MasteryXpPerSecond. Sized on paper, not read " +
-                        "off a run yet.)",
-                        new AcceptableValueRange<float>(0f, 5f), AdminOnly(69))),
-
-                // Teto do multiplicador acima. Sem ele o degrau velho acelera sem limite conforme o
-                // mundo anda (x3, x5...), e o bonus deixa de ser correcao para virar atalho.
-                //
-                // 2 -> 4 no playtest de 2026-09-21, junto com o corte do XP de maestria para um
-                // vigesimo. Os dois andam juntos: com a taxa base tao baixa, um teto de 2 fazia o
-                // degrau velho parar de recuperar terreno quase na hora — o bonus mal comecava a
-                // pagar e ja' estava no limite. Em 4 ele continua subindo por mais dois bosses,
-                // que e' o tempo que o degrau atrasado leva para voltar a fazer sentido.
-                MasteryXpBossMultiplierMax = config.Bind(section, "MasteryXpBossMultiplierMax", 4f,
-                    new ConfigDescription(
-                        "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
-                        "multiplier is min(this, 1 + bonus * (bosses defeated - this form's " +
-                        "rung)), floored at 1. 1 disables the boss bonus entirely. \n" +
-                        "With the default 4 and a bonus of 2: a form pays x1 while its own boss " +
-                        "is the newest kill, x3 after the next one falls and x4 from the one " +
-                        "after that, no matter how many more fall. " +
-                        "(Raised from 2 on 2026-09-21, together with the mastery XP cut: at a " +
-                        "twentieth of the old rate a ceiling of 2 stopped the older form from " +
-                        "catching up almost as soon as the bonus started paying.)",
-                        new AcceptableValueRange<float>(1f, 20f), AdminOnly(68))),
 
                 MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
                     new ConfigDescription(

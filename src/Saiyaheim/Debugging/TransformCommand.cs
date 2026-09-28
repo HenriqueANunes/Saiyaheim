@@ -838,25 +838,35 @@ namespace Saiyaheim.Debugging
         /// </summary>
         private void PrintMasteryXp(Player player, Transformation form, float punchDamage)
         {
-            // O multiplicador de boss e' invisivel em jogo — a barra de XP nao existe e o nivel
+            // Os dois multiplicadores sao invisiveis em jogo — a barra de XP nao existe e o nivel
             // sobe devagar demais para se notar a diferenca olhando. Sem esta linha nao ha como
-            // saber se a chave ligou, muito menos calibrar o passo dela.
+            // saber se as chaves ligaram, muito menos calibra-las.
             float bossXp = form.GetBossXpMultiplier();
-            float perDealt = form.Config.MasteryXpPerDamageDealt.Value;
-            float perTaken = form.Config.MasteryXpPerDamageTaken.Value;
+            float curveXp = form.GetCurveXpMultiplier(player);
+            float perDealt = SaiyaheimConfig.MasteryXpPerDamageDealt.Value;
+            float perTaken = SaiyaheimConfig.MasteryXpPerDamageTaken.Value;
+            float clamp = SaiyaheimConfig.MasteryXpMaxPerEvent.Value;
 
-            Print($"Mastery XP: {perDealt:0.##} per damage dealt, {perTaken:0.##} per damage taken" +
-                  $"{(bossXp > 1f ? $"   x{bossXp:0.##} from {BossGate.DefeatedCount()} bosses down" : "")}" +
+            // A taxa crua tem quatro casas: com duas, 0,0045 aparecia como "0" e 0,0125 como
+            // "0.01", e isso ja' confundiu uma calibragem.
+            Print($"Mastery XP: {perDealt:0.####} per damage dealt, {perTaken:0.####} per damage taken" +
                   "   (holding the form pays nothing)");
+            Print($"  x{curveXp:0.##} curve compensation at level {form.GetSkillLevel(player):0}" +
+                  $"{(bossXp > 1f ? $", x{bossXp:0.##} from {BossGate.DefeatedCount()} bosses down" : "")}" +
+                  $"   → {perDealt * curveXp * bossXp:0.####} per damage dealt right now");
 
-            float xpPerPunch = Math.Min(punchDamage * perDealt, form.Config.MasteryXpMaxPerEvent.Value) * bossXp;
+            float baseXpPerPunch = Math.Min(punchDamage * perDealt, clamp) * bossXp;
 
-            Print($"  a punch in this form adds ~{punchDamage:0.#} damage → {xpPerPunch:0.##} xp" +
-                  $"{(punchDamage * perDealt > form.Config.MasteryXpMaxPerEvent.Value ? "   (clamped by MasteryXpMaxPerEvent)" : "")}");
+            Print($"  a punch in this form adds ~{punchDamage:0.#} damage → {baseXpPerPunch * curveXp:0.##} xp" +
+                  $"{(punchDamage * perDealt > clamp ? "   (clamped by MasteryXpMaxPerEvent)" : "")}");
 
-            PrintMasteryEta(player, form, xpPerPunch);
+            PrintMasteryEta(player, form, baseXpPerPunch);
         }
 
+        /// <param name="xpPerHit">
+        /// XP de um golpe <b>sem</b> a compensação de curva, que muda a cada nível e por isso é
+        /// aplicada nível a nível dentro do <see cref="HitsToLevel"/>.
+        /// </param>
         private void PrintMasteryEta(Player player, Transformation form, float xpPerHit)
         {
             Skills.Skill skill = FindSkill(player, form);
@@ -882,9 +892,10 @@ namespace Saiyaheim.Debugging
             }
 
             float accumulator = skill == null ? 0f : skill.m_accumulator;
+            float exponent = SaiyaheimConfig.MasteryXpCurveCompensation.Value;
 
-            Print($"  next level in {HitsToLevel(level, level + 1f, accumulator, gain):0} punches, " +
-                  $"level 100 in {HitsToLevel(level, 100f, accumulator, gain):0} " +
+            Print($"  next level in {HitsToLevel(level, level + 1f, accumulator, gain, exponent):0} punches, " +
+                  $"level 100 in {HitsToLevel(level, 100f, accumulator, gain, exponent):0} " +
                   "landing them in this form (or any above it) — damage taken pays too");
         }
 
@@ -892,24 +903,29 @@ namespace Saiyaheim.Debugging
         /// Golpes para ir do nível <paramref name="from"/> ao <paramref name="to"/> — com o
         /// excesso perdido em cada subida de nível, porque o <c>Skill.Raise</c> zera o acumulador
         /// ao subir.
+        ///
+        /// A compensação de curva (<paramref name="curveExponent"/>) entra nível a nível, igual ao
+        /// <c>Transformation.GetCurveXpMultiplier</c>: o golpe no 80 paga mais que o golpe no 10.
         /// </summary>
-        private static float HitsToLevel(float from, float to, float accumulator, float gainPerHit)
+        private static float HitsToLevel(float from, float to, float accumulator, float gainPerHit,
+            float curveExponent)
         {
             float start = (float)Math.Floor(from);
-            float seconds = 0f;
+            float hits = 0f;
 
             for (float level = start; level < to; level += 1f)
             {
-                float required = (float)Math.Pow(Math.Floor(level + 1f), 1.5) * 0.5f + 0.5f;
+                float required = Transformation.NextLevelRequirement(level);
+                float gain = gainPerHit * (curveExponent > 0f ? (float)Math.Pow(required, curveExponent) : 1f);
 
                 // O acumulador só desconta do degrau em que o jogador está: os seguintes começam do
                 // zero, porque o Raise zera o acumulador ao subir.
                 float missing = required - (level == start ? accumulator : 0f);
 
-                seconds += (float)Math.Ceiling(Math.Max(0f, missing) / gainPerHit);
+                hits += (float)Math.Ceiling(Math.Max(0f, missing) / gain);
             }
 
-            return seconds;
+            return hits;
         }
 
         /// <summary>

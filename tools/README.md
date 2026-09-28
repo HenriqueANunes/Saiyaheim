@@ -38,6 +38,8 @@ mudarem, **esta página fica mentindo** — os pontos a manter em sincronia:
 | `flyMult` (dentro de `model()`) | `FlightStats.GetFormSpeedFactor()` |
 | `weightf` (dentro de `model()`) | `FlightStats.GetWeightSpeedFactor()` |
 | `formDrain()` | `Transformation.GetKiDrainPerSecond()` |
+| `curveXp()` | `Transformation.GetCurveXpMultiplier()` |
+| `xpPerHit()` | `Transformation.RaiseMasteryFromDamage()` |
 | `applyArmor()` | `HitData.ApplyArmor` do Valheim, copiada da decompilação |
 | `xpCost[]` | `Skills.Skill.GetNextLevelRequirement()` |
 | `ehp`, `rdps`, `rating` (dentro de `model()`) | `PowerRating.GetRaw()` do jogador com o ki ligado, com o `GetFormFactor()` |

@@ -150,10 +150,10 @@ namespace Saiyaheim.Transformations
         /// fração; foi descartada porque a fração transformaria o degrau baixo numa segunda barra
         /// de grind.
         ///
-        /// <b>Cada forma na taxa dela</b>: o XP sai das chaves <c>MasteryXpPerDamage*</c> de
-        /// <i>quem recebe</i>, não das da forma ativa. Continua valendo que nenhum número de
-        /// balanceamento é compartilhado entre formas — cada degrau é dono da própria velocidade
-        /// de treino.
+        /// <b>Cada forma no nível dela</b>: a taxa é a mesma para toda a escada desde 2026-09-28
+        /// (seção <c>3 - Transformations</c>), mas a compensação de curva e o bônus de boss são
+        /// calculados para <i>quem recebe</i>, não para a forma ativa. O SSJ no 80 treinado de
+        /// dentro do SSJ2 no 10 recebe o que o 80 pede.
         ///
         /// Não checa se o degrau abaixo está destravado, de propósito: hoje a escada é monotônica
         /// e a checagem seria sempre verdadeira; se um dia deixar de ser, XP numa skill que o
