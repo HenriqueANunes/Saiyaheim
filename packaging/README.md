@@ -122,6 +122,7 @@ Aimed where you are looking, costing ki whether they hit or not:
 |---|---|
 | **Ki Blast** | Eikthyr |
 | **Kamehameha** | The Elder — charges up, with three charge tells on the hands, and fires a beam |
+| **Kienzan** | Bonemass — charges a spinning disc over your head while you move, then throws it through everything in its path |
 
 One key fires the selected attack, Shift plus that key cycles through the ones you have unlocked.
 

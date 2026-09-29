@@ -89,6 +89,9 @@ namespace Saiyaheim.Util
         {
             FlightPose.Instance,
             KiChargePose.Instance,
+            // Antes do disparo: o braço erguido do Kienzan desce enquanto o arremesso sobe, e quem
+            // escreve depois ganha. Ver KiDiscPose.
+            KiDiscPose.Instance,
             KiBlastPose.Instance,
             KiBeamPose.Instance,
         };

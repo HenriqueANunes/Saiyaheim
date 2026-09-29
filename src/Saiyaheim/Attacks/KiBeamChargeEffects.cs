@@ -6,7 +6,12 @@ using UnityEngine;
 namespace Saiyaheim.Attacks
 {
     /// <summary>
-    /// A bola de ki enchendo na mão de quem carrega um Kamehameha.
+    /// A bola de ki enchendo na mão de quem carrega um Kamehameha — ou o disco girando sobre a
+    /// palma, no Kienzan.
+    ///
+    /// <b>Qual dos dois vem da ZDO</b>, desde 2026-09-28: até ali "carregando" só podia ser o
+    /// Kamehameha e a bandeira bastava. O dia em que haveria dois carregáveis, previsto aqui,
+    /// chegou com o Kienzan, e o índice passou a ir junto — ver <c>KiAttackRegistry.Charging</c>.
     ///
     /// <b>É o pedaço que vende a cena</b>, e não a pose — é o que [[Animações]] registra no vault, e
     /// é por isso que ele vem antes da pose de duas mãos. Sem nada na mão, carregar é indistinguível
@@ -44,6 +49,24 @@ namespace Saiyaheim.Attacks
     {
         private sealed class Active
         {
+            /// <summary>
+            /// O ataque desta carga, lido uma vez no começo. Desde o Kienzan há dois carregáveis, e
+            /// cada um põe coisas diferentes na mão; trocar de ataque larga a carga, então ele não
+            /// muda no meio de uma.
+            /// </summary>
+            internal KiAttack Attack;
+
+            /// <summary>
+            /// Posição de mundo da bola, gravada no <see cref="Place(Player, Active, KiAttack)"/>.
+            ///
+            /// Guardada, e não lida do transform na hora: a bola é filha do osso da mão, e no
+            /// <c>Update</c> — onde o disparo roda — o osso pode estar de volta na pose vanilla, com
+            /// a mão na cintura. Só no LateUpdate ele está onde a tela mostra.
+            /// </summary>
+            internal Vector3 HeldPosition;
+
+            internal bool HasHeld;
+
             /// <summary>
             /// O osso (ou o corpo) em que as três peças estão penduradas. Guardado porque o
             /// <see cref="Place"/> precisa dele <b>todo frame</b>, e re-resolvê-lo passaria por um
@@ -106,7 +129,7 @@ namespace Saiyaheim.Attacks
                 }
                 else if (charging)
                 {
-                    Grow(active, CurrentAttack(), ratio);
+                    Grow(active, active?.Attack, ratio);
                 }
 
                 if (charging && charged)
@@ -136,7 +159,27 @@ namespace Saiyaheim.Attacks
                 return;
             }
 
-            Place(player, active, CurrentAttack());
+            Place(player, active, active.Attack);
+        }
+
+        /// <summary>
+        /// Onde está a bola (ou o disco) da carga deste jogador, na posição que o LateUpdate do
+        /// último frame deu a ela. É de onde o Kienzan sai — ver <c>KiProjectile.GetOrigin</c>.
+        ///
+        /// Ainda existe no frame da soltura: o disparo roda no <c>KiAttackManager</c>, antes de o
+        /// <c>RemoteEffects</c> ver a bandeira apagada e limpar a carga.
+        /// </summary>
+        internal static bool TryGetHeldPosition(Player player, out Vector3 position)
+        {
+            position = Vector3.zero;
+
+            if (player == null || !Live.TryGetValue(player, out Active active) || !active.HasHeld)
+            {
+                return false;
+            }
+
+            position = active.HeldPosition;
+            return true;
         }
 
         /// <summary>Este jogador saiu do alcance ou morreu; o objeto morreu junto, a entrada não.</summary>
@@ -171,7 +214,7 @@ namespace Saiyaheim.Attacks
 
         private static Active Start(Player player, float ratio)
         {
-            KiAttack attack = CurrentAttack();
+            KiAttack attack = KiAttackRegistry.Charging(player);
 
             if (attack == null)
             {
@@ -181,7 +224,7 @@ namespace Saiyaheim.Attacks
             Transform anchor = BodyAnchor.Resolve(player, attack.Config.ChargeEffectAnchor);
             string color = ResolveColor(attack);
 
-            Active active = new Active { Anchor = anchor };
+            Active active = new Active { Anchor = anchor, Attack = attack };
 
             string prefab = attack.Config.ChargeEffectPrefab?.Trim() ?? string.Empty;
             if (prefab.Length > 0)
@@ -198,10 +241,14 @@ namespace Saiyaheim.Attacks
                     burstDuration: 0f, localOffset: Vector3.zero, parent: anchor);
             }
 
-            active.Ball = StaticProp.Spawn(
-                anchor, attack.Config.ChargeBallPrefab?.Trim() ?? string.Empty,
-                ResolveBallColor(attack), Vector3.zero,
-                StrippedEffect.ParseFilter(attack.Config.ChargeBallStrip));
+            // O Kienzan não tem bola: o que cresce sobre a palma é o próprio disco, o mesmo que vai
+            // sair voando. Mesma regra da bola — o que se vê na mão é o que vai sair dela.
+            active.Ball = attack.Config.Disc != null
+                ? KiDisc.Create(anchor, attack)
+                : StaticProp.Spawn(
+                    anchor, attack.Config.ChargeBallPrefab?.Trim() ?? string.Empty,
+                    ResolveBallColor(attack), Vector3.zero,
+                    StrippedEffect.ParseFilter(attack.Config.ChargeBallStrip));
 
             // A entrada existe mesmo sem nada aceso: é ela que segura o "já encheu". Sem ela, um
             // ChargeEffectPrefab vazio levaria junto o aviso de carga cheia, que é chave própria.
@@ -262,6 +309,19 @@ namespace Saiyaheim.Attacks
             Move(active.Vfx, local);
             Move(active.Ball, local);
             Move(active.Full, local);
+
+            // O disco fica deitado, nos eixos do jogador, e não nos da mão: preso ao osso ele
+            // giraria junto com o pulso, e o que a cena pede é o prato plano sobre a palma.
+            if (attack.Config.Disc != null && active.Ball != null)
+            {
+                active.Ball.transform.rotation = player.transform.rotation;
+            }
+
+            if (active.Ball != null)
+            {
+                active.HeldPosition = active.Ball.transform.position;
+                active.HasHeld = true;
+            }
         }
 
         private static void Move(GameObject instance, Vector3 localPosition)
@@ -278,9 +338,15 @@ namespace Saiyaheim.Attacks
         /// </summary>
         private static Vector3 Offset(KiAttack attack)
         {
+            // O disco flutua acima da palma, e a altura mora junto com o resto do disco, e não no
+            // ChargeEffectHeight: são o mesmo objeto, calibrados juntos.
+            float height = attack.Config.Disc != null
+                ? attack.Config.Disc.HoldHeight
+                : attack.Config.ChargeEffectHeight;
+
             return new Vector3(
                 attack.Config.ChargeEffectSide,
-                attack.Config.ChargeEffectHeight,
+                height,
                 attack.Config.ChargeEffectForward);
         }
 
@@ -303,7 +369,7 @@ namespace Saiyaheim.Attacks
 
             active.Charged = true;
 
-            KiAttack attack = CurrentAttack();
+            KiAttack attack = active.Attack;
             if (attack == null)
             {
                 return;
@@ -391,27 +457,6 @@ namespace Saiyaheim.Attacks
             return value.Length > 0
                 ? value
                 : attack.Config.ProjectileColor?.Trim() ?? string.Empty;
-        }
-
-        /// <summary>
-        /// O ataque carregável da escada.
-        ///
-        /// <b>Sempre o primeiro</b>, e não o que o jogador selecionou: a ZDO diz que ele carrega,
-        /// não O QUE ele carrega. Publicar o índice custaria bits no mesmo inteiro do
-        /// <c>NetState</c> e só se pagaria no dia em que existirem dois ataques carregáveis com
-        /// efeitos de cor diferente.
-        /// </summary>
-        private static KiAttack CurrentAttack()
-        {
-            foreach (KiAttack attack in KiAttackRegistry.All)
-            {
-                if (attack.IsCharged)
-                {
-                    return attack;
-                }
-            }
-
-            return null;
         }
 
         private static void Cleanup(Player player, Active active)

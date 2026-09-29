@@ -17,6 +17,34 @@ namespace Saiyaheim
     }
 
     /// <summary>
+    /// Que gesto o corpo faz enquanto carrega um ataque de ki.
+    ///
+    /// <b>Existe porque passou a haver dois ataques carregáveis.</b> Até o Kienzan, "carregando"
+    /// queria dizer "Kamehameha" e a pose de duas mãos não precisava perguntar nada. Não é chave de
+    /// <c>.cfg</c>: é o que o ataque <i>é</i>, como o tipo de dano.
+    /// </summary>
+    public enum ChargePose
+    {
+        /// <summary>Mãos em concha ao lado do quadril, e as duas empurradas ao soltar. Kamehameha.</summary>
+        TwoHandBeam,
+
+        /// <summary>Braço direito esticado para cima, com o disco girando sobre a palma. Kienzan.</summary>
+        OverheadDisc,
+    }
+
+    /// <summary>
+    /// O tipo de dano de um ataque de ki. Não é chave de <c>.cfg</c>: é o que o ataque <i>é</i>.
+    /// </summary>
+    public enum KiDamageType
+    {
+        /// <summary>Corte. Ki blast e Kamehameha, decisão de 2026-08-11.</summary>
+        Slash,
+
+        /// <summary>Perfuração. O Kienzan, que atravessa tudo — decisão de 2026-09-28.</summary>
+        Pierce,
+    }
+
+    /// <summary>
     /// Quanto de um efeito de impacto a cor do ataque pinta.
     ///
     /// <b>São duas leituras diferentes do mesmo pedido</b>, e só quem está olhando a tela decide
@@ -128,6 +156,13 @@ namespace Saiyaheim
         /// <see cref="SecKiBlast"/>: nenhum número é compartilhado entre ataques.
         /// </summary>
         private const string SecKamehameha = "4.2 - Kamehameha";
+
+        /// <summary>
+        /// O terceiro ataque, atrás do Bonemass: o disco do Kuririn. Seção própria pelo mesmo motivo
+        /// das outras duas. Leva também as chaves do disco e da pose, que são chute visual e saem
+        /// daqui para <c>const</c> quando fecharem na tela.
+        /// </summary>
+        private const string SecKienzan = "4.3 - Kienzan";
 
         private const string SecFlight = "5 - Flight";
         private const string SecPower = "6 - Battle Power";
@@ -668,7 +703,165 @@ namespace Saiyaheim
 
             /// <summary>Global key do boss que destrava o ataque. Vazio desliga a trava.</summary>
             public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
+
+            // As quatro abaixo são null num ataque que não as registra (ver o shotShape do
+            // BindKiAttack), e ler por aqui devolve o que a ausência quer dizer.
+
+            /// <summary>Empurrão. Zero sem a chave.</summary>
+            public float GetKnockback() => Knockback?.Value ?? 0f;
+
+            /// <summary>Raio da explosão. Zero, só o alvo acertado, sem a chave.</summary>
+            public float GetImpactRadius() => ImpactRadius?.Value ?? 0f;
+
+            /// <summary>Projéteis por disparo. Um sem a chave.</summary>
+            public int GetBeamCount() => BeamCount?.Value ?? 1;
+
+            /// <summary>Segundos entre projéteis. Sem a chave não há feixe, e o valor não é lido.</summary>
+            public float GetBeamInterval() => BeamInterval?.Value ?? 0.05f;
+
+            /// <summary>
+            /// O gesto da carga. Só importa num ataque com <see cref="ChargeTime"/> acima de zero.
+            /// </summary>
+            public ChargePose ChargePose { get; internal set; } = ChargePose.TwoHandBeam;
+
+            /// <summary>O tipo de dano do golpe inteiro. Ver <c>KiProjectile.BuildHit</c>.</summary>
+            public KiDamageType DamageType { get; internal set; } = KiDamageType.Slash;
+
+            /// <summary>
+            /// Carregar prende o jogador no lugar. Verdadeiro no Kamehameha, que é uma aposta
+            /// parada; falso no Kienzan, que carrega andando. Ver <c>KiBeamCharge.HoldStill</c>.
+            /// </summary>
+            public bool HoldStillWhileCharging { get; internal set; } = true;
+
+            /// <summary>
+            /// O projétil atravessa o que acerta e só para no terreno — o
+            /// <c>Projectile.m_onlyStopOnTerrain</c> do jogo. Não é chave: é o que o ataque é.
+            /// </summary>
+            public bool Pierce { get; internal set; }
+
+            /// <summary>
+            /// Raio em metros da esfera com que o projétil procura o que acertar. Null mantém o do
+            /// prefab. Ver <c>KiProjectile.Defuse</c>.
+            /// </summary>
+            public ConfigEntry<float> HitRadius { get; internal set; }
+
+            /// <summary>
+            /// O disco desenhado em código no lugar do visual do prefab, ou null para usar o prefab.
+            /// Ver <c>Attacks/KiDisc.cs</c>.
+            /// </summary>
+            public KiDiscConfig Disc { get; internal set; }
+
+            /// <summary>A pose de braço erguido da carga, quando <see cref="ChargePose"/> pede.</summary>
+            public OverheadPoseConfig OverheadPose { get; internal set; }
         }
+
+        /// <summary>
+        /// O disco do Kienzan, desenhado em código: nenhum prefab do jogo tem forma de disco, e
+        /// uma malha plana com borda serrilhada não pede Blender nem bundle.
+        ///
+        /// Esteve no <c>.cfg</c> enquanto era chute visual e virou constante em 2026-09-28, com os
+        /// valores calibrados na tela — ver <see cref="KienzanDisc"/>.
+        /// </summary>
+        public class KiDiscConfig
+        {
+            /// <summary>Raio em metros, na carga cheia. Só o visual; o acerto é o <c>HitRadius</c>.</summary>
+            public float Radius { get; internal set; }
+
+            /// <summary>Espessura no centro, em metros. Afina até a borda, como uma lente.</summary>
+            public float Thickness { get; internal set; }
+
+            public int Teeth { get; internal set; }
+
+            /// <summary>Fundo do dente, como fração do raio. 0 é círculo liso.</summary>
+            public float ToothDepth { get; internal set; }
+
+            /// <summary>Quão perto do branco é o centro. A borda é sempre a cor do ataque.</summary>
+            public float CoreWhiteness { get; internal set; }
+
+            /// <summary>Brilho. Acima de 1 alimenta o bloom do jogo.</summary>
+            public float Glow { get; internal set; }
+
+            public float Opacity { get; internal set; }
+
+            /// <summary>Giro em graus por segundo, na mão e em voo.</summary>
+            public float SpinSpeed { get; internal set; }
+
+            public float LightIntensity { get; internal set; }
+
+            public float LightRange { get; internal set; }
+
+            /// <summary>Altura sobre a palma durante a carga, em metros, nos eixos do jogador.</summary>
+            public float HoldHeight { get; internal set; }
+        }
+
+        /// <summary>
+        /// O braço erguido enquanto o Kienzan carrega. Alvos absolutos de músculo, no espaço de
+        /// intenção das outras poses. Constante desde 2026-09-28 — ver <see cref="KienzanPose"/> e
+        /// <c>Attacks/KiDiscPose.cs</c>.
+        /// </summary>
+        public class OverheadPoseConfig
+        {
+            public float BlendSeconds { get; internal set; }
+
+            /// <summary>0 é a T-pose, 1 o braço erguido até onde o rig deixa.</summary>
+            public float ArmHeight { get; internal set; }
+
+            /// <summary>Positivo leva à frente do rosto, negativo para trás da cabeça.</summary>
+            public float ArmForward { get; internal set; }
+
+            public float ArmTwist { get; internal set; }
+
+            public float ForearmTwist { get; internal set; }
+
+            /// <summary>+1 é o braço reto; 0 é o MEIO da faixa, um braço dobrado.</summary>
+            public float ElbowStretch { get; internal set; }
+
+            public float ShoulderLift { get; internal set; }
+
+            /// <summary>Pulso dobrado para trás, virando a palma para o céu.</summary>
+            public float WristBend { get; internal set; }
+
+            public float HandOpen { get; internal set; }
+        }
+
+        /// <summary>
+        /// O disco, calibrado na tela pelo Henrique em 2026-09-28. Os valores de partida eram raio
+        /// 0,6, espessura 0,15, 24 dentes com 0,12 de fundo e altura 0,35 sobre a palma; o resto
+        /// passou intacto.
+        /// </summary>
+        private static readonly KiDiscConfig KienzanDisc = new KiDiscConfig
+        {
+            Radius = 1f,
+            // Espessura existe porque o disco de uma face sumia visto de lado (mesmo playtest).
+            Thickness = 0.1f,
+            Teeth = 50,
+            ToothDepth = 0.1f,
+            CoreWhiteness = 0.6f,
+            Glow = 2.5f,
+            Opacity = 0.85f,
+            SpinSpeed = 1440f,
+            LightIntensity = 2f,
+            LightRange = 4f,
+            HoldHeight = 0.2f,
+        };
+
+        /// <summary>
+        /// A pose, calibrada na tela no mesmo dia. Partia com o braço reto para cima, sem torção e
+        /// com o ombro em 0,3; o playtest levou o braço um pouco para trás da cabeça, girou braço e
+        /// antebraço e ergueu o ombro inteiro.
+        /// </summary>
+        private static readonly OverheadPoseConfig KienzanPose = new OverheadPoseConfig
+        {
+            BlendSeconds = 0.25f,
+            ArmHeight = 1f,
+            ArmForward = -0.4f,
+            ArmTwist = 0.5f,
+            ForearmTwist = 0.5f,
+            ElbowStretch = 1f,
+            ShoulderLift = 1f,
+            WristBend = 1f,
+            HandOpen = 1f,
+        };
 
         /// <summary>
         /// O primeiro ataque da escada. O segundo é outra propriedade como esta, com seção própria
@@ -678,6 +871,9 @@ namespace Saiyaheim
 
         /// <summary>O segundo ataque da escada. Mesma forma do <see cref="KiBlast"/>, em feixe.</summary>
         public static KiAttackConfig Kamehameha { get; private set; }
+
+        /// <summary>O terceiro: um disco carregado que atravessa o que acerta.</summary>
+        public static KiAttackConfig Kienzan { get; private set; }
 
         // ---------- 5 - Flight ----------
 
@@ -2295,6 +2491,88 @@ namespace Saiyaheim
                 chargeFullEffectLoop: false,
                 chargeFullEffectReplaces: true);
 
+            // O disco do Kuririn, no Bonemass — o terceiro boss, que ate' aqui nao entregava
+            // ataque. Decidido em 2026-09-28. Ele entra pela regra de 2026-09-21 (ataque novo so'
+            // com papel novo): e' o unico que ATRAVESSA, e acerta cada alvo da fila uma vez. O
+            // blast tem area, o Kamehameha tem volume; este tem linha.
+            //
+            // Numeros de partida, ancorados nos outros dois e nao chutados no vazio:
+            //   Dano 20 + 0,2 x poder POR ALVO. Contra um alvo so', por ki, fica abaixo do
+            //   Kamehameha (0,2 / 60 contra 0,48 / 120) e acima do blast (0,036 / 20). O premio e'
+            //   a fila: tres inimigos em linha levam 0,6 x poder pelos mesmos 60 de ki.
+            //   Custo 60, pago durante a carga, como o Kamehameha.
+            //   Carga de 2,5 s com MinChargeRatio 1: o disco so' sai inteiro. Com um projetil so', a
+            //   carga nao tem o que escalar alem do tamanho, e deixar soltar cedo daria o golpe cheio
+            //   por uma fracao do custo. Soltar antes cancela, e o ki gasto nao volta.
+            //   Empurrao zero: o disco corta, nao empurra — e empurrar tiraria o segundo alvo da
+            //   linha antes de o disco chegar nele.
+            // Nada disto foi jogado ainda.
+            Kienzan = BindKiAttack(config, SecKienzan,
+                damageBase: 20f,
+                damageFromPower: 0.2f,
+                kiCost: 60f,
+                cooldown: 3f,
+                // A mesma bola do ki blast, mas so' como carcaca: o KiDisc apaga o visual dela e
+                // desenha o disco por cima. O que se aproveita e' o objeto de rede, o som de voo e
+                // o estouro do impacto, que toca a cada alvo cortado.
+                projectilePrefab: "GoblinShaman_projectile_fireball",
+                impactEffect: "",
+                impactEffectStrip: "smoke, fire",
+                impactColor: "",
+                // Amarelo de ki, um tom mais quente que o do blast para os dois nao se confundirem.
+                projectileColor: "#FFE14D",
+                requiredGlobalKey: "defeated_bonemass",
+                // Sem empurrao, sem area, um projetil: e' o que o shotShape falso diz, e as quatro
+                // chaves (Knockback, ImpactRadius, BeamCount, BeamInterval) nem vao para o .cfg.
+                // Empurrar tiraria o segundo alvo da linha antes de o disco chegar nele, e a area
+                // nao tem o que fazer num golpe que ja' acerta tudo no caminho.
+                shotShape: false,
+                // Devagar o bastante para se ver o disco girando no ar. A 25 m/s e 3 s, 75 m.
+                projectileSpeed: 25f,
+                projectileLifetime: 3f,
+                projectileScale: 1f,
+                // Corta o que o soco nao corta: e' a sensacao do golpe no anime.
+                tierPowerMultiplier: 2f,
+                chargeTime: 2.5f,
+                minChargeRatio: 1f,
+                // O disco nasce pequeno sobre a palma e cresce ate' o tamanho do que vai sair.
+                chargeMinScale: 0.2f,
+                // Na palma, e a altura sobre ela e' a HoldHeight do disco, logo abaixo.
+                chargeEffectHeight: 0f,
+                chargeEffectSide: 0f,
+                chargeEffectForward: 0f,
+                chargeEffectAnchor: EffectAnchor.RightHand,
+                // O mesmo aviso de carga cheia do Kamehameha, na cor do disco.
+                chargeFullEffectPrefab: "vfx_blocked",
+                chargeFullEffectColor: "",
+                chargeFullEffectScale: 1f,
+                chargeFullEffectLoop: false,
+                chargeFullEffectReplaces: false);
+
+            Kienzan.ChargePose = ChargePose.OverheadDisc;
+            Kienzan.Pierce = true;
+
+            // Perfuracao, e nao o corte dos outros dois: o disco atravessa tudo, e o Henrique
+            // escolheu por isso (2026-09-28). Medido nos prefabs extraidos: da' no mesmo que corte
+            // na montanha e nas Mistlands, ganha nas Plains (Lox resiste a corte) e no Troll, e
+            // perde no pantano (Skeleton, Blob e Bonemass resistem) e nos Charred das Ashlands.
+            Kienzan.DamageType = KiDamageType.Pierce;
+
+            // Anda enquanto carrega — pedido do Henrique depois do primeiro playtest (2026-09-28).
+            // O Kamehameha segue parado: la' a janela parada e' o preco da aposta.
+            Kienzan.HoldStillWhileCharging = false;
+
+            Kienzan.HitRadius = config.Bind(SecKienzan, "HitRadius", 0.4f,
+                new ConfigDescription(
+                    "Radius in metres of the sphere the disc uses to find what it cuts. Wider hits " +
+                    "more of a crowd, but it also clips the ground sooner when thrown low — and " +
+                    "the ground is the only thing that stops the disc. " +
+                    "(Starting value, 2026-09-28. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0.05f, 3f), AdminOnly(77)));
+
+            Kienzan.Disc = KienzanDisc;
+            Kienzan.OverheadPose = KienzanPose;
+
             // --- Voo ---
             // 5 -> 3,5 em 2026-09-20. O sintoma vem das issues 1 e 2 do GitHub: a 5/s contra uma
             // barra de 50 no nivel 0, o comeco do jogo da' DEZ segundos de voo, e a resposta que os
@@ -3057,6 +3335,13 @@ namespace Saiyaheim
         /// deve ser <b>uma chamada</b>, não um bloco copiado com treze descrições para manter em
         /// sincronia.
         /// </summary>
+        /// <param name="shotShape">
+        /// Falso num ataque sem empurrão, sem área e de projétil único — o Kienzan. As quatro
+        /// chaves que só servem a isso (<c>Knockback</c>, <c>ImpactRadius</c>, <c>BeamCount</c>,
+        /// <c>BeamInterval</c>) nem entram no <c>.cfg</c>, e quem lê recebe o neutro — ver
+        /// <see cref="KiAttackConfig.GetKnockback"/> e vizinhos. Pedido do Henrique em 2026-09-28:
+        /// chave que não faz sentido no ataque só confunde quem abre o arquivo.
+        /// </param>
         private static KiAttackConfig BindKiAttack(
             ConfigFile config, string section, float damageBase, float damageFromPower,
             float kiCost, float cooldown, string projectilePrefab, string impactEffect,
@@ -3072,7 +3357,7 @@ namespace Saiyaheim
             bool chargeFullEffectReplaces = true, float chargeEffectForward = 0f,
             EffectAnchor chargeEffectAnchor = EffectAnchor.RightHand,
             string chargeBallPrefab = "", string chargeBallColor = "", float chargeBallScale = 1f,
-            string chargeBallStrip = "", float tierPowerMultiplier = 1f)
+            string chargeBallStrip = "", float tierPowerMultiplier = 1f, bool shotShape = true)
         {
             return new KiAttackConfig
             {
@@ -3081,7 +3366,8 @@ namespace Saiyaheim
                         "Damage of this attack at battle power zero, before the power share below. " +
                         "It is the floor: a fresh character has almost no battle power, and an " +
                         "attack that did nothing at all until the bar filled would read as broken " +
-                        "on the very first shot. All of it is SLASH damage. " +
+                        "on the very first shot. All of it is one damage type: SLASH for the ki blast " +
+                        "and the Kamehameha, PIERCE for the Kienzan. " +
                         "(Starting value. Not playtested yet.)",
                         new AcceptableValueRange<float>(0f, 1000f), AdminOnly(100))),
 
@@ -3129,7 +3415,7 @@ namespace Saiyaheim
                         "between the player and emptying the bar in one second.",
                         new AcceptableValueRange<float>(0f, 30f), AdminOnly(85))),
 
-                Knockback = config.Bind(section, "Knockback", knockback,
+                Knockback = !shotShape ? null : config.Bind(section, "Knockback", knockback,
                     new ConfigDescription(
                         "Push applied to whatever is hit. It is what makes the shot read as an " +
                         "impact rather than a scratch, and it buys back the distance the attack " +
@@ -3140,7 +3426,7 @@ namespace Saiyaheim
                 // aplica o mesmo m_damage, ja' escalado pelo poder, a todo alvo no raio. Sem queda
                 // por distancia — dano cheio em cada um —, e por isso o blast perdeu 10% de dano
                 // quando ganhou area (2026-09-17).
-                ImpactRadius = config.Bind(section, "ImpactRadius", impactRadius,
+                ImpactRadius = !shotShape ? null : config.Bind(section, "ImpactRadius", impactRadius,
                     new ConfigDescription(
                         "Radius in meters of the explosion where the projectile lands. Everything " +
                         "inside takes the FULL damage and knockback — the game has no falloff — " +
@@ -3159,7 +3445,7 @@ namespace Saiyaheim
                 // igual a' do tiro unico — o feixe nao e' um caso especial da conta, e' N vezes a
                 // mesma conta — e e' o que faz meio feixe que erra bater metade. O saiya_blast
                 // imprime o total, que e' o numero que se calibra.
-                BeamCount = config.Bind(section, "BeamCount", beamCount,
+                BeamCount = !shotShape ? null : config.Bind(section, "BeamCount", beamCount,
                     new ConfigDescription(
                         "How many projectiles one press fires. 1 is a single shot. Higher turns " +
                         "the attack into a stream: fired close enough together, a line of " +
@@ -3170,7 +3456,7 @@ namespace Saiyaheim
                         "Raise it for a longer beam, and lower BeamInterval to close the gaps.",
                         new AcceptableValueRange<int>(1, 60), AdminOnly(84))),
 
-                BeamInterval = config.Bind(section, "BeamInterval", beamInterval,
+                BeamInterval = !shotShape ? null : config.Bind(section, "BeamInterval", beamInterval,
                     new ConfigDescription(
                         "Seconds between one projectile of a beam and the next. It sets both how " +
                         "long the beam lasts (BeamCount x this) and how far apart the projectiles " +

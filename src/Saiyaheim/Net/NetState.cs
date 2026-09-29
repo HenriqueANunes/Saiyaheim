@@ -102,6 +102,19 @@ namespace Saiyaheim.Net
         private const int FormMask = 0xFF;
 
         /// <summary>
+        /// Onde começa o índice do ataque sendo carregado, na escada do <c>KiAttackRegistry</c>.
+        ///
+        /// <b>Entrou com o Kienzan, em 2026-09-28</b>, o segundo ataque carregável. Até ali a
+        /// bandeira de carga bastava, porque "carregando" só podia ser o Kamehameha; com dois, o
+        /// vizinho precisa saber se faz a concha de duas mãos ou ergue o braço com o disco. Mesmo
+        /// esquema da forma: +1, para zero querer dizer "não sei" — e quem lê zero cai no primeiro
+        /// ataque carregável, que é como o canal se comportava antes.
+        /// </summary>
+        private const int ChargeAttackShift = 16;
+
+        private const int ChargeAttackMask = 0xFF;
+
+        /// <summary>
         /// Publica o estado do jogador local. Chamado uma vez por frame, do <c>Update</c> do
         /// plugin, <b>depois</b> dos managers — o valor publicado é o do frame que acabou de ser
         /// decidido, não o do anterior.
@@ -111,7 +124,7 @@ namespace Saiyaheim.Net
         /// </summary>
         internal static void Publish(
             Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
-            bool beamCharged, bool flightSteersByAim, int formIndex)
+            bool beamCharged, bool flightSteersByAim, int formIndex, int chargeAttackIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -155,6 +168,13 @@ namespace Saiyaheim.Net
             // não publicou nada, lê zero na ZDO e não pode ser confundido com o primeiro degrau.
             value |= ((formIndex + 1) & FormMask) << FormShift;
 
+            // Só enquanto carrega: fora da carga o índice não quer dizer nada, e publicá-lo faria o
+            // inteiro mudar a cada troca de ataque selecionado, sem ninguém do outro lado precisar.
+            if (beamCharging)
+            {
+                value |= ((chargeAttackIndex + 1) & ChargeAttackMask) << ChargeAttackShift;
+            }
+
             zdo.Set(StateHash, value);
         }
 
@@ -166,6 +186,15 @@ namespace Saiyaheim.Net
 
         /// <summary>Este jogador está segurando um ataque de ki carregado.</summary>
         internal static bool IsChargingBeam(Player player) => HasFlag(player, FlagBeamCharging);
+
+        /// <summary>
+        /// Índice do ataque que este jogador carrega, ou -1 quando não se sabe — sem carga, ou um
+        /// cliente que não publica o índice. Ver <see cref="ChargeAttackShift"/>.
+        /// </summary>
+        internal static int GetChargeAttackIndex(Player player)
+        {
+            return ((Read(player) >> ChargeAttackShift) & ChargeAttackMask) - 1;
+        }
 
         /// <summary>A carga deste jogador chegou ao topo.</summary>
         internal static bool IsBeamCharged(Player player) => HasFlag(player, FlagBeamCharged);

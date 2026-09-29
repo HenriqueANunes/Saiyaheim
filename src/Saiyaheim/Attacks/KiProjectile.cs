@@ -40,6 +40,13 @@ namespace Saiyaheim.Attacks
         private const float SpawnClearance = 0.4f;
 
         /// <summary>
+        /// Segundos que um projétil que atravessa ainda existe depois de bater no terreno. Não é
+        /// balanceamento nem escolha visual: é o menor valor que o <c>m_ttl</c> do jogo aceita como
+        /// "ainda vivo" (zero o deixaria vivo para sempre), para o disco sumir no chão.
+        /// </summary>
+        private const float PierceStayOnTerrain = 0.05f;
+
+        /// <summary>
         /// Dispara. Devolve false <b>sem ter gasto nada</b> quando não deu — quem chama só cobra o
         /// ki depois de o projétil existir, para que um nome de prefab errado no <c>.cfg</c> não
         /// coma a barra do jogador em silêncio.
@@ -68,7 +75,7 @@ namespace Saiyaheim.Attacks
             // NÃO é a direção do olhar. Copiar o olhar — o que o GetAimDir do jogo faz, e por isso
             // o arco vanilla erra para baixo — deixaria o tiro numa reta paralela à da mira,
             // deslocada pela distância entre o olho e a mão. Ver KiAim.
-            Vector3 origin = GetOrigin(player);
+            Vector3 origin = GetOrigin(player, attack);
             Vector3 aim = KiAim.Resolve(player, origin);
             if (aim == Vector3.zero)
             {
@@ -108,7 +115,7 @@ namespace Saiyaheim.Attacks
             projectile.Setup(player, aim * speed, -1f, BuildHit(player, attack, damage), null, null);
 
             SaiyaheimPlugin.LogVerbose(
-                $"Ki attack '{attack.Id}': {damage:0.#} slash, " +
+                $"Ki attack '{attack.Id}': {damage:0.#} {attack.Config.DamageType.ToString().ToLowerInvariant()}, " +
                 $"{attack.GetKiCostPerProjectile():0.#} ki, " +
                 $"{speed:0.#} m/s for {attack.Config.ProjectileLifetime.Value:0.##}s " +
                 $"({speed * attack.Config.ProjectileLifetime.Value:0} m range).");
@@ -181,6 +188,31 @@ namespace Saiyaheim.Attacks
         /// <c>GetComponent</c> chega no mesmo objeto por caminho público — é literalmente o que o
         /// <c>Humanoid.Awake</c> faz.
         /// </summary>
+        /// <remarks>
+        /// <b>O disco sai de onde ele já está</b>, sobre a palma erguida, e não da mão. A mão lida
+        /// aqui está na pose <i>vanilla</i>: o disparo roda no <c>Update</c>, e a pose do mod só
+        /// entra no LateUpdate (ver <c>KiBeamChargeEffects.Place</c>). Para o ki blast isso não
+        /// aparece, porque o braço vanilla já está perto de onde ele sai; para o Kienzan, com o
+        /// braço erguido, o disco saía da cintura — playtest de 2026-09-28. O disco da carga foi
+        /// posto pelo LateUpdate do frame anterior, e é esse o lugar certo.
+        /// </remarks>
+        private static Vector3 GetOrigin(Player player, KiAttack attack)
+        {
+            if (attack.Config.Disc != null)
+            {
+                if (KiBeamChargeEffects.TryGetHeldPosition(player, out Vector3 held))
+                {
+                    return held;
+                }
+
+                // Sem o disco da carga (efeitos desligados por erro): acima da cabeça, que é mais
+                // perto da cena do que a mão vanilla.
+                return player.GetEyePoint() + player.transform.up * attack.Config.Disc.HoldHeight;
+            }
+
+            return GetOrigin(player);
+        }
+
         private static Vector3 GetOrigin(Player player)
         {
             VisEquipment vis = player.GetComponent<VisEquipment>();
@@ -220,7 +252,7 @@ namespace Saiyaheim.Attacks
             // m_damage do projetil, que o Setup preenche com o HitData do mod — passa pela formula.
             // O prefab traz a area dele; a do mod e' a da config, zero desliga. Decidido em
             // 2026-09-17: sem pular construcao, e cada alvo uma vez so' por projetil.
-            projectile.m_aoe = Mathf.Max(0f, attack.Config.ImpactRadius.Value);
+            projectile.m_aoe = Mathf.Max(0f, attack.Config.GetImpactRadius());
             projectile.m_aoeSkipWearNTear = false;
             projectile.m_aoeMaxHitOnce = true;
 
@@ -235,7 +267,29 @@ namespace Saiyaheim.Attacks
             // projetil segue por baixo da agua ate' terreno, alvo ou ttl — como o ki blast.
             projectile.m_canHitWater = false;
 
-            projectile.m_ttl = Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);
+            // Atravessar e' do proprio Projectile, e nao do mod: com isto o OnHit guarda cada
+            // collider ja' acertado, aplica o golpe e deixa o projetil seguir, e so' o terreno
+            // (Heightmap) o para. O FixedUpdate ja' varre com RaycastAll/SphereCastAll e ordena por
+            // distancia, entao dois alvos no mesmo passo de fisica levam os dois. Conferido na
+            // assembly em 2026-09-28. Arvore, pedra e construcao no caminho levam o golpe e nao
+            // param o disco — escolha do Henrique no mesmo dia.
+            //
+            // A lista do jogo e' por COLLIDER, e um boss tem varios: o playtest de 2026-09-28 viu o
+            // golpe dobrar. O KiPierceMemory e' o que deixa o KiPierceHitPatch contar por
+            // personagem.
+            projectile.m_onlyStopOnTerrain = attack.Config.Pierce;
+
+            if (attack.Config.Pierce && projectile.GetComponent<KiPierceMemory>() == null)
+            {
+                projectile.gameObject.AddComponent<KiPierceMemory>();
+            }
+
+            if (attack.Config.HitRadius != null)
+            {
+                projectile.m_rayRadius = Mathf.Max(0f, attack.Config.HitRadius.Value);
+            }
+
+            projectile.m_ttl =Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);
             // Gravidade zero, e não uma chave: um tiro de energia voa reto. Com arco o projétil
             // cair é o que se mira; aqui seria pedra atirada. Esteve no .cfg até 2026-09-13, nos
             // dois ataques, sempre em zero.
@@ -303,6 +357,13 @@ namespace Saiyaheim.Attacks
 
             AttachedEffect.ApplyTint(instance, attack.Config.ProjectileColor);
 
+            // Depois da tinta, de proposito: o ApplyTint pinta todo material que encontra, e o
+            // brilho do disco passa de 1 — pintado por cima, ele voltaria a cor chapada.
+            if (attack.Config.Disc != null)
+            {
+                KiDisc.DressProjectile(instance, attack, attack.GetProjectileScale(chargeRatio));
+            }
+
             // Aqui e não no Defuse: o m_stopEmittersOnHit é lido no RPC_OnHit, que chega a todos
             // os clientes. Sem isto, o rastro na tela do amigo continuaria emitindo até a
             // destruição chegar pela rede.
@@ -329,6 +390,21 @@ namespace Saiyaheim.Attacks
                 $"Ki attack '{attack.Id}': prefab lingers on hit — " +
                 $"static {projectile.m_stayAfterHitStatic}, dynamic {projectile.m_stayAfterHitDynamic}, " +
                 $"stayTTL {projectile.m_stayTTL:0.##}s, stopEmitters {projectile.m_stopEmittersOnHit}.");
+
+            if (attack.Config.Pierce)
+            {
+                // O m_onlyStopOnTerrain so' impede o m_didHit. O fim do OnHit continua destruindo o
+                // projetil depois do golpe quando os dois m_stayAfterHit* estao desligados — e era
+                // isso que matava o Kienzan no primeiro alvo (playtest de 2026-09-28). Ligados, ele
+                // segue; no terreno o m_didHit para o voo e o m_stayTTL curto o apaga logo depois.
+                // Sem grudar no alvo: m_attach* faria o disco pegar carona no primeiro bicho.
+                projectile.m_stayAfterHitStatic = true;
+                projectile.m_stayAfterHitDynamic = true;
+                projectile.m_attachToRigidBody = false;
+                projectile.m_attachToClosestBone = false;
+                projectile.m_stayTTL = PierceStayOnTerrain;
+                return;
+            }
 
             if (attack.Config.ProjectileLingerOnHit)
             {
@@ -501,10 +577,11 @@ namespace Saiyaheim.Attacks
         /// <summary>
         /// O golpe que o projétil vai aplicar.
         ///
-        /// <b>Corte puro</b> — decisão de 2026-08-11, ver [[Ataques de Ki]]. Não é chave de
-        /// config porque não é número de balanceamento: é o que o ataque <i>é</i>.
-        /// (Era contusão até 2026-08-06; slash conta para stagger do mesmo jeito, então a troca
-        /// muda só a resistência do alvo, não o ritmo do combate.)
+        /// <b>Um tipo só, por ataque</b> (<c>DamageType</c>): corte no ki blast e no Kamehameha —
+        /// decisão de 2026-08-11, ver [[Ataques de Ki]] —, perfuração no Kienzan desde 2026-09-28.
+        /// Não é chave de config porque não é número de balanceamento: é o que o ataque <i>é</i>.
+        /// (Era contusão até 2026-08-06; corte e perfuração contam para stagger do mesmo jeito,
+        /// então a escolha muda só a resistência do alvo, não o ritmo do combate.)
         ///
         /// <b>Bloqueável e esquivável</b>, como qualquer projétil do jogo. Tirar isso faria o
         /// ataque ignorar em silêncio as duas defesas que o Valheim inteiro ensina, e um inimigo
@@ -514,8 +591,16 @@ namespace Saiyaheim.Attacks
         {
             HitData hit = new HitData();
 
-            hit.m_damage.m_slash = damage;
-            hit.m_pushForce = Mathf.Max(0f, attack.Config.Knockback.Value);
+            if (attack.Config.DamageType == KiDamageType.Pierce)
+            {
+                hit.m_damage.m_pierce = damage;
+            }
+            else
+            {
+                hit.m_damage.m_slash = damage;
+            }
+
+            hit.m_pushForce = Mathf.Max(0f, attack.Config.GetKnockback());
             hit.m_blockable = true;
             hit.m_dodgeable = true;
             hit.SetAttacker(player);

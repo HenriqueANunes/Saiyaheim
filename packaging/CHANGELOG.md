@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.6.1
+## 0.7.0
 
+- Added: Kienzan, a new ki attack unlocked by Bonemass — charge a spinning disc over your head, then throw it through every enemy, tree and rock in its path (pierce damage).
 - Changed: form mastery no longer slows to a crawl at higher levels (mastery XP settings moved to "3 - Transformations" and reset to the new defaults).
 
 ## 0.6.0

@@ -20,6 +20,7 @@ namespace Saiyaheim.Debugging
     /// saiya_blast blast unlock    ignora a trava daquele ataque nesta sessão
     /// saiya_blast blast lock      devolve a trava
     /// saiya_blast pose            segura a pose de disparo do ki blast, para calibrar
+    /// saiya_blast pose disc       segura o braço erguido do Kienzan
     /// saiya_blast pose charge     segura a concha do Kamehameha
     /// saiya_blast pose release    segura o empurrão do Kamehameha
     /// saiya_blast pose off        solta todas
@@ -39,13 +40,13 @@ namespace Saiyaheim.Debugging
 
         public override string Help =>
             "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock] " +
-            "| pose [blast | charge | release | off]";
+            "| pose [blast | disc | charge | release | off]";
 
         public override List<string> CommandOptionList()
         {
             List<string> options = new List<string>
             {
-                "select", "unlock", "lock", "pose", "charge", "release", "off",
+                "select", "unlock", "lock", "pose", "disc", "charge", "release", "off",
             };
 
             foreach (KiAttack attack in KiAttackRegistry.All)
@@ -159,12 +160,20 @@ namespace Saiyaheim.Debugging
                 case null:
                 case "blast":
                     KiBeamPose.DebugHold = KiBeamPose.DebugPhase.None;
+                    KiDiscPose.DebugHold = false;
                     KiBlastPose.DebugHold = !KiBlastPose.DebugHold;
+                    break;
+
+                case "disc":
+                    KiBeamPose.DebugHold = KiBeamPose.DebugPhase.None;
+                    KiBlastPose.DebugHold = false;
+                    KiDiscPose.DebugHold = !KiDiscPose.DebugHold;
                     break;
 
                 case "charge":
                 case "release":
                     KiBlastPose.DebugHold = false;
+                    KiDiscPose.DebugHold = false;
 
                     KiBeamPose.DebugPhase wanted = phase == "charge"
                         ? KiBeamPose.DebugPhase.Charge
@@ -177,15 +186,17 @@ namespace Saiyaheim.Debugging
 
                 case "off":
                     KiBlastPose.DebugHold = false;
+                    KiDiscPose.DebugHold = false;
                     KiBeamPose.DebugHold = KiBeamPose.DebugPhase.None;
                     break;
 
                 default:
-                    Print($"Unknown pose: '{phase}'. Try: pose [blast | charge | release | off]");
+                    Print($"Unknown pose: '{phase}'. Try: pose [blast | disc | charge | release | off]");
                     return;
             }
 
             Print($"Blast pose held: {(KiBlastPose.DebugHold ? "on" : "off")}");
+            Print($"Kienzan pose held: {(KiDiscPose.DebugHold ? "on" : "off")}");
             Print($"Kamehameha pose held: {KiBeamPose.DebugHold}");
         }
 
@@ -359,10 +370,10 @@ namespace Saiyaheim.Debugging
 
             Print($"Projectile: {prefabName}{(exists ? "" : "  *** DOES NOT EXIST — nothing will fire ***")}");
             Print($"  {speed:0.#} m/s for {life:0.##} s = {speed * life:0} m range, " +
-                  $"knockback {attack.Config.Knockback.Value:0}, " +
-                  (attack.Config.ImpactRadius.Value > 0f
-                      ? $"{attack.Config.ImpactRadius.Value:0.#} m explosion (full damage to each target)"
-                      : "no explosion"));
+                  $"knockback {attack.Config.GetKnockback():0}, " +
+                  (attack.Config.GetImpactRadius() > 0f
+                      ? $"{attack.Config.GetImpactRadius():0.#} m explosion (full damage to each target)"
+                      : attack.Config.Pierce ? "pierces everything, stops on the ground" : "no explosion"));
 
             int beam = attack.GetBeamCount();
             if (beam <= 1)

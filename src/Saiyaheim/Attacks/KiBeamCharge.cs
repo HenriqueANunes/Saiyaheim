@@ -92,7 +92,9 @@ namespace Saiyaheim.Attacks
         /// </summary>
         internal static void HoldStill(Player player)
         {
-            if (IsCharging(player))
+            // Por ataque: o Kienzan carrega andando, a pedido do Henrique em 2026-09-28. O braço
+            // erguido não mexe nas pernas, então a animação de andar segue por baixo da pose.
+            if (IsCharging(player) && Current.Config.HoldStillWhileCharging)
             {
                 player.SetMoveDir(Vector3.zero);
             }

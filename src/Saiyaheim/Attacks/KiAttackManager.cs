@@ -56,7 +56,7 @@ namespace Saiyaheim.Attacks
                 // não é mais o que a tecla dispara.
                 KiBeamCharge.Cancel();
             }
-            else if (KiBeamCharge.Current != null && IsJumpOrDodgePressed(player))
+            else if (KiBeamCharge.Current != null && CancelsCharge(player, KiBeamCharge.Current))
             {
                 // Carregando no chão, pulo e esquiva largam a carga sem disparar e acontecem
                 // normalmente. Não passam pelo m_moveDir, então o HoldStill não os segura, e
@@ -91,6 +91,36 @@ namespace Saiyaheim.Attacks
         /// lê; no teclado a esquiva é agachar + pulo, então o <c>Jump</c> cobre as duas. Voando, o
         /// pulo é o comando de subir e não cancela nada — ali quem segura é o <c>SE_Flight</c>.
         /// </summary>
+        /// <summary>
+        /// O que larga a carga deste ataque. Parado (Kamehameha), pulo e esquiva; andando
+        /// (Kienzan), só a esquiva — pular carregando o disco é permitido, pedido do Henrique em
+        /// 2026-09-28. A esquiva segue cancelando nos dois: é o gesto de fugir, e o corpo rolando
+        /// não segura disco nenhum.
+        /// </summary>
+        private static bool CancelsCharge(Player player, KiAttack attack)
+        {
+            return attack.Config.HoldStillWhileCharging
+                ? IsJumpOrDodgePressed(player)
+                : IsDodgePressed(player);
+        }
+
+        /// <summary>
+        /// Esquiva neste frame, fora do voo. No teclado é bloqueio + pulo, no controle o botão
+        /// próprio; o <c>InDodge</c> pega qualquer outro caminho até ela, um frame depois.
+        /// </summary>
+        private static bool IsDodgePressed(Player player)
+        {
+            if (Flight.FlightManager.IsFlying(player))
+            {
+                return false;
+            }
+
+            bool blockHeld = ZInput.GetButton("Block") || ZInput.GetButton("JoyBlock");
+            bool jumpDown = ZInput.GetButtonDown("Jump") || ZInput.GetButtonDown("JoyJump");
+
+            return ZInput.GetButtonDown("JoyDodge") || (blockHeld && jumpDown) || player.InDodge();
+        }
+
         private static bool IsJumpOrDodgePressed(Player player)
         {
             if (Flight.FlightManager.IsFlying(player))

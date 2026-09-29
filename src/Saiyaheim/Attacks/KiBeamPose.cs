@@ -1136,7 +1136,7 @@ namespace Saiyaheim.Attacks
         {
             foreach (KiAttack attack in KiAttackRegistry.All)
             {
-                if (attack.IsCharged)
+                if (attack.IsCharged && attack.Config.ChargePose == ChargePose.TwoHandBeam)
                 {
                     return attack.Config.ChargeEffectAnchor != EffectAnchor.LeftHand;
                 }
@@ -1161,7 +1161,17 @@ namespace Saiyaheim.Attacks
                 return true;
             }
 
-            return NetState.IsChargingBeam(player);
+            // A carga tem que ser de um ataque de duas mãos. O Kienzan também carrega, com o braço
+            // erguido e pose própria (KiDiscPose); entrar aqui por ele poria a concha por baixo do
+            // disco e, ao soltar, o empurrão de duas mãos no lugar do arremesso.
+            if (!NetState.IsChargingBeam(player))
+            {
+                return false;
+            }
+
+            KiAttack attack = KiAttackRegistry.Charging(player);
+
+            return attack != null && attack.Config.ChargePose == ChargePose.TwoHandBeam;
         }
 
         private static bool IsDebugReleasing(Player player)

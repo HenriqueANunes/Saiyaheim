@@ -31,7 +31,11 @@ namespace Saiyaheim.Attacks
         /// degraus mornos. Decidido em 2026-09-07, ver [[Ataques de Ki]].
         ///
         /// O Kamehameha esteve no Bonemass até 2026-09-15, quando o valor calibrado em playtest
-        /// subiu do <c>.cfg</c> para o código.
+        /// subiu do <c>.cfg</c> para o código. O Bonemass voltou a entregar ataque em 2026-09-28,
+        /// com o Kienzan.
+        ///
+        /// ⚠️ <b>A posição na lista vai para a rede</b> desde o Kienzan: o <c>NetState</c> publica
+        /// qual ataque o jogador carrega pelo índice daqui. Ataque novo entra no fim.
         ///
         /// ⚠️ <b>Ataque novo: o visual não atravessa a rede sozinho.</b> Projétil e estouro são
         /// objetos de rede, mas cor, escala e emissor removido são escritas locais, e os outros
@@ -43,7 +47,8 @@ namespace Saiyaheim.Attacks
         internal static readonly KiAttack[] All =
         {
             new KiAttack("blast", "Ki Blast", SaiyaheimConfig.KiBlast),
-            new KiAttack("kamehameha", "Kamehameha", SaiyaheimConfig.Kamehameha)
+            new KiAttack("kamehameha", "Kamehameha", SaiyaheimConfig.Kamehameha),
+            new KiAttack("kienzan", "Kienzan", SaiyaheimConfig.Kienzan)
         };
 
         /// <summary>O ataque escolhido pelo jogador, ou null se ele nunca escolheu nesta sessão.</summary>
@@ -164,6 +169,33 @@ namespace Saiyaheim.Attacks
             {
                 if (string.Equals(attack.Id, name, System.StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(attack.DisplayName, name, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return attack;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// O ataque que <paramref name="player"/> está carregando, segundo o que ele publicou — vale
+        /// para qualquer jogador, não só o local. Quem pergunta são a pose e a bola na mão.
+        ///
+        /// Cai no primeiro ataque carregável da escada quando o índice não serve: é o que o canal
+        /// respondia antes de existir o índice, e é o que um cliente sem ele continua mandando.
+        /// </summary>
+        internal static KiAttack Charging(Player player)
+        {
+            int index = Net.NetState.GetChargeAttackIndex(player);
+
+            if (index >= 0 && index < All.Length && All[index].IsCharged)
+            {
+                return All[index];
+            }
+
+            foreach (KiAttack attack in All)
+            {
+                if (attack.IsCharged)
                 {
                     return attack;
                 }

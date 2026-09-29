@@ -218,9 +218,11 @@ namespace Saiyaheim.Power
         /// proporção em que bate no inimigo, e recalibrar o dano do ataque arrasta o dano em árvore
         /// junto, sem número novo no <c>.cfg</c>.
         ///
-        /// O dano do ataque vem do próprio golpe: o <c>m_slash</c> que o <c>KiProjectile.BuildHit</c>
-        /// escreveu e o <c>Projectile</c> copia para cada impacto. Os dois lados da divisão leem o
-        /// poder de combate, com a forma, então a forma não mexe no peso.
+        /// O dano do ataque vem do próprio golpe: o corte ou a perfuração que o
+        /// <c>KiProjectile.BuildHit</c> escreveu e o <c>Projectile</c> copia para cada impacto. Os
+        /// dois somados, porque cada ataque escreve só um deles — ler só o corte zerava o Kienzan em
+        /// árvore quando ele virou perfuração (2026-09-28). Os dois lados da divisão leem o poder
+        /// de combate, com a forma, então a forma não mexe no peso.
         /// </summary>
         private static float GetAttackWeight(HitData hit, Player player)
         {
@@ -230,7 +232,8 @@ namespace Saiyaheim.Power
             }
 
             float punch = BattlePower.GetPunchDamage(player);
-            return punch > 0f ? hit.m_damage.m_slash / punch : 0f;
+            float attack = hit.m_damage.m_slash + hit.m_damage.m_pierce;
+            return punch > 0f ? attack / punch : 0f;
         }
 
         /// <summary>O tier do alvo na escada do mod. Ver o cabeçalho da classe.</summary>

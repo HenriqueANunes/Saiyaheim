@@ -150,7 +150,8 @@ namespace Saiyaheim
                 KiBeamCharge.IsCharging(player),
                 KiBeamCharge.IsFull(player),
                 FlightManager.SteersByAim(player),
-                TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)));
+                TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)),
+                KiAttackRegistry.IndexOf(KiBeamCharge.Current));
 
             // Publicado sempre, inclusive com o ki desligado: o alvo é sempre calculável, e quem
             // decide se o número aparece é o ki de quem olha (etapa 10).

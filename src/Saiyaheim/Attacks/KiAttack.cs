@@ -126,7 +126,7 @@ namespace Saiyaheim.Attacks
         /// </summary>
         internal int GetBeamCount()
         {
-            return Mathf.Max(1, Config.BeamCount.Value);
+            return Mathf.Max(1, Config.GetBeamCount());
         }
 
         /// <summary>
@@ -207,7 +207,7 @@ namespace Saiyaheim.Attacks
         /// <summary>Segundos entre um projétil do feixe e o seguinte.</summary>
         internal float GetBeamInterval()
         {
-            return Mathf.Max(0.01f, Config.BeamInterval.Value);
+            return Mathf.Max(0.01f, Config.GetBeamInterval());
         }
 
         /// <summary>Quanto tempo o feixe leva do primeiro projétil ao último.</summary>
