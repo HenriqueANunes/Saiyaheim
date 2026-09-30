@@ -168,9 +168,39 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            player.m_flySlowSpeed = FlightStats.GetSlowSpeed(player);
-            player.m_flyFastSpeed = FlightStats.GetFastSpeed(player);
+            float debuffFactor = GetDebuffSpeedFactor(player);
+            player.m_flySlowSpeed = FlightStats.GetSlowSpeed(player) * debuffFactor;
+            player.m_flyFastSpeed = FlightStats.GetFastSpeed(player) * debuffFactor;
             player.m_flyTurnSpeed = SaiyaheimConfig.FlightTurnSpeed.Value;
+        }
+
+        /// <summary>
+        /// Lentidão de status effect (armadilha, gelo, piche) aplicada ao voo.
+        ///
+        /// O <c>UpdateFlying</c> vanilla passa os modificadores de velocidade só no giro, nunca no
+        /// deslocamento — criatura voadora não pisa em armadilha. Para o jogador isso vira fuga: a
+        /// armadilha zera a velocidade a pé, mas decolar sai voando dela com o giro travado
+        /// (bug reportado no Nexus, 0.6.0).
+        ///
+        /// Mesmo cálculo do <c>UpdateWalking</c>, com base 1 para sair um fator. Só o lado da
+        /// lentidão: buff de velocidade a pé (hidromel) mexeria no balanceamento do voo, que tem
+        /// curva própria. Aplicado depois do clamp do <see cref="FlightStats"/> de propósito: o
+        /// piso de 1 m/s de lá é contra peso, e a armadilha tem que poder chegar a zero.
+        /// </summary>
+        private static float GetDebuffSpeedFactor(Player player)
+        {
+            float strength = SaiyaheimConfig.FlightMovementDebuffStrength.Value;
+            SEMan seman = player.GetSEMan();
+            if (strength <= 0f || seman == null)
+            {
+                return 1f;
+            }
+
+            float speed = 1f;
+            seman.ApplyStatusEffectSpeedMods(ref speed, player.transform.forward);
+            float slowed = Mathf.Clamp01(speed);
+
+            return Mathf.Lerp(1f, slowed, strength);
         }
 
         /// <summary>

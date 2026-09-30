@@ -983,6 +983,12 @@ namespace Saiyaheim
         /// </summary>
         public static ConfigEntry<float> FlightMaxSpeed { get; private set; }
 
+        /// <summary>
+        /// Quanto da lentidão de status effect (armadilha, gelo, piche) vale no voo. Ver
+        /// <c>SE_Flight.GetDebuffSpeedFactor</c>.
+        /// </summary>
+        public static ConfigEntry<float> FlightMovementDebuffStrength { get; private set; }
+
         // O voo não tem config de pose nenhuma. Os números da pose procedural viraram constantes
         // em <c>FlightPose</c> no playtest de 2026-07-31; o corpo na horizontal e a pose em pé
         // forçada no animator seguiram o mesmo caminho em 2026-09-13, direto no
@@ -2932,6 +2938,17 @@ namespace Saiyaheim
                     "above a certain speed zone streaming cannot keep up and the world loads in " +
                     "chunks.",
                     new AcceptableValueRange<float>(5f, 100f), AdminOnly(45)));
+
+            // Bug do Nexus na 0.6.0: a armadilha de urso travava só o giro no ar, e decolar era
+            // fuga. 1 segue o vanilla a pé; o relato pediu que desse para escolher.
+            FlightMovementDebuffStrength = config.Bind(SecFlight, "MovementDebuffStrength", 1f,
+                new ConfigDescription(
+                    "How much movement-slowing status effects (bear traps, frost, tar) slow flight. " +
+                    "1 applies them in full, as on foot: a bear trap holds you in place in the air " +
+                    "too. 0.5 applies half, so a trap slows flight by half instead of stopping it. " +
+                    "0 ignores them and flight escapes a trap. Turning is always slowed, as in " +
+                    "vanilla. Speed buffs are never applied to flight.",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(44)));
 
             // --- Battle Power ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:

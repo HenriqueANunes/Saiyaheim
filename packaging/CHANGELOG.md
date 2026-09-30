@@ -7,6 +7,7 @@
 - Added: SSJ God takes 25% less blunt damage.
 - Fixed: the flight key now work while running (holding Shift).
 - Fixed: Power Level and SSJ God can be used in raiseskill/resetskill (as PowerLevel and SSJGod).
+- Fixed: bear traps, frost and tar now slow flight too, so flying no longer escapes a trap (adjustable with MovementDebuffStrength in "5 - Flight").
 
 ## 0.6.0
 
