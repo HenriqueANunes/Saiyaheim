@@ -2525,8 +2525,9 @@ namespace Saiyaheim
             //
             // Numeros de playtest do Henrique (2026-09-30), no lugar dos de partida (dano 20 +
             // 0,2 x poder, custo 60, recarga 3 s, MinChargeRatio 1, raio 0,4):
-            //   Dano 10 + 0,04 x poder POR ALVO, custo 40. Por ki, contra um alvo so', fica perto
-            //   do blast (0,036 / 20); o premio continua sendo a fila, que leva o dano cheio em
+            //   Dano 10 + 0,1 x poder POR ALVO, custo 40. O primeiro corte foi 0,04, que deixava
+            //   o disco perto do blast (0,036 / 20) por ki; no playtest seguinte ele pediu 0,1,
+            //   acima do blast mesmo contra um alvo so'. A fila continua levando o dano cheio em
             //   cada alvo pelo mesmo ki.
             //   Recarga de 0,5 s e MinChargeRatio 0,1: o disco sai quase na hora, e o golpe vira
             //   ferramenta de uso frequente em vez de aposta.
@@ -2534,7 +2535,7 @@ namespace Saiyaheim
             //   linha antes de o disco chegar nele.
             Kienzan = BindKiAttack(config, SecKienzan,
                 damageBase: 10f,
-                damageFromPower: 0.04f,
+                damageFromPower: 0.1f,
                 kiCost: 40f,
                 cooldown: 0.5f,
                 // A mesma bola do ki blast, mas so' como carcaca: o KiDisc apaga o visual dela e
