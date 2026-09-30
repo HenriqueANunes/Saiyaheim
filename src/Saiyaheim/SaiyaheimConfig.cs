@@ -646,6 +646,13 @@ namespace Saiyaheim
             /// <summary>Escala do projétil na carga mínima, como fração da escala na carga cheia.</summary>
             public float ChargeMinScale { get; internal set; }
 
+            /// <summary>
+            /// Fração do dano cheio na carga mínima que dispara, subindo até 1 na carga cheia. Null
+            /// não escala o dano. Só o ataque de projétil único tem: ver
+            /// <c>KiAttack.GetChargeDamageFactor</c>.
+            /// </summary>
+            public ConfigEntry<float> ChargeMinDamage { get; internal set; }
+
             /// <summary>Efeito preso ao jogador enquanto ele carrega. Vazio não mostra nada.</summary>
             public string ChargeEffectPrefab { get; internal set; }
 
@@ -2058,21 +2065,23 @@ namespace Saiyaheim
             // playtest do mesmo dia, com a taxa mantida em 0,0045. O 99 fica em ~2x o 5, e os
             // niveis do 5 em diante ficam mais baratos que no 0,5 — o fim ainda pedia demais.
             //
+            // 0,8 -> 0,7 no playtest de 2026-09-30: o 99 passa a ~3x o 5.
+            //
             // Sem nivel de referencia de proposito: uma chave a menos no .cfg vale mais que
             // isolar o comeco. O preco e' que mexer nesta chave mexe no comeco tambem, e por isso
             // cada ajuste dela vem com o da taxa acima.
-            MasteryXpCurveCompensation = config.Bind(SecTransformations, "MasteryXpCurveCompensation", 0.8f,
+            MasteryXpCurveCompensation = config.Bind(SecTransformations, "MasteryXpCurveCompensation", 0.7f,
                 new ConfigDescription(
                     "How much of Valheim's rising XP curve mastery gives back. Each hit's XP " +
                     "is multiplied by (XP the form's next level costs) ^ this, so higher levels " +
                     "pay more per hit. 0 turns it off: every level costs Valheim's full curve " +
                     "(level 99 about 60 times the hits of level 5). 1 makes every level cost " +
-                    "the same number of hits. The default 0.8 leans toward flat: level 99 " +
-                    "costs about twice the hits of level 5. " +
+                    "the same number of hits. The default 0.7 leans toward flat: level 99 " +
+                    "costs about three times the hits of level 5. " +
                     "Changing this also changes how fast the FIRST levels go, so adjust " +
                     "MasteryXpPerDamageDealt and MasteryXpPerDamageTaken with it. " +
                     "(Added 2026-09-28: mastery was fine early and crawled from the middle on. " +
-                    "0.5 on paper, 0.8 after the first playtest.)",
+                    "0.5 on paper, 0.8 after the first playtest, 0.7 on 2026-09-30.)",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(67)));
 
             // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
@@ -2095,7 +2104,7 @@ namespace Saiyaheim
                     "- the form's rung), floored at 1 and capped by " +
                     "MasteryXpBossMultiplierMax. 0 disables it. \n" +
                     "With the defaults a form pays x1 while its own boss is the newest kill, " +
-                    "x4 after the next boss falls and x6 from the one after that. \n" +
+                    "x4 after the next boss falls and x7 from the one after that. \n" +
                     "What it is for: the form unlocked first is always the one furthest up " +
                     "the expensive end of the XP curve, and it crawls exactly when a stronger " +
                     "form has just made it look useless. This makes the older rung train " +
@@ -2122,7 +2131,10 @@ namespace Saiyaheim
             //
             // 4 -> 6 no playtest de 2026-09-28, junto com o passo 2 -> 3. Mesma forma de antes:
             // o teto chega dois bosses depois do da forma.
-            MasteryXpBossMultiplierMax = config.Bind(SecTransformations, "MasteryXpBossMultiplierMax", 6f,
+            //
+            // 6 -> 7 no playtest de 2026-09-30. Com o passo 3, 7 e' exatamente 1 + 3 x 2: o teto
+            // continua chegando dois bosses depois, so' que sem cortar o ultimo degrau.
+            MasteryXpBossMultiplierMax = config.Bind(SecTransformations, "MasteryXpBossMultiplierMax", 7f,
                 new ConfigDescription(
                     "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
                     "multiplier is min(this, 1 + bonus * (bosses defeated - the form's " +
@@ -2130,7 +2142,7 @@ namespace Saiyaheim
                     "(Raised from 2 on 2026-09-21, together with the mastery XP cut: at a " +
                     "twentieth of the old rate a ceiling of 2 stopped the older form from " +
                     "catching up almost as soon as the bonus started paying. Raised again to " +
-                    "6 on 2026-09-28, with the step going from 2 to 3.)",
+                    "6 on 2026-09-28, with the step going from 2 to 3, and to 7 on 2026-09-30.)",
                     new AcceptableValueRange<float>(1f, 20f), AdminOnly(65)));
 
             // --- Transformacoes ---
@@ -2505,22 +2517,20 @@ namespace Saiyaheim
             // com papel novo): e' o unico que ATRAVESSA, e acerta cada alvo da fila uma vez. O
             // blast tem area, o Kamehameha tem volume; este tem linha.
             //
-            // Numeros de partida, ancorados nos outros dois e nao chutados no vazio:
-            //   Dano 20 + 0,2 x poder POR ALVO. Contra um alvo so', por ki, fica abaixo do
-            //   Kamehameha (0,2 / 60 contra 0,48 / 120) e acima do blast (0,036 / 20). O premio e'
-            //   a fila: tres inimigos em linha levam 0,6 x poder pelos mesmos 60 de ki.
-            //   Custo 60, pago durante a carga, como o Kamehameha.
-            //   Carga de 2,5 s com MinChargeRatio 1: o disco so' sai inteiro. Com um projetil so', a
-            //   carga nao tem o que escalar alem do tamanho, e deixar soltar cedo daria o golpe cheio
-            //   por uma fracao do custo. Soltar antes cancela, e o ki gasto nao volta.
+            // Numeros de playtest do Henrique (2026-09-30), no lugar dos de partida (dano 20 +
+            // 0,2 x poder, custo 60, recarga 3 s, MinChargeRatio 1, raio 0,4):
+            //   Dano 10 + 0,04 x poder POR ALVO, custo 40. Por ki, contra um alvo so', fica perto
+            //   do blast (0,036 / 20); o premio continua sendo a fila, que leva o dano cheio em
+            //   cada alvo pelo mesmo ki.
+            //   Recarga de 0,5 s e MinChargeRatio 0,1: o disco sai quase na hora, e o golpe vira
+            //   ferramenta de uso frequente em vez de aposta.
             //   Empurrao zero: o disco corta, nao empurra — e empurrar tiraria o segundo alvo da
             //   linha antes de o disco chegar nele.
-            // Nada disto foi jogado ainda.
             Kienzan = BindKiAttack(config, SecKienzan,
-                damageBase: 20f,
-                damageFromPower: 0.2f,
-                kiCost: 60f,
-                cooldown: 3f,
+                damageBase: 10f,
+                damageFromPower: 0.04f,
+                kiCost: 40f,
+                cooldown: 0.5f,
                 // A mesma bola do ki blast, mas so' como carcaca: o KiDisc apaga o visual dela e
                 // desenha o disco por cima. O que se aproveita e' o objeto de rede, o som de voo e
                 // o estouro do impacto, que toca a cada alvo cortado.
@@ -2543,7 +2553,7 @@ namespace Saiyaheim
                 // Corta o que o soco nao corta: e' a sensacao do golpe no anime.
                 tierPowerMultiplier: 2f,
                 chargeTime: 2.5f,
-                minChargeRatio: 1f,
+                minChargeRatio: 0.1f,
                 // O disco nasce pequeno sobre a palma e cresce ate' o tamanho do que vai sair.
                 chargeMinScale: 0.2f,
                 // Na palma, e a altura sobre ela e' a HoldHeight do disco, logo abaixo.
@@ -2571,12 +2581,25 @@ namespace Saiyaheim
             // O Kamehameha segue parado: la' a janela parada e' o preco da aposta.
             Kienzan.HoldStillWhileCharging = false;
 
-            Kienzan.HitRadius = config.Bind(SecKienzan, "HitRadius", 0.4f,
+            // Com um projetil so', a carga nao escalava nada alem do visual, e soltar na carga minima
+            // dava o dano cheio por uma fracao do ki (2026-09-30). Piso de 30% pedido pelo Henrique:
+            // o disco curto ainda corta, mas pagar a carga inteira volta a valer a pena.
+            Kienzan.ChargeMinDamage = config.Bind(SecKienzan, "ChargeMinDamage", 0.3f,
                 new ConfigDescription(
-                    "Radius in metres of the sphere the disc uses to find what it cuts. Wider hits " +
+                    "Fraction of the full damage the disc deals when thrown at the smallest charge " +
+                    "that still fires (MinChargeRatio). It rises in a straight line to full damage " +
+                    "at a full charge. 1 makes the charge not matter for damage. " +
+                    "(Added 2026-09-30: the ki is paid while charging, and a short charge used to " +
+                    "throw a full-damage disc for a fraction of the cost.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(78)));
+
+            Kienzan.HitRadius = config.Bind(SecKienzan, "HitRadius", 1f,
+                new ConfigDescription(
+                    "Radius in metres of the sphere the disc uses to find what it cuts, at a full " +
+                    "charge. It grows with the disc, so a shorter charge hits a smaller area. Wider hits " +
                     "more of a crowd, but it also clips the ground sooner when thrown low — and " +
                     "the ground is the only thing that stops the disc. " +
-                    "(Starting value, 2026-09-28. Not playtested yet.)",
+                    "(Raised from 0.4 on 2026-09-30, after playtest.)",
                     new AcceptableValueRange<float>(0.05f, 3f), AdminOnly(77)));
 
             Kienzan.Disc = KienzanDisc;

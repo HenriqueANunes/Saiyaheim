@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 9;
+        internal const int CurrentVersion = 8;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -221,28 +221,6 @@ namespace Saiyaheim.Util
                 yield return new Removal(8, section, "MasteryXpPerBossBonus");
                 yield return new Removal(8, section, "MasteryXpBossMultiplierMax");
                 yield return new Removal(8, section, "MasteryXpPerSecond");
-            }
-
-            // ---------- 9 (2026-09-28) — o Kienzan enxuga a secao dele ----------
-            //
-            // Nasceram no .cfg como chute visual e viraram const no mesmo dia, com os valores que o
-            // Henrique calibrou. Criterio de 2026-09-15: o .cfg so' tem tecla, balanceamento e o
-            // que esta' em aberto. O HitRadius fica: e' balanceamento.
-            foreach (string key in new[]
-                     {
-                         "DiscRadius", "DiscThickness", "DiscTeeth", "DiscToothDepth",
-                         "DiscCoreWhiteness", "DiscGlow", "DiscOpacity", "DiscSpinSpeed",
-                         "DiscLightIntensity", "DiscLightRange", "DiscHoldHeight",
-                         "PoseBlendSeconds", "PoseArmHeight", "PoseArmForward", "PoseArmTwist",
-                         "PoseForearmTwist", "PoseElbowStretch", "PoseShoulderLift", "PoseWristBend",
-                         "PoseHandOpen",
-
-                         // Nao fazem sentido num disco unico que atravessa tudo — pedido do Henrique
-                         // no mesmo dia. Ver o shotShape do SaiyaheimConfig.BindKiAttack.
-                         "Knockback", "ImpactRadius", "BeamCount", "BeamInterval",
-                     })
-            {
-                yield return new Removal(9, "4.3 - Kienzan", key);
             }
         }
 

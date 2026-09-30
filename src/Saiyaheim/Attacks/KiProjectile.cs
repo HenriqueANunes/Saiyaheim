@@ -52,8 +52,9 @@ namespace Saiyaheim.Attacks
         /// coma a barra do jogador em silêncio.
         /// </summary>
         /// <param name="chargeRatio">
-        /// A carga com que o disparo saiu, de 0 a 1. Mexe só na <b>escala</b> do projétil — a
-        /// grossura do feixe —, nunca no dano. 1 num ataque sem carregamento, que é o ki blast.
+        /// A carga com que o disparo saiu, de 0 a 1. Mexe na <b>escala</b> do projétil — a
+        /// grossura do feixe — e, com ela, no <c>HitRadius</c>. No dano só no ataque com
+        /// <c>ChargeMinDamage</c> (Kienzan). 1 num ataque sem carregamento, que é o ki blast.
         /// </param>
         internal static bool Fire(Player player, KiAttack attack, float chargeRatio = 1f)
         {
@@ -101,13 +102,21 @@ namespace Saiyaheim.Attacks
 
             Defuse(projectile, attack);
 
+            // A área de acerto cresce com o disco, e não fica no raio da carga cheia: soltar cedo
+            // tem que acertar o que o disco pequeno na tela parece acertar.
+            if (attack.Config.HitRadius != null)
+            {
+                projectile.m_rayRadius =
+                    Mathf.Max(0f, attack.Config.HitRadius.Value) * attack.GetChargeSizeFactor(chargeRatio);
+            }
+
             // Antes do visual, e é o que leva o visual aos amigos: o clone replica, mas o que o
             // amigo recebe é o prefab do jogo com posição e dono — tinta, escala e rastro são
             // escritas locais que não passam pela ZDO. Ver KiProjectileSyncPatch.
             Publish(instance, attack, chargeRatio);
             ApplyVisuals(projectile, attack, chargeRatio);
 
-            float damage = attack.GetDamage(player);
+            float damage = attack.GetDamage(player) * attack.GetChargeDamageFactor(chargeRatio);
             float speed = attack.Config.ProjectileSpeed.Value;
 
             // hitNoise -1 mantém o do prefab: quanto barulho o tiro faz para a IA é característica
@@ -282,11 +291,6 @@ namespace Saiyaheim.Attacks
             if (attack.Config.Pierce && projectile.GetComponent<KiPierceMemory>() == null)
             {
                 projectile.gameObject.AddComponent<KiPierceMemory>();
-            }
-
-            if (attack.Config.HitRadius != null)
-            {
-                projectile.m_rayRadius = Mathf.Max(0f, attack.Config.HitRadius.Value);
             }
 
             projectile.m_ttl =Mathf.Max(0.1f, attack.Config.ProjectileLifetime.Value);

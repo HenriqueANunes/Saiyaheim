@@ -464,18 +464,18 @@
             <input type="range" id="xpmax" min="0.05" max="5" step="0.05" value="0.45"></div>
           <p class="hint">Grampo de segurança por golpe, aplicado <b>antes</b> do bônus de boss — ao contrário do <code>XpMaxPerEvent</code> do Power Level, que corta por último. O bônus de boss existe para corrigir o degrau velho; deixar o grampo comê-lo anularia a correção justo onde ela deveria agir. Quando ele morde, o cartão de socos avisa.</p>
           <div class="ctl"><div class="row"><label for="cxp">MasteryXpCurveCompensation</label><output id="cxp-out"></output></div>
-            <input type="range" id="cxp" min="0" max="1" step="0.05" value="0.8"></div>
-          <p class="hint">Desde 2026-09-28. O XP de cada golpe é multiplicado por <code>custo do próximo nível ^ isto</code>, com o nível <b>da forma que recebe</b>. Em 0 cada nível cobra a curva inteira do Valheim (o 99 custa ~60× os socos do 5); em 1 todo nível custa o mesmo número de socos; em 0,5 o 99 custa ~8× o 5; no default 0,8, do playtest de 2026-09-28, ~2×. ⚠️ Mexer aqui mexe no começo também: a taxa acima caiu de 0,0125 para 0,0045 pensando no 0,5, e com o 0,8 o nível 5 ficou ~2× mais rápido que antes.</p>
+            <input type="range" id="cxp" min="0" max="1" step="0.05" value="0.7"></div>
+          <p class="hint">Desde 2026-09-28. O XP de cada golpe é multiplicado por <code>custo do próximo nível ^ isto</code>, com o nível <b>da forma que recebe</b>. Em 0 cada nível cobra a curva inteira do Valheim (o 99 custa ~60× os socos do 5); em 1 todo nível custa o mesmo número de socos; em 0,5 o 99 custa ~8× o 5; em 0,8, do playtest de 2026-09-28, ~2×; no default 0,7, do playtest de 2026-09-30, ~3×. ⚠️ Mexer aqui mexe no começo também: a taxa acima caiu de 0,0125 para 0,0045 pensando no 0,5, e com o 0,8 o nível 5 ficou ~2× mais rápido que antes.</p>
           <div class="ctl"><div class="row"><label for="ppm">socos por minuto de luta</label><output id="ppm-out"></output></div>
             <input type="range" id="ppm" min="5" max="120" step="5" value="30"></div>
           <p class="hint">Não é config do mod: é a suposição que traduz <b>socos</b> em <b>horas</b>. Só isso. As horas que saem daqui são de <b>combate</b>, não de relógio — e é por isso que elas não se comparam com as de antes de 2026-09-20, que contavam as recargas de ki entre uma forma e outra.</p>
           <div class="ctl"><div class="row"><label for="bxp">MasteryXpPerBossBonus</label><output id="bxp-out"></output></div>
             <input type="range" id="bxp" min="0" max="5" step="0.25" value="3"></div>
           <div class="ctl"><div class="row"><label for="bxm">MasteryXpBossMultiplierMax</label><output id="bxm-out"></output></div>
-            <input type="range" id="bxm" min="1" max="10" step="0.25" value="6"></div>
+            <input type="range" id="bxm" min="1" max="10" step="0.25" value="7"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 3, teto 6), com três bosses no chão, o SSJ paga x6, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Sem o teto o SSJ pagaria x7. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 3, teto 7), com três bosses no chão, o SSJ paga x7, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Com quatro bosses, sem o teto o SSJ pagaria x10. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 

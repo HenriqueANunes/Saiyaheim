@@ -186,22 +186,52 @@ namespace Saiyaheim.Attacks
         /// A escala dos projéteis numa carga de <paramref name="ratio"/>: da
         /// <c>ChargeMinScale</c> até a <c>ProjectileScale</c> cheia.
         ///
-        /// <b>Só o visual.</b> O projétil do jogo colide pelo colisor dele, que o
-        /// <c>localScale</c> acompanha — mas o dano não muda, e é isso que mantém a carga uma
-        /// escolha de <i>quanto</i> feixe e não de quanto dano por acerto. Ver a doc do
-        /// <c>ChargeTime</c>.
+        /// <b>Não mexe no dano.</b> Num ataque de feixe a carga é uma escolha de <i>quanto</i> feixe,
+        /// não de quanto dano por acerto. Ver a doc do <c>ChargeTime</c>. O ataque de projétil único
+        /// é a exceção, e ela mora no <see cref="GetChargeDamageFactor"/>.
         /// </summary>
         internal float GetProjectileScale(float ratio)
         {
-            float full = Config.ProjectileScale;
+            return Config.ProjectileScale * GetChargeSizeFactor(ratio);
+        }
 
+        /// <summary>
+        /// Quanto do tamanho cheio o projétil tem numa carga de <paramref name="ratio"/>: de
+        /// <c>ChargeMinScale</c> a 1. É o fator do visual e também o do <c>HitRadius</c>, para a
+        /// área de acerto crescer junto com o disco que o jogador vê.
+        /// </summary>
+        internal float GetChargeSizeFactor(float ratio)
+        {
             if (!IsCharged)
             {
-                return full;
+                return 1f;
             }
 
-            return full * Mathf.Lerp(
-                Mathf.Clamp01(Config.ChargeMinScale), 1f, Mathf.Clamp01(ratio));
+            return Mathf.Lerp(Mathf.Clamp01(Config.ChargeMinScale), 1f, Mathf.Clamp01(ratio));
+        }
+
+        /// <summary>
+        /// Fração do dano cheio numa carga de <paramref name="ratio"/>. Só vale para ataque com
+        /// <c>ChargeMinDamage</c>, que é o de projétil único (Kienzan); os outros dão 1.
+        ///
+        /// <b>Por quê.</b> O ki é cobrado enquanto a carga cresce. Num feixe, soltar cedo sai com
+        /// menos projéteis, e o dano acompanha o ki pago. Num projétil só, soltar na carga mínima
+        /// saía com o dano cheio por uma fração do custo (2026-09-30).
+        ///
+        /// A rampa vai do <c>MinChargeRatio</c> até a carga cheia, e não do zero: a carga mínima
+        /// que dispara entrega exatamente o <c>ChargeMinDamage</c>.
+        /// </summary>
+        internal float GetChargeDamageFactor(float ratio)
+        {
+            if (!IsCharged || Config.ChargeMinDamage == null)
+            {
+                return 1f;
+            }
+
+            float floor = Mathf.Clamp01(Config.ChargeMinDamage.Value);
+            float progress = Mathf.InverseLerp(GetMinChargeRatio(), 1f, Mathf.Clamp01(ratio));
+
+            return Mathf.Lerp(floor, 1f, progress);
         }
 
         /// <summary>Segundos entre um projétil do feixe e o seguinte.</summary>
