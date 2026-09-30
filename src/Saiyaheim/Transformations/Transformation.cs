@@ -315,6 +315,31 @@ namespace Saiyaheim.Transformations
             return entry != null && entry.Value;
         }
 
+        /// <summary>
+        /// Resistência a contusão desta forma. Normal em toda forma que não tem a chave — hoje
+        /// todas menos o SSJ God. Só os degraus de resistência passam: o <c>.cfg</c> aceita
+        /// qualquer valor do enum, e Weak ou Immune inverteriam ou quebrariam a mecânica.
+        /// </summary>
+        internal HitData.DamageModifier GetBluntResistance()
+        {
+            ConfigEntry<HitData.DamageModifier> entry = Config.BluntResistance;
+
+            if (entry == null)
+            {
+                return HitData.DamageModifier.Normal;
+            }
+
+            switch (entry.Value)
+            {
+                case HitData.DamageModifier.SlightlyResistant:
+                case HitData.DamageModifier.Resistant:
+                case HitData.DamageModifier.VeryResistant:
+                    return entry.Value;
+                default:
+                    return HitData.DamageModifier.Normal;
+            }
+        }
+
         internal float GetCombatKiCostScale()
         {
             return Mathf.Max(0f, Config.CombatKiCostScale.Value);

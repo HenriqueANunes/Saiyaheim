@@ -4,6 +4,7 @@
 
 - Added: Kienzan, a new ki attack unlocked by Bonemass — charge a spinning disc over your head, then throw it through every enemy, tree and rock in its path (pierce damage).
 - Changed: form mastery no longer slows to a crawl at higher levels (mastery XP settings moved to "3 - Transformations" and reset to the new defaults).
+- Added: SSJ God takes 25% less blunt damage.
 
 ## 0.6.0
 

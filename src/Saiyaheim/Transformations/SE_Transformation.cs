@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Saiyaheim.Ki;
 
 namespace Saiyaheim.Transformations
@@ -5,8 +6,8 @@ namespace Saiyaheim.Transformations
     /// <summary>
     /// A forma ativa: o <c>StatusEffect</c> que representa estar transformado.
     ///
-    /// <b>Ele faz duas coisas, e só.</b> Drena ki por segundo e levanta o limite de peso do
-    /// inventário. A cura passiva do SSJ God <b>não</b> passa por aqui: ela é intervalo e piso, e
+    /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, levanta o limite de peso do
+    /// inventário e aplica a resistência a contusão da forma, quando ela tem uma. A cura passiva do SSJ God <b>não</b> passa por aqui: ela é intervalo e piso, e
     /// nenhum dos dois cabe num modificador de <c>SE_Stats</c> — ver <c>HealthRegenPatch</c>.
     ///
     /// O XP de maestria NÃO sai daqui desde 2026-09-20 — ele vem do dano trocado, pelo
@@ -28,10 +29,9 @@ namespace Saiyaheim.Transformations
     /// ensinar quando a barra está apertada.
     ///
     /// Herda de <c>SE_Stats</c> sem usar nenhum modificador dele, e de propósito: dano, velocidade
-    /// e regeneração vêm todos do battle power agora. O que o <c>SE_Stats</c> ainda tem de útil
-    /// para o futuro é o <c>m_mods</c> — resistência elemental por forma, que hoje está em aberto
-    /// ([[Dano e Resistências]]) e, se entrar, entra preenchendo uma lista neste arquivo, sem
-    /// patch Harmony nenhum.
+    /// e regeneração vêm todos do battle power agora. Nem a resistência usa o <c>m_mods</c>, que
+    /// congelaria no <c>Clone()</c>: ela sobrescreve o <c>ModifyDamageMods</c> e lê a config a
+    /// cada golpe ([[Dano e Resistências]]).
     /// </summary>
     internal class SE_Transformation : SE_Stats
     {
@@ -129,6 +129,39 @@ namespace Saiyaheim.Transformations
 
             limit += _form.GetCarryWeightBonus();
         }
+
+        /// <summary>
+        /// Resistência a contusão da forma, hoje só no SSJ God.
+        ///
+        /// <b>API nativa, zero patch Harmony.</b> <c>Character.GetDamageModifiers</c> passa por
+        /// <c>SEMan.ApplyDamageMods</c>, que chama isto em cada efeito ativo — o mesmo caminho das
+        /// meads de resistência. O golpe recebido, o bloqueio e o <c>saiya_block</c> leem dali.
+        ///
+        /// <b>Aqui e não no <c>m_mods</c> do <c>SE_Stats</c></b>, pelo mesmo motivo do peso: a
+        /// lista é copiada do template no <c>Clone()</c> e congelaria o <c>.cfg</c>.
+        /// </summary>
+        public override void ModifyDamageMods(ref HitData.DamageModifiers modifiers)
+        {
+            base.ModifyDamageMods(ref modifiers);
+
+            if (_form == null)
+            {
+                return;
+            }
+
+            HitData.DamageModifier blunt = _form.GetBluntResistance();
+
+            if (blunt != HitData.DamageModifier.Normal)
+            {
+                // Lista reaproveitada: isto roda a cada golpe recebido e a cada leitura do
+                // bloqueio, e o DamageModifiers.Apply só aceita lista.
+                _bluntMods[0] = new HitData.DamageModPair { m_type = HitData.DamageType.Blunt, m_modifier = blunt };
+                modifiers.Apply(_bluntMods);
+            }
+        }
+
+        private static readonly List<HitData.DamageModPair> _bluntMods =
+            new List<HitData.DamageModPair> { default(HitData.DamageModPair) };
 
         // A maestria NAO e' paga aqui desde 2026-09-20. Ela vinha do tempo em forma, acumulado
         // neste efeito; agora vem do dano trocado dentro dela, e quem mede dano e' o

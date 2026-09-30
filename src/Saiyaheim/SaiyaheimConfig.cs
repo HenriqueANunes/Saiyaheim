@@ -419,6 +419,12 @@ namespace Saiyaheim
             public ConfigEntry<bool> HealthRegenIgnoresBlockers { get; internal set; }
 
             /// <summary>
+            /// Resistência a dano de contusão enquanto a forma está ativa. <b>Null nas formas que
+            /// não têm a chave.</b> Ver <c>Transformations.SE_Transformation.ModifyDamageMods</c>.
+            /// </summary>
+            public ConfigEntry<HitData.DamageModifier> BluntResistance { get; internal set; }
+
+            /// <summary>
             /// Fração da sobretaxa de combate compartilhada (<see cref="CombatFormKiShare"/>) que
             /// esta forma cobra. 1 cobra inteira. Ver <c>BattlePower.FormKiCostMultiplier</c>.
             /// </summary>
@@ -2305,7 +2311,9 @@ namespace Saiyaheim
                 // Calibrado no playtest de 2026-09-22: saiu em 2, o tique de 5 s ainda demorava.
                 healthRegenSpeed: 3f,
                 healthRegenIgnoresBlockers: true,
-                combatKiCostScale: 0.5f);
+                combatKiCostScale: 0.5f,
+                // Pedido do Henrique e calibrado no playtest de 2026-09-29: o degrau mais leve da tabela, mais folego.
+                bluntResistance: HitData.DamageModifier.SlightlyResistant);
 
             // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
             // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de
@@ -3094,7 +3102,7 @@ namespace Saiyaheim
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
             string hairItem = "", float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
-            float combatKiCostScale = 1f)
+            float combatKiCostScale = 1f, HitData.DamageModifier? bluntResistance = null)
         {
             return new TransformationConfig
             {
@@ -3223,6 +3231,23 @@ namespace Saiyaheim
                         "coming, so the mountain still hurts, it just stops being a wall. " +
                         "(Starting value. Not playtested yet.)",
                         null, AdminOnly(79))),
+
+                // Mais uma chave do folego do God, e so' dele pela mesma regra das duas acima.
+                // Um degrau da tabela da vanilla, e nao um percentual livre: o jogo compara as
+                // resistencias por degrau e fica com a melhor (DamageModifiers.ApplyIfBetter), entao
+                // a da forma convive com a de armadura e mead em vez de empilhar — um Resistant do
+                // equipamento continua valendo mais que o SlightlyResistant daqui.
+                BluntResistance = bluntResistance == null ? null : config.Bind(section, "BluntResistance", bluntResistance.Value,
+                    new ConfigDescription(
+                        "Resistance to BLUNT damage (clubs, maces, trolls, golems, falling rocks) " +
+                        "while this form is active. Uses Valheim's own tiers: SlightlyResistant " +
+                        "takes 75% of the damage, Resistant 50%, VeryResistant 25%, Normal turns " +
+                        "it off. Any other value is treated as Normal. " +
+                        "It does not stack with armor or meads that resist blunt: the game keeps " +
+                        "the best tier among all sources, so it only matters when nothing better " +
+                        "is on you. Applied before body armor, like every vanilla resistance. " +
+                        "(Calibrated in the 2026-09-29 playtest.)",
+                        null, AdminOnly(78))),
 
                 // A outra metade do sabor do God: o custo de lutar dentro dele. A sobretaxa em si
                 // e' compartilhada (CombatFormKiShare); esta chave diz quanto dela a forma cobra.
