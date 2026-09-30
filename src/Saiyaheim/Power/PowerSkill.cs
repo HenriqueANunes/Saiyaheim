@@ -57,6 +57,8 @@ namespace Saiyaheim.Power
                 Icon = IconLoader.Load("power_level"),
             });
 
+            SkillCommandAliases.Register("Power Level");
+
             SaiyaheimPlugin.Log.LogInfo($"Skill 'Power Level' registered ({Type}).");
         }
 

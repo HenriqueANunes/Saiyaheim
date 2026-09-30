@@ -6,6 +6,7 @@
 - Changed: form mastery no longer slows to a crawl at higher levels (mastery XP settings moved to "3 - Transformations" and reset to the new defaults).
 - Added: SSJ God takes 25% less blunt damage.
 - Fixed: the flight key now work while running (holding Shift).
+- Fixed: Power Level and SSJ God can be used in raiseskill/resetskill (as PowerLevel and SSJGod).
 
 ## 0.6.0
 

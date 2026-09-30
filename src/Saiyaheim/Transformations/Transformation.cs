@@ -101,6 +101,8 @@ namespace Saiyaheim.Transformations
                 Icon = IconLoader.Load(Id),
             });
 
+            SkillCommandAliases.Register(DisplayName);
+
             SaiyaheimPlugin.Log.LogInfo($"Skill '{DisplayName}' (mastery) registered ({SkillType}).");
         }
 
