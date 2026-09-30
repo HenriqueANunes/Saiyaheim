@@ -1316,8 +1316,9 @@ namespace Saiyaheim
                     "the game's Jump button climbs, Crouch descends and Run flies fast.",
                     null, ClientSide(85)));
 
-            // Alt+F e nao F sozinho: F ja e' decolar e pousar, e o Hotkey exige os modificadores
-            // soltos, entao os dois atalhos nunca disparam juntos. Pedido do Henrique, 2026-09-23.
+            // Alt+F e nao F sozinho: F ja e' decolar e pousar, e o Hotkey barra o F com Alt segurado
+            // porque este atalho declara o Alt, entao os dois nunca disparam juntos. Pedido do
+            // Henrique, 2026-09-23.
             ToggleFlightAimKey = config.Bind(SecGeral, "ToggleFlightAimKey",
                 new KeyboardShortcut(KeyCode.F, KeyCode.LeftAlt),
                 new ConfigDescription(
