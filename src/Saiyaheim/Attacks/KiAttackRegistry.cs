@@ -34,6 +34,10 @@ namespace Saiyaheim.Attacks
         /// subiu do <c>.cfg</c> para o código. O Bonemass voltou a entregar ataque em 2026-09-28,
         /// com o Kienzan.
         ///
+        /// <b>Desde a etapa 13 a escada não é mais de bosses</b>: cada ataque é aprendido nas
+        /// runestones de um bioma (<c>LearnBiome</c>), e a ordem aqui só decide o ciclo do
+        /// <c>Shift+V</c> e a posição na rede. Ver <c>Runes.RuneKnowledge</c>.
+        ///
         /// ⚠️ <b>A posição na lista vai para a rede</b> desde o Kienzan: o <c>NetState</c> publica
         /// qual ataque o jogador carrega pelo índice daqui. Ataque novo entra no fim.
         ///

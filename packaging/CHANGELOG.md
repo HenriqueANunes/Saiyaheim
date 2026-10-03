@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Added: runestones — reading the lore runestones around the world can teach you new abilities, learned by each character on their own. For now they teach the ki attacks, which bosses no longer unlock.
+- Changed: **existing characters lose the Ki Blast, Kamehameha and Kienzan** and must learn them again from the runestones.
+- Removed: the MinPowerLevel setting from forms, ki attacks and flight (it was never used).
+
 ## 0.7.0
 
 - Added: Kienzan, a new ki attack unlocked by Bonemass — charge a spinning disc over your head, then throw it through every enemy, tree and rock in its path (pierce damage).

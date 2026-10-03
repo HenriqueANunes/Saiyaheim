@@ -1,4 +1,5 @@
 using Saiyaheim.Power;
+using Saiyaheim.Runes;
 using Saiyaheim.Util;
 using UnityEngine;
 
@@ -55,6 +56,12 @@ namespace Saiyaheim.Attacks
             Config = config;
         }
 
+        /// <summary>
+        /// A dica de quando falta aprender. Genérica de propósito, sem bioma: achar onde se aprende
+        /// é parte da exploração. Decidido em 2026-10-03.
+        /// </summary>
+        internal const string NotLearnedMessage = "Seek knowledge in the runestones.";
+
         internal bool IsUnlocked(Player player)
         {
             return GetLockReason(player) == null;
@@ -63,8 +70,13 @@ namespace Saiyaheim.Attacks
         /// <summary>
         /// O que falta para este ataque destravar, em uma frase, ou null se já está destravado.
         ///
-        /// Derivado, e não o contrário, pelo mesmo motivo do <c>Transformation.GetLockReason</c>:
-        /// as duas travas falham por motivos diferentes e o jogador precisa saber qual.
+        /// Duas travas, nesta ordem: <b>aprender</b> o ataque numa runestone (etapa 13, por
+        /// personagem) e, se o <c>.cfg</c> pedir, o boss da <c>RequiredGlobalKey</c> (vazia por
+        /// default desde a etapa 13). Não há trava por Power Level: a <c>MinPowerLevel</c> nunca
+        /// saiu de 0 e foi removida em 2026-10-03.
+        ///
+        /// O jogador quase nunca lê esta frase: a roda e o ciclo só mostram ataque destravado. Ela
+        /// sobra para o console e para o <c>V</c> sem nada aprendido.
         /// </summary>
         internal string GetLockReason(Player player)
         {
@@ -78,19 +90,12 @@ namespace Saiyaheim.Attacks
                 return null;
             }
 
-            string bossLock = BossGate.DescribeLock(Config.RequiredGlobalKey.Value);
-            if (bossLock != null)
+            if (!RuneKnowledge.HasLearned(player, this))
             {
-                return bossLock;
+                return NotLearnedMessage;
             }
 
-            float required = Config.MinPowerLevel.Value;
-            if (required > 0f && PowerSkill.GetLevel(player) < required)
-            {
-                return $"Power Level {required:0} required for {DisplayName}.";
-            }
-
-            return null;
+            return BossGate.DescribeLock(Config.RequiredGlobalKey.Value);
         }
 
         /// <summary>

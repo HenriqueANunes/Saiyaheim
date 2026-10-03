@@ -145,6 +145,13 @@ namespace Saiyaheim
         // 4.1 e 4.2.
 
         /// <summary>
+        /// Como as runestones ensinam os ataques (etapa 13): a sorte, a proteção contra azar e a
+        /// recarga das pedras. O <b>quê</b> cada bioma ensina mora na seção de cada ataque
+        /// (<c>LearnBiome</c>, <c>LearnWeight</c>). Ver <c>Runes.RuneKnowledge</c>.
+        /// </summary>
+        private const string SecRunestones = "4 - Runestones";
+
+        /// <summary>
         /// Uma seção por ataque, pelo mesmo motivo das formas: <b>não há número compartilhado
         /// entre ataques</b>. Dano, custo, cooldown e projétil são do ataque, e uma escada de
         /// ataques ([[Ataques de Ki]]) precisa que cada um seja calibrável sozinho.
@@ -437,9 +444,6 @@ namespace Saiyaheim
             /// </summary>
             public ConfigEntry<float> MasteryDrainReduction { get; internal set; }
 
-            /// <summary>Nível mínimo de Power Level para entrar na forma. 0 desliga a trava.</summary>
-            public ConfigEntry<float> MinPowerLevel { get; internal set; }
-
             /// <summary>
             /// Global key do boss que destrava a forma. Vazio desliga a trava. Ver
             /// <c>Util.BossGate</c>.
@@ -711,11 +715,25 @@ namespace Saiyaheim
             /// </summary>
             public bool ChargeFullEffectReplaces { get; internal set; }
 
-            /// <summary>Nível mínimo de Power Level para usar o ataque. 0 desliga a trava.</summary>
-            public ConfigEntry<float> MinPowerLevel { get; internal set; }
-
-            /// <summary>Global key do boss que destrava o ataque. Vazio desliga a trava.</summary>
+            /// <summary>
+            /// Global key do boss que destrava o ataque. Vazio desliga a trava, e é o default
+            /// desde a etapa 13: quem libera o ataque é a runestone, e esta chave sobrou para quem
+            /// quiser as duas travas.
+            /// </summary>
             public ConfigEntry<string> RequiredGlobalKey { get; internal set; }
+
+            /// <summary>
+            /// Bioma cujas runestones ensinam o ataque. Um só: o <c>Heightmap.Biome</c> não é
+            /// <c>[Flags]</c>, e uma combinação iria para o <c>.cfg</c> como número. Ver
+            /// <c>Runes.RuneKnowledge</c>.
+            /// </summary>
+            public ConfigEntry<Heightmap.Biome> LearnBiome { get; internal set; }
+
+            /// <summary>
+            /// Peso no sorteio entre os ataques que a mesma pedra pode ensinar. 0 tira o ataque
+            /// das runestones.
+            /// </summary>
+            public ConfigEntry<float> LearnWeight { get; internal set; }
 
             // As quatro abaixo são null num ataque que não as registra (ver o shotShape do
             // BindKiAttack), e ler por aqui devolve o que a ausência quer dizer.
@@ -888,6 +906,19 @@ namespace Saiyaheim
         /// <summary>O terceiro: um disco carregado que atravessa o que acerta.</summary>
         public static KiAttackConfig Kienzan { get; private set; }
 
+        // ---------- 4 - Runestones ----------
+
+        /// <summary>Chance de uma runestone ensinar alguma coisa, antes da proteção contra azar.</summary>
+        public static ConfigEntry<float> RuneFindChance { get; private set; }
+
+        /// <summary>
+        /// Quanto cada pedra vazia já lida no mesmo bioma soma à chance. Zera quando o bioma ensina.
+        /// </summary>
+        public static ConfigEntry<float> RuneFindChanceStep { get; private set; }
+
+        /// <summary>Dias de jogo até a mesma pedra poder ser lida de novo pelo mesmo personagem.</summary>
+        public static ConfigEntry<float> RuneCooldownDays { get; private set; }
+
         // ---------- 5 - Flight ----------
 
         public static ConfigEntry<float> FlightKiPerSecond { get; private set; }
@@ -972,9 +1003,6 @@ namespace Saiyaheim
         /// 1 = linear; acima disso o peso quase não pesa até o inventário encher.
         /// </summary>
         public static ConfigEntry<float> FlightWeightCurve { get; private set; }
-
-        /// <summary>Nível mínimo de Power Level para decolar. 0 desliga a trava.</summary>
-        public static ConfigEntry<float> FlightMinPowerLevel { get; private set; }
 
         /// <summary>
         /// Teto duro de velocidade. Não é balanceamento: acima de certa velocidade o
@@ -2334,12 +2362,11 @@ namespace Saiyaheim
                 // Pedido do Henrique e calibrado no playtest de 2026-09-29: o degrau mais leve da tabela, mais folego.
                 bluntResistance: HitData.DamageModifier.SlightlyResistant);
 
-            // O primeiro degrau, atras do Eikthyr — a MESMA chave do SSJ, de proposito: matar o
-            // primeiro boss entrega a forma e o ataque de uma vez, e vira um marco grande em vez de
-            // dois mornos. Espacar custaria mexer numa trava de forma ja calibrada em playtest.
+            // O primeiro degrau. Ate' a 0.7.0 saia no Eikthyr, com a mesma chave do SSJ; desde a
+            // etapa 13 os ataques sao aprendidos nas runestones e o boss so' cuida das formas.
             //
             // Adicionar o ataque seguinte e' repetir esta chamada com outra secao, outros numeros e
-            // a global key do boss dele.
+            // o bioma onde ele e' ensinado.
             // Os quatro numeros de partida, ancorados no soco em vez de chutados no vazio:
             //   dano por poder 0,04 contra os 0,05 do PunchDamageFromPower — o tiro bate um pouco
             //   MENOS por acerto que o soco, que e' o que compra o direito de ser a distancia.
@@ -2351,6 +2378,35 @@ namespace Saiyaheim
             //   playtest de 2026-08-07 subiu para 20 — 2,5x. Isso NAO responde a pergunta do fim de
             //   jogo, so a atrasa: ver [[Em Aberto]].
             // O saiya_blast imprime dano/ki dos dois lado a lado — e' por ali que a calibracao sai.
+            // Chutes de 2026-09-30, sem playtest: 0,25 + 0,25 por pedra vazia garante a quarta
+            // seguida. Os dois andam juntos com o cooldown, que e' a segunda rede contra azar —
+            // com ele, o passo pode ser mais suave do que seria sozinho. Ver [[Runestones]].
+            RuneFindChance = config.Bind(SecRunestones, "RuneFindChance", 0.25f,
+                new ConfigDescription(
+                    "Chance that reading a lore runestone teaches a ki attack, when that biome " +
+                    "still has one you do not know. Runestones that teach nothing make the next " +
+                    "one in the same biome likelier — see RuneFindChanceStep. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(100)));
+
+            RuneFindChanceStep = config.Bind(SecRunestones, "RuneFindChanceStep", 0.25f,
+                new ConfigDescription(
+                    "Added to RuneFindChance for every runestone in the same biome that taught " +
+                    "nothing, so bad luck cannot last forever: at 0.25 + 0.25, the fourth empty " +
+                    "stone in a row always teaches. Resets when the biome teaches something. " +
+                    "Counted per character and per biome. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 1f), AdminOnly(90)));
+
+            RuneCooldownDays = config.Bind(SecRunestones, "RuneCooldownDays", 3f,
+                new ConfigDescription(
+                    "In-game days before the same runestone can teach the same character again " +
+                    "(one day is 20 real minutes; sleeping skips ahead). Until then, reading it " +
+                    "only shows the vanilla text. Long on purpose: short would mean camping next " +
+                    "to the stone at your base, and runestones are there to make you explore. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 30f), AdminOnly(80)));
+
             KiBlast = BindKiAttack(config, SecKiBlast,
                 // 10 / 0,04 ate' 2026-09-17, quando o blast ganhou area de 2 m. A area da' dano
                 // CHEIO a cada alvo no raio, e o Henrique pediu compensar no dano: -10%, que contra
@@ -2379,7 +2435,9 @@ namespace Saiyaheim
                 impactColor: "",
                 // Amarelo de ki, aprovado na tela em 2026-08-20.
                 projectileColor: "#FFFF00",
-                requiredGlobalKey: "defeated_eikthyr");
+                // Etapa 13: ensinado nas runestones do bioma do boss que o liberava ate' a 0.7.0
+                // (Eikthyr). Ver [[Runestones]].
+                learnBiome: Heightmap.Biome.Meadows);
 
             // O segundo degrau, atras do Bonemass — e a escada de ataques deixa de andar junto com
             // a de bosses aqui. O blast saiu no Eikthyr, este sai no terceiro boss, e os dois do
@@ -2435,10 +2493,10 @@ namespace Saiyaheim
                 // Azul claro. O blast e' amarelo; o Kamehameha precisa se distinguir dele na tela
                 // antes de qualquer outra coisa, e azul e' a cor da cena no anime.
                 projectileColor: "#66CCFF",
-                // O Elder, e nao o Bonemass: calibrado em playtest e promovido do .cfg para o
-                // codigo em 2026-09-15, antes da primeira publicacao no Thunderstore. Esperar o
-                // terceiro boss deixava o segundo sem entrega nenhuma para quem usa ki.
-                requiredGlobalKey: "defeated_gdking",
+                // Floresta Negra, o bioma do Elder, que o liberava de 2026-09-15 ate' a 0.7.0.
+                // Esperar o terceiro boss deixava o segundo sem entrega nenhuma para quem usa ki,
+                // e o mapa da etapa 13 manteve o degrau. Ver [[Runestones]].
+                learnBiome: Heightmap.Biome.BlackForest,
                 // Teto, e nao valor fixo: 60 e' o feixe da carga CHEIA. Com 5 s de carregamento
                 // sao 12 projeteis por segundo segurado, e o custo e o dano acompanham em linha
                 // reta — segurar metade do tempo entrega metade de tudo.
@@ -2547,7 +2605,8 @@ namespace Saiyaheim
                 impactColor: "",
                 // Amarelo de ki, um tom mais quente que o do blast para os dois nao se confundirem.
                 projectileColor: "#FFE14D",
-                requiredGlobalKey: "defeated_bonemass",
+                // Pantano, o bioma do Bonemass, que o liberava ate' a 0.7.0. Ver [[Runestones]].
+                learnBiome: Heightmap.Biome.Swamp,
                 // Sem empurrao, sem area, um projetil: e' o que o shotShape falso diz, e as quatro
                 // chaves (Knockback, ImpactRadius, BeamCount, BeamInterval) nem vao para o .cfg.
                 // Empurrar tiraria o segundo alvo da linha antes de o disco chegar nele, e a area
@@ -2925,13 +2984,6 @@ namespace Saiyaheim
                     "penalty was still noticeable at half load, and the whole point of the curve " +
                     "was that only a full inventory should slow you down.)",
                     new AcceptableValueRange<float>(0.25f, 5f), AdminOnly(54)));
-
-            FlightMinPowerLevel = config.Bind(SecFlight, "MinPowerLevel", 0f,
-                new ConfigDescription(
-                    "Minimum Power Level required to take off. 0 disables the gate. " +
-                    "A placeholder for the boss gating of step 7 — until that decision is made, " +
-                    "this is the only lock available on flight.",
-                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(50)));
 
             FlightMaxSpeed = config.Bind(SecFlight, "MaxSpeed", 30f,
                 new ConfigDescription(
@@ -3318,15 +3370,6 @@ namespace Saiyaheim
                         "source of tension all game.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(80))),
 
-                MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
-                    new ConfigDescription(
-                        "Minimum Power Level required to enter this form. 0 disables the " +
-                        "gate. This is the TRAINING gate, and it is independent of the boss gate " +
-                        "below: with both set, the form needs both. Left at 0 for every form so " +
-                        "far, because the ladder is paced by bosses and grinding a skill to reach " +
-                        "a form would pace it twice.",
-                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(60))),
-
                 // A trava de verdade da escada. Vazio = sem trava, que e' o que toda forma nova
                 // deve nascer com — amarrar a um boss e' decisao de design, nao default.
                 RequiredGlobalKey = config.Bind(section, "RequiredGlobalKey", requiredGlobalKey,
@@ -3413,7 +3456,7 @@ namespace Saiyaheim
             ConfigFile config, string section, float damageBase, float damageFromPower,
             float kiCost, float cooldown, string projectilePrefab, string impactEffect,
             string impactEffectStrip, string impactColor, string projectileColor,
-            string requiredGlobalKey, int beamCount = 1, float beamInterval = 0.05f,
+            Heightmap.Biome learnBiome, string requiredGlobalKey = "", int beamCount = 1, float beamInterval = 0.05f,
             float knockback = 30f, float impactRadius = 0f, float projectileSpeed = 30f, float projectileLifetime = 3f,
             float projectileScale = 1f, float chargeTime = 0f, float minChargeRatio = 0.15f,
             float chargeMinScale = 0.4f, string chargeEffectPrefab = "",
@@ -3741,16 +3784,26 @@ namespace Saiyaheim
                 // O ImpactColor pendura nele: vazio la' significa "a cor deste tiro".
                 ProjectileColor = projectileColor,
 
-                MinPowerLevel = config.Bind(section, "MinPowerLevel", 0f,
+                LearnBiome = config.Bind(section, "LearnBiome", learnBiome,
                     new ConfigDescription(
-                        "Minimum Power Level required to use this attack. 0 disables the " +
-                        "gate. Independent of the boss gate below: with both set, the attack needs " +
-                        "both. Left at 0 like the forms, because the ladder is paced by bosses.",
-                        new AcceptableValueRange<float>(0f, 100f), AdminOnly(45))),
+                        "Biome whose lore runestones can teach this attack. Each character learns " +
+                        "it on their own, by reading a runestone in that biome — friends do not " +
+                        "share it. The biome comes from where the stone stands. None takes the " +
+                        "attack out of the runestones, and then only the console can teach it.",
+                        null, AdminOnly(46))),
+
+                LearnWeight = config.Bind(section, "LearnWeight", 1f,
+                    new ConfigDescription(
+                        "Weight of this attack in the draw when one runestone could teach " +
+                        "more than one attack the character does not know yet. Twice the weight, " +
+                        "twice as likely to come first. 0 means runestones never teach it.",
+                        new AcceptableValueRange<float>(0f, 10f), AdminOnly(45))),
 
                 RequiredGlobalKey = config.Bind(section, "RequiredGlobalKey", requiredGlobalKey,
                     new ConfigDescription(
-                        "Global key of the boss that unlocks this attack. Empty disables the gate. " +
+                        "Global key of a boss that must ALSO be dead before this attack can be " +
+                        "used, on top of learning it from a runestone. Empty (the default) " +
+                        "disables this gate: runestones alone unlock the attack. " +
                         "The key belongs to the WORLD, so the server syncs it for free and someone " +
                         "joining later arrives with whatever the group has already killed.\n" +
                         "The five valid keys, and mind that two are NOT named after the boss: " +

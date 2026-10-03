@@ -292,13 +292,6 @@ namespace Saiyaheim.Flight
                 return;
             }
 
-            float required = SaiyaheimConfig.FlightMinPowerLevel.Value;
-            if (required > 0f && PowerSkill.GetLevel(player) < required)
-            {
-                Message(player, $"Power Level {required:0} required to fly.");
-                return;
-            }
-
             // Nadar não impede: decolar da água é o WaterTakeOffPatch empurrando para cima.
             if (player.IsDead() || player.IsSleeping() || player.IsTeleporting() || player.InCutscene()
                 || player.IsAttached() || player.InBed())

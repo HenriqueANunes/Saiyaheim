@@ -51,7 +51,7 @@ namespace Saiyaheim.Transformations
         internal int NameHashValue { get; }
 
         /// <summary>
-        /// Ignora as travas <b>desta forma</b>: a global key do boss e o <c>MinPowerLevel</c>.
+        /// Ignora a trava <b>desta forma</b>: a global key do boss.
         /// Ligado só pelo <c>saiya_form &lt;forma&gt; unlock</c>, e só com <c>devcommands</c>.
         ///
         /// <b>Por que existe em vez de mandar usar o <c>setglobalkey</c> do jogo.</b> Aquele
@@ -109,10 +109,10 @@ namespace Saiyaheim.Transformations
         /// <summary>
         /// O jogador já destravou esta forma?
         ///
-        /// Destravar tem <b>duas</b> travas independentes, e as duas precisam estar abertas:
-        /// o boss (<c>RequiredGlobalKey</c>, a trava da escada) e o nível da skill Power Level
-        /// (<c>MinPowerLevel</c>, treino). Hoje só a primeira está em uso — a escada é ritmada por
-        /// bosses, e exigir grind por cima ritmaria duas vezes a mesma progressão.
+        /// A única trava é o boss (<c>RequiredGlobalKey</c>). Existiu uma segunda, por nível de
+        /// Power Level (<c>MinPowerLevel</c>), que nunca saiu de 0 e foi removida em 2026-10-03:
+        /// a escada é ritmada por bosses, e exigir grind por cima ritmaria duas vezes a mesma
+        /// progressão.
         ///
         /// Ki e estado (morto, dormindo) <b>não</b> entram aqui: aquilo é "não posso agora", isto é
         /// "não posso <i>ainda</i>", e a tecla de ir direto ao topo precisa justamente da segunda
@@ -126,9 +126,8 @@ namespace Saiyaheim.Transformations
         /// <summary>
         /// O que falta para esta forma destravar, em uma frase, ou null se ela já está destravada.
         ///
-        /// Existe separado do <see cref="IsUnlocked"/> porque as duas travas falham por motivos
-        /// diferentes e o jogador precisa saber <b>qual</b>: "mata o Eikthyr" e "treina até o nível
-        /// 20" mandam fazer coisas que não se parecem. A regra de desbloqueio continua morando num
+        /// Existe separado do <see cref="IsUnlocked"/> porque o jogador precisa saber o que fazer
+        /// ("mata o Eikthyr"), não só que está travado. A regra de desbloqueio continua morando num
         /// lugar só — o booleano é derivado daqui, e não o contrário.
         /// </summary>
         internal string GetLockReason(Player player)
@@ -151,12 +150,6 @@ namespace Saiyaheim.Transformations
             if (bossLock != null)
             {
                 return bossLock;
-            }
-
-            float required = Config.MinPowerLevel.Value;
-            if (required > 0f && PowerSkill.GetLevel(player) < required)
-            {
-                return $"Power Level {required:0} required for {DisplayName}.";
             }
 
             return null;

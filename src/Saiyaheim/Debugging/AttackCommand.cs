@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Saiyaheim.Attacks;
 using Saiyaheim.Ki;
 using Saiyaheim.Power;
+using Saiyaheim.Runes;
 
 namespace Saiyaheim.Debugging
 {
@@ -19,6 +20,10 @@ namespace Saiyaheim.Debugging
     /// saiya_blast blast select    seleciona aquele ataque
     /// saiya_blast blast unlock    ignora a trava daquele ataque nesta sessão
     /// saiya_blast blast lock      devolve a trava
+    /// saiya_blast blast learn     ensina o ataque a este personagem, como uma runestone (salvo)
+    /// saiya_blast blast forget    esquece o ataque (salvo)
+    /// saiya_blast runes           o que cada bioma ainda ensina, pedras lidas e contadores
+    /// saiya_blast runes reset     apaga pedras lidas e contadores; não esquece ataque
     /// saiya_blast pose            segura a pose de disparo do ki blast, para calibrar
     /// saiya_blast pose disc       segura o braço erguido do Kienzan
     /// saiya_blast pose charge     segura a concha do Kamehameha
@@ -27,7 +32,12 @@ namespace Saiyaheim.Debugging
     /// </code>
     ///
     /// <b>O nome do ataque é opcional em toda linha</b>, como no <c>saiya_form</c>: sem ele o alvo é
-    /// o selecionado. <c>unlock</c> e <c>lock</c> sem nome valem para a escada inteira.
+    /// o selecionado. <c>unlock</c>, <c>lock</c>, <c>learn</c> e <c>forget</c> sem nome valem para
+    /// a escada inteira.
+    ///
+    /// <b><c>learn</c>/<c>forget</c> não são <c>unlock</c>/<c>lock</c>.</b> O <c>unlock</c> é da
+    /// sessão e não toca no personagem; o <c>learn</c> grava no save, igual a ler a pedra. Um serve
+    /// para testar o ataque, o outro para testar a etapa 13.
     ///
     /// Ler é livre; destravar pede <c>devcommands</c>. O <c>pose</c> é a exceção que não pede nada:
     /// ele não toca em ataque nenhum, só segura um desenho na tela — e sem ele a pose de disparo é
@@ -39,14 +49,15 @@ namespace Saiyaheim.Debugging
         public override string Name => "saiya_blast";
 
         public override string Help =>
-            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock] " +
-            "| pose [blast | disc | charge | release | off]";
+            "Inspects ki attacks. Usage: saiya_blast [<attack>] [select | unlock | lock | learn | forget] " +
+            "| runes [reset] | pose [blast | disc | charge | release | off]";
 
         public override List<string> CommandOptionList()
         {
             List<string> options = new List<string>
             {
-                "select", "unlock", "lock", "pose", "disc", "charge", "release", "off",
+                "select", "unlock", "lock", "learn", "forget", "runes", "reset",
+                "pose", "disc", "charge", "release", "off",
             };
 
             foreach (KiAttack attack in KiAttackRegistry.All)
@@ -71,6 +82,12 @@ namespace Saiyaheim.Debugging
             if (args.Length > 0 && args[0].ToLowerInvariant() == "pose")
             {
                 HoldPose(args.Length > 1 ? args[1].ToLowerInvariant() : null);
+                return;
+            }
+
+            if (args.Length > 0 && args[0].ToLowerInvariant() == "runes")
+            {
+                Runes(player, args.Length > 1 ? args[1].ToLowerInvariant() : null);
                 return;
             }
 
@@ -131,6 +148,28 @@ namespace Saiyaheim.Debugging
                     else
                     {
                         named.IgnoreLocks = open;
+                    }
+                    break;
+
+                case "learn":
+                case "forget":
+                    if (!RequireCheats(action))
+                    {
+                        return;
+                    }
+
+                    bool learn = action == "learn";
+
+                    foreach (KiAttack step in named == null ? KiAttackRegistry.All : new[] { named })
+                    {
+                        bool changed = learn
+                            ? RuneKnowledge.Learn(player, step)
+                            : RuneKnowledge.Forget(player, step);
+
+                        Print($"{step.DisplayName}: " +
+                              (learn
+                                  ? changed ? "learned." : "already known."
+                                  : changed ? "forgotten." : "was not known."));
                     }
                     break;
 
@@ -200,6 +239,84 @@ namespace Saiyaheim.Debugging
             Print($"Kamehameha pose held: {KiBeamPose.DebugHold}");
         }
 
+        /// <summary>
+        /// O estado da etapa 13 para este personagem: o que cada bioma ainda ensina, a chance da
+        /// próxima pedra ali, e as pedras em cooldown. É o que responde "por que essa pedra não me
+        /// ensinou nada?" sem abrir o save.
+        /// </summary>
+        private void Runes(Player player, string action)
+        {
+            if (action == "reset")
+            {
+                if (!RequireCheats("runes reset"))
+                {
+                    return;
+                }
+
+                RuneKnowledge.ResetRunes(player);
+                Print("Runestones reset: every stone is fresh and every biome's bad-luck counter is 0.");
+            }
+            else if (action != null)
+            {
+                Print($"Unknown runes action: '{action}'. Try: runes [reset]");
+                return;
+            }
+
+            Dictionary<int, int> misses = RuneKnowledge.GetMisses(player);
+            Heightmap.Biome here = WorldGenerator.instance != null
+                ? WorldGenerator.instance.GetBiome(player.transform.position)
+                : Heightmap.Biome.None;
+
+            Print($"Runestones: base chance {SaiyaheimConfig.RuneFindChance.Value:0.##}, " +
+                  $"+{SaiyaheimConfig.RuneFindChanceStep.Value:0.##} per empty stone, " +
+                  $"{SaiyaheimConfig.RuneCooldownDays.Value:0.##} days to recharge. You are in {here}.");
+
+            foreach (Heightmap.Biome biome in System.Enum.GetValues(typeof(Heightmap.Biome)))
+            {
+                if (biome == Heightmap.Biome.None || biome == Heightmap.Biome.All ||
+                    biome == Heightmap.Biome.Land)
+                {
+                    continue;
+                }
+
+                List<string> left = new List<string>();
+                foreach (KiAttack attack in RuneKnowledge.Candidates(player, biome))
+                {
+                    left.Add(attack.DisplayName);
+                }
+
+                misses.TryGetValue((int)biome, out int missed);
+                if (left.Count == 0 && missed == 0)
+                {
+                    continue;
+                }
+
+                Print($"  {biome}: " +
+                      $"{(left.Count == 0 ? "nothing left" : string.Join(", ", left.ToArray()))}   " +
+                      $"{missed} empty in a row, next stone {RuneKnowledge.FindChance(missed):0.##}");
+            }
+
+            double now = ZNet.instance != null ? ZNet.instance.GetTimeSeconds() : 0.0;
+            int recharging = 0;
+
+            foreach (KeyValuePair<string, double> stone in RuneKnowledge.GetReadStones(player))
+            {
+                double days = RuneKnowledge.DaysLeft(stone.Value, now);
+                if (days <= 0)
+                {
+                    continue;
+                }
+
+                recharging++;
+                Print($"  stone at {stone.Key}: {days:0.##} days left");
+            }
+
+            if (recharging == 0)
+            {
+                Print("  No stone recharging.");
+            }
+        }
+
         private void PrintAttack(Player player, KiAttack attack)
         {
             KiAttack selected = KiAttackRegistry.Current(player);
@@ -214,7 +331,9 @@ namespace Saiyaheim.Debugging
             string key = attack.Config.RequiredGlobalKey.Value;
             Print($"{attack.DisplayName}: " +
                   $"{(lockReason == null ? "unlocked" : "LOCKED — " + lockReason)}   " +
-                  $"[{(string.IsNullOrEmpty(key) ? "no gate" : key)}]" +
+                  $"[{(RuneKnowledge.HasLearned(player, attack) ? "learned" : "not learned")}, " +
+                  $"taught in {attack.Config.LearnBiome.Value}" +
+                  $"{(string.IsNullOrEmpty(key) ? "" : ", needs " + key)}]" +
                   $"{(attack.IgnoreLocks ? "  (forced by saiya_blast unlock)" : "")}");
 
             float combat = BattlePower.GetCombatRaw(player);
@@ -467,6 +586,8 @@ namespace Saiyaheim.Debugging
                 case "select":
                 case "unlock":
                 case "lock":
+                case "learn":
+                case "forget":
                 case "pose":
                     return true;
                 default:

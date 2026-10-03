@@ -295,17 +295,23 @@ namespace Saiyaheim.Attacks
         }
 
         /// <summary>
-        /// Por que não há ataque nenhum para usar. Sempre o primeiro degrau da escada: é o que o
-        /// jogador vai destravar primeiro, então é a instrução útil.
+        /// Por que não há ataque nenhum para usar. Sem nada aprendido, a dica das runestones; com
+        /// algo aprendido e ainda assim travado, só pode ser a global key que o <c>.cfg</c> pôs por
+        /// cima, e a mensagem é a dela.
         /// </summary>
         private static void ExplainNothingUnlocked(Player player)
         {
-            if (KiAttackRegistry.All.Length == 0)
+            foreach (KiAttack attack in KiAttackRegistry.All)
             {
-                return;
+                string reason = attack.GetLockReason(player);
+                if (reason != KiAttack.NotLearnedMessage)
+                {
+                    Message(player, reason);
+                    return;
+                }
             }
 
-            Message(player, KiAttackRegistry.All[0].GetLockReason(player));
+            Message(player, KiAttack.NotLearnedMessage);
         }
 
         private static void Message(Player player, string message)

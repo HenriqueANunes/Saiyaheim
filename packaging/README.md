@@ -2,8 +2,8 @@
 
 # Saiyaheim
 
-A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and Super Saiyan
-transformations gated behind the game's bosses.
+A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks learned from the world's
+runestones, and Super Saiyan transformations gated behind the game's bosses.
 
 > **This is my first mod, and it is a work in progress.** It is playable from start to finish
 > of what it currently covers, but it is not finished — more transformations and more ki attacks
@@ -116,13 +116,14 @@ progress of the step you already use.
 
 ### Ki attacks
 
-Aimed where you are looking, costing ki whether they hit or not:
+Aimed where you are looking, costing ki whether they hit or not. Each one is learned from the
+runestones (see below):
 
-| Attack | Unlocked by |
+| Attack | |
 |---|---|
-| **Ki Blast** | Eikthyr |
-| **Kamehameha** | The Elder — charges up, with three charge tells on the hands, and fires a beam |
-| **Kienzan** | Bonemass — charges a spinning disc over your head while you move, then throws it through everything in its path |
+| **Ki Blast** | A quick shot that explodes on impact |
+| **Kamehameha** | Charges up, with three charge tells on the hands, and fires a beam |
+| **Kienzan** | Charges a spinning disc over your head while you move, then throws it through everything in its path |
 
 One key fires the selected attack, Shift plus that key cycles through the ones you have unlocked.
 
@@ -139,13 +140,24 @@ costs you no extra key, and the hotkeys above keep working for anyone who prefer
 - Picking a form transforms you. The form you are already in is not on the wheel, and while
   transformed a **Base form** item is there to drop back.
 - **Only what you have unlocked shows up.** A group whose items are all still locked does not
-  appear on the wheel at all, so the menu grows as your world beats bosses.
+  appear on the wheel at all, so the menu grows as you progress.
+
+### Runestones
+
+The lore runestones scattered around the world can **teach you new abilities** — for now, the ki
+attacks. Read one and you may learn something; if you do not, keep exploring:
+
+- Each biome has its own things to teach.
+- Every runestone that teaches nothing makes the next one in the same biome likelier, so bad luck
+  does not last forever.
+- A runestone you already read recharges after a few in-game days and can be tried again.
+- Learning is **per character**: each friend has to find their own.
 
 ### Boss gating
 
-Unlocks use Valheim's own global keys, which means they are **per world, not per character**.
-Whoever joins your server later arrives with whatever the world has already unlocked. For a world
-played with friends this is the intended behavior.
+Forms are unlocked with Valheim's own global keys, which means they are **per world, not per
+character**. Whoever joins your server later arrives with whatever the world has already unlocked.
+For a world played with friends this is the intended behavior.
 
 ---
 
