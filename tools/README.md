@@ -129,6 +129,26 @@ Três coisas a lembrar ao mexer nessa parte:
   o `1/(1 + r × x)` do `KiPowerReduction` é a curva **espelhada** desta. Entrada sem teto pede
   hiperbólica; entrada em 0–1 pede expoente.
 
+### A aba **Kaioken** — feito em 2026-10-03
+
+Desenho da etapa 14 em números, **antes** de existir C#: nada aqui espelha código, e as chaves do
+snippet de `.cfg` são propostas.
+
+- **O eixo x é o nível da skill Kaioken**, não o Power Level. Dois stats: vida/s e stamina/s.
+- **Uma linha por tier**, com cores próprias (`--kk1`…`--kk5`). São categóricas e não uma rampa
+  de vermelho: cinco tons do mesmo matiz não passam no validador.
+- **"Comparar as formas"** troca as cinco linhas por quatro (base, SSJ, SSJ2, SSJ3) num tier só.
+  A forma soma a penalidade dela ao nível seguro, que a maestria reduz.
+- Tudo sai de `kkModel(L, tier, forma)`, com uma variável só, a **margem**.
+
+A primeira versão desta aba comparava cestas de comida por "BP médio na luta". Saiu no mesmo dia:
+o Henrique achou a métrica confusa, e o BP do Kaioken é fixo por tier, não depende do tempo.
+
+**Na aba Poder de luta** o slider "Kaioken no poder de luta" liga um tier por cima: cada linha do
+gráfico ganha uma gêmea tracejada, e a tabela de criaturas ganha as colunas com Kaioken. O `model()`
+aceita `opt.kk` (o multiplicador de BP do tier), que multiplica junto com a forma e passa pelo mesmo
+`RatingFormShare`. Isso é suposição de como o mod vai fazer, não código.
+
 ### Se precisar de uma quarta série
 
 ⚠️ **Cor nova passa pelo validador antes de entrar.** O script está em `tools/validate_palette.py`,

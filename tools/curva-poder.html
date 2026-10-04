@@ -29,6 +29,10 @@
     --alt: #2c7a5c;
     --ki-wash: rgba(4, 129, 179, 0.12);
     --warn: #A33A24;
+    /* Uma cor por tier de Kaioken. Categorica e nao uma rampa de vermelho: cinco tons do mesmo
+       matiz nao passam no validador (dE < 15 entre vizinhos), e cinco linhas que se cruzam pedem
+       separacao, nao ordem. Validada com tools/validate_palette.py nos dois temas. */
+    --kk1: #0481b3; --kk2: #ae6700; --kk3: #1f8058; --kk4: #7a4fc4; --kk5: #A31E68;
     --shadow: 0 1px 2px rgba(33, 28, 22, .08), 0 8px 24px rgba(33, 28, 22, .06);
 
     --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
@@ -42,7 +46,7 @@
       --line: #3A342B; --line-soft: #2F2A22;
       --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
       --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
-      --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
+      --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
   }
@@ -52,7 +56,7 @@
     --line: #3A342B; --line-soft: #2F2A22;
     --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
     --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
-    --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F;
+    --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
 
@@ -234,6 +238,15 @@
   thead tr.groups th.ssj { color: var(--ssj); }
   thead tr.groups th.ssj2 { color: var(--ssj2); }
   thead tr.groups th.ssj3 { color: var(--ssj3); }
+  thead tr.groups th.kk1 { color: var(--kk1); }
+  thead tr.groups th.kk2 { color: var(--kk2); }
+  thead tr.groups th.kk3 { color: var(--kk3); }
+  thead tr.groups th.kk4 { color: var(--kk4); }
+  thead tr.groups th.kk5 { color: var(--kk5); }
+  .stat .v.kk1 { color: var(--kk1); } .stat .v.kk2 { color: var(--kk2); } .stat .v.kk3 { color: var(--kk3); }
+  .stat .v.kk4 { color: var(--kk4); } .stat .v.kk5 { color: var(--kk5); }
+  .subhead { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2);
+    border-top: 1px solid var(--line-soft); padding-top: 9px; margin-top: 2px; }
   tbody td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
   tbody tr:last-child td { border-bottom: 0; }
   tbody tr.milestone td { background: var(--ki-wash); }
@@ -287,6 +300,7 @@
     <button type="button" data-lens="fly">Voo</button>
     <button type="button" data-lens="form">Transformação</button>
     <button type="button" data-lens="rating">Poder de luta</button>
+    <button type="button" data-lens="kk">Kaioken</button>
   </nav>
 
   <p class="formula" id="formula"></p>
@@ -320,7 +334,7 @@
         </div>
       </details>
 
-      <details class="card group" id="g-power" data-lens="prog combat fly form rating">
+      <details class="card group" id="g-power" data-lens="prog combat fly form rating kk">
         <summary><span class="chev">▶</span>Battle power</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="hp">HP acima da base (25)</label><output id="hp-out"></output></div>
@@ -411,7 +425,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj" id="g-ssj" data-lens="combat form rating" open>
+      <details class="card group g-ssj" id="g-ssj" data-lens="combat form rating kk" open>
         <summary><span class="chev">▶</span>SSJ<span class="tag ssj">3.1</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m1">PowerMultiplier</label><output id="m1-out"></output></div>
@@ -425,7 +439,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj2" id="g-ssj2" data-lens="combat form rating" open>
+      <details class="card group g-ssj2" id="g-ssj2" data-lens="combat form rating kk" open>
         <summary><span class="chev">▶</span>SSJ2<span class="tag ssj2">3.2</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m2">PowerMultiplier</label><output id="m2-out"></output></div>
@@ -439,7 +453,7 @@
         </div>
       </details>
 
-      <details class="card group g-ssj3" id="g-ssj3" data-lens="combat form rating" open>
+      <details class="card group g-ssj3" id="g-ssj3" data-lens="combat form rating kk" open>
         <summary><span class="chev">▶</span>SSJ3<span class="tag ssj3">3.3</span></summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="m3">PowerMultiplier</label><output id="m3-out"></output></div>
@@ -511,6 +525,9 @@
           </label>
           <p class="hint">Marcado, o HP acima da base (slider do grupo Battle power) é o valor no nível 100, e cresce em linha reta desde 0 no nível 0: o jogador que começa sem comida e termina com a melhor. Desmarque para fixar o HP em todos os níveis. Vale só nesta aba.</p>
           <p class="hint">A conta usa a armadura e o soco da forma <b>base</b> e multiplica o resultado por <code>1 + (PowerMultiplier − 1) × RatingFormShare</code>. Transformado, o número é o da forma base escalado; a armadura e o soco de dentro da forma continuam valendo no combate, não aqui.</p>
+          <div class="ctl is-hero"><div class="row"><label for="rkk">Kaioken no poder de luta</label><output id="rkk-out"></output></div>
+            <input type="range" id="rkk" min="0" max="5" step="1" value="0"></div>
+          <p class="hint">Liga um tier por cima de tudo: o gráfico ganha uma linha tracejada para cada linha cheia, e a tabela de criaturas ganha as colunas com Kaioken. O multiplicador de BP de cada tier está no grupo <b>Kaioken — tiers</b>. A conta supõe que o Kaioken entra no número igual à forma: <code>1 + (forma × KK − 1) × RatingFormShare</code>.</p>
           <div class="ctl is-hero"><div class="row"><label for="rfs">RatingFormShare</label><output id="rfs-out"></output></div>
             <input type="range" id="rfs" min="0" max="1.5" step="0.05" value="1"></div>
           <p class="hint">Quanto do multiplicador da forma chega ao número. Em 1 o SSJ lê exatamente 2×; em 0,5, 1,5×. Mesmo desenho do <code>FormSpeedShare</code> do voo.</p>
@@ -529,6 +546,109 @@
             contar dano em estrutura das criaturas (chop, pickaxe)
           </label>
           <p class="hint">Marcado é o que o mod faz hoje: o <code>GetTotalDamage()</code> do jogo soma <code>chop</code> e <code>pickaxe</code>, que só acertam construção. Troll, Stone Golem, Seeker e Morgen saem inflados por isso.</p>
+        </div>
+      </details>
+
+      <details class="card group" id="g-kk" data-lens="kk" open>
+        <summary><span class="chev">▶</span>Kaioken — o que mostrar</summary>
+        <div class="group-body">
+          <div class="ctl is-hero"><div class="row"><label for="kform">Forma por baixo</label><output id="kform-out"></output></div>
+            <input type="range" id="kform" min="0" max="3" step="1" value="0"></div>
+          <p class="hint">A forma soma a penalidade dela ao nível seguro de todo tier, então as curvas andam para a direita. A maestria lida é a dos grupos SSJ.</p>
+          <label class="check">
+            <input type="checkbox" id="kcmp">
+            comparar as formas num tier só
+          </label>
+          <div class="ctl"><div class="row"><label for="ktier">Tier (comparação e cartões)</label><output id="ktier-out"></output></div>
+            <input type="range" id="ktier" min="1" max="5" step="1" value="1"></div>
+          <p class="hint">Marcado, o gráfico troca as cinco linhas de tier por quatro linhas de forma (base, SSJ, SSJ2, SSJ3), todas no tier escolhido aqui.</p>
+          <div class="ctl"><div class="row"><label for="klv">Nível da skill Kaioken (cartões)</label><output id="klv-out"></output></div>
+            <input type="range" id="klv" min="0" max="100" step="1" value="30"></div>
+        </div>
+      </details>
+
+      <details class="card group" id="g-kkg" data-lens="kk" open>
+        <summary><span class="chev">▶</span>Kaioken — custo</summary>
+        <div class="group-body">
+          <div class="ctl"><div class="row"><label for="kstr">Corte de stamina por nível acima do seguro</label><output id="kstr-out"></output></div>
+            <input type="range" id="kstr" min="0" max="0.1" step="0.005" value="0.04"></div>
+          <div class="ctl"><div class="row"><label for="kstf">Piso do dreno de stamina</label><output id="kstf-out"></output></div>
+            <input type="range" id="kstf" min="0" max="1" step="0.05" value="0.2"></div>
+          <p class="hint">Acima do seguro, stamina/s = base × max(piso, 1 − corte × margem). O piso nunca é zero, por design. A regeneração de stamina fica bloqueada enquanto o Kaioken está ligado, então este é o custo líquido. Abaixo do seguro a stamina cobra a base cheia, e a vida entra: <code>vida/s = vida por nível × |margem|</code>.</p>
+        </div>
+      </details>
+
+      <details class="card group" id="g-kkt" data-lens="kk rating" open>
+        <summary><span class="chev">▶</span>Kaioken — tiers</summary>
+        <div class="group-body">
+          <p class="hint">Todos os números são chute, para mexer.</p>
+          <div class="subhead" style="color: var(--kk1)">x2</div>
+          <div class="ctl"><div class="row"><label for="kp1">Multiplicador de BP</label><output id="kp1-out"></output></div>
+            <input type="range" id="kp1" min="1" max="4" step="0.05" value="1.2"></div>
+          <div class="ctl"><div class="row"><label for="ks1">Nível seguro</label><output id="ks1-out"></output></div>
+            <input type="range" id="ks1" min="0" max="100" step="1" value="10"></div>
+          <div class="ctl"><div class="row"><label for="kst1">Stamina/s (base)</label><output id="kst1-out"></output></div>
+            <input type="range" id="kst1" min="0" max="40" step="0.5" value="4"></div>
+          <div class="ctl"><div class="row"><label for="kh1">Vida/s por nível abaixo do seguro</label><output id="kh1-out"></output></div>
+            <input type="range" id="kh1" min="0" max="3" step="0.05" value="0.15"></div>
+          <div class="subhead" style="color: var(--kk2)">x3</div>
+          <div class="ctl"><div class="row"><label for="kp2">Multiplicador de BP</label><output id="kp2-out"></output></div>
+            <input type="range" id="kp2" min="1" max="4" step="0.05" value="1.4"></div>
+          <div class="ctl"><div class="row"><label for="ks2">Nível seguro</label><output id="ks2-out"></output></div>
+            <input type="range" id="ks2" min="0" max="100" step="1" value="20"></div>
+          <div class="ctl"><div class="row"><label for="kst2">Stamina/s (base)</label><output id="kst2-out"></output></div>
+            <input type="range" id="kst2" min="0" max="40" step="0.5" value="6"></div>
+          <div class="ctl"><div class="row"><label for="kh2">Vida/s por nível abaixo do seguro</label><output id="kh2-out"></output></div>
+            <input type="range" id="kh2" min="0" max="3" step="0.05" value="0.25"></div>
+          <div class="subhead" style="color: var(--kk3)">x4</div>
+          <div class="ctl"><div class="row"><label for="kp3">Multiplicador de BP</label><output id="kp3-out"></output></div>
+            <input type="range" id="kp3" min="1" max="4" step="0.05" value="1.6"></div>
+          <div class="ctl"><div class="row"><label for="ks3">Nível seguro</label><output id="ks3-out"></output></div>
+            <input type="range" id="ks3" min="0" max="100" step="1" value="30"></div>
+          <div class="ctl"><div class="row"><label for="kst3">Stamina/s (base)</label><output id="kst3-out"></output></div>
+            <input type="range" id="kst3" min="0" max="40" step="0.5" value="8"></div>
+          <div class="ctl"><div class="row"><label for="kh3">Vida/s por nível abaixo do seguro</label><output id="kh3-out"></output></div>
+            <input type="range" id="kh3" min="0" max="3" step="0.05" value="0.35"></div>
+          <div class="subhead" style="color: var(--kk4)">x10</div>
+          <div class="ctl"><div class="row"><label for="kp4">Multiplicador de BP</label><output id="kp4-out"></output></div>
+            <input type="range" id="kp4" min="1" max="4" step="0.05" value="2"></div>
+          <div class="ctl"><div class="row"><label for="ks4">Nível seguro</label><output id="ks4-out"></output></div>
+            <input type="range" id="ks4" min="0" max="100" step="1" value="60"></div>
+          <div class="ctl"><div class="row"><label for="kst4">Stamina/s (base)</label><output id="kst4-out"></output></div>
+            <input type="range" id="kst4" min="0" max="40" step="0.5" value="11"></div>
+          <div class="ctl"><div class="row"><label for="kh4">Vida/s por nível abaixo do seguro</label><output id="kh4-out"></output></div>
+            <input type="range" id="kh4" min="0" max="3" step="0.05" value="0.5"></div>
+          <div class="subhead" style="color: var(--kk5)">x20</div>
+          <div class="ctl"><div class="row"><label for="kp5">Multiplicador de BP</label><output id="kp5-out"></output></div>
+            <input type="range" id="kp5" min="1" max="4" step="0.05" value="2.5"></div>
+          <div class="ctl"><div class="row"><label for="ks5">Nível seguro</label><output id="ks5-out"></output></div>
+            <input type="range" id="ks5" min="0" max="100" step="1" value="80"></div>
+          <div class="ctl"><div class="row"><label for="kst5">Stamina/s (base)</label><output id="kst5-out"></output></div>
+            <input type="range" id="kst5" min="0" max="40" step="0.5" value="14"></div>
+          <div class="ctl"><div class="row"><label for="kh5">Vida/s por nível abaixo do seguro</label><output id="kh5-out"></output></div>
+            <input type="range" id="kh5" min="0" max="3" step="0.05" value="0.7"></div>
+        </div>
+      </details>
+
+      <details class="card group" id="g-kkf" data-lens="kk">
+        <summary><span class="chev">▶</span>Kaioken — penalidade das formas</summary>
+        <div class="group-body">
+          <p class="hint">Níveis de Kaioken que a forma soma ao seguro. Cai em linha reta do <b>inicial</b> até 0, que chega quando a maestria da forma alcança o nível indicado. Toda forma acaba segura com Kaioken; o que segura um tier fora de alcance é seguro + penalidade passar de 100.</p>
+          <div class="subhead">SSJ</div>
+          <div class="ctl"><div class="row"><label for="kfi1">Penalidade inicial</label><output id="kfi1-out"></output></div>
+            <input type="range" id="kfi1" min="0" max="100" step="1" value="20"></div>
+          <div class="ctl"><div class="row"><label for="kfz1">Maestria em que zera</label><output id="kfz1-out"></output></div>
+            <input type="range" id="kfz1" min="1" max="100" step="1" value="30"></div>
+          <div class="subhead">SSJ2</div>
+          <div class="ctl"><div class="row"><label for="kfi2">Penalidade inicial</label><output id="kfi2-out"></output></div>
+            <input type="range" id="kfi2" min="0" max="100" step="1" value="50"></div>
+          <div class="ctl"><div class="row"><label for="kfz2">Maestria em que zera</label><output id="kfz2-out"></output></div>
+            <input type="range" id="kfz2" min="1" max="100" step="1" value="60"></div>
+          <div class="subhead">SSJ3</div>
+          <div class="ctl"><div class="row"><label for="kfi3">Penalidade inicial</label><output id="kfi3-out"></output></div>
+            <input type="range" id="kfi3" min="0" max="100" step="1" value="70"></div>
+          <div class="ctl"><div class="row"><label for="kfz3">Maestria em que zera</label><output id="kfz3-out"></output></div>
+            <input type="range" id="kfz3" min="1" max="100" step="1" value="90"></div>
         </div>
       </details>
 
@@ -631,7 +751,11 @@
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
                "xpd", "xpt", "xpmax", "cxp", "ppm", "bxp", "bxm", "boss", "fks",
-               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs"];
+               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs",
+               "ktier", "kform", "klv", "kstr", "kstf", "rkk",
+               "kp1", "ks1", "kst1", "kh1", "kp2", "ks2", "kst2", "kh2", "kp3", "ks3", "kst3", "kh3",
+               "kp4", "ks4", "kst4", "kh4", "kp5", "ks5", "kst5", "kh5",
+               "kfi1", "kfz1", "kfi2", "kfz2", "kfi3", "kfz3"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
@@ -641,6 +765,7 @@
   const cfgAll = document.getElementById("cfg-all");
   const rStruct = document.getElementById("rstruct");
   const rHpTrack = document.getElementById("rhptrack");
+  const kCmp = document.getElementById("kcmp");
   const DEFAULTS = Object.fromEntries(ids.map(i => [i, el[i].value]));
 
   let lens = "prog";
@@ -754,7 +879,10 @@
   // form = null e' o jogador fora da transformacao.
   function model(L, k5, form = null, opt = {}) {
     const lin = linearPower(L);
-    const mult = form ? Math.max(1, v(form.m)) : 1;
+    // opt.kk = o multiplicador de BP do Kaioken (1,2 = +20%), que multiplica por cima da forma. So' a lente de
+    // poder de luta passa isto por enquanto.
+    const kkMult = opt.kk || 1;
+    const mult = (form ? Math.max(1, v(form.m)) : 1) * kkMult;
     const power = combatPower(L, k5) * mult;
     const flyLvl = opt.flyLvl === undefined || opt.flyLvl === null ? flightLevel(L) : opt.flyLvl;
 
@@ -860,7 +988,8 @@
     // forma. As colunas ehp e dps continuam mostrando os de dentro da forma.
     const basePower = combatPower(L, k5);
     const baseRating = ratingOf(Math.round(v("armb") + basePower * v("armp")), basePower * v("dmg"));
-    const rating = baseRating.r * (form ? 1 + (mult - 1) * v("rfs") : 1);
+    // O Kaioken entra igual a forma: o multiplicador total passa pelo mesmo RatingFormShare.
+    const rating = baseRating.r * (mult > 1 ? 1 + (mult - 1) * v("rfs") : 1);
     const ehp = inForm.e;
     const rdps = inForm.d;
 
@@ -912,6 +1041,41 @@
       masteryhours: form ? masteryHours(form, L, k5) : Infinity,
     };
   }
+
+  // ── o Kaioken (etapa 14, so' desenho) ──────────────────────────────────────
+  // Nada aqui espelha C# ainda: e' o desenho de Design/Kaioken.md em numeros, para decidir os
+  // custos antes de escrever o mod. Tudo sai de UMA variavel, a margem:
+  //   necessario = seguro do tier + penalidade da forma (que a maestria dela reduz)
+  //   margem     = nivel da skill Kaioken - necessario
+  // Stamina cobra sempre, e cai com a margem positiva ate um piso; vida so' cobra com margem
+  // negativa, fixa em hp/s e proporcional a distancia.
+  const TIERS = [1, 2, 3, 4, 5].map(t => ({
+    t, name: ["x2", "x3", "x4", "x10", "x20"][t - 1], color: `var(--kk${t})`, cls: `kk${t}`,
+  }));
+  const kkTier = t => ({ mult: v("kp" + t), safe: v("ks" + t), st: v("kst" + t), hp: v("kh" + t) });
+
+  // Niveis de Kaioken que a forma soma ao seguro. fi = 0 e' a forma base, que nao soma nada.
+  function kkPenalty(fi) {
+    if (!fi) return 0;
+    const ini = v("kfi" + fi), zero = v("kfz" + fi);
+    const frac = Math.min(1, v(FORMS[fi - 1].lv) / Math.max(1, zero));
+    return ini * (1 - frac);
+  }
+  const kkFormName = fi => (fi ? FORMS[fi - 1].name : "forma base");
+
+  // Os custos do tier t no nivel L da skill, com a forma fi por baixo.
+  function kkModel(L, t, fi = v("kform")) {
+    const k = kkTier(t);
+    const need = k.safe + kkPenalty(fi);
+    const margin = L - need;
+    return {
+      need, margin, mult: k.mult,
+      hp: k.hp * Math.max(0, -margin),
+      st: k.st * Math.max(v("kstf"), Math.min(1, 1 - v("kstr") * Math.max(0, margin))),
+    };
+  }
+  // Primeiro nivel da skill em que o tier para de custar vida nesta forma (Infinity se nunca).
+  const kkSafeAt = (t, fi) => { const n = Math.ceil(kkModel(0, t, fi).need); return n <= MAXLVL ? Math.max(0, n) : Infinity; };
 
   // ── os stats ──────────────────────────────────────────────────────────────
   // mode diz quais linhas o grafico desenha:
@@ -978,6 +1142,11 @@
       sub: "(soco desarmado 5 + bônus do mod) ÷ PlayerHitInterval" },
     refill: { btn: "recarga", label: "Recarga da barra", mode: "solo", dec: 0, unit: " s",
       sub: "segundos carregando ativo para encher a barra do zero" },
+    // Lente Kaioken: o eixo x e' o nivel da skill KAIOKEN, nao o power level.
+    kkhp: { btn: "vida/s", label: "Dreno de vida do Kaioken", mode: "kk", of: "hp", dec: 2, unit: " hp/s",
+      sub: "fixo em hp/s, proporcional à distância do nível seguro, e zero dali para cima. A forma empurra o nível seguro para a direita; a maestria dela traz de volta" },
+    kkst: { btn: "stamina/s", label: "Dreno de stamina do Kaioken", mode: "kk", of: "st", dec: 2, unit: " /s",
+      sub: "base cheia até o nível seguro; acima dele cai com a margem até o piso, que nunca é zero. Não conta socos nem esquivas" },
   };
   // Alguns stats sao o mesmo numero com outra leitura (powerform e' power visto pelas formas).
   const statKey = s => STATS[s].of || s;
@@ -1061,6 +1230,18 @@
         FORMS.map((f, i) => fcol("Poder", i, "rating", 0, "", { sep: i === 0, get: c => c.f[i].rating })),
         [col("SSJ ÷ base", c => c.f[0].rating / c.m.rating, 2, "×", { sep: true })]),
     },
+    kk: {
+      title: "Quanto o Kaioken cobra, nível a nível",
+      sub: "Stamina sempre, vida só abaixo do nível seguro. Uma linha por tier; a forma por baixo empurra o nível seguro para a direita, e a maestria dela traz de volta. <b>Todos os números do Kaioken são chute</b> — mexa no rail.",
+      stats: ["kkhp", "kkst"],
+      open: ["g-kk", "g-kkg", "g-kkt"],
+      today: false,
+      cfg: ["kk"],
+      caption: "Custo por segundo, nível a nível da skill Kaioken",
+      cols: [].concat(...TIERS.map(tr => [
+        col("Vida/s", c => c.k[tr.t - 1].hp, 2, "", { group: tr.name, cls: tr.cls, sep: true }),
+        col("Stam./s", c => c.k[tr.t - 1].st, 2, "", { group: tr.name, cls: tr.cls })])),
+    },
   };
 
   // ── as series do grafico ──────────────────────────────────────────────────
@@ -1080,6 +1261,16 @@
                  of: i => model(0, k5, null, { load: i / 100 })[key] });
       return out;
     }
+    if (mode === "kk") {
+      if (kCmp.checked) {
+        const t = v("ktier"), tn = TIERS[t - 1].name;
+        out.push({ color: "var(--ki)", label: `${tn} na forma base`, short: "base", of: L => kkModel(L, t, 0)[key] });
+        FORMS.forEach((f, i) => out.push({ color: f.color, label: `${tn} em ${f.name}`, short: f.name, of: L => kkModel(L, t, i + 1)[key] }));
+      } else {
+        TIERS.forEach(tr => out.push({ color: tr.color, label: tr.name, short: tr.name, of: L => kkModel(L, tr.t)[key] }));
+      }
+      return out;
+    }
     if (mode === "formonly") {
       FORMS.forEach(f => out.push({ color: f.color, label: f.name, short: f.name, of: L => model(L, k5, f)[key] }));
       return out;
@@ -1092,6 +1283,11 @@
                of: L => model(L, k5)[key] });
     if (mode === "forms" && cmpForms.checked) {
       FORMS.forEach(f => out.push({ color: f.color, label: f.name, short: f.name, of: L => model(L, k5, f)[key] }));
+    }
+    if (lens === "rating" && v("rkk") > 0) {
+      const tn = TIERS[v("rkk") - 1].name, kk = kkTier(v("rkk")).mult;
+      out.slice().forEach(sr => out.push({ color: sr.color, dash: "5 4", label: `${sr.label} + ${tn}`, short: `${sr.short}+${tn}`,
+        of: L => model(L, k5, sr.short === "base" ? null : FORMS.find(f => f.name === sr.short), { kk })[key] }));
     }
     if (mode === "skill" && (flTrack.checked || v("fl") < MAXLVL)) {
       out.push({ color: "var(--alt)", label: "com a skill de voo no 100", short: "skill 100",
@@ -1143,7 +1339,8 @@
       svg.appendChild(t);
     }
     const ax = mk("text", { class: "axis-name", x: M.l + PW / 2, y: M.t + PH + 34, "text-anchor": "middle" });
-    ax.textContent = axis === "level" ? "nível da skill"
+    ax.textContent = lens === "kk" ? (axis === "xp" ? "xp acumulado gasto na skill Kaioken" : "nível da skill Kaioken")
+                   : axis === "level" ? "nível da skill"
                    : axis === "load" ? "carga do inventário (% do peso máximo)"
                    : "xp acumulado gasto";
     svg.appendChild(ax);
@@ -1203,7 +1400,9 @@
 
     const d = hot.spec.dec, u = hot.spec.unit;
     tip.innerHTML =
-      (axis === "load"
+      (lens === "kk"
+        ? `<div class="th">skill Kaioken ${bestL}</div>`
+        : axis === "load"
         ? `<div class="th">carga ${bestL}% · velocidade x${fmt(1 - v("fwp") * Math.pow(bestL / 100, v("fwc")), 3)}</div>`
         : `<div class="th">nível ${bestL} · ${fmt(xpTo[bestL] / XP_TOTAL * 100, 1)}% do xp</div>`) +
       hot.series.map(s =>
@@ -1247,7 +1446,8 @@
 
     const ctxs = [];
     for (let L = 0; L <= MAXLVL; L += 10) {
-      ctxs.push({ L, m: model(L, k5), b: model(L, 0), f: FORMS.map(f => model(L, k5, f)) });
+      ctxs.push({ L, m: model(L, k5), b: model(L, 0), f: FORMS.map(f => model(L, k5, f)),
+                  k: lens === "kk" ? TIERS.map(tr => kkModel(L, tr.t)) : null });
     }
     // A coluna inteira decide se abrevia em milhares, e nao cada celula: com o corte por celula
     // a mesma coluna saia com "8.441" numa linha e "12,4k" na seguinte.
@@ -1643,15 +1843,24 @@
 
   function drawCreatures(k5) {
     const L = v("rlv");
-    const you = [model(L, k5)].concat(FORMS.map(f => model(L, k5, f)));
-    const names = ["Base"].concat(FORMS.map(f => f.name));
-    const cls = [""].concat(FORMS.map(f => f.cls));
+    const kkOn = v("rkk") > 0, kk = kkOn ? kkTier(v("rkk")).mult : 1, tn = kkOn ? TIERS[v("rkk") - 1].name : "";
+    let you = [model(L, k5)].concat(FORMS.map(f => model(L, k5, f)));
+    let names = ["Base"].concat(FORMS.map(f => f.name));
+    let cls = [""].concat(FORMS.map(f => f.cls));
+    let colors = ["var(--ki)"].concat(FORMS.map(f => f.color));
+    // Com o Kaioken ligado, cada coluna ganha a gemea com ele, na mesma cor.
+    if (kkOn) {
+      you = you.concat([model(L, k5, null, { kk })], FORMS.map(f => model(L, k5, f, { kk })));
+      names = names.concat(names.map(x => `${x}+${tn}`));
+      cls = cls.concat(cls);
+      colors = colors.concat(colors);
+    }
     document.getElementById("creatures-caption").textContent =
       `Criaturas por bioma, contra você no nível ${fmt(L, 0)}`;
     document.getElementById("creatures-thead").innerHTML =
       `<tr class="groups"><th colspan="5"></th><th colspan="${you.length}" class="sep">você ÷ ela</th><th colspan="2" class="sep">empata no nível</th></tr>` +
       `<tr><th scope="col">Criatura</th><th scope="col">HP</th><th scope="col">Golpe</th><th scope="col">DPS</th><th scope="col">Poder</th>` +
-      names.map((n, i) => `<th scope="col"${i === 0 ? ' class="sep"' : ""}><span class="${cls[i]}" style="color: ${i ? FORMS[i - 1].color : "var(--ki)"}">${n} ${fmt(you[i].rating, 0)}</span></th>`).join("") +
+      names.map((n, i) => `<th scope="col"${i === 0 || (kkOn && i === FORMS.length + 1) ? ' class="sep"' : ""}><span class="${cls[i]}" style="color: ${colors[i]}">${n} ${fmt(you[i].rating, 0)}</span></th>`).join("") +
       `<th scope="col" class="sep">base</th><th scope="col">${SSJ.name}</th></tr>`;
 
     let biome = null;
@@ -1666,7 +1875,7 @@
       const hitTxt = h ? `${fmt(h[1], 0)} <span class="muted">${h[4]} / ${fmt(h[3], 0)} s</span>` : "—";
       const ratios = you.map((y, i) => {
         const q = r > 0 ? y.rating / r : Infinity;
-        return `<td${i === 0 ? ' class="sep"' : ""}><span class="${q >= 1 ? "win" : "lose"}">${fmt(q, q >= 10 ? 0 : 1)}×</span></td>`;
+        return `<td${i === 0 || (kkOn && i === FORMS.length + 1) ? ' class="sep"' : ""}><span class="${q >= 1 ? "win" : "lose"}">${fmt(q, q >= 10 ? 0 : 1)}×</span></td>`;
       }).join("");
       rows.push(`<tr><td class="who">${c.name}<span class="pf">${c.prefab}</span>${c.common ? '<span class="ref">comum</span>' : ""}</td>` +
         `<td>${fmt(c.hp, 0)}</td><td>${hitTxt}</td><td>${fmt(creatureDps(c), 1)}</td><td>${fmt(r, 0)}</td>${ratios}` +
@@ -1685,6 +1894,12 @@
       cards.push({ k: `${f.name} no nível ${fmt(L, 0)}`, v: fmt(c.rating / b.rating, 2) + "×", cls: f.cls,
         n: `${fmt(c.rating, 0)} · armadura ${fmt(c.armor, 0)} no combate, ${fmt(b.armor, 0)} na conta` });
     });
+    if (v("rkk") > 0) {
+      const tn = TIERS[v("rkk") - 1].name, kk = kkTier(v("rkk")).mult;
+      const c = model(L, k5, null, { kk }), ct = model(L, k5, TOP, { kk });
+      cards.push({ k: `Kaioken ${tn} no nível ${fmt(L, 0)}`, v: fmt(c.rating / b.rating, 2) + "×", cls: "kk" + v("rkk"),
+        n: `${fmt(c.rating, 0)} na forma base · em ${TOP.name}+${tn}, ${fmt(ct.rating, 0)} (${fmt(kk, 2)}× de BP)` });
+    }
     const refs = CREATURES.filter(c => c.common);
     const beats = m => refs.filter(c => m.rating >= creatureRating(c));
     const top = model(L, k5, TOP);
@@ -1706,12 +1921,38 @@
       `Fora da forma você ${lv(draugr, null)} e ${lv(wolf, null)}; em ${SSJ.name}, ${lv(draugr, SSJ)} e ${lv(wolf, SSJ)}.` };
   }
 
+  // ── Kaioken: cartoes e veredito ────────────────────────────────────────────
+  function cardsKk() {
+    const L = v("klv"), fi = v("kform");
+    const cards = TIERS.map(tr => {
+      const m = kkModel(L, tr.t);
+      return { k: `${tr.name} no nível ${fmt(L, 0)}`, cls: tr.cls,
+        v: m.hp > 0 ? `${fmt(m.hp, 1)} hp/s` : "sem vida",
+        n: `${fmt(m.st, 1)} stamina/s · margem ${m.margin > 0 ? "+" : ""}${fmt(m.margin, 0)} (precisa de ${fmt(m.need, 0)}) · ${fmt(m.mult, 2)}× de BP` };
+    });
+    if (fi) cards.push({ k: `penalidade do ${FORMS[fi - 1].name}`, v: `+${fmt(kkPenalty(fi), 0)} níveis`, cls: FORMS[fi - 1].cls,
+      n: `com maestria ${fmt(v(FORMS[fi - 1].lv), 0)}; começa em ${fmt(v("kfi" + fi), 0)} e zera na maestria ${fmt(v("kfz" + fi), 0)}` });
+    return cards;
+  }
+
+  function verdictKk() {
+    const fi = v("kform");
+    const at = TIERS.map(tr => ({ tr, n: kkSafeAt(tr.t, fi) }));
+    const never = at.filter(x => !isFinite(x.n));
+    const txt = at.map(x => `${x.tr.name} ${isFinite(x.n) ? "no " + x.n : "nunca"}`).join(" · ");
+    const head = `<strong>Em ${kkFormName(fi)}, cada tier para de custar vida a partir do nível:</strong> ${txt}.`;
+    if (never.length) return { warn: true, html: head + ` ${never.map(x => x.tr.name).join(" e ")} nunca fica seguro nesta forma — liga, mas sempre custa vida. É o que acontece com seguro + penalidade passando de 100; a maestria da forma traz de volta.` };
+    if (!fi) return { html: head + ` Marque "comparar as formas" para ver quanto cada forma empurra isso para a direita.` };
+    return { html: head + ` A forma soma ${fmt(kkPenalty(fi), 0)} níveis com a maestria atual.` };
+  }
+
   const LENS_FN = {
     prog: { cards: cardsProg, verdict: verdictProg },
     combat: { cards: cardsCombat, verdict: verdictCombat },
     fly: { cards: cardsFly, verdict: verdictFly },
     form: { cards: cardsForm, verdict: verdictForm },
     rating: { cards: cardsRating, verdict: verdictRating },
+    kk: { cards: cardsKk, verdict: verdictKk },
   };
 
   function drawReadout(k5) {
@@ -1771,9 +2012,17 @@
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
   };
+  // ⚠️ Chaves PROPOSTAS: o Kaioken nao existe no SaiyaheimConfig.cs ainda. Os nomes sao sugestao.
+  CFG.kk = () => [block("7 - Kaioken", [
+      kv("StaminaReductionPerMarginLevel", n("kstr", 3)), kv("StaminaDrainFloor", n("kstf", 2))])].concat(
+    TIERS.map(tr => block(`7.${tr.t} - Kaioken ${tr.name}`, [
+      kv("PowerMultiplier", n("kp" + tr.t, 2)), kv("SafeLevel", n("ks" + tr.t, 0)),
+      kv("StaminaPerSecond", n("kst" + tr.t, 1)), kv("HealthPerSecondPerLevel", n("kh" + tr.t, 2))])),
+    FORMS.map((f, i) => block(`7.${f.id} - Kaioken em ${f.name}`, [
+      kv("PenaltyInitial", n("kfi" + (i + 1), 0)), kv("PenaltyZeroAtMastery", n("kfz" + (i + 1), 0))]))).join("\n\n");
   // Uma entrada por forma, montada da escada: o degrau novo entra no snippet sem tocar aqui.
   FORMS.forEach(f => { CFG[f.id] = () => formBlock(f); });
-  const CFG_ORDER = ["power", "rating", "combat", "flight", "transformations"].concat(FORMS.map(f => f.id), ["ki"]);
+  const CFG_ORDER = ["power", "rating", "combat", "flight", "transformations"].concat(FORMS.map(f => f.id), ["ki", "kk"]);
 
   function drawSnippet() {
     const want = cfgAll.checked ? CFG_ORDER : LENSES[lens].cfg;
@@ -1781,6 +2030,7 @@
   }
 
   const FOOTERS = {
+    kk: `<strong>Desenho, não código.</strong> Nada desta lente espelha C#: é o <code>Design/Kaioken.md</code> do vault em números, e as chaves do snippet são propostas. A conta inteira sai da <b>margem</b> = nível da skill Kaioken − (nível seguro do tier + penalidade da forma). Stamina: base cheia até a margem 0, e depois <code>base × max(piso, 1 − corte × margem)</code>. Vida: <code>vida por nível × |margem|</code> com margem negativa, zero com positiva. Fica de fora a velocidade de movimento e de ataque, o piso de vida que desliga o Kaioken e a Exaustão. A regeneração de stamina fica bloqueada com o Kaioken ligado, então stamina/s é o custo líquido. O multiplicador de BP de cada tier não varia com o nível da skill; ele aparece nos cartões e na aba <b>Poder de luta</b>.`,
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
     fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido. Desde <b>2026-09-20</b> a forma também paga no <b>custo</b>, e não só ganha velocidade: <code>1 + (PowerMultiplier − 1) × FormKiShare × (1 − maestria/100)</code>, com a <b>maestria da forma</b> quitando a conta — não a skill de voo, que já barateia o custo base e faria o desconto contar duas vezes. No mesmo dia a curva da skill foi de 2 para 1 e a base de 5 para 3,5, porque o back-load era o que tirava o jogador do jogo para grindar antes de voar: ⚠️ com o <code>K5</code> em zero o <code>KiPowerReduction</code> não faz nada, então a skill de voo é a única coisa que barateia o voo — é aqui que se vigia se ele virou o transporte padrão cedo demais.`,
@@ -1794,7 +2044,11 @@
                     m1: 1, d1: 2, r1: 2, lv1: 0, m2: 1, d2: 2, r2: 2, lv2: 0, m3: 1, d3: 2, r3: 2, lv3: 0,
                     xpd: 4, xpt: 4, xpmax: 2, cxp: 2, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
-                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2 };
+                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2,
+                    ktier: 0, kform: 0, klv: 0, kstr: 3, kstf: 2, rkk: 0,
+                    kp1: 2, ks1: 0, kst1: 1, kh1: 2, kp2: 2, ks2: 0, kst2: 1, kh2: 2, kp3: 2, ks3: 0, kst3: 1, kh3: 2,
+                    kp4: 2, ks4: 0, kst4: 1, kh4: 2, kp5: 2, ks5: 0, kst5: 1, kh5: 2,
+                    kfi1: 0, kfz1: 0, kfi2: 0, kfz2: 0, kfi3: 0, kfz3: 0 };
 
   function setLens(id) {
     lens = id;
@@ -1821,6 +2075,8 @@
     document.getElementById("formula").style.display = id === "prog" ? "" : "none";
     document.getElementById("page-footer").innerHTML = FOOTERS[id];
     document.getElementById("creatures-card").style.display = id === "rating" ? "" : "none";
+    // Na lente Kaioken a vida vem da comida do bioma, entao o slider de HP fixo nao vale nada ali.
+    el.hp.closest(".ctl").style.display = id === "kk" ? "none" : "";
     render();
   }
 
@@ -1828,6 +2084,9 @@
     const k5 = v("k5");
     ids.forEach(i => { el[i + "_out"].textContent = fmt(v(i), OUT_DEC[i]); });
     el.fw_out.textContent += "%";
+    el.ktier_out.textContent = TIERS[v("ktier") - 1].name;
+    el.kform_out.textContent = kkFormName(v("kform"));
+    el.rkk_out.textContent = v("rkk") ? TIERS[v("rkk") - 1].name : "desligado";
 
     // No eixo por carga o unico stat que se mexe e' a velocidade — peso nao toca custo, teto nem
     // autonomia. Deixar os outros selecionaveis desenharia retas horizontais que parecem bug.
@@ -1840,7 +2099,7 @@
       : STATS[stat].sub;
     // display e nao o atributo `hidden`: `.check` declara display proprio, e regra de autor ganha
     // do `[hidden] { display: none }` da folha do navegador.
-    document.getElementById("cmp-today-wrap").style.display = mode === "formonly" || lens === "rating" ? "none" : "";
+    document.getElementById("cmp-today-wrap").style.display = mode === "formonly" || lens === "rating" || lens === "kk" ? "none" : "";
     document.getElementById("cmp-forms-wrap").style.display = mode === "forms" ? "" : "none";
 
     document.getElementById("legend").innerHTML = seriesFor(k5).map(s =>
@@ -1871,7 +2130,7 @@
   }
 
   ids.forEach(i => el[i].addEventListener("input", render));
-  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll, rStruct, rHpTrack].forEach(c => c.addEventListener("change", render));
+  [flTrack, mstTrack, cmpToday, cmpForms, cfgAll, rStruct, rHpTrack, kCmp].forEach(c => c.addEventListener("change", render));
 
   document.getElementById("lenses").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return; setLens(b.dataset.lens);
@@ -1889,6 +2148,7 @@
   document.getElementById("reset").addEventListener("click", () => {
     ids.forEach(i => el[i].value = DEFAULTS[i]);
     flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = true; rHpTrack.checked = true;
+    kCmp.checked = false;
     setLens(lens);
   });
   document.getElementById("copy").addEventListener("click", async e => {
