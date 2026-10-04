@@ -118,6 +118,12 @@
   .cols { display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 28px; align-items: start; }
   @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); } }
   .rail { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+  /* Sem isto o flex encolhe os grupos (overflow: hidden zera a altura minima) e corta o
+     conteudo dentro do card em vez de deixar o rail rolar. */
+  .rail > * { flex-shrink: 0; }
+  /* Barra de rolagem fina, na cor das bordas: some no papel e so' escurece quando a mao chega. */
+  .rail { scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-right: 6px; }
+  .rail:hover { scrollbar-color: var(--ink-3) transparent; }
   @media (max-width: 900px) { .rail { position: static; max-height: none; } }
   .main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 
