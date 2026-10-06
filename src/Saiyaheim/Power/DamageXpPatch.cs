@@ -88,6 +88,9 @@ namespace Saiyaheim.Power
                     // jeito do mod de lutar, e bater de espada ja tem a skill vanilla dela.
                     Transformations.TransformationRegistry.RaiseMasteryFromDamage(local, credited, dealt: true);
 
+                    // A skill Kaioken treina do mesmo golpe, so' com ele ligado (etapa 14).
+                    Kaioken.KaiokenSkill.RaiseFromDamageDealt(local, credited);
+
                     SaiyaheimPlugin.LogVerbose($"Power Level XP: dealt {credited:0.#} damage.");
                 }
 

@@ -33,31 +33,49 @@ namespace Saiyaheim.Ki
     /// todos os jogadores é o <see cref="RemoteEffects"/>. O <c>m_forceDisableInit</c> do
     /// <see cref="AttachedEffect"/> continua igual e continua certo: o efeito é <b>criado
     /// localmente em cada máquina</b> a partir da bandeira, e não replicado como objeto de rede.
+    ///
+    /// <b>Etapa 14: a aura tem duas camadas.</b> Com o Kaioken ligado, na forma base a aura
+    /// vermelha do tier <b>substitui</b> a azul; transformado, a da forma fica e a vermelha vem
+    /// <b>por cima</b>, maior, contornando a outra (<c>KaiokenAuraScaleOverForm</c>). A aura e o som
+    /// chegam por argumentos separados: hoje os dois são "está carregando", mas o toggle de aura
+    /// previsto acende só a aura, e o Kaioken vem junto sem mudar nada aqui.
     /// </summary>
     internal static class KiChargeEffects
     {
         /// <summary>
-        /// O que está aceso num jogador. Ausente quer dizer "não está carregando" — o dicionário é
-        /// a resposta, não um cache.
+        /// Uma camada de aura: o objeto e a cor com que ele foi criado. A cor é aplicada nos
+        /// materiais na instanciação, então mudá-la significa recriar — e comparar contra
+        /// <see cref="Color"/> é como sabemos que ela mudou.
+        /// </summary>
+        private sealed class Layer
+        {
+            internal GameObject Vfx;
+            internal string Color;
+            internal float Scale;
+        }
+
+        /// <summary>
+        /// O que está aceso num jogador. Ausente quer dizer "nem aura nem som" — o dicionário é a
+        /// resposta, não um cache.
         /// </summary>
         private sealed class Active
         {
-            internal GameObject Vfx;
-            internal GameObject Sfx;
+            /// <summary>A aura de sempre: azul na base, da forma transformado, vermelha com Kaioken na base.</summary>
+            internal readonly Layer Aura = new Layer();
 
-            /// <summary>
-            /// A cor com que o <see cref="Vfx"/> foi criado. A cor é aplicada nos materiais no
-            /// momento da instanciação, então mudá-la depois significa recriar o efeito — e
-            /// comparar contra este campo é como sabemos que ela mudou.
-            /// </summary>
-            internal string Color;
+            /// <summary>A vermelha por cima, só com Kaioken <b>e</b> forma.</summary>
+            internal readonly Layer Kaioken = new Layer();
+
+            internal GameObject Sfx;
         }
 
         private static readonly Dictionary<Player, Active> Live = new Dictionary<Player, Active>();
 
         private static bool _disabled;
 
-        internal static void Update(Player player, bool charging)
+        /// <param name="charging">Toca o som do carregamento.</param>
+        /// <param name="auraOn">Acende a aura, com a camada do Kaioken se houver.</param>
+        internal static void Update(Player player, bool charging, bool auraOn)
         {
             if (_disabled || player == null)
             {
@@ -68,18 +86,24 @@ namespace Saiyaheim.Ki
             {
                 bool live = Live.TryGetValue(player, out Active active);
 
-                if (charging && !live)
+                if (!charging && !auraOn)
                 {
-                    Start(player);
+                    if (live)
+                    {
+                        Cleanup(player, active);
+                    }
+
+                    return;
                 }
-                else if (!charging && live)
+
+                if (!live)
                 {
-                    Cleanup(player, active);
+                    active = new Active();
+                    Live[player] = active;
                 }
-                else if (charging)
-                {
-                    RefreshColor(player, active);
-                }
+
+                SyncSound(player, active, charging);
+                SyncAura(player, active, auraOn);
             }
             catch (Exception ex)
             {
@@ -101,117 +125,146 @@ namespace Saiyaheim.Ki
         /// <summary>
         /// Apaga tudo que está aceso. Usado ao sair do mundo e quando um erro desliga os efeitos.
         ///
-        /// <b>Destrói, não só esquece.</b> Enquanto isto servia só o jogador local dava para largar
-        /// as referências e confiar que os objetos morriam junto com ele; agora o caminho de erro
-        /// pode disparar com jogadores vivos na tela, e esquecer deixaria o brilho aceso para
-        /// sempre, sem ninguém que soubesse apagá-lo.
+        /// <b>Destrói, não só esquece</b>: o caminho de erro pode disparar com jogadores vivos na
+        /// tela, e esquecer deixaria o brilho aceso para sempre.
         /// </summary>
         internal static void Reset()
         {
             foreach (Active active in Live.Values)
             {
-                if (active.Vfx != null)
-                {
-                    UnityEngine.Object.Destroy(active.Vfx);
-                }
-
-                if (active.Sfx != null)
-                {
-                    UnityEngine.Object.Destroy(active.Sfx);
-                }
+                DestroyAll(active);
             }
 
             Live.Clear();
         }
 
-        private static void Start(Player player)
+        /// <summary>
+        /// O som não tem cor nem camada, e não é recriado quando a aura muda: reiniciá-lo seria
+        /// audível.
+        /// </summary>
+        private static void SyncSound(Player player, Active active, bool charging)
         {
-            string color = ResolveColor(player);
-
-            Live[player] = new Active
+            if (charging && active.Sfx == null)
             {
-                Color = color,
-                Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab, player, color),
-                Sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab, player, color)
-            };
+                active.Sfx = Spawn(SaiyaheimConfig.ChargeSoundPrefab, player, SaiyaheimConfig.ChargeEffectColor,
+                    SaiyaheimConfig.ChargeEffectScale);
+            }
+            else if (!charging && active.Sfx != null)
+            {
+                UnityEngine.Object.Destroy(active.Sfx);
+                active.Sfx = null;
+            }
         }
 
         /// <summary>
-        /// Recria o efeito visual se a cor certa mudou no meio do carregamento.
+        /// Acende, troca ou apaga as duas camadas conforme forma e Kaioken de agora.
         ///
-        /// O caso que importa é transformar (ou cair da forma) **com a tecla de carregar
-        /// pressionada**: sem isto o jogador ficaria carregando em azul dentro do SSJ até soltar a
-        /// tecla. Comparar a cor a cada frame é uma comparação de string; recriar só acontece
-        /// quando ela de fato muda.
-        ///
-        /// Só o visual é refeito. O som continua tocando — reiniciá-lo seria audível, e ele não
-        /// tem cor.
+        /// O caso que importa é mudar de estado <b>com a aura acesa</b> — transformar, ligar ou subir
+        /// o Kaioken com a tecla de carregar pressionada. Comparar cor e escala a cada frame é
+        /// barato; recriar só acontece quando uma das duas de fato muda.
         /// </summary>
-        private static void RefreshColor(Player player, Active active)
+        private static void SyncAura(Player player, Active active, bool auraOn)
         {
-            string color = ResolveColor(player);
-            if (color == active.Color)
+            if (!auraOn)
+            {
+                Clear(active.Aura);
+                Clear(active.Kaioken);
+                return;
+            }
+
+            Transformation form = TransformationRegistry.At(NetState.GetFormIndex(player));
+            Kaioken.KaiokenTier tier = Kaioken.KaiokenTier.At(NetState.GetKaiokenIndex(player));
+            float scale = SaiyaheimConfig.ChargeEffectScale;
+
+            // Na base o Kaioken toma o lugar da azul, no tamanho normal; transformado, a da forma
+            // fica e o Kaioken vai para a camada de fora.
+            string auraColor = form == null && tier != null ? tier.GetAuraColor() : ResolveColor(form);
+            Set(player, active.Aura, auraColor, scale);
+
+            if (form != null && tier != null)
+            {
+                Set(player, active.Kaioken, tier.GetAuraColor(),
+                    scale * Mathf.Max(1f, SaiyaheimConfig.KaiokenAuraScaleOverForm));
+            }
+            else
+            {
+                Clear(active.Kaioken);
+            }
+        }
+
+        private static void Set(Player player, Layer layer, string color, float scale)
+        {
+            if (layer.Vfx != null && layer.Color == color && Mathf.Approximately(layer.Scale, scale))
             {
                 return;
             }
 
-            active.Color = color;
+            Clear(layer);
+            layer.Color = color;
+            layer.Scale = scale;
+            layer.Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab, player, color, scale);
+        }
 
-            if (active.Vfx != null)
+        private static void Clear(Layer layer)
+        {
+            if (layer.Vfx != null)
             {
-                UnityEngine.Object.Destroy(active.Vfx);
+                UnityEngine.Object.Destroy(layer.Vfx);
             }
 
-            active.Vfx = Spawn(SaiyaheimConfig.ChargeEffectPrefab, player, color);
+            layer.Vfx = null;
+            layer.Color = null;
         }
 
         /// <summary>
-        /// A cor do carregamento agora: <b>a da forma ativa, se houver</b>, senão a do config.
+        /// A cor da aura sem Kaioken: <b>a da forma, se houver</b>, senão a do config.
         ///
         /// Carregar transformado brilhando de azul leria como duas mecânicas soltas acontecendo no
         /// mesmo corpo. Com a cor da forma, o carregamento e a aura da transformação viram a mesma
-        /// coisa acontecendo mais forte — que é o que de fato está acontecendo.
+        /// coisa acontecendo mais forte.
         ///
         /// Forma com <c>AuraColor</c> vazio cai na cor de carregamento em vez de na cor crua do
         /// prefab: vazio ali quer dizer "não tinja a aura", não "volte ao azul do jogo".
         ///
-        /// <b>Lê a forma pelo <see cref="NetState"/> e não pelo <c>SEMan</c></b>, senão a resposta
-        /// valeria só para o jogador local e um amigo em SSJ carregaria em azul.
+        /// <b>A forma vem do <see cref="NetState"/> e não do <c>SEMan</c></b>, senão a resposta
+        /// valeria só para o jogador local e um amigo em SSJ carregaria em azul. O tier de Kaioken
+        /// vem de lá pelo mesmo motivo.
         /// </summary>
-        private static string ResolveColor(Player player)
+        private static string ResolveColor(Transformation form)
         {
-            Transformation active = TransformationRegistry.At(NetState.GetFormIndex(player));
-
-            if (active != null && !string.IsNullOrEmpty(active.Config.AuraColor))
+            if (form != null && !string.IsNullOrEmpty(form.Config.AuraColor))
             {
-                return active.Config.AuraColor;
+                return form.Config.AuraColor;
             }
 
             return SaiyaheimConfig.ChargeEffectColor;
         }
 
-        private static GameObject Spawn(string prefabName, Player player, string color)
+        private static GameObject Spawn(string prefabName, Player player, string color, float scale)
         {
             return AttachedEffect.Spawn(
                 player,
                 prefabName,
                 color,
-                SaiyaheimConfig.ChargeEffectScale,
+                scale,
                 SaiyaheimConfig.ChargeEffectForceLoop);
         }
 
-        private static void Cleanup(Player player, Active active)
+        private static void DestroyAll(Active active)
         {
-            if (active.Vfx != null)
-            {
-                UnityEngine.Object.Destroy(active.Vfx);
-            }
+            Clear(active.Aura);
+            Clear(active.Kaioken);
 
             if (active.Sfx != null)
             {
                 UnityEngine.Object.Destroy(active.Sfx);
+                active.Sfx = null;
             }
+        }
 
+        private static void Cleanup(Player player, Active active)
+        {
+            DestroyAll(active);
             Live.Remove(player);
         }
     }

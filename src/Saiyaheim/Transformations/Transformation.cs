@@ -335,6 +335,22 @@ namespace Saiyaheim.Transformations
             }
         }
 
+        /// <summary>
+        /// Níveis de skill Kaioken que esta forma soma ao seguro de todo tier, agora (etapa 14).
+        ///
+        /// <code>penalidade = inicial × (1 − maestria / maestria em que zera)</code>, com piso em 0.
+        ///
+        /// É a única ponte entre forma e Kaioken. A maestria só tira o que a forma soma: com ela
+        /// no topo, o Kaioken nesta forma custa o mesmo que na base, nunca menos.
+        /// </summary>
+        internal float GetKaiokenPenalty(Player player)
+        {
+            float initial = Mathf.Max(0f, Config.KaiokenPenalty.Value);
+            float zeroAt = Mathf.Max(1f, Config.KaiokenPenaltyZeroAtMastery.Value);
+
+            return initial * Mathf.Max(0f, 1f - GetSkillLevel(player) / zeroAt);
+        }
+
         internal float GetCombatKiCostScale()
         {
             return Mathf.Max(0f, Config.CombatKiCostScale.Value);

@@ -2,8 +2,8 @@
 
 # Saiyaheim
 
-A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks learned from the world's
-runestones, and Super Saiyan transformations gated behind the game's bosses.
+A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and the Kaioken learned from
+the world's runestones, and Super Saiyan transformations gated behind the game's bosses.
 
 > **This is my first mod, and it is a work in progress.** It is playable from start to finish
 > of what it currently covers, but it is not finished — more transformations and more ki attacks
@@ -114,6 +114,30 @@ it costs nothing to keep and nothing extra to fight in, so the whole multiplier 
 Holding a high form also trains every form below it, so climbing the ladder never freezes the
 progress of the step you already use.
 
+### Kaioken
+
+A short, expensive burst you switch on **on top of any form**, base form included. Forms are the
+state you hold; Kaioken is what you light up for a few seconds when the fight asks for it.
+
+Five tiers — **x2, x3, x4, x10 and x20** — each taught by the runestones of its own biome, and in
+order: a runestone only offers a tier once you know the one before it.
+
+- Each tier multiplies your Battle Power on top of the form, and makes you much faster on the
+  ground.
+- It raises your max ki and fills the extra room at once. That ki is lent: whatever you have not
+  spent is gone when Kaioken turns off.
+- It costs stamina every second, and stamina does not regenerate while it is on. Run out and
+  Kaioken drops, leaving you **Exhausted** for a few seconds.
+- Below a tier's safe level it also drains **health** — the further below, the faster. It never
+  kills you: low on health, it turns off by itself. Higher forms raise the level each tier needs,
+  and mastering the form brings it back down.
+- It has its own **Kaioken** skill, trained by dealing damage with it on. Pushing past your limit
+  trains it faster, up to double.
+- A red aura while charging ki, and a red glow, reddish skin and glowing armor while it is on —
+  all visible to other players.
+
+One key turns it on and steps up a tier; Shift plus that key turns it off.
+
 ### Ki attacks
 
 Aimed where you are looking, costing ki whether they hit or not. Each one is learned from the
@@ -145,7 +169,7 @@ costs you no extra key, and the hotkeys above keep working for anyone who prefer
 ### Runestones
 
 The lore runestones scattered around the world can **teach you new abilities** — for now, the ki
-attacks. Read one and you may learn something; if you do not, keep exploring:
+attacks and the Kaioken tiers. Read one and you may learn something; if you do not, keep exploring:
 
 - Each biome has its own things to teach.
 - Every runestone that teaches nothing makes the next one in the same biome likelier, so bad luck
@@ -177,6 +201,8 @@ All of them are configurable.
 | `Shift+Z` | Step down one form |
 | `V` | Fire the selected ki attack |
 | `Shift+V` | Cycle ki attacks |
+| `Y` | Turn Kaioken on / step up a tier |
+| `Shift+Y` | Turn Kaioken off |
 | `G` (vanilla) | Open the radial menu, where the Forms and Ki attacks groups are |
 
 ### Keys the base game already uses
@@ -194,7 +220,7 @@ Known cases with the default bindings:
 
 
 To change them: the game's own keys are in **Settings → Controls**, and the mod's are in
-`com.hman.saiyaheim.cfg` (`ChargeKiKey`, `TransformKey`, `PowerDownKey` and friends, all in the
+`com.hman.saiyaheim.cfg` (`ChargeKiKey`, `TransformKey`, `KaiokenKey` and friends, all in the
 `1 - General` section). The config file is read while the game runs, so a keybind change applies
 without a restart.
 

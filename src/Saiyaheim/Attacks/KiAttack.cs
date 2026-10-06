@@ -20,7 +20,7 @@ namespace Saiyaheim.Attacks
     /// seria uma quarta curva de progressão para calibrar, e está em [[Em Aberto]] justamente
     /// porque ainda não se sabe se ela é necessária.
     /// </summary>
-    internal class KiAttack
+    internal class KiAttack : IRuneLesson
     {
         /// <summary>Identificador estável, usado no console e no <c>.cfg</c>.</summary>
         internal string Id { get; }
@@ -30,6 +30,14 @@ namespace Saiyaheim.Attacks
 
         /// <summary>Os números deste ataque, ligados à seção própria dele no <c>.cfg</c>.</summary>
         internal SaiyaheimConfig.KiAttackConfig Config { get; }
+
+        // O lado runestone do ataque (etapa 13). Explícito porque membro de interface é público e
+        // o resto desta classe é internal.
+        string IRuneLesson.Id => Id;
+        string IRuneLesson.DisplayName => DisplayName;
+        Heightmap.Biome IRuneLesson.LearnBiome => Config.LearnBiome.Value;
+        float IRuneLesson.LearnWeight => Config.LearnWeight.Value;
+        bool IRuneLesson.PrerequisiteMet(Player player) => true;
 
         /// <summary>
         /// Ignora as travas <b>deste</b> ataque. Mesmo desenho, mesmo motivo e mesmas ressalvas do

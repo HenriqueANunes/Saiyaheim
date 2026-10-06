@@ -280,7 +280,7 @@ namespace Saiyaheim.Debugging
                 }
 
                 List<string> left = new List<string>();
-                foreach (KiAttack attack in RuneKnowledge.Candidates(player, biome))
+                foreach (IRuneLesson attack in RuneKnowledge.Candidates(player, biome))
                 {
                     left.Add(attack.DisplayName);
                 }

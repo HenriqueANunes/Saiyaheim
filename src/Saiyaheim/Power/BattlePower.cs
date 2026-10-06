@@ -151,8 +151,23 @@ namespace Saiyaheim.Power
         /// </summary>
         private static float GetKiCombatRaw(Player player)
         {
-            return GetKiCombatRawWithoutForm(player)
-                   * Transformations.TransformationRegistry.GetPowerMultiplier(player);
+            return GetKiCombatRawWithoutForm(player) * GetCombatMultiplier(player);
+        }
+
+        /// <summary>
+        /// Tudo o que multiplica o poder de combate por cima da soma: a forma <b>e</b> o Kaioken
+        /// (etapa 14), <c>forma × KK</c>. 1 na forma base sem Kaioken.
+        ///
+        /// Quem precisa desfazer a multiplicação — o custo do soco, que cobra sobre a forma base —
+        /// divide por isto, e não só pela forma: senão o Kaioken encareceria o ki de cada soco, e
+        /// ele paga em stamina e vida.
+        ///
+        /// ⚠️ Mesma regra dos dois multiplicadores: lê config e <c>SEMan</c>, nunca battle power.
+        /// </summary>
+        internal static float GetCombatMultiplier(Player player)
+        {
+            return Transformations.TransformationRegistry.GetPowerMultiplier(player)
+                   * Kaioken.KaiokenRegistry.GetPowerMultiplier(player);
         }
 
         /// <summary>
@@ -249,7 +264,10 @@ namespace Saiyaheim.Power
             //
             // E' tambem o que torna a conta legivel numa frase: o soco custa o que custaria na
             // forma base, vezes o que a forma cobra a mais. Ver GetFormKiCostMultiplier.
-            float form = Transformations.TransformationRegistry.GetPowerMultiplier(player);
+            //
+            // Desde a etapa 14 divide pelo Kaioken tambem: o bonus ja' vem multiplicado por ele, e
+            // o Kaioken nao cobra ki — so' stamina e vida.
+            float form = GetCombatMultiplier(player);
             float baseBonus = form > 0f ? bonus / form : bonus;
 
             return baseBonus

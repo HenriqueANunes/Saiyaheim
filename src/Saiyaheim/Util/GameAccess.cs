@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 using Valheim.UI;
@@ -265,6 +266,137 @@ namespace Saiyaheim.Util
             catch (Exception ex)
             {
                 SaiyaheimPlugin.Log.LogWarning($"Failed to write m_foodRegenTimer: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// <c>Player.m_staminaRegenTimer</c> é private. É o atraso da regeneração de stamina: o
+        /// <c>Player.UpdateStats</c> só regenera com ele em zero, e o <c>UseStamina</c> rearma para
+        /// <c>m_staminaRegenDelay</c> a cada gasto.
+        ///
+        /// Existe para a Exaustão do Kaioken, que não gasta stamina nenhuma e precisa da regeneração
+        /// parada. O <c>ModifyStaminaRegen</c> do status effect não basta: o multiplicador é
+        /// compartilhado, e um efeito somando depois dele (Rested, mead) desfaz o zero.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Player, float> StaminaRegenTimerRef =
+            CreateFieldRef<Player, float>("m_staminaRegenTimer");
+
+        /// <summary>
+        /// Segura a regeneração de stamina por pelo menos <paramref name="seconds"/>. Devolve false
+        /// se o campo sumiu numa atualização — a Exaustão fica só com o multiplicador.
+        /// </summary>
+        internal static bool HoldStaminaRegen(Player player, float seconds)
+        {
+            if (StaminaRegenTimerRef == null || player == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                ref float timer = ref StaminaRegenTimerRef(player);
+                if (timer < seconds)
+                {
+                    timer = seconds;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to write m_staminaRegenTimer: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// <c>Player.m_skinColor</c> é private e não tem getter, ao contrário do
+        /// <c>GetHairColor</c>. É a pele de verdade do personagem, a que vai para o perfil: o
+        /// Kaioken lê daqui para tingir por cima e para devolver, e nunca escreve nela.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Player, Vector3> SkinColorRef =
+            CreateFieldRef<Player, Vector3>("m_skinColor");
+
+        /// <summary>
+        /// A pele original do personagem. Devolve false se o campo sumiu numa atualização — o
+        /// Kaioken fica sem pele avermelhada, e nada mais.
+        /// </summary>
+        internal static bool TryGetSkinColor(Player player, out Vector3 color)
+        {
+            color = Vector3.one;
+            if (SkinColorRef == null || player == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                color = SkinColorRef(player);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read m_skinColor: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// As malhas de armadura vestidas são private no <c>VisEquipment</c>, sem getter. O Kaioken
+        /// as lê para tingir; o resto do equipamento (arma, cabelo, barba) fica de fora de
+        /// propósito.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<VisEquipment, GameObject> HelmetInstanceRef =
+            CreateFieldRef<VisEquipment, GameObject>("m_helmetItemInstance");
+
+        private static readonly AccessTools.FieldRef<VisEquipment, List<GameObject>>[] ArmorListRefs =
+        {
+            CreateFieldRef<VisEquipment, List<GameObject>>("m_chestItemInstances"),
+            CreateFieldRef<VisEquipment, List<GameObject>>("m_legItemInstances"),
+            CreateFieldRef<VisEquipment, List<GameObject>>("m_shoulderItemInstances")
+        };
+
+        /// <summary>
+        /// Enche <paramref name="pieces"/> com as malhas de armadura vestidas (elmo, peito, pernas,
+        /// ombro). Devolve false se algum campo sumiu numa atualização — o Kaioken fica sem
+        /// armadura tingida, e nada mais.
+        /// </summary>
+        internal static bool TryGetArmorInstances(VisEquipment vis, List<GameObject> pieces)
+        {
+            pieces.Clear();
+            if (vis == null || HelmetInstanceRef == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                GameObject helmet = HelmetInstanceRef(vis);
+                if (helmet != null)
+                {
+                    pieces.Add(helmet);
+                }
+
+                foreach (AccessTools.FieldRef<VisEquipment, List<GameObject>> listRef in ArmorListRefs)
+                {
+                    if (listRef == null)
+                    {
+                        return false;
+                    }
+
+                    List<GameObject> list = listRef(vis);
+                    if (list != null)
+                    {
+                        pieces.AddRange(list);
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read the armor instances: {ex.Message}");
                 return false;
             }
         }

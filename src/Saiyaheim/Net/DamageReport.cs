@@ -117,6 +117,7 @@ namespace Saiyaheim.Net
             // tem agora — e' a autoridade sobre a propria forma, e o atraso ate o golpe voltar do
             // dono do alvo e' menor que o tempo de trocar de degrau.
             Transformations.TransformationRegistry.RaiseMasteryFromDamage(local, applied, dealt: true);
+            Kaioken.KaiokenSkill.RaiseFromDamageDealt(local, applied);
 
             SaiyaheimPlugin.LogVerbose(
                 $"Power Level XP: dealt {applied:0.#} damage to something owned by {sender}.");

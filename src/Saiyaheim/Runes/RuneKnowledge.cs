@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Saiyaheim.Attacks;
+using Saiyaheim.Kaioken;
 using UnityEngine;
 
 namespace Saiyaheim.Runes
 {
     /// <summary>
-    /// O que cada personagem aprendeu nas runestones, e a regra de aprender (etapa 13).
+    /// O que cada personagem aprendeu nas runestones, e a regra de aprender (etapa 13). Desde a
+    /// etapa 14 ensina também os tiers de Kaioken: tudo aqui fala de <see cref="IRuneLesson"/>, e
+    /// ataque e tier entram no mesmo sorteio do bioma.
     ///
     /// <b>Por personagem, e não por mundo</b> — o oposto do <c>BossGate</c>. Quem leu aprendeu; cada
     /// amigo precisa achar a própria pedra. Por isso o estado mora em <c>Player.m_customData</c>,
@@ -17,7 +20,8 @@ namespace Saiyaheim.Runes
     ///
     /// Três entradas no dicionário:
     /// <list type="bullet">
-    /// <item><c>saiyaheim.attacks.learned</c>: ids dos ataques aprendidos;</item>
+    /// <item><c>saiyaheim.attacks.learned</c>: ids dos ataques e dos tiers de Kaioken aprendidos. O
+    /// nome da chave ficou o da etapa 13 para não perder o que já foi aprendido;</item>
     /// <item><c>saiyaheim.runes.read</c>: pedras lidas, posição arredondada → instante da leitura em
     /// segundos de mundo, para o cooldown;</item>
     /// <item><c>saiyaheim.runes.misses</c>: pedras vazias seguidas por bioma, a proteção contra azar.</item>
@@ -40,8 +44,8 @@ namespace Saiyaheim.Runes
         private static readonly HashSet<string> CachedLearned =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>O personagem já aprendeu este ataque?</summary>
-        internal static bool HasLearned(Player player, KiAttack attack)
+        /// <summary>O personagem já aprendeu isto?</summary>
+        internal static bool HasLearned(Player player, IRuneLesson attack)
         {
             if (player == null || attack == null || player.m_customData == null)
             {
@@ -51,8 +55,8 @@ namespace Saiyaheim.Runes
             return GetLearned(player).Contains(attack.Id);
         }
 
-        /// <summary>Marca o ataque como aprendido. Devolve false se já estava.</summary>
-        internal static bool Learn(Player player, KiAttack attack)
+        /// <summary>Marca como aprendido. Devolve false se já estava.</summary>
+        internal static bool Learn(Player player, IRuneLesson attack)
         {
             if (player == null || attack == null || player.m_customData == null)
             {
@@ -69,8 +73,8 @@ namespace Saiyaheim.Runes
             return true;
         }
 
-        /// <summary>Esquece o ataque. Só o console chega aqui. Devolve false se não sabia.</summary>
-        internal static bool Forget(Player player, KiAttack attack)
+        /// <summary>Esquece. Só o console chega aqui. Devolve false se não sabia.</summary>
+        internal static bool Forget(Player player, IRuneLesson attack)
         {
             if (player == null || attack == null || player.m_customData == null)
             {
@@ -101,7 +105,7 @@ namespace Saiyaheim.Runes
 
         /// <summary>
         /// O jogador local acabou de ler a runestone em <paramref name="position"/>. Sorteia e,
-        /// se for o caso, ensina. Devolve o ataque aprendido, ou null.
+        /// se for o caso, ensina. Devolve o que foi aprendido, ou null.
         ///
         /// A ordem das saídas é a regra:
         /// <list type="number">
@@ -111,7 +115,7 @@ namespace Saiyaheim.Runes
         /// <item>marca a pedra e sorteia. Errou, o contador do bioma sobe; acertou, zera.</item>
         /// </list>
         /// </summary>
-        internal static KiAttack TryLearn(Player player, Vector3 position)
+        internal static IRuneLesson TryLearn(Player player, Vector3 position)
         {
             if (player == null || player.m_customData == null || WorldGenerator.instance == null ||
                 ZNet.instance == null)
@@ -120,7 +124,7 @@ namespace Saiyaheim.Runes
             }
 
             Heightmap.Biome biome = WorldGenerator.instance.GetBiome(position);
-            List<KiAttack> candidates = Candidates(player, biome);
+            List<IRuneLesson> candidates = Candidates(player, biome);
             if (candidates.Count == 0)
             {
                 SaiyaheimPlugin.LogVerbose($"Runestone in {biome}: nothing left to teach here.");
@@ -158,7 +162,7 @@ namespace Saiyaheim.Runes
                 return null;
             }
 
-            KiAttack taught = PickWeighted(candidates);
+            IRuneLesson taught = PickWeighted(candidates);
             Learn(player, taught);
 
             misses.Remove((int)biome);
@@ -171,26 +175,41 @@ namespace Saiyaheim.Runes
             return taught;
         }
 
-        /// <summary>Os ataques que este bioma ainda pode ensinar a este personagem.</summary>
-        internal static List<KiAttack> Candidates(Player player, Heightmap.Biome biome)
+        /// <summary>O que este bioma ainda pode ensinar a este personagem: ataques e tiers.</summary>
+        internal static List<IRuneLesson> Candidates(Player player, Heightmap.Biome biome)
         {
-            List<KiAttack> result = new List<KiAttack>();
+            List<IRuneLesson> result = new List<IRuneLesson>();
             if (biome == Heightmap.Biome.None)
             {
                 return result;
             }
 
-            foreach (KiAttack attack in KiAttackRegistry.All)
+            foreach (IRuneLesson lesson in AllLessons())
             {
-                if ((attack.Config.LearnBiome.Value & biome) != 0 &&
-                    attack.Config.LearnWeight.Value > 0f &&
-                    !HasLearned(player, attack))
+                if ((lesson.LearnBiome & biome) != 0 &&
+                    lesson.LearnWeight > 0f &&
+                    !HasLearned(player, lesson) &&
+                    lesson.PrerequisiteMet(player))
                 {
-                    result.Add(attack);
+                    result.Add(lesson);
                 }
             }
 
             return result;
+        }
+
+        /// <summary>Tudo o que alguma runestone pode ensinar, na ordem dos registries.</summary>
+        internal static IEnumerable<IRuneLesson> AllLessons()
+        {
+            foreach (KiAttack attack in KiAttackRegistry.All)
+            {
+                yield return attack;
+            }
+
+            foreach (KaiokenTier tier in KaiokenRegistry.All)
+            {
+                yield return tier;
+            }
         }
 
         /// <summary>A chance da próxima pedra deste bioma, dado quantas vazias vieram antes.</summary>
@@ -261,18 +280,18 @@ namespace Saiyaheim.Runes
                    Mathf.RoundToInt(position.z).ToString(CultureInfo.InvariantCulture);
         }
 
-        private static KiAttack PickWeighted(List<KiAttack> candidates)
+        private static IRuneLesson PickWeighted(List<IRuneLesson> candidates)
         {
             float total = 0f;
-            foreach (KiAttack attack in candidates)
+            foreach (IRuneLesson attack in candidates)
             {
-                total += attack.Config.LearnWeight.Value;
+                total += attack.LearnWeight;
             }
 
             float pick = UnityEngine.Random.value * total;
-            foreach (KiAttack attack in candidates)
+            foreach (IRuneLesson attack in candidates)
             {
-                pick -= attack.Config.LearnWeight.Value;
+                pick -= attack.LearnWeight;
                 if (pick < 0f)
                 {
                     return attack;

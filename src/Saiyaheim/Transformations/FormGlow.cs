@@ -30,9 +30,23 @@ namespace Saiyaheim.Transformations
     /// <see cref="TransformationEffects.Observe"/>, e a forma vem do canal do <c>NetState</c> —
     /// então um amigo em SSJ do outro lado da clareira ilumina o chão dele na tela de quem olha,
     /// sem nenhum RPC nosso.
+    ///
+    /// <b>Dois canais, cada um com a sua luz</b> (2026-10-05): <see cref="Form"/> e
+    /// <see cref="Kaioken"/>. Transformado com Kaioken, as duas acendem juntas e somam, como as duas
+    /// auras. Uma luz só teria que escolher uma cor; duas deixam o vermelho tingir o dourado.
     /// </summary>
-    internal static class FormGlow
+    internal sealed class FormGlow
     {
+        internal static readonly FormGlow Form = new FormGlow("SaiyaheimFormGlow");
+        internal static readonly FormGlow Kaioken = new FormGlow("SaiyaheimKaiokenGlow");
+
+        private readonly string _objectName;
+
+        private FormGlow(string objectName)
+        {
+            _objectName = objectName;
+        }
+
         /// <summary>
         /// A luz de um jogador e o que ela precisa lembrar entre um frame e o outro.
         /// </summary>
@@ -63,24 +77,25 @@ namespace Saiyaheim.Transformations
             internal float Phase;
         }
 
-        private static readonly Dictionary<Player, Glow> Glows = new Dictionary<Player, Glow>();
+        private readonly Dictionary<Player, Glow> _glows = new Dictionary<Player, Glow>();
 
         /// <summary>
         /// Um passo do efeito neste jogador. Chamado todo frame, para todo jogador carregado.
         ///
-        /// <paramref name="form"/> null (jogador na base) é o caso comum e o mais barato: quem não
-        /// tem luz acesa sai na primeira linha, sem alocar nada.
+        /// <paramref name="multiplier"/> 0 (jogador na base, ou sem Kaioken) é o caso comum e o
+        /// mais barato: quem não tem luz acesa sai na primeira linha, sem alocar nada.
+        /// <paramref name="color"/> em #RRGGBB; vazio ou inválido mantém a última cor válida.
         /// </summary>
-        internal static void Tick(Player player, Transformation form)
+        internal void Tick(Player player, float multiplier, string color)
         {
             if (player == null)
             {
                 return;
             }
 
-            float target = TargetIntensity(form);
+            float target = Mathf.Max(0f, SaiyaheimConfig.FormGlowIntensity * multiplier);
 
-            if (!Glows.TryGetValue(player, out Glow glow))
+            if (!_glows.TryGetValue(player, out Glow glow))
             {
                 if (target <= 0f)
                 {
@@ -88,21 +103,21 @@ namespace Saiyaheim.Transformations
                 }
 
                 glow = Create(player);
-                Glows[player] = glow;
+                _glows[player] = glow;
             }
 
             // O operador == da Unity: o objeto morre junto com o jogador (morte, descarregamento),
             // e o que sobra aqui é só a entrada do dicionário.
             if (glow.Light == null)
             {
-                Glows.Remove(player);
+                _glows.Remove(player);
                 return;
             }
 
             if (target > 0f)
             {
                 glow.Peak = target;
-                glow.Color = ResolveColor(form, glow.Color);
+                glow.Color = ResolveColor(color, glow.Color);
             }
 
             float fade = Mathf.Max(0f, SaiyaheimConfig.FormGlowFade);
@@ -118,7 +133,7 @@ namespace Saiyaheim.Transformations
                 // Luz apagada ainda custa no pipeline de render, e um jogador na base pode passar
                 // a sessão inteira assim.
                 Object.Destroy(glow.Light.gameObject);
-                Glows.Remove(player);
+                _glows.Remove(player);
                 return;
             }
 
@@ -126,9 +141,9 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>Este jogador deixou de existir: apaga a luz dele e esquece.</summary>
-        internal static void Forget(Player player)
+        internal void Forget(Player player)
         {
-            if (player == null || !Glows.TryGetValue(player, out Glow glow))
+            if (player == null || !_glows.TryGetValue(player, out Glow glow))
             {
                 return;
             }
@@ -138,7 +153,7 @@ namespace Saiyaheim.Transformations
                 Object.Destroy(glow.Light.gameObject);
             }
 
-            Glows.Remove(player);
+            _glows.Remove(player);
         }
 
         /// <summary>
@@ -150,9 +165,9 @@ namespace Saiyaheim.Transformations
         /// aconteceria no caminho de erro do <c>TransformationEffects.Run</c>, o único que chama
         /// isto com jogadores ainda vivos na cena.
         /// </summary>
-        internal static void Reset()
+        internal void Reset()
         {
-            foreach (Glow glow in Glows.Values)
+            foreach (Glow glow in _glows.Values)
             {
                 if (glow.Light != null)
                 {
@@ -160,35 +175,18 @@ namespace Saiyaheim.Transformations
                 }
             }
 
-            Glows.Clear();
+            _glows.Clear();
         }
 
         /// <summary>
-        /// A intensidade cheia desta forma: a regulagem compartilhada vezes o multiplicador da
-        /// forma. Zero em qualquer um dos dois desliga — o global apaga todo mundo, o da forma
-        /// apaga só aquele degrau.
-        /// </summary>
-        private static float TargetIntensity(Transformation form)
-        {
-            if (form == null)
-            {
-                return 0f;
-            }
-
-            return Mathf.Max(0f, SaiyaheimConfig.FormGlowIntensity * form.GetGlowIntensity());
-        }
-
-        /// <summary>
-        /// A cor da forma, ou a última válida se a chave estiver vazia ou inválida.
+        /// A cor pedida, ou a última válida se a chave estiver vazia ou inválida.
         ///
         /// Vazio aqui não significa "não tinja", como significa no <c>AttachedEffect</c>: uma luz
         /// sem cor é uma luz branca, e branco não é a ausência de escolha — é uma escolha ruim por
         /// cima de uma aura dourada. Quem quer apagar o brilho zera a intensidade.
         /// </summary>
-        private static Color ResolveColor(Transformation form, Color fallback)
+        private static Color ResolveColor(string raw, Color fallback)
         {
-            string raw = form.GetGlowColor();
-
             if (string.IsNullOrEmpty(raw) || !ColorUtility.TryParseHtmlString(raw, out Color color))
             {
                 return fallback;
@@ -197,9 +195,9 @@ namespace Saiyaheim.Transformations
             return color;
         }
 
-        private static Glow Create(Player player)
+        private Glow Create(Player player)
         {
-            GameObject holder = new GameObject("SaiyaheimFormGlow");
+            GameObject holder = new GameObject(_objectName);
 
             // worldPositionStays: false — o que queremos é o espaço local do jogador, para a luz
             // acompanhar o corpo ao andar e ao pular. Mesma razão do localOffset do AttachedEffect.

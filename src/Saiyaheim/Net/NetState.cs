@@ -114,6 +114,12 @@ namespace Saiyaheim.Net
 
         private const int ChargeAttackMask = 0xFF;
 
+        // O tier de Kaioken (etapa 14), +1 como a forma: zero é "desligado". Quatro bits cabem os
+        // cinco tiers com folga, e o bit 31 fica longe do sinal.
+        private const int KaiokenShift = 24;
+
+        private const int KaiokenMask = 0x0F;
+
         /// <summary>
         /// Publica o estado do jogador local. Chamado uma vez por frame, do <c>Update</c> do
         /// plugin, <b>depois</b> dos managers — o valor publicado é o do frame que acabou de ser
@@ -124,7 +130,8 @@ namespace Saiyaheim.Net
         /// </summary>
         internal static void Publish(
             Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
-            bool beamCharged, bool flightSteersByAim, int formIndex, int chargeAttackIndex)
+            bool beamCharged, bool flightSteersByAim, int formIndex, int chargeAttackIndex,
+            int kaiokenIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -175,6 +182,8 @@ namespace Saiyaheim.Net
                 value |= ((chargeAttackIndex + 1) & ChargeAttackMask) << ChargeAttackShift;
             }
 
+            value |= ((kaiokenIndex + 1) & KaiokenMask) << KaiokenShift;
+
             zdo.Set(StateHash, value);
         }
 
@@ -219,6 +228,12 @@ namespace Saiyaheim.Net
         /// jogador. Um cliente que só agora carregou aquele jogador vê o contador já em 7 e
         /// <b>não</b> dispara pose nenhuma — ele anota o 7 e espera o 8.
         /// </summary>
+        /// <summary>Posição do tier de Kaioken ligado na escada, ou -1 desligado.</summary>
+        internal static int GetKaiokenIndex(Player player)
+        {
+            return ((Read(player) >> KaiokenShift) & KaiokenMask) - 1;
+        }
+
         internal static void PublishBlast(Player player)
         {
             ZDO zdo = GetZdo(player);

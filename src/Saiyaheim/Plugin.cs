@@ -71,6 +71,7 @@ namespace Saiyaheim
 
             PowerSkill.Register();
             FlightSkill.Register();
+            Kaioken.KaiokenSkill.Register();
 
             // Uma skill de maestria por forma, registrada do mesmo jeito que as duas de cima.
             TransformationRegistry.Register();
@@ -99,6 +100,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new TransformCommand());
             CommandManager.Instance.AddConsoleCommand(new AttackCommand());
             CommandManager.Instance.AddConsoleCommand(new NetCommand());
+            CommandManager.Instance.AddConsoleCommand(new KaiokenCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -115,6 +117,7 @@ namespace Saiyaheim
             KiBodyManager.Update(Player.m_localPlayer);
             FlightManager.Update(Player.m_localPlayer);
             TransformationManager.Update(Player.m_localPlayer);
+            Kaioken.KaiokenManager.Update(Player.m_localPlayer);
             KiAttackManager.Update(Player.m_localPlayer, dt);
 
             // Publicar antes de aplicar: o que os efeitos leem neste frame é o estado deste frame.
@@ -151,7 +154,8 @@ namespace Saiyaheim
                 KiBeamCharge.IsFull(player),
                 FlightManager.SteersByAim(player),
                 TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)),
-                KiAttackRegistry.IndexOf(KiBeamCharge.Current));
+                KiAttackRegistry.IndexOf(KiBeamCharge.Current),
+                Kaioken.KaiokenRegistry.GetActive(player)?.Index ?? -1);
 
             // Publicado sempre, inclusive com o ki desligado: o alvo é sempre calculável, e quem
             // decide se o número aparece é o ki de quem olha (etapa 10).

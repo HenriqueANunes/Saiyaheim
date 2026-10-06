@@ -30,6 +30,13 @@ namespace Saiyaheim.Ki
         /// </summary>
         internal const float TickInterval = 0.25f;
 
+        /// <summary>
+        /// Ki emprestado pelo Kaioken e ainda não gasto (etapa 14). Todo gasto sai daqui primeiro;
+        /// o que sobrar some ao desligar, em <see cref="ExpireTemporary"/>. Sem isso, ligar e
+        /// desligar em sequência encheria a barra de graça.
+        /// </summary>
+        private static float _temporary;
+
         /// <summary>Estado do jogador local. Null antes de entrar no mundo.</summary>
         internal static KiState State => _state;
 
@@ -49,8 +56,12 @@ namespace Saiyaheim.Ki
         /// <inheritdoc cref="Max"/>
         internal static float MaxFor(Player player)
         {
-            return SaiyaheimConfig.MaxKi.Value
-                   + SaiyaheimConfig.MaxKiPerPowerLevel.Value * PowerSkill.GetLevel(player);
+            // O Kaioken alarga a barra enquanto está ligado (etapa 14). Só a barra: a forma segue
+            // sem tocar no teto. Ligar empresta o que a barra cresceu, e desligar devolve o que sobrou
+            // (GrantTemporary e ExpireTemporary).
+            return (SaiyaheimConfig.MaxKi.Value
+                    + SaiyaheimConfig.MaxKiPerPowerLevel.Value * PowerSkill.GetLevel(player))
+                   * Kaioken.KaiokenRegistry.GetMaxKiMultiplier(player);
         }
 
         internal static bool IsEnabled => _state != null && _state.Enabled;
@@ -148,6 +159,7 @@ namespace Saiyaheim.Ki
                 // dos amigos.
                 _trackedPlayer = null;
                 _state = null;
+                _temporary = 0f;
                 IsCharging = false;
                 return;
             }
@@ -158,6 +170,7 @@ namespace Saiyaheim.Ki
                 _trackedPlayer = player;
                 _state = KiState.Load(player);
                 _tickAccumulator = 0f;
+                _temporary = 0f;
                 SaiyaheimPlugin.Log.LogInfo(
                     $"Ki loaded: {_state.Current:0.#}/{Max:0.#}, {(_state.Enabled ? "on" : "off")}.");
             }
@@ -326,7 +339,43 @@ namespace Saiyaheim.Ki
         private static void Spend(float amount)
         {
             _state.Current = Mathf.Max(0f, _state.Current - amount);
+            _temporary = Mathf.Max(0f, _temporary - amount);
             _state.RegenBlockedUntil = Time.time + RegenDelayFor(_trackedPlayer);
+        }
+
+        /// <summary>
+        /// Empresta ki que só vale enquanto o Kaioken estiver ligado: o tier alarga a barra e já
+        /// a enche pelo mesmo tanto, porque carregar ki numa janela de segundos não compensa.
+        /// Funciona com o ki desligado também: o Kaioken já se recusa a ligar sem ele.
+        /// </summary>
+        internal static void GrantTemporary(float amount)
+        {
+            if (_state == null || amount <= 0f)
+            {
+                return;
+            }
+
+            float before = _state.Current;
+            Add(amount);
+            _temporary += _state.Current - before;
+            _state.Save(_trackedPlayer);
+        }
+
+        /// <summary>
+        /// Devolve o ki emprestado que não foi gasto e corta o atual ao teto. Existe para o
+        /// Kaioken: ao desligar, o teto encolhe de volta, e o que ficou acima do normal some. Não
+        /// bloqueia a regeneração — não é gasto.
+        /// </summary>
+        internal static void ExpireTemporary()
+        {
+            if (_state == null)
+            {
+                return;
+            }
+
+            _state.Current = Mathf.Clamp(_state.Current - _temporary, 0f, Max);
+            _temporary = 0f;
+            _state.Save(_trackedPlayer);
         }
 
         /// <summary>Uso de debug e console. Não bloqueia a regeneração.</summary>
@@ -338,6 +387,7 @@ namespace Saiyaheim.Ki
             }
 
             _state.Current = Mathf.Clamp(value, 0f, Max);
+            _temporary = Mathf.Min(_temporary, _state.Current);
             _state.Save(_trackedPlayer);
         }
 

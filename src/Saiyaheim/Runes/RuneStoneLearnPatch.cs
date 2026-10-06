@@ -1,10 +1,9 @@
 using HarmonyLib;
-using Saiyaheim.Attacks;
 
 namespace Saiyaheim.Runes
 {
     /// <summary>
-    /// Ler uma runestone de lore pode ensinar um ataque de ki (etapa 13). Ver <see cref="RuneKnowledge"/>.
+    /// Ler uma runestone de lore pode ensinar um ataque de ki (etapa 13) ou um tier de Kaioken (etapa 14). Ver <see cref="RuneKnowledge"/>.
     ///
     /// <b>Por que patch.</b> Não há evento de "leu a pedra": o <c>RuneStone.Interact</c> mostra o
     /// texto e devolve false, e nada de fora fica sabendo. Postfix e não prefix porque o texto
@@ -39,7 +38,7 @@ namespace Saiyaheim.Runes
                 return;
             }
 
-            KiAttack taught = RuneKnowledge.TryLearn(player, __instance.transform.position);
+            IRuneLesson taught = RuneKnowledge.TryLearn(player, __instance.transform.position);
             if (taught == null)
             {
                 return;

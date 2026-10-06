@@ -56,6 +56,12 @@ namespace Saiyaheim.Transformations
         private static readonly Dictionary<Player, int> LastSeenForm = new Dictionary<Player, int>();
 
         /// <summary>
+        /// O tier de Kaioken visto da última vez, pela mesma razão do <see cref="LastSeenForm"/>:
+        /// ligar ou subir o Kaioken estoura a mesma aura da transformação, na cor do tier (etapa 14).
+        /// </summary>
+        private static readonly Dictionary<Player, int> LastSeenKaioken = new Dictionary<Player, int>();
+
+        /// <summary>
         /// Componente que pinta o modelo do jogador. Cacheado por jogador: o
         /// <c>GetComponent</c> é o mesmo caminho que o <c>Humanoid.Awake</c> usa.
         /// </summary>
@@ -92,6 +98,16 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Ligar ou subir o Kaioken toca a mesma animação de transformar (etapa 14). Só o gesto: a
+        /// explosão de aura sai do <see cref="Observe"/>, que vê o tier mudar na rede e por isso
+        /// estoura para todo mundo, não só para quem ligou.
+        /// </summary>
+        internal static void OnKaiokenUp(Player player)
+        {
+            Run(() => PlayEmote(player, SaiyaheimConfig.TransformEmote));
+        }
+
+        /// <summary>
         /// Olha o canal deste jogador e aplica o que ele conta: estoura o efeito se ele acabou de
         /// subir de forma, e mantém os raios da forma em que ele está.
         ///
@@ -116,6 +132,8 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
+            ObserveKaioken(player);
+
             int index = NetState.GetFormIndex(player);
 
             // Ausente quer dizer "nunca vi este jogador": anota-se o que ele já é e não se estoura
@@ -137,19 +155,48 @@ namespace Saiyaheim.Transformations
             Run(() =>
             {
                 Transformation form = TransformationRegistry.At(index);
+                Kaioken.KaiokenTier tier = Kaioken.KaiokenTier.At(NetState.GetKaiokenIndex(player));
 
                 FormLightning.Tick(player, form);
-                FormGlow.Tick(player, form);
+                FormGlow.Form.Tick(player, form == null ? 0f : form.GetGlowIntensity(), form?.GetGlowColor());
+                FormGlow.Kaioken.Tick(player, tier == null ? 0f : tier.GetGlowIntensity(), tier?.GetAuraColor());
+                Kaioken.KaiokenArmorTint.Tick(player, tier);
             });
         }
 
         /// <summary>Este jogador deixou de existir: descarta o que era lembrado dele.</summary>
+        /// <summary>
+        /// Estoura a aura na cor do tier quando o Kaioken liga ou sobe. Mesma regra da forma:
+        /// primeira vista só anota, e descer ou desligar não estoura nada.
+        /// </summary>
+        private static void ObserveKaioken(Player player)
+        {
+            int index = NetState.GetKaiokenIndex(player);
+            bool firstSight = !LastSeenKaioken.TryGetValue(player, out int seen);
+
+            if (!firstSight && index == seen)
+            {
+                return;
+            }
+
+            LastSeenKaioken[player] = index;
+
+            Kaioken.KaiokenTier tier = Kaioken.KaiokenTier.At(index);
+            if (!firstSight && index > seen && tier != null)
+            {
+                Run(() => SpawnBurst(player, tier.GetAuraColor()));
+            }
+        }
+
         internal static void Forget(Player player)
         {
             Bursts.Remove(player);
             LastSeenForm.Remove(player);
+            LastSeenKaioken.Remove(player);
             FormLightning.Forget(player);
-            FormGlow.Forget(player);
+            FormGlow.Form.Forget(player);
+            FormGlow.Kaioken.Forget(player);
+            Kaioken.KaiokenArmorTint.Forget(player);
         }
 
         /// <summary>
@@ -231,8 +278,11 @@ namespace Saiyaheim.Transformations
             _hairSwapped = false;
             Bursts.Clear();
             LastSeenForm.Clear();
+            LastSeenKaioken.Clear();
             FormLightning.Reset();
-            FormGlow.Reset();
+            FormGlow.Form.Reset();
+            FormGlow.Kaioken.Reset();
+            Kaioken.KaiokenArmorTint.Reset();
         }
 
         /// <summary>
@@ -253,6 +303,15 @@ namespace Saiyaheim.Transformations
         /// </summary>
         private static void SpawnBurst(Player player, Transformation form)
         {
+            SpawnBurst(player, form == null ? null : form.Config.AuraColor, form == null);
+        }
+
+        /// <summary>
+        /// A explosão em si, numa cor. Separada da forma para o Kaioken usar a mesma, na cor do
+        /// tier. Um estouro por jogador: o novo apaga o anterior, seja de forma ou de Kaioken.
+        /// </summary>
+        private static void SpawnBurst(Player player, string color, bool clearOnly = false)
+        {
             if (Bursts.TryGetValue(player, out GameObject previous))
             {
                 if (previous != null)
@@ -263,7 +322,7 @@ namespace Saiyaheim.Transformations
                 Bursts.Remove(player);
             }
 
-            if (form == null)
+            if (clearOnly)
             {
                 return;
             }
@@ -271,7 +330,7 @@ namespace Saiyaheim.Transformations
             Bursts[player] = AttachedEffect.Spawn(
                 player,
                 SaiyaheimConfig.TransformAuraPrefab,
-                form.Config.AuraColor,
+                color,
                 SaiyaheimConfig.TransformAuraScale,
                 SaiyaheimConfig.TransformAuraForceLoop,
                 SaiyaheimConfig.TransformAuraLightIntensity,

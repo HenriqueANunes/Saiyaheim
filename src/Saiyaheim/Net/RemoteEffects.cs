@@ -56,7 +56,10 @@ namespace Saiyaheim.Net
 
                 Known.Add(player);
 
-                KiChargeEffects.Update(player, NetState.IsCharging(player));
+                // A aura acende junto com a carga, por enquanto. O toggle de aura previsto entra no
+                // segundo argumento, sem mexer no KiChargeEffects.
+                bool charging = NetState.IsCharging(player);
+                KiChargeEffects.Update(player, charging, charging);
 
                 // A carga do Kamehameha. O ratio só é verdade para o jogador local — a ZDO leva a
                 // bandeira, não o relógio da carga —, então nos outros a bola nasce cheia. Ver

@@ -131,7 +131,9 @@ namespace Saiyaheim.Power
                 return 1f;
             }
 
-            float multiplier = Transformations.TransformationRegistry.GetPowerMultiplier(player);
+            // Forma e Kaioken juntos (etapa 14): o Kaioken entra no numero igual a forma, pelo mesmo
+            // RatingFormShare. E' a suposicao que a calculadora fez para os numeros dele.
+            float multiplier = BattlePower.GetCombatMultiplier(player);
 
             return 1f + Mathf.Max(0f, multiplier - 1f) * SaiyaheimConfig.RatingFormShare.Value;
         }

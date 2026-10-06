@@ -147,7 +147,7 @@ o Henrique achou a métrica confusa, e o BP do Kaioken é fixo por tier, não de
 **Na aba Poder de luta** o slider "Kaioken no poder de luta" liga um tier por cima: cada linha do
 gráfico ganha uma gêmea tracejada, e a tabela de criaturas ganha as colunas com Kaioken. O `model()`
 aceita `opt.kk` (o multiplicador de BP do tier), que multiplica junto com a forma e passa pelo mesmo
-`RatingFormShare`. Isso é suposição de como o mod vai fazer, não código.
+`RatingFormShare`, como o `PowerRating.GetFormFactor` faz desde a etapa 14.
 
 ### Se precisar de uma quarta série
 
