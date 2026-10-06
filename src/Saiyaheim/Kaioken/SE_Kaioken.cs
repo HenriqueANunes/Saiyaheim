@@ -38,7 +38,7 @@ namespace Saiyaheim.Kaioken
             // O nome do objeto é a identidade: StatusEffect.NameHash() lê UnityEngine.Object.name.
             effect.name = tier.ObjectName;
             effect.m_name = tier.DisplayName;
-            effect.m_tooltip = "Battle power multiplied, faster on your feet, more room for ki. " +
+            effect.m_tooltip = "Battle power multiplied, faster on your feet and in melee, more room for ki. " +
                                "Burns stamina — and health while the tier is beyond your limit.";
             effect._tier = tier;
 

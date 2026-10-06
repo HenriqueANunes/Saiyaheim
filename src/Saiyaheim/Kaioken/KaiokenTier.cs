@@ -131,6 +131,15 @@ namespace Saiyaheim.Kaioken
             return Mathf.Max(0f, Config.MoveSpeedBonus.Value);
         }
 
+        /// <summary>
+        /// Multiplicador da animação de ataque corpo a corpo, 1 ou mais. Quem aplica é o
+        /// <see cref="KaiokenAttackSpeedPatch"/>.
+        /// </summary>
+        internal float GetAttackSpeedMultiplier()
+        {
+            return 1f + Mathf.Max(0f, Config.AttackSpeedBonus.Value);
+        }
+
         /// <summary>Cor da aura deste tier, em #RRGGBB. Vazio cai no vermelho puro.</summary>
         internal string GetAuraColor()
         {

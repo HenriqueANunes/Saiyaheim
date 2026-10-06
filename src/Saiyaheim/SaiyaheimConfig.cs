@@ -650,6 +650,9 @@ namespace Saiyaheim
             /// <summary>Velocidade de movimento a mais, em fração. Não vale no voo.</summary>
             public ConfigEntry<float> MoveSpeedBonus { get; internal set; }
 
+            /// <summary>Velocidade a mais da animação de ataque corpo a corpo, em fração.</summary>
+            public ConfigEntry<float> AttackSpeedBonus { get; internal set; }
+
             /// <summary>Teto de ki a mais, em fração do teto normal.</summary>
             public ConfigEntry<float> MaxKiBonus { get; internal set; }
 
@@ -2600,25 +2603,26 @@ namespace Saiyaheim
             // PowerMultiplier. Biomas: o x2 nos Prados e' decisao; os outros sao chute, e Montanha
             // e Nevoa ficam sem tier. Ki a mais e' chute. Velocidade, cor e brilho calibrados no
             // playtest de 2026-10-05: a velocidade e' generosa de proposito (fugir e reposicionar,
-            // sem DPS a mais), e as cores ficaram mais saturadas desde o x2.
+            // sem DPS a mais), e as cores ficaram mais saturadas desde o x2. Velocidade de ataque
+            // calibrada no playtest de 2026-10-06, de +20% no x2 a 2x no x20.
             KaiokenTiers = new[]
             {
                 BindKaiokenTier(config, 0, "x2", powerMultiplier: 1.2f, safeLevel: 10f,
-                    staminaPerSecond: 4f, healthPerLevel: 0.15f, moveSpeed: 0.3f, maxKi: 0.10f,
+                    staminaPerSecond: 4f, healthPerLevel: 0.15f, moveSpeed: 0.3f, attackSpeed: 0.2f, maxKi: 0.10f,
                     learnBiome: Heightmap.Biome.Meadows, auraColor: "#FF4530", glowIntensity: 2f),
                 BindKaiokenTier(config, 1, "x3", powerMultiplier: 1.4f, safeLevel: 20f,
-                    staminaPerSecond: 6f, healthPerLevel: 0.25f, moveSpeed: 0.5f, maxKi: 0.15f,
+                    staminaPerSecond: 6f, healthPerLevel: 0.25f, moveSpeed: 0.5f, attackSpeed: 0.3f, maxKi: 0.15f,
                     learnBiome: Heightmap.Biome.BlackForest, auraColor: "#FF3821", glowIntensity: 2.5f),
                 BindKaiokenTier(config, 2, "x4", powerMultiplier: 1.6f, safeLevel: 30f,
-                    staminaPerSecond: 8f, healthPerLevel: 0.35f, moveSpeed: 0.7f, maxKi: 0.20f,
+                    staminaPerSecond: 8f, healthPerLevel: 0.35f, moveSpeed: 0.7f, attackSpeed: 0.4f, maxKi: 0.20f,
                     learnBiome: Heightmap.Biome.Swamp, auraColor: "#FF311A", glowIntensity: 3f),
                 // O x10 e o x20 desceram de 0,7 e 1,0 de vida por nivel: o seguro do x10 salta de
                 // 30 para 60, e a 0,7 ele drenava 21 hp/s logo ao ser aprendido.
                 BindKaiokenTier(config, 3, "x10", powerMultiplier: 2.0f, safeLevel: 60f,
-                    staminaPerSecond: 11f, healthPerLevel: 0.5f, moveSpeed: 1f, maxKi: 0.30f,
+                    staminaPerSecond: 11f, healthPerLevel: 0.5f, moveSpeed: 1f, attackSpeed: 0.7f, maxKi: 0.30f,
                     learnBiome: Heightmap.Biome.Plains, auraColor: "#FF1B0F", glowIntensity: 4f),
                 BindKaiokenTier(config, 4, "x20", powerMultiplier: 2.5f, safeLevel: 80f,
-                    staminaPerSecond: 14f, healthPerLevel: 0.7f, moveSpeed: 1.5f, maxKi: 0.40f,
+                    staminaPerSecond: 14f, healthPerLevel: 0.7f, moveSpeed: 1.5f, attackSpeed: 1f, maxKi: 0.40f,
                     learnBiome: Heightmap.Biome.AshLands, auraColor: "#FF0000", glowIntensity: 5f),
             };
 
@@ -3725,7 +3729,7 @@ namespace Saiyaheim
         /// </summary>
         private static KaiokenTierConfig BindKaiokenTier(
             ConfigFile config, int index, string name, float powerMultiplier, float safeLevel,
-            float staminaPerSecond, float healthPerLevel, float moveSpeed, float maxKi,
+            float staminaPerSecond, float healthPerLevel, float moveSpeed, float attackSpeed, float maxKi,
             Heightmap.Biome learnBiome, string auraColor, float glowIntensity)
         {
             string section = KaiokenTierSection(index, name);
@@ -3779,6 +3783,19 @@ namespace Saiyaheim
                         "Extra movement speed on the ground and swimming, as a fraction: 0.2 = 20% " +
                         "faster. Does not apply while flying — flight has its own speed and cap.",
                         new AcceptableValueRange<float>(0f, 2f), AdminOnly(80))),
+
+                // BP e velocidade de ataque se multiplicam no DPS (+20% de cada da +44%). O range vai
+                // ate' 1 (golpe 2x mais rapido) desde 2026-10-06; acima disso a animacao pode
+                // quebrar o combo.
+                AttackSpeedBonus = config.Bind(section, "AttackSpeedBonus", attackSpeed,
+                    new ConfigDescription(
+                        "Extra melee attack speed, as a fraction: 0.1 = swings 10% faster. Speeds " +
+                        "up the whole swing — hit, combo window and recovery — for every melee " +
+                        "weapon and the bare fist. Bows, crossbows, staffs and ki attacks are not " +
+                        "affected. It multiplies with PowerMultiplier in damage per second, so both " +
+                        "stack. Stamina per swing stays the same, so faster swings burn " +
+                        "stamina faster.",
+                        new AcceptableValueRange<float>(0f, 1f), AdminOnly(78))),
 
                 MaxKiBonus = config.Bind(section, "MaxKiBonus", maxKi,
                     new ConfigDescription(

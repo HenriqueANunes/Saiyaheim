@@ -124,6 +124,9 @@ order: a runestone only offers a tier once you know the one before it.
 
 - Each tier multiplies your Battle Power on top of the form, and makes you much faster on the
   ground.
+- It speeds up every melee swing: from 20% faster at x2 to twice as fast at
+  x20. Bows, crossbows, staffs and ki attacks keep their own pace. Stamina per swing stays the
+  same, so faster swings burn through it faster.
 - It raises your max ki and fills the extra room at once. That ki is lent: whatever you have not
   spent is gone when Kaioken turns off.
 - It costs stamina every second, and stamina does not regenerate while it is on. Run out and
