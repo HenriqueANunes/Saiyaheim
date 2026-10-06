@@ -122,8 +122,8 @@ state you hold; Kaioken is what you light up for a few seconds when the fight as
 Five tiers — **x2, x3, x4, x10 and x20** — each taught by the runestones of its own biome, and in
 order: a runestone only offers a tier once you know the one before it.
 
-- Each tier multiplies your Battle Power on top of the form, and makes you much faster on the
-  ground.
+- Each tier multiplies your Battle Power on top of the form, and makes you much faster, on the
+  ground and in the air (flight still has its top speed).
 - It speeds up every melee swing: from 20% faster at x2 to twice as fast at
   x20. Bows, crossbows, staffs and ki attacks keep their own pace. Stamina per swing stays the
   same, so faster swings burn through it faster.
@@ -156,9 +156,9 @@ One key fires the selected attack, Shift plus that key cycles through the ones y
 
 ### Radial menu
 
-Forms and ki attacks are also on **Valheim's own radial menu**, the wheel you already open to
-switch weapons, eat or emote. The mod adds two groups to it — **Forms** and **Ki attacks** — so it
-costs you no extra key, and the hotkeys above keep working for anyone who prefers them.
+Forms, Kaioken and ki attacks are also on **Valheim's own radial menu**, the wheel you already open
+to switch weapons, eat or emote. The mod adds three groups to it — **Forms**, **Kaioken** and **Ki
+attacks** — so it costs you no extra key, and the hotkeys above keep working for anyone who prefers them.
 
 - Every item shows what you need to know before you click it: a form shows its ki drain per
   second, an attack shows its ki cost and which one is currently selected.
@@ -166,6 +166,9 @@ costs you no extra key, and the hotkeys above keep working for anyone who prefer
   afterwards, which is the point — it replaces cycling blind through `Shift+V`.
 - Picking a form transforms you. The form you are already in is not on the wheel, and while
   transformed a **Base form** item is there to drop back.
+- Picking a Kaioken tier switches straight to it, up or down, from any form. Each tier shows its
+  power multiplier and what it costs right now, in stamina and, past your limit, health. While it
+  is on, a **Kaioken off** item turns it off.
 - **Only what you have unlocked shows up.** A group whose items are all still locked does not
   appear on the wheel at all, so the menu grows as you progress.
 
@@ -206,7 +209,7 @@ All of them are configurable.
 | `Shift+V` | Cycle ki attacks |
 | `Y` | Turn Kaioken on / step up a tier |
 | `Shift+Y` | Turn Kaioken off |
-| `G` (vanilla) | Open the radial menu, where the Forms and Ki attacks groups are |
+| `G` (vanilla) | Open the radial menu, where the Forms, Kaioken and Ki attacks groups are |
 
 ### Keys the base game already uses
 

@@ -82,6 +82,22 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
+        /// Velocidade de movimento do Kaioken também no ar, ou 1 sem ele: <c>1 + MoveSpeedBonus</c>
+        /// do tier ligado. Pedido do Henrique em 2026-10-06; até ali o Kaioken não mexia no voo.
+        ///
+        /// Entra aqui, antes do <c>FlightMaxSpeed</c>, e não pelo <c>SE_Kaioken.ModifySpeed</c>: o
+        /// <c>UpdateFlying</c> vanilla (<c>l-1.0.12</c>) lê só <c>m_flySlowSpeed</c>/<c>m_flyFastSpeed</c>
+        /// e não passa pelos modificadores de status. Consequência: perto do teto do streaming,
+        /// tier alto não compra velocidade nenhuma.
+        /// </summary>
+        internal static float GetKaiokenSpeedFactor(Player player)
+        {
+            Kaioken.KaiokenTier tier = Kaioken.KaiokenRegistry.GetActive(player);
+
+            return tier == null ? 1f : 1f + tier.GetMoveSpeedBonus();
+        }
+
+        /// <summary>
         /// Fator pelo qual o peso multiplica a velocidade:
         /// <c>1 - WeightPenalty × carga^WeightCurve</c>.
         ///
@@ -103,7 +119,7 @@ namespace Saiyaheim.Flight
         }
 
         /// <summary>
-        /// Velocidade base, já com poder, skill, peso e forma. É o valor que vai para
+        /// Velocidade base, já com poder, skill, peso, forma e Kaioken. É o valor que vai para
         /// <c>Character.m_flySlowSpeed</c>.
         ///
         /// O peso multiplica <b>tudo</b>, inclusive a parcela do poder: carregar meio inventário
@@ -115,7 +131,8 @@ namespace Saiyaheim.Flight
             float weightFactor = GetWeightSpeedFactor(player);
 
             float baseSpeed = SaiyaheimConfig.FlightBaseSpeed.Value + GetSpeedFromPower(player);
-            float speed = baseSpeed * skillFactor * weightFactor * GetFormSpeedFactor(player);
+            float speed = baseSpeed * skillFactor * weightFactor * GetFormSpeedFactor(player) *
+                          GetKaiokenSpeedFactor(player);
 
             // Piso baixo, não zero: com WeightPenalty em 1 e peso máximo o jogador ficaria parado
             // no ar sem entender por quê.

@@ -93,9 +93,10 @@ namespace Saiyaheim.Kaioken
         }
 
         /// <summary>
-        /// Movimento no chão e nadando. <b>Fora do voo</b>: o <c>UpdateFlying</c> vanilla também passa
-        /// pelos modificadores de status, e o voo tem a própria velocidade e o próprio teto
-        /// (<c>FlightMaxSpeed</c>). Somar os dois era o cuidado anotado no design.
+        /// Movimento no chão e nadando. No ar o mesmo bônus entra pelo
+        /// <c>FlightStats.GetKaiokenSpeedFactor</c>, antes do teto do voo: o <c>UpdateFlying</c>
+        /// vanilla não passa por aqui. A checagem de voo fica como guarda, caso uma atualização
+        /// passe a chamar.
         /// </summary>
         public override void ModifySpeed(float baseSpeed, ref float speed, Character character, Vector3 dir)
         {

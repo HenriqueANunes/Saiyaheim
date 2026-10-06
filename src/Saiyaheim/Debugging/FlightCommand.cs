@@ -125,6 +125,12 @@ namespace Saiyaheim.Debugging
                       $"power x{powerMultiplier:0.##} at {SaiyaheimConfig.FlightFormSpeedShare.Value * 100f:0}% share)");
             }
 
+            float kaiokenFactor = FlightStats.GetKaiokenSpeedFactor(player);
+            if (kaiokenFactor > 1f)
+            {
+                Print($"Kaioken speed multiplier: x{kaiokenFactor:0.##}");
+            }
+
             Print($"Speed: {slow:0.#} normal / {fast:0.#} running  (cap {SaiyaheimConfig.FlightMaxSpeed.Value:0.#})");
             Print($"Ki cost: {slowCost:0.##}/s normal, {fastCost:0.##}/s running, " +
                   $"{hoverCost:0.##}/s hovering");

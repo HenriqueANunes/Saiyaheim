@@ -362,6 +362,29 @@ namespace Saiyaheim.Ki
         }
 
         /// <summary>
+        /// Corta o atual a um teto que encolheu sem desligar o Kaioken: descer de tier pelo menu
+        /// radial. O que o corte leva sai primeiro do emprestado, para que o desligar depois
+        /// devolva só o que sobrou do bônus do tier novo, e não o do antigo outra vez.
+        /// </summary>
+        internal static void ShrinkToMax()
+        {
+            if (_state == null)
+            {
+                return;
+            }
+
+            float removed = Mathf.Max(0f, _state.Current - Max);
+            if (removed <= 0f)
+            {
+                return;
+            }
+
+            _state.Current -= removed;
+            _temporary = Mathf.Max(0f, _temporary - removed);
+            _state.Save(_trackedPlayer);
+        }
+
+        /// <summary>
         /// Devolve o ki emprestado que não foi gasto e corta o atual ao teto. Existe para o
         /// Kaioken: ao desligar, o teto encolhe de volta, e o que ficou acima do normal some. Não
         /// bloqueia a regeneração — não é gasto.

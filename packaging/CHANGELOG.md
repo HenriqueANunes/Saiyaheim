@@ -4,6 +4,7 @@
 
 - Added: runestones — reading the lore runestones around the world can teach you new abilities, learned by each character on their own. For now they teach the ki attacks, which bosses no longer unlock.
 - Added: Kaioken — five tiers (x2 to x20) learned from the runestones, switched on over any form for more power, movement speed and melee attack speed at a cost of stamina, and of health when pushed past your limit. Kaioken skill, trained by dealing damage with Kaioken on.
+- Added: a Kaioken group on the radial menu, next to Forms, to pick any learned tier or turn it off.
 - Changed: **existing characters lose the Ki Blast, Kamehameha and Kienzan** and must learn them again from the runestones.
 - Removed: the MinPowerLevel setting from forms, ki attacks and flight (it was never used).
 

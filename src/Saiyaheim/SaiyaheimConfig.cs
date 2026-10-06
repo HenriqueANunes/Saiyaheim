@@ -647,7 +647,7 @@ namespace Saiyaheim
             /// <summary>Vida por segundo para cada nível de margem negativa.</summary>
             public ConfigEntry<float> HealthPerSecondPerLevel { get; internal set; }
 
-            /// <summary>Velocidade de movimento a mais, em fração. Não vale no voo.</summary>
+            /// <summary>Velocidade de movimento a mais, em fração. Vale também no voo, abaixo do teto dele.</summary>
             public ConfigEntry<float> MoveSpeedBonus { get; internal set; }
 
             /// <summary>Velocidade a mais da animação de ataque corpo a corpo, em fração.</summary>
@@ -2351,7 +2351,7 @@ namespace Saiyaheim
                 lightning: false,
                 // O cabelo do proprio personagem, espetado. Ver a nota do HairItem do SSJ3.
                 hairItem: "Spiked",
-                // Kaioken: calibrado na calculadora em 2026-10-04, sem playtest.
+                // Kaioken: calibrado na calculadora em 2026-10-04, aprovado no playtest de 2026-10-06.
                 kaiokenPenalty: 20f, kaiokenPenaltyZeroAt: 30f);
 
             // O SSJ2 atras do Elder — o boss seguinte ao do SSJ, mantendo o ritmo de um degrau por
@@ -2406,7 +2406,7 @@ namespace Saiyaheim
                 // Mesma malha do SSJ: ha' um grau de espeto so' por penteado, entao o que separa
                 // os dois degraus continua sendo a cor e o raio.
                 hairItem: "Spiked",
-                // Kaioken: calibrado na calculadora em 2026-10-04, sem playtest.
+                // Kaioken: calibrado na calculadora em 2026-10-04, aprovado no playtest de 2026-10-06.
                 kaiokenPenalty: 50f, kaiokenPenaltyZeroAt: 60f);
 
             // O SSJ3 atras do Bonemass — o terceiro boss, mantendo o ritmo de um degrau por boss.
@@ -2459,7 +2459,7 @@ namespace Saiyaheim
                 // Brilha o dobro do SSJ, meio a mais que o SSJ2 — o mesmo passo de 0,5 por degrau.
                 glowIntensity: 2f,
                 hairItem: "SaiyaHair6",
-                // Kaioken: calibrado na calculadora em 2026-10-04, sem playtest. SSJ3 + x20 so' cabe
+                // Kaioken: calibrado na calculadora em 2026-10-04, aprovado em 2026-10-06. SSJ3 + x20 so' cabe
                 // dentro do nivel 100 da skill com a maestria em 65.
                 kaiokenPenalty: 70f, kaiokenPenaltyZeroAt: 90f);
 
@@ -2514,7 +2514,7 @@ namespace Saiyaheim
                 combatKiCostScale: 0.5f,
                 // Pedido do Henrique e calibrado no playtest de 2026-09-29: o degrau mais leve da tabela, mais folego.
                 bluntResistance: HitData.DamageModifier.SlightlyResistant,
-                // Kaioken, chute de 2026-10-04: a forma do controle pediria a menor penalidade das
+                // Kaioken, chute de 2026-10-04 aprovado no playtest de 2026-10-06: a forma do controle pediria a menor penalidade das
                 // altas (30/40 no papel), mas a cura passiva tres vezes mais rapida paga de 3 a 5
                 // hp/s do dreno — no x10 isso apaga uns 8 niveis de margem negativa. Com 40/50 o
                 // efeito liquido fica perto do 30/40 pensado, abaixo do SSJ2.
@@ -2526,57 +2526,52 @@ namespace Saiyaheim
             // da forma). Stamina cobra sempre e cai com a margem positiva ate o piso; vida so'
             // cobra com margem negativa, fixa em hp/s e sem teto. Os numeros de custo e de tier
             // sairam da calculadora (tools/curva-poder.html, aba Kaioken) em 2026-10-04; os de
-            // velocidade, ki, piso de vida, Exaustao e XP sao chute. Ver [[Kaioken]].
+            // velocidade, ki, piso de vida, Exaustao e XP eram chute. Todos aprovados como estao no
+            // playtest de 2026-10-06. Ver [[Kaioken]].
             KaiokenStaminaCutPerLevel = config.Bind(SecKaioken, "StaminaCutPerLevel", 0.04f,
                 new ConfigDescription(
                     "Fraction of a tier's stamina drain removed per Kaioken skill level ABOVE the " +
                     "safe level: stamina/s = StaminaPerSecond x max(StaminaFloor, 1 - this x " +
                     "margin). With 0.04 and a floor of 0.2, every tier reaches the floor 20 levels " +
                     "past its safe level. Below the safe level the drain is the full base. " +
-                    "Stamina does not regenerate while Kaioken is on, so this is the net cost. " +
-                    "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                    "Stamina does not regenerate while Kaioken is on, so this is the net cost.",
                     new AcceptableValueRange<float>(0f, 0.2f), AdminOnly(100)));
 
             KaiokenStaminaFloor = config.Bind(SecKaioken, "StaminaFloor", 0.2f,
                 new ConfigDescription(
                     "The lowest the stamina drain can go, as a fraction of the tier's base. Never " +
-                    "zero by design: a Kaioken that costs nothing would just stay on. " +
-                    "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                    "zero by design: a Kaioken that costs nothing would just stay on.",
                     new AcceptableValueRange<float>(0.05f, 1f), AdminOnly(99)));
 
             KaiokenHealthFloor = config.Bind(SecKaioken, "HealthFloor", 0.2f,
                 new ConfigDescription(
                     "Kaioken turns itself off when health falls below this fraction of max health. " +
-                    "The health drain never kills — this is the safety net, not a cost. " +
-                    "(Starting value. Not playtested yet.)",
+                    "The health drain never kills — this is the safety net, not a cost.",
                     new AcceptableValueRange<float>(0f, 0.9f), AdminOnly(90)));
 
             KaiokenExhaustionSeconds = config.Bind(SecKaioken, "ExhaustionSeconds", 10f,
                 new ConfigDescription(
                     "Running out of stamina with Kaioken on turns it off and leaves you Exhausted " +
                     "for this many seconds: no stamina regeneration, slower movement and no " +
-                    "Kaioken until it ends. 0 turns Exhaustion off. " +
-                    "(Starting value. Not playtested yet.)",
+                    "Kaioken until it ends. 0 turns Exhaustion off.",
                     new AcceptableValueRange<float>(0f, 60f), AdminOnly(80)));
 
             KaiokenExhaustionSlow = config.Bind(SecKaioken, "ExhaustionSlow", 0.3f,
                 new ConfigDescription(
-                    "Fraction of movement speed lost while Exhausted. 0.3 = 70% speed. " +
-                    "(Starting value. Not playtested yet.)",
+                    "Fraction of movement speed lost while Exhausted. 0.3 = 70% speed.",
                     new AcceptableValueRange<float>(0f, 0.9f), AdminOnly(79)));
 
             KaiokenXpPerDamageDealt = config.Bind(SecKaioken, "XpPerDamageDealt", 0.07f,
                 new ConfigDescription(
                     "Kaioken skill XP per point of damage dealt with Kaioken on, capped at the " +
                     "target's remaining HP like Power Level. Same starting rate as Power Level: " +
-                    "the skill is meant to be as slow. Only damage dealt trains it. " +
-                    "(Starting value. Not playtested yet.)",
+                    "the skill is meant to be as slow. Only damage dealt trains it.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(70)));
 
             KaiokenXpMaxPerEvent = config.Bind(SecKaioken, "XpMaxPerEvent", 5f,
                 new ConfigDescription(
                     "Safety clamp: maximum Kaioken XP from a single hit, before the negative " +
-                    "margin bonus. (Starting value. Not playtested yet.)",
+                    "margin bonus.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(69)));
 
             KaiokenXpNegativeMarginBonus = config.Bind(SecKaioken, "XpNegativeMarginBonus", 1f,
@@ -2584,8 +2579,7 @@ namespace Saiyaheim
                     "Extra Kaioken XP, as a fraction, for hits landed while the tier is BEYOND " +
                     "your limit (below its safe level, health draining). Grows with how far below " +
                     "you are, and is whole at XpNegativeMarginFullAt levels below. 1 = up to " +
-                    "double the XP. Training past the limit pays more. " +
-                    "(Starting value. Not playtested yet.)",
+                    "double the XP. Training past the limit pays more.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(68)));
 
             // Proporcional com teto (2026-10-05, decisao do Henrique): forcar mais rende mais, mas
@@ -2596,12 +2590,13 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "How many levels below the tier's safe level the negative margin XP bonus " +
                     "reaches its full value. Closer than this pays a proportional part of it; " +
-                    "further pays no more. (Starting value. Not playtested yet.)",
+                    "further pays no more.",
                     new AcceptableValueRange<float>(1f, 100f), AdminOnly(67)));
 
             // Os cinco tiers da lore. O rotulo e' nome, nao multiplicador: o bonus de verdade e' o
-            // PowerMultiplier. Biomas: o x2 nos Prados e' decisao; os outros sao chute, e Montanha
-            // e Nevoa ficam sem tier. Ki a mais e' chute. Velocidade, cor e brilho calibrados no
+            // PowerMultiplier. Biomas: o x2 nos Prados e' decisao; os outros eram chute, e Montanha
+            // e Nevoa ficam sem tier. Biomas, ki a mais e o resto aprovados como estao no playtest
+            // de 2026-10-06. Velocidade, cor e brilho calibrados no
             // playtest de 2026-10-05: a velocidade e' generosa de proposito (fugir e reposicionar,
             // sem DPS a mais), e as cores ficaram mais saturadas desde o x2. Velocidade de ataque
             // calibrada no playtest de 2026-10-06, de +20% no x2 a 2x no x20.
@@ -3475,14 +3470,12 @@ namespace Saiyaheim
                         "KaiokenPenaltyZeroAtMastery. Example: x2 is safe at 10; with 20 here, x2 " +
                         "in this form only stops costing health at Kaioken 30 until you train the " +
                         "form. Mastery only removes what the form adds — it never makes Kaioken " +
-                        "safer than in base form. " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "safer than in base form.",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(57))),
 
                 KaiokenPenaltyZeroAtMastery = config.Bind(section, "KaiokenPenaltyZeroAtMastery", kaiokenPenaltyZeroAt,
                     new ConfigDescription(
-                        "Mastery level of THIS form at which KaiokenPenalty reaches zero. " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "Mastery level of THIS form at which KaiokenPenalty reaches zero.",
                         new AcceptableValueRange<float>(1f, 100f), AdminOnly(56))),
 
                 // Multiplica o poder de COMBATE (soco, armadura, block power, numero exibido) e a
@@ -3744,8 +3737,7 @@ namespace Saiyaheim
                         "base x form x this. Punch damage, armor, block power and the number on " +
                         "screen all scale from it. The tier name is just a name — Kaioken x20 at " +
                         "2.5 means x2.5. It does not raise the ki cost of punching: Kaioken pays " +
-                        "with stamina and health. Flight speed is not affected. " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "with stamina and health. Flight speed is not affected.",
                         new AcceptableValueRange<float>(1f, 20f), AdminOnly(100))),
 
                 SafeLevel = config.Bind(section, "SafeLevel", safeLevel,
@@ -3753,16 +3745,14 @@ namespace Saiyaheim
                         "Kaioken skill level from which this tier stops costing health in base " +
                         "form. The active form adds its own KaiokenPenalty on top. Below it, " +
                         "health drains by HealthPerSecondPerLevel for every level short; above " +
-                        "it, the stamina drain shrinks (StaminaCutPerLevel in the Kaioken section). " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "it, the stamina drain shrinks (StaminaCutPerLevel in the Kaioken section).",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(95))),
 
                 StaminaPerSecond = config.Bind(section, "StaminaPerSecond", staminaPerSecond,
                     new ConfigDescription(
                         "Stamina drained per second while this tier is on, in full up to the safe " +
                         "level. Stamina does not regenerate while Kaioken is on, so this is the net " +
-                        "cost. Reaching zero stamina turns Kaioken off and leaves you Exhausted. " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "cost. Reaching zero stamina turns Kaioken off and leaves you Exhausted.",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(90))),
 
                 // Fixo em hp/s e nao % da vida: comida de vida compra Kaioken mais longo, comida de
@@ -3774,14 +3764,14 @@ namespace Saiyaheim
                         "the level this tier needs (its SafeLevel plus the form's penalty). Zero " +
                         "once you reach it. A flat amount, not a fraction of max health, so " +
                         "health food buys longer Kaioken. No cap: a fresh form on a high tier " +
-                        "drains fast, and the HealthFloor turns Kaioken off within seconds. " +
-                        "(Starting value, tuned in the power curve calculator. Not playtested yet.)",
+                        "drains fast, and the HealthFloor turns Kaioken off within seconds.",
                         new AcceptableValueRange<float>(0f, 10f), AdminOnly(85))),
 
                 MoveSpeedBonus = config.Bind(section, "MoveSpeedBonus", moveSpeed,
                     new ConfigDescription(
-                        "Extra movement speed on the ground and swimming, as a fraction: 0.2 = 20% " +
-                        "faster. Does not apply while flying — flight has its own speed and cap.",
+                        "Extra movement speed, as a fraction: 0.2 = 20% faster. Applies on the " +
+                        "ground, swimming and flying. Flight speed still stops at the flight " +
+                        "MaxSpeed cap.",
                         new AcceptableValueRange<float>(0f, 2f), AdminOnly(80))),
 
                 // BP e velocidade de ataque se multiplicam no DPS (+20% de cada da +44%). O range vai
@@ -3802,8 +3792,7 @@ namespace Saiyaheim
                         "Extra room in the ki bar while this tier is on, as a fraction of the " +
                         "normal cap: 0.2 = 20% more. Turning the tier on fills that room at once. " +
                         "That ki is lent: spending uses it first, and when Kaioken turns off " +
-                        "whatever is left of it goes away. " +
-                        "(Starting value. Not playtested yet.)",
+                        "whatever is left of it goes away.",
                         new AcceptableValueRange<float>(0f, 2f), AdminOnly(75))),
 
                 LearnBiome = config.Bind(section, "LearnBiome", learnBiome,

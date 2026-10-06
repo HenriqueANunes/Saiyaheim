@@ -174,8 +174,17 @@ namespace Saiyaheim.Kaioken
             seman.AddStatusEffect(GetTemplate(tier));
 
             // O que a barra cresceu já entra cheio: subir de tier soma só a diferença, então o
-            // total emprestado é sempre o bônus do tier ativo.
-            KiManager.GrantTemporary(KiManager.Max - maxBefore);
+            // total emprestado é sempre o bônus do tier ativo. Descer (só o menu radial desce)
+            // encolhe a barra, e o corte sai do emprestado.
+            float grown = KiManager.Max - maxBefore;
+            if (grown >= 0f)
+            {
+                KiManager.GrantTemporary(grown);
+            }
+            else
+            {
+                KiManager.ShrinkToMax();
+            }
 
             // O mesmo gesto de transformar; a explosão de aura sai do TransformationEffects quando o
             // tier novo chega à rede.
@@ -204,7 +213,25 @@ namespace Saiyaheim.Kaioken
             Message(player, message);
         }
 
-        /// <summary>Desliga de fora — o console usa. Devolve false se não estava ligado.</summary>
+        /// <summary>
+        /// Liga direto num tier, sem passar pelos de baixo, ou troca para ele — inclusive para
+        /// baixo. O menu radial usa. O tier precisa estar aprendido; o tier já ativo é recusado.
+        /// Devolve se ligou, que é o "fecha o menu?" do <c>SaiyaRadial.Leaf</c>.
+        /// </summary>
+        internal static bool StartTier(Player player, KaiokenTier tier)
+        {
+            SEMan seman = player == null ? null : player.GetSEMan();
+
+            if (seman == null || tier == null || !tier.IsLearned(player) ||
+                KaiokenRegistry.GetActive(player) == tier)
+            {
+                return false;
+            }
+
+            return TryStart(player, seman, tier);
+        }
+
+        /// <summary>Desliga de fora — o console e o menu radial usam. Devolve false se não estava ligado.</summary>
         internal static bool StopNow(Player player)
         {
             SEMan seman = player == null ? null : player.GetSEMan();
