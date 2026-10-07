@@ -12,6 +12,9 @@ namespace Saiyaheim.Util
     ///
     /// <b>O menu de construção também</b>: ele tem campo de pesquisa, e digitar o nome de uma peça
     /// acionava as teclas do mod — a letra do voo desligava o voo e o jogador caía.
+    ///
+    /// <b>O nome do marcador no mapa também</b>: é um <c>InputField</c> próprio do <c>Minimap</c>,
+    /// que não passa pelo <c>TextInput</c>. Só o campo com foco, e não o mapa aberto inteiro.
     /// </summary>
     internal static class InputGuard
     {
@@ -23,6 +26,7 @@ namespace Saiyaheim.Util
                    && !InventoryGui.IsVisible()
                    && !Hud.InRadial()
                    && !Hud.InBuildUi()
+                   && !Minimap.InTextInput()
                    && (Chat.instance == null || !Chat.instance.HasFocus());
         }
     }

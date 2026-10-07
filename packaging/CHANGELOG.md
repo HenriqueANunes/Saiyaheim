@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1
+
+- Added: SSJ God heals at least 1 health per second, even with no food (adjustable with HealthRegenMinimum).
+- Fixed: typing a map marker name no longer triggers the mod's keys. Reported by MisterMusashi.
+
 ## 0.8.0
 
 - Added: runestones — reading the lore runestones around the world can teach you new abilities, learned by each character on their own. For now they teach the ki attacks, which bosses no longer unlock. Idea by NathanBakker.

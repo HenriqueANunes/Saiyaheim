@@ -311,6 +311,17 @@ namespace Saiyaheim.Transformations
         }
 
         /// <summary>
+        /// Piso da cura passiva desta forma, em vida por segundo. Zero em toda forma que não tem a
+        /// chave — hoje todas menos o SSJ God.
+        /// </summary>
+        internal float GetHealthRegenMinimum()
+        {
+            ConfigEntry<float> entry = Config.HealthRegenMinimum;
+
+            return entry == null ? 0f : Mathf.Max(0f, entry.Value);
+        }
+
+        /// <summary>
         /// Resistência a contusão desta forma. Normal em toda forma que não tem a chave — hoje
         /// todas menos o SSJ God. Só os degraus de resistência passam: o <c>.cfg</c> aceita
         /// qualquer valor do enum, e Weak ou Immune inverteriam ou quebrariam a mecânica.

@@ -446,6 +446,12 @@ namespace Saiyaheim
             public ConfigEntry<bool> HealthRegenIgnoresBlockers { get; internal set; }
 
             /// <summary>
+            /// Piso da cura passiva, em vida por segundo, que vale mesmo sem comida. <b>Null nas
+            /// formas que não têm a chave.</b> Ver <c>Transformations.SE_Transformation</c>.
+            /// </summary>
+            public ConfigEntry<float> HealthRegenMinimum { get; internal set; }
+
+            /// <summary>
             /// Resistência a dano de contusão enquanto a forma está ativa. <b>Null nas formas que
             /// não têm a chave.</b> Ver <c>Transformations.SE_Transformation.ModifyDamageMods</c>.
             /// </summary>
@@ -2511,6 +2517,8 @@ namespace Saiyaheim
                 // Calibrado no playtest de 2026-09-22: saiu em 2, o tique de 5 s ainda demorava.
                 healthRegenSpeed: 3f,
                 healthRegenIgnoresBlockers: true,
+                // Pedido do MisterMusashi no Nexus (2026-10-03): curar parado na base sem comida.
+                healthRegenMinimum: 1f,
                 combatKiCostScale: 0.5f,
                 // Pedido do Henrique e calibrado no playtest de 2026-09-29: o degrau mais leve da tabela, mais folego.
                 bluntResistance: HitData.DamageModifier.SlightlyResistant,
@@ -3455,7 +3463,7 @@ namespace Saiyaheim
             string hairColor, string requiredGlobalKey, bool lightning, string lightningColor = "",
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
             string hairItem = "", float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
-            float combatKiCostScale = 1f, HitData.DamageModifier? bluntResistance = null,
+            float? healthRegenMinimum = null, float combatKiCostScale = 1f, HitData.DamageModifier? bluntResistance = null,
             float kaiokenPenalty = 0f, float kaiokenPenaltyZeroAt = 1f)
         {
             return new TransformationConfig
@@ -3603,6 +3611,19 @@ namespace Saiyaheim
                         "coming, so the mountain still hurts, it just stops being a wall. " +
                         "(Starting value. Not playtested yet.)",
                         null, AdminOnly(79))),
+
+                // O piso da cura do God: a forma multiplica a cura da comida, e sem comida nao sobra
+                // nada para multiplicar. Piso e nao soma — com a comida ja' curando mais que isto,
+                // a chave nao faz nada, e quem esta' comendo bem nao ganha cura a mais.
+                HealthRegenMinimum = healthRegenMinimum == null ? null : config.Bind(section, "HealthRegenMinimum", healthRegenMinimum.Value,
+                    new ConfigDescription(
+                        "Minimum passive healing, in health per second, while this form is " +
+                        "active — even with no food at all. It is a FLOOR, not a bonus: when your " +
+                        "food already heals faster than this (counting this form's faster clock " +
+                        "and the weather), it does nothing. Heals once per second. " +
+                        "0 turns it off. " +
+                        "(Starting value. Not playtested yet.)",
+                        new AcceptableValueRange<float>(0f, 10f), AdminOnly(76))),
 
                 // Mais uma chave do folego do God, e so' dele pela mesma regra das duas acima.
                 // Um degrau da tabela da vanilla, e nao um percentual livre: o jogo compara as

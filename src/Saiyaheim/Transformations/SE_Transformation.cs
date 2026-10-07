@@ -6,9 +6,11 @@ namespace Saiyaheim.Transformations
     /// <summary>
     /// A forma ativa: o <c>StatusEffect</c> que representa estar transformado.
     ///
-    /// <b>Ele faz três coisas, e só.</b> Drena ki por segundo, levanta o limite de peso do
-    /// inventário e aplica a resistência a contusão da forma, quando ela tem uma. A cura passiva do SSJ God <b>não</b> passa por aqui: ela é intervalo e piso, e
-    /// nenhum dos dois cabe num modificador de <c>SE_Stats</c> — ver <c>HealthRegenPatch</c>.
+    /// <b>Ele faz quatro coisas, e só.</b> Drena ki por segundo, levanta o limite de peso do
+    /// inventário, aplica a resistência a contusão da forma e garante a cura mínima, quando ela
+    /// tem essas chaves. O resto da cura passiva do SSJ God <b>não</b> passa por aqui: ela é
+    /// intervalo e piso do multiplicador, e nenhum dos dois cabe num modificador de
+    /// <c>SE_Stats</c> — ver <c>HealthRegenPatch</c>.
     ///
     /// O XP de maestria NÃO sai daqui desde 2026-09-20 — ele vem do dano trocado, pelo
     /// <c>DamageXpPatch</c>. O <b>poder</b> da transformação
@@ -94,6 +96,70 @@ namespace Saiyaheim.Transformations
             // effect de dentro do SEMan.Update corromperia o laço dele, que cacheia o Count antes
             // de iterar. Mesma divisão do voo.
             KiManager.Drain(_form.GetKiDrainPerSecond(player) * dt);
+
+            ApplyHealthRegenMinimum(player, dt);
+        }
+
+        /// <summary>Intervalo da cura mínima. Um tique por segundo lê como regeneração contínua.</summary>
+        private const float RegenMinimumInterval = 1f;
+
+        /// <summary>O relógio da cura passiva da vanilla, constante literal no <c>Player.UpdateFood</c>.</summary>
+        private const float VanillaRegenInterval = 10f;
+
+        private float _regenMinimumTimer;
+
+        /// <summary>
+        /// Cura mínima da forma (<c>HealthRegenMinimum</c>), hoje só no SSJ God: a forma
+        /// multiplica a cura da comida, e sem comida não sobra nada para multiplicar.
+        ///
+        /// <b>Piso, e não soma.</b> A cada segundo cura só a diferença entre o mínimo e o que a
+        /// comida já está curando por segundo — com o relógio mais rápido da forma e o
+        /// multiplicador compartilhado do clima. Bem alimentado, isto não faz nada.
+        ///
+        /// A conta da comida repete a do <c>Player.UpdateFood</c> (soma do <c>m_foodRegen</c>
+        /// vezes o <c>SEMan.ModifyHealthRegen</c>, a cada 10 segundos). Errar aqui só desloca o
+        /// ponto em que o piso deixa de agir; não dá cura em dobro além do mínimo.
+        /// </summary>
+        private void ApplyHealthRegenMinimum(Player player, float dt)
+        {
+            float minimum = _form.GetHealthRegenMinimum();
+            if (minimum <= 0f || player != Player.m_localPlayer || player.IsDead())
+            {
+                _regenMinimumTimer = 0f;
+                return;
+            }
+
+            _regenMinimumTimer += dt;
+            if (_regenMinimumTimer < RegenMinimumInterval)
+            {
+                return;
+            }
+
+            _regenMinimumTimer -= RegenMinimumInterval;
+
+            float food = 0f;
+            foreach (Player.Food entry in player.GetFoods())
+            {
+                if (entry?.m_item?.m_shared != null)
+                {
+                    food += entry.m_item.m_shared.m_foodRegen;
+                }
+            }
+
+            float foodPerSecond = 0f;
+            if (food > 0f)
+            {
+                float multiplier = 1f;
+                player.GetSEMan().ModifyHealthRegen(ref multiplier);
+                foodPerSecond = food * multiplier * _form.GetHealthRegenSpeed() / VanillaRegenInterval;
+            }
+
+            float missing = (minimum - foodPerSecond) * RegenMinimumInterval;
+            if (missing > 0f)
+            {
+                // Sem o número flutuante: um "+1" por segundo poluiria a tela.
+                player.Heal(missing, false);
+            }
         }
 
         /// <summary>
