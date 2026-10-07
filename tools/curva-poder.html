@@ -25,6 +25,8 @@
     --ssj: #9a6b00;
     --ssj2: #7a4fc4;
     --ssj3: #A31E68;
+    /* O SSJ God leva o vermelho do cabelo dele. Carmim frio, para nao encostar no tijolo do --warn. */
+    --ssjgod: #C2183B;
     /* A serie "outro eixo": skill de voo no 100. Verde porque ela nunca e' uma forma. */
     --alt: #2c7a5c;
     --ki-wash: rgba(4, 129, 179, 0.12);
@@ -45,7 +47,7 @@
       --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
       --line: #3A342B; --line-soft: #2F2A22;
       --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
+      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --alt: #4fb98a;
       --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
@@ -55,7 +57,7 @@
     --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
     --line: #3A342B; --line-soft: #2F2A22;
     --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --alt: #4fb98a;
+    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --alt: #4fb98a;
     --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
@@ -114,6 +116,7 @@
   .stat .v.ssj { color: var(--ssj); }
   .stat .v.ssj2 { color: var(--ssj2); }
   .stat .v.ssj3 { color: var(--ssj3); }
+  .stat .v.ssjgod { color: var(--ssjgod); }
 
   .verdict { border-left: 2px solid var(--ki); padding: 2px 0 2px 16px; max-width: 78ch; color: var(--ink-2); font-size: 15px; }
   .verdict strong { color: var(--ink); font-weight: 600; }
@@ -149,6 +152,7 @@
   summary .tag.ssj { color: var(--ssj); }
   summary .tag.ssj2 { color: var(--ssj2); }
   summary .tag.ssj3 { color: var(--ssj3); }
+  summary .tag.ssjgod { color: var(--ssjgod); }
   .group-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 11px; }
 
   .ctl { display: flex; flex-direction: column; gap: 5px; }
@@ -176,6 +180,8 @@
   .g-ssj2 input[type="range"]::-moz-range-thumb { background: var(--ssj2); }
   .g-ssj3 input[type="range"]::-webkit-slider-thumb { background: var(--ssj3); }
   .g-ssj3 input[type="range"]::-moz-range-thumb { background: var(--ssj3); }
+  .g-ssjgod input[type="range"]::-webkit-slider-thumb { background: var(--ssjgod); }
+  .g-ssjgod input[type="range"]::-moz-range-thumb { background: var(--ssjgod); }
 
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
   button {
@@ -238,6 +244,7 @@
   thead tr.groups th.ssj { color: var(--ssj); }
   thead tr.groups th.ssj2 { color: var(--ssj2); }
   thead tr.groups th.ssj3 { color: var(--ssj3); }
+  thead tr.groups th.ssjgod { color: var(--ssjgod); }
   thead tr.groups th.kk1 { color: var(--kk1); }
   thead tr.groups th.kk2 { color: var(--kk2); }
   thead tr.groups th.kk3 { color: var(--kk3); }
@@ -361,7 +368,7 @@
             <input type="range" id="pkr" min="0" max="0.02" step="0.0001" value="0.01"></div>
           <p class="hint">⚠️ Até 2026-09-20 esse desconto lia o poder <b>já multiplicado pela forma</b>, então crescia junto com ela e comia quase todo o acréscimo: em SSJ3 o soco dava 4× o dano por 1,28× o custo. Agora ele lê o poder da forma <b>base</b>, e o preço da forma é o multiplicador explícito abaixo.</p>
           <div class="ctl"><div class="row"><label for="cfk">CombatFormKiShare</label><output id="cfk-out"></output></div>
-            <input type="range" id="cfk" min="0" max="3" step="0.05" value="1"></div>
+            <input type="range" id="cfk" min="0" max="3" step="0.05" value="0.2"></div>
           <p class="hint">Quanto do ganho de poder da forma vira <b>custo</b> a mais, nos quatro custos de luta: soco, bloqueio, dano recebido e ataque de ki. Em 1 uma forma x4 cobra 4× o ki por soco na maestria 0 — <b>o mesmo dano por ki da forma base</b>, ou seja, a forma compra o golpe maior e não eficiência. Em 0 ela leva o multiplicador de graça, que é como o mod se comportava até 2026-09-20.</p>
           <div class="ctl"><div class="row"><label for="mkr">MasteryFormCostReduction</label><output id="mkr-out"></output></div>
             <input type="range" id="mkr" min="0" max="1" step="0.05" value="1"></div>
@@ -434,6 +441,8 @@
             <input type="range" id="d1" min="0" max="20" step="0.25" value="1"></div>
           <div class="ctl"><div class="row"><label for="r1">MasteryDrainReduction</label><output id="r1-out"></output></div>
             <input type="range" id="r1" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="cs1">CombatKiCostScale</label><output id="cs1-out"></output></div>
+            <input type="range" id="cs1" min="0" max="3" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv1">Maestria de SSJ</label><output id="lv1-out"></output></div>
             <input type="range" id="lv1" min="0" max="100" step="1" value="0"></div>
         </div>
@@ -448,6 +457,8 @@
             <input type="range" id="d2" min="0" max="20" step="0.25" value="2"></div>
           <div class="ctl"><div class="row"><label for="r2">MasteryDrainReduction</label><output id="r2-out"></output></div>
             <input type="range" id="r2" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="cs2">CombatKiCostScale</label><output id="cs2-out"></output></div>
+            <input type="range" id="cs2" min="0" max="3" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv2">Maestria de SSJ2</label><output id="lv2-out"></output></div>
             <input type="range" id="lv2" min="0" max="100" step="1" value="0"></div>
         </div>
@@ -462,8 +473,28 @@
             <input type="range" id="d3" min="0" max="20" step="0.25" value="3"></div>
           <div class="ctl"><div class="row"><label for="r3">MasteryDrainReduction</label><output id="r3-out"></output></div>
             <input type="range" id="r3" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="cs3">CombatKiCostScale</label><output id="cs3-out"></output></div>
+            <input type="range" id="cs3" min="0" max="3" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="lv3">Maestria de SSJ3</label><output id="lv3-out"></output></div>
             <input type="range" id="lv3" min="0" max="100" step="1" value="0"></div>
+        </div>
+      </details>
+
+      <details class="card group g-ssjgod" id="g-ssjgod" data-lens="combat form rating kk" open>
+        <summary><span class="chev">▶</span>SSJ God<span class="tag ssjgod">3.4</span></summary>
+        <div class="group-body">
+          <p class="hint">A forma do controle: bate <b>menos</b> que o SSJ3 e compra fôlego. Daqui a calculadora modela o multiplicador, o dreno, a maestria e o <code>CombatKiCostScale</code>; a cura passiva 3× mais rápida (<code>HealthRegenSpeed</code>, que atravessa Molhado, Frio e Congelando) e a resistência a contusão não entram em conta nenhuma da página.</p>
+          <div class="ctl"><div class="row"><label for="m4">PowerMultiplier</label><output id="m4-out"></output></div>
+            <input type="range" id="m4" min="1" max="10" step="0.1" value="3.5"></div>
+          <div class="ctl"><div class="row"><label for="d4">KiDrainPerSecond</label><output id="d4-out"></output></div>
+            <input type="range" id="d4" min="0" max="20" step="0.25" value="2"></div>
+          <div class="ctl"><div class="row"><label for="r4">MasteryDrainReduction</label><output id="r4-out"></output></div>
+            <input type="range" id="r4" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="cs4">CombatKiCostScale</label><output id="cs4-out"></output></div>
+            <input type="range" id="cs4" min="0" max="3" step="0.05" value="0.5"></div>
+          <p class="hint">Fração da sobretaxa de combate que esta forma cobra: <code>1 + (mult − 1) × CombatFormKiShare × isto × (1 − MasteryFormCostReduction × maestria/100)</code>. Em 0,5 o God cobra metade do que um degrau comum com o mesmo multiplicador cobraria. Não toca no voo.</p>
+          <div class="ctl"><div class="row"><label for="lv4">Maestria de SSJ God</label><output id="lv4-out"></output></div>
+            <input type="range" id="lv4" min="0" max="100" step="1" value="0"></div>
         </div>
       </details>
 
@@ -474,7 +505,7 @@
             <input type="checkbox" id="mst-track">
             maestria acompanha o nível da linha
           </label>
-          <p class="hint">Marcado, os dois sliders de maestria são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
+          <p class="hint">Marcado, os sliders de maestria das formas são ignorados e cada forma anda junto com a linha. Desmarque para congelar a maestria e ler só o efeito do power level — que é o caso real de quem acabou de destravar a forma.</p>
           <div class="ctl"><div class="row"><label for="xpd">MasteryXpPerDamageDealt</label><output id="xpd-out"></output></div>
             <input type="range" id="xpd" min="0" max="0.03" step="0.0005" value="0.0045"></div>
           <div class="ctl"><div class="row"><label for="xpt">MasteryXpPerDamageTaken</label><output id="xpt-out"></output></div>
@@ -495,7 +526,7 @@
             <input type="range" id="bxm" min="1" max="10" step="0.25" value="7"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2 e o SSJ3 o degrau 3, então nos defaults (bônus 3, teto 7), com três bosses no chão, o SSJ paga x7, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Com quatro bosses, sem o teto o SSJ pagaria x10. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2, o SSJ3 o degrau 3 e o SSJ God o degrau 4, então nos defaults (bônus 3, teto 7), com três bosses no chão, o SSJ paga x7, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Com quatro bosses, sem o teto o SSJ pagaria x10. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -503,7 +534,7 @@
         <summary><span class="chev">▶</span>Ki</summary>
         <div class="group-body">
           <div class="ctl"><div class="row"><label for="kmax">MaxKi</label><output id="kmax-out"></output></div>
-            <input type="range" id="kmax" min="10" max="400" step="5" value="170"></div>
+            <input type="range" id="kmax" min="10" max="400" step="5" value="50"></div>
           <div class="ctl"><div class="row"><label for="kper">MaxKiPerPowerLevel</label><output id="kper-out"></output></div>
             <input type="range" id="kper" min="0" max="20" step="0.5" value="3"></div>
           <div class="ctl"><div class="row"><label for="creg">ChargeKiPerSecond</label><output id="creg-out"></output></div>
@@ -553,7 +584,7 @@
         <summary><span class="chev">▶</span>Kaioken — o que mostrar</summary>
         <div class="group-body">
           <div class="ctl is-hero"><div class="row"><label for="kform">Forma por baixo</label><output id="kform-out"></output></div>
-            <input type="range" id="kform" min="0" max="3" step="1" value="0"></div>
+            <input type="range" id="kform" min="0" max="4" step="1" value="0"></div>
           <p class="hint">A forma soma a penalidade dela ao nível seguro de todo tier, então as curvas andam para a direita. A maestria lida é a dos grupos SSJ.</p>
           <label class="check">
             <input type="checkbox" id="kcmp">
@@ -561,7 +592,7 @@
           </label>
           <div class="ctl"><div class="row"><label for="ktier">Tier (comparação e cartões)</label><output id="ktier-out"></output></div>
             <input type="range" id="ktier" min="1" max="5" step="1" value="1"></div>
-          <p class="hint">Marcado, o gráfico troca as cinco linhas de tier por quatro linhas de forma (base, SSJ, SSJ2, SSJ3), todas no tier escolhido aqui.</p>
+          <p class="hint">Marcado, o gráfico troca as cinco linhas de tier por uma linha por forma (base, SSJ, SSJ2, SSJ3, SSJ God), todas no tier escolhido aqui.</p>
           <div class="ctl"><div class="row"><label for="klv">Nível da skill Kaioken (cartões)</label><output id="klv-out"></output></div>
             <input type="range" id="klv" min="0" max="100" step="1" value="30"></div>
         </div>
@@ -649,6 +680,11 @@
             <input type="range" id="kfi3" min="0" max="100" step="1" value="70"></div>
           <div class="ctl"><div class="row"><label for="kfz3">Maestria em que zera</label><output id="kfz3-out"></output></div>
             <input type="range" id="kfz3" min="1" max="100" step="1" value="90"></div>
+          <div class="subhead">SSJ God</div>
+          <div class="ctl"><div class="row"><label for="kfi4">Penalidade inicial</label><output id="kfi4-out"></output></div>
+            <input type="range" id="kfi4" min="0" max="100" step="1" value="40"></div>
+          <div class="ctl"><div class="row"><label for="kfz4">Maestria em que zera</label><output id="kfz4-out"></output></div>
+            <input type="range" id="kfz4" min="1" max="100" step="1" value="50"></div>
         </div>
       </details>
 
@@ -750,12 +786,13 @@
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "cfk", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
+               "m4", "d4", "r4", "lv4", "cs1", "cs2", "cs3", "cs4",
                "xpd", "xpt", "xpmax", "cxp", "ppm", "bxp", "bxm", "boss", "fks",
                "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs",
                "ktier", "kform", "klv", "kstr", "kstf", "rkk",
                "kp1", "ks1", "kst1", "kh1", "kp2", "ks2", "kst2", "kh2", "kp3", "ks3", "kst3", "kh3",
                "kp4", "ks4", "kst4", "kh4", "kp5", "ks5", "kst5", "kh5",
-               "kfi1", "kfz1", "kfi2", "kfz2", "kfi3", "kfz3"];
+               "kfi1", "kfz1", "kfi2", "kfz2", "kfi3", "kfz3", "kfi4", "kfz4"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
@@ -787,14 +824,21 @@
   // veredito, tabela e series varrem esta lista. O SSJ3 entrou em 2026-09-06 e custou exatamente
   // isso, o que era a promessa.
   const FORMS = [
-    { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1", rung: 0 },
-    { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2", rung: 1 },
-    { id: "ssj3", name: "SSJ3", sec: "3.3 - SSJ3", color: "var(--ssj3)", cls: "ssj3", m: "m3", d: "d3", r: "r3", lv: "lv3", rung: 2 },
+    { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1", cs: "cs1", rung: 0 },
+    { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2", cs: "cs2", rung: 1 },
+    { id: "ssj3", name: "SSJ3", sec: "3.3 - SSJ3", color: "var(--ssj3)", cls: "ssj3", m: "m3", d: "d3", r: "r3", lv: "lv3", cs: "cs3", rung: 2 },
+    // O primeiro degrau que bate MENOS que o de baixo (2026-09-22): o God compra folego, e nao
+    // golpe. Por isso o "topo" da escada deixou de ser o ultimo degrau — ver peak().
+    { id: "ssjgod", name: "SSJ God", sec: "3.4 - SSJ God", color: "var(--ssjgod)", cls: "ssjgod", m: "m4", d: "d4", r: "r4", lv: "lv4", cs: "cs4", rung: 3 },
   ];
   // O primeiro e o ULTIMO degrau, e nao SSJ/SSJ2 nomeados: os cartoes e os alertas que falam de
   // "a forma" querem o topo da escada, que muda quando ela cresce. Os que comparam dois degraus
   // varrem os pares consecutivos — ver stepPairs.
-  const SSJ = FORMS[0], TOP = FORMS[FORMS.length - 1];
+  const SSJ = FORMS[0], LAST = FORMS[FORMS.length - 1];
+  // O degrau mais FORTE, que ate o SSJ God era o ultimo. Os cartoes de caso extremo (a armadura que
+  // vira invulnerabilidade, o soco que nao cabe na barra) querem este; os de maestria querem o
+  // ultimo degrau, que e' o que o bonus de boss paga menos. Funcao porque o slider pode inverter.
+  const peak = () => FORMS.reduce((a, f) => (v(f.m) > v(a.m) ? f : a));
   // Os pares vizinhos da escada, de baixo para cima: [SSJ, SSJ2], [SSJ2, SSJ3]. E' onde as
   // perguntas de "o degrau de baixo continua tendo razao de existir?" moram — comparar o SSJ
   // direto com o SSJ3 responderia a pergunta errada, porque ninguem escolhe entre eles dois.
@@ -948,8 +992,11 @@
     // o poder ja multiplicado pela forma: os dois cresciam juntos e o acrescimo quase sumia — em
     // SSJ3, 4x de dano por 1,28x de custo. Agora a sobretaxa e' um multiplicador proprio e o
     // desconto le o poder da forma BASE. Espelha BattlePower.FormKiCostMultiplier.
+    //
+    // CombatKiCostScale (por forma, 2026-09-21) escala a fatia da sobretaxa que ESTA forma cobra: 1 em
+    // todas menos no SSJ God, que cobra metade. Multiplica o CombatFormKiShare, como no C#.
     const formCost = form
-      ? Math.max(1, 1 + (mult - 1) * v("cfk") * (1 - Math.min(1, v("mkr")) * Math.min(1, mst / MAXLVL)))
+      ? Math.max(1, 1 + (mult - 1) * v("cfk") * Math.max(0, v(form.cs)) * (1 - Math.min(1, v("mkr")) * Math.min(1, mst / MAXLVL)))
       : 1;
 
     // Cobra sobre o bonus da forma BASE e aplica a sobretaxa por cima — senao o multiplicador
@@ -1221,7 +1268,7 @@
       title: "O número da HUD contra os bichos de cada bioma",
       sub: "O poder de luta não é o battle power interno: é uma conta em termos vanilla, igual para jogador e criatura, para que escanear um bicho diga quem ganha. A forma multiplica o battle power, mas aqui ela só chega pela armadura e pelo bônus do soco — e a vida, que pesa mais, ela não toca.",
       stats: ["rating", "ehp", "rdps"],
-      open: ["g-rating", "g-ssj", "g-ssj2", "g-ssj3"],
+      open: ["g-rating"].concat(FORMS.map(f => "g-" + f.id)),
       today: false,
       forms: true,
       cfg: ["rating"],
@@ -1493,20 +1540,20 @@
     ];
   }
 
-  // Os cartoes de combate leem o TOPO da escada e nao um degrau nomeado: o caso extremo — a
-  // armadura que vira invulnerabilidade, o soco que nao cabe na barra — mora sempre no degrau
-  // mais alto, e e' ele que muda quando a escada cresce.
+  // Os cartoes de combate leem o degrau mais FORTE e nao um degrau nomeado: o caso extremo — a
+  // armadura que vira invulnerabilidade, o soco que nao cabe na barra — mora sempre nele, e e' ele
+  // que muda quando a escada cresce. Desde o SSJ God ele nao e' mais o ultimo — ver peak().
   function cardsCombat(k5) {
     const m100 = model(100, k5), b100 = model(100, 0);
-    const f100 = model(100, k5, TOP);
+    const f100 = model(100, k5, peak());
     const takenMult = m100.taken > 0 ? b100.taken / m100.taken : 1;
     return [
       { k: "dano recebido no 100", v: fmt(m100.taken, 1), cls: m100.taken < v("hit") * 0.06 ? "warn" : "",
         n: `hoje é ${fmt(b100.taken, 1)} — leva ${fmt(takenMult, 1)}× menos` },
-      { k: `o mesmo golpe em ${TOP.name}`, v: fmt(f100.taken, 1), cls: f100.taken < v("hit") * 0.06 ? "warn" : TOP.cls,
+      { k: `o mesmo golpe em ${peak().name}`, v: fmt(f100.taken, 1), cls: f100.taken < v("hit") * 0.06 ? "warn" : peak().cls,
         n: `${fmt(v("hit"), 0)} de golpe contra ${fmt(f100.armor, 0)} de armadura` },
       { k: "socos por barra no 100", v: fmt(m100.punches, 1), cls: m100.punches < 2 ? "warn" : "",
-        n: `em ${TOP.name} são ${fmt(f100.punches, 1)} — a forma multiplica o custo junto com o dano` },
+        n: `em ${peak().name} são ${fmt(f100.punches, 1)} — a forma multiplica o custo junto com o dano` },
       { k: "dano do soco no 100", v: fmt(m100.punch, 1),
         n: FORMS.map(f => `${f.name} ${fmt(model(100, k5, f).punch / m100.punch, 1)}×`).join(" · ") },
       nicheCard(k5),
@@ -1527,7 +1574,7 @@
 
     return {
       k: "forma maxada vs fora da forma", v: fmt(top.punchcost / base.punchcost, 2) + "×",
-      cls: off(top) < 0.01 ? TOP.cls : "",
+      cls: off(top) < 0.01 ? peak().cls : "",
       n: allOn
         ? `custo do soco em ${fmt(base.punchcost, 1)} ki em todos os degraus e fora deles, com o multiplicador de dano de graça — é o alvo do slider em 1`
         : FORMS.map((f, i) => `${f.name} maxado ${fmt(maxed[i].punchcost, 1)} ki`).join(" · ") +
@@ -1561,15 +1608,15 @@
       // com o PowerMultiplier 3 que o jogador acabou de ajustar no rail ao lado.
       { k: "velocidade no 100", v: fmt(m100.fly, 1) + " m/s",
         n: m100.fly >= v("fm") - 0.01 ? `no teto de engine (MaxSpeed ${fmt(v("fm"), 0)})`
-                                      : `em ${TOP.name}, ${fmt(model(100, k5, TOP).fly, 1)} m/s — ` +
-                                        `x${fmt(1 + (Math.max(1, v(TOP.m)) - 1) * v("fss"), 2)} de velocidade ` +
-                                        `para x${fmt(Math.max(1, v(TOP.m)), 1)} de poder` },
+                                      : `em ${peak().name}, ${fmt(model(100, k5, peak()).fly, 1)} m/s — ` +
+                                        `x${fmt(1 + (Math.max(1, v(peak().m)) - 1) * v("fss"), 2)} de velocidade ` +
+                                        `para x${fmt(Math.max(1, v(peak().m)), 1)} de poder` },
       // A sobretaxa da forma lida nos dois extremos da maestria: e' o cartao que responde "vale a
       // pena voar transformado?". No zero ela e' o preco cheio; no 100 ela nao existe mais.
-      { k: `voar em ${TOP.name}`, v: "x" + fmt(model(100, k5, TOP, { mastery: 0 }).flysur, 2) + " de custo",
-        n: `${fmt(model(100, k5, TOP, { mastery: 0 }).flycost, 2)} ki/s sem maestria contra ` +
-           `${fmt(model(100, k5, TOP, { mastery: MAXLVL }).flycost, 2)} com ela maxada — ` +
-           `x${fmt(1 + (Math.max(1, v(TOP.m)) - 1) * v("fss"), 2)} de velocidade em troca` },
+      { k: `voar em ${peak().name}`, v: "x" + fmt(model(100, k5, peak(), { mastery: 0 }).flysur, 2) + " de custo",
+        n: `${fmt(model(100, k5, peak(), { mastery: 0 }).flycost, 2)} ki/s sem maestria contra ` +
+           `${fmt(model(100, k5, peak(), { mastery: MAXLVL }).flycost, 2)} com ela maxada — ` +
+           `x${fmt(1 + (Math.max(1, v(peak().m)) - 1) * v("fss"), 2)} de velocidade em troca` },
       // Tres pontos da curva de peso num cartao so': o meio e' o que o expoente move, as pontas
       // sao fixas (0% nao custa nada, 100% custa a WeightPenalty inteira, em qualquer curva).
       { k: "peso, do meio ao limite", v: fmt(weightLoss(1), 0) + "% mais lento",
@@ -1619,10 +1666,10 @@
     });
 
     const hits = f => model(100, k5, f).masteryhits;
-    cards.push({ k: `maestria 100 em ${TOP.name}`, v: fmtc(hits(TOP), 0) + " socos",
-      n: `${fmt(masteryHours(TOP, 100, k5), 1)} h de luta a ${fmt(v("ppm"), 0)} socos/min · ` +
+    cards.push({ k: `maestria 100 em ${LAST.name}`, v: fmtc(hits(LAST), 0) + " socos",
+      n: `${fmt(masteryHours(LAST, 100, k5), 1)} h de luta a ${fmt(v("ppm"), 0)} socos/min · ` +
          FORMS.slice(0, -1).map(f => `${f.name} ${fmtc(hits(f), 0)}`).join(" · ") +
-         (at(TOP).xpclamped ? " · ⚠️ o grampo por golpe está mordendo" : "") });
+         (at(LAST).xpclamped ? " · ⚠️ o grampo por golpe está mordendo" : "") });
 
     return cards;
   }
@@ -1640,7 +1687,7 @@
   }
 
   function verdictCombat(k5) {
-    const m100 = model(100, k5), f100 = model(100, k5, TOP);
+    const m100 = model(100, k5), f100 = model(100, k5, peak());
     // O alerta que faltava em 2026-08-04, quando o SSJ pareceu bugado no playtest: a forma dobrava
     // o dano do soco E o custo dele, sem dobrar a barra, entao o dano total por barra ficava
     // IGUAL — e o segundo soco nao cabia, saindo com o dano vanilla cru.
@@ -1652,20 +1699,20 @@
     // vende. So' vira alerta quando nem a maestria maxada separa os dois — aí a sobretaxa nunca
     // e' devolvida e treinar nao compra nada.
     if (f100.punchbar <= m100.punchbar * 1.05) {
-      const maxed = model(100, k5, TOP, { mastery: MAXLVL });
+      const maxed = model(100, k5, peak(), { mastery: MAXLVL });
       const paysOff = maxed.punchbar > m100.punchbar * 1.05;
 
       if (paysOff) {
-        return { html: `<strong>A forma cobra o que entrega, e a maestria é o que muda isso.</strong> Crua, o ${TOP.name} dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco e cobra ${fmt(f100.formcost, 2)}× de ki — mesmo dano por barra que a forma base, ${fmt(f100.punches, 1)} socos contra ${fmt(m100.punches, 1)}. Maxada, a sobretaxa vira 1× e a mesma barra compra ${fmt(maxed.punchbar / m100.punchbar, 2)}× de dano. É a curva da maestria dita em números.` };
+        return { html: `<strong>A forma cobra o que entrega, e a maestria é o que muda isso.</strong> Crua, o ${peak().name} dá ${fmt(f100.punch / m100.punch, 2)}× de dano por soco e cobra ${fmt(f100.formcost, 2)}× de ki — mesmo dano por barra que a forma base, ${fmt(f100.punches, 1)} socos contra ${fmt(m100.punches, 1)}. Maxada, a sobretaxa vira 1× e a mesma barra compra ${fmt(maxed.punchbar / m100.punchbar, 2)}× de dano. É a curva da maestria dita em números.` };
       }
 
-      return { warn: true, html: `<strong>Treinar a forma não compra nada:</strong> nem com a maestria no 100 o ${TOP.name} rende mais dano por barra que a forma base. A sobretaxa não está sendo devolvida — suba o <code>MasteryFormCostReduction</code> (1 devolve tudo) ou baixe o <code>CombatFormKiShare</code>.` };
+      return { warn: true, html: `<strong>Treinar a forma não compra nada:</strong> nem com a maestria no 100 o ${peak().name} rende mais dano por barra que a forma base. A sobretaxa não está sendo devolvida — suba o <code>MasteryFormCostReduction</code> (1 devolve tudo) ou baixe o <code>CombatFormKiShare</code>.` };
     }
     if (m100.taken < v("hit") * 0.06) {
       return { warn: true, html: `<strong>A armadura passou do ponto:</strong> no nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}. Baixe o <code>ArmorFromPower</code> — ele é o consumidor que menos aguenta um poder acelerado.` };
     }
     if (f100.taken < v("hit") * 0.06) {
-      return { warn: true, html: `<strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> em ${TOP.name} o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(f100.taken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.` };
+      return { warn: true, html: `<strong>Fora da forma a armadura está no lugar, dentro dela não:</strong> em ${peak().name} o mesmo golpe de ${fmt(v("hit"), 0)} vira ${fmt(f100.taken, 1)}. A transformação multiplica a armadura junto com o resto — se o alvo é dano e alcance e não invulnerabilidade, o ajuste é no <code>PowerMultiplier</code> ou no <code>ArmorFromPower</code>.` };
     }
     // Ultimo dos alertas de proposito: os de cima sao quebras (o soco nao cabe na barra, a
     // armadura virou invulnerabilidade), este e' um problema de DESENHO — tudo funciona, so' que
@@ -1684,7 +1731,7 @@
       return { warn: true, html: `<strong>O ${broken.pr.lo.name} não tem nicho:</strong> maxado, ele rende ${fmt(broken.lo, 2)} de dano por ki, e o ${broken.pr.hi.name} recém-destravado rende ${fmt(broken.hi, 2)} — não há motivo nenhum para voltar ao ${broken.pr.lo.name} depois de subir. O <code>KiCostPowerReduction</code> não separa os degraus, porque a forma multiplica o poder que compra o desconto; quem separa é o <code>MasteryFormCostReduction</code>, que lê a maestria da forma ativa e nasce em zero a cada degrau novo. Em <b>1</b> ele só zera o acréscimo da forma, o que ainda não basta — o cruzamento fica mais para cima no slider.` };
     }
 
-    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em ${TOP.name} ainda sobram ${fmt(f100.punches, 1)}. Todo degrau maxado ainda rende mais dano por ki que o degrau acima recém-destravado (${niches.map(x => `${x.pr.lo.name} ${fmt(x.lo, 2)} contra ${x.pr.hi.name} cru ${fmt(x.hi, 2)}`).join(" · ")}), então nenhum deles vira letra morta.` };
+    return { html: `<strong>Os três consumidores estão no lugar.</strong> No nível 100 um golpe de ${fmt(v("hit"), 0)} vira ${fmt(m100.taken, 1)}, o soco leva ${fmt(m100.punchcost, 1)} de ki e cabem ${fmt(m100.punches, 1)} deles numa barra cheia — e em ${peak().name} ainda sobram ${fmt(f100.punches, 1)}. Todo degrau maxado ainda rende mais dano por ki que o degrau acima recém-destravado (${niches.map(x => `${x.pr.lo.name} ${fmt(x.lo, 2)} contra ${x.pr.hi.name} cru ${fmt(x.hi, 2)}`).join(" · ")}), então nenhum deles vira letra morta.` };
   }
 
   function verdictFly(k5) {
@@ -1745,7 +1792,7 @@
       }
       return { html: `<strong>A maestria termina de graça, e é isso que ela compra.</strong> No 100 nenhum degrau drena nada e o ki volta a regenerar por baixo deles — a forma vira permanente até o jogador soltar. O preço todo está no caminho: crus, os degraus seguram ` +
         FORMS.map(f => `${fmt(at(f, 0).formtime, 0)} s (${f.name})`).join(" · ") +
-        ` por barra, o par mais apertado é ${w.hi.name} contra ${w.lo.name} em ${fmt(w.r, 2)}× de poder×tempo, e maxar o ${TOP.name} custa ${fmtc(at(TOP, 0).masteryhits, 0)} socos contra ${fmtc(at(SSJ, 0).masteryhits, 0)} do ${SSJ.name} — ${fmt(masteryHours(TOP, 100, k5), 1)} h e ${fmt(masteryHours(SSJ, 100, k5), 1)} h de luta, no ritmo suposto.` };
+        ` por barra, o par mais apertado é ${w.hi.name} contra ${w.lo.name} em ${fmt(w.r, 2)}× de poder×tempo, e maxar o ${LAST.name} custa ${fmtc(at(LAST, 0).masteryhits, 0)} socos contra ${fmtc(at(SSJ, 0).masteryhits, 0)} do ${SSJ.name} — ${fmt(masteryHours(LAST, 100, k5), 1)} h e ${fmt(masteryHours(SSJ, 100, k5), 1)} h de luta, no ritmo suposto.` };
     }
 
     const w = worstAt(MAXLVL);
@@ -1759,7 +1806,7 @@
     }
     return { html: `<strong>A escada custa o que deve custar.</strong> Em cada par vizinho, uma barra de ki compra mais poder×tempo no degrau de BAIXO (` +
       stepPairs().map(pr => `${pr.lo.name}→${pr.hi.name} ${fmt(ratio(pr.lo, pr.hi, MAXLVL), 2)}×`).join(" · ") +
-      `) — o degrau alto bate mais forte e por menos tempo, então escolher entre eles é uma decisão de verdade. Recém-destravado, no nível 100, o ${TOP.name} segura ${fmt(at(TOP, 0).formtime, 0)} s; maxado, ${fmt(at(TOP, MAXLVL).formtime, 0)} s, ${fmt(at(TOP, MAXLVL).uptime, 0)}% do tempo.` };
+      `) — o degrau alto bate mais forte e por menos tempo, então escolher entre eles é uma decisão de verdade. Recém-destravado, no nível 100, o ${peak().name} segura ${fmt(at(peak(), 0).formtime, 0)} s; maxado, ${fmt(at(peak(), MAXLVL).formtime, 0)} s, ${fmt(at(peak(), MAXLVL).uptime, 0)}% do tempo.` };
   }
 
   // ── criaturas ─────────────────────────────────────────────────────────────
@@ -1896,15 +1943,15 @@
     });
     if (v("rkk") > 0) {
       const tn = TIERS[v("rkk") - 1].name, kk = kkTier(v("rkk")).mult;
-      const c = model(L, k5, null, { kk }), ct = model(L, k5, TOP, { kk });
+      const c = model(L, k5, null, { kk }), ct = model(L, k5, peak(), { kk });
       cards.push({ k: `Kaioken ${tn} no nível ${fmt(L, 0)}`, v: fmt(c.rating / b.rating, 2) + "×", cls: "kk" + v("rkk"),
-        n: `${fmt(c.rating, 0)} na forma base · em ${TOP.name}+${tn}, ${fmt(ct.rating, 0)} (${fmt(kk, 2)}× de BP)` });
+        n: `${fmt(c.rating, 0)} na forma base · em ${peak().name}+${tn}, ${fmt(ct.rating, 0)} (${fmt(kk, 2)}× de BP)` });
     }
     const refs = CREATURES.filter(c => c.common);
     const beats = m => refs.filter(c => m.rating >= creatureRating(c));
-    const top = model(L, k5, TOP);
+    const top = model(L, k5, peak());
     cards.push({ k: "comuns que você vence", v: `${beats(b).length} de ${refs.length}`,
-      n: `fora da forma; em ${TOP.name}, ${beats(top).length}. ${refs.map(c => `${c.name} ${fmt(creatureRating(c), 0)}`).join(" · ")}` });
+      n: `fora da forma; em ${peak().name}, ${beats(top).length}. ${refs.map(c => `${c.name} ${fmt(creatureRating(c), 0)}`).join(" · ")}` });
     return cards;
   }
 
@@ -1975,6 +2022,7 @@
     kv("PowerMultiplier", n(f.m, 1)),
     kv("KiDrainPerSecond", n(f.d, 2)),
     kv("MasteryDrainReduction", n(f.r, 2)),
+    kv("CombatKiCostScale", n(f.cs, 2)),
   ]);
 
   const CFG = {
@@ -2032,7 +2080,7 @@
   }
 
   const FOOTERS = {
-    kk: `<strong>Espelha o mod desde a etapa 14</strong> (<code>Kaioken/KaiokenTier.cs</code>), menos o SSJ God, que ainda não está aqui (no mod: penalidade 40, zera na maestria 50). A conta inteira sai da <b>margem</b> = nível da skill Kaioken − (nível seguro do tier + penalidade da forma). Stamina: base cheia até a margem 0, e depois <code>base × max(piso, 1 − corte × margem)</code>. Vida: <code>vida por nível × |margem|</code> com margem negativa, zero com positiva. Fica de fora a velocidade de movimento e de ataque, o piso de vida que desliga o Kaioken e a Exaustão. A regeneração de stamina fica bloqueada com o Kaioken ligado, então stamina/s é o custo líquido. O multiplicador de BP de cada tier não varia com o nível da skill; ele aparece nos cartões e na aba <b>Poder de luta</b>.`,
+    kk: `<strong>Espelha o mod desde a etapa 14</strong> (<code>Kaioken/KaiokenTier.cs</code>). A penalidade do SSJ God é 40/50 e não os 30/40 que a forma do controle pediria: a cura passiva 3× mais rápida dele paga parte do dreno de vida, e a calculadora não modela essa cura — então a curva de vida/s em SSJ God sai mais cara do que o jogador sente. A conta inteira sai da <b>margem</b> = nível da skill Kaioken − (nível seguro do tier + penalidade da forma). Stamina: base cheia até a margem 0, e depois <code>base × max(piso, 1 − corte × margem)</code>. Vida: <code>vida por nível × |margem|</code> com margem negativa, zero com positiva. Fica de fora a velocidade de movimento e de ataque, o piso de vida que desliga o Kaioken e a Exaustão. A regeneração de stamina fica bloqueada com o Kaioken ligado, então stamina/s é o custo líquido. O multiplicador de BP de cada tier não varia com o nível da skill; ele aparece nos cartões e na aba <b>Poder de luta</b>.`,
     prog: `<strong>Implementado</strong> — <code>K5_LateGameBonus</code> e <code>LateGameExponent</code> já existem no <code>SaiyaheimConfig.cs</code>, e os valores de partida desta página são os defaults que foram para o código. A curva de XP é a do próprio Valheim (<code>Skills.Skill.GetNextLevelRequirement</code>), a mesma que rege a skill de voo e a maestria de cada forma.`,
     combat: `O dano recebido usa a fórmula real do Valheim (<code>HitData.ApplyArmor</code>: <code>dano²/(4×armadura)</code> quando a armadura passa de metade do golpe), que decai por <code>1/armadura</code> e nunca chega a zero — é o que impede a armadura acelerada de virar invulnerabilidade. A tabela é sempre <b>fora</b> da transformação; as formas aparecem no gráfico e nos cartões de cima. O peso do inventário entra só na velocidade de voo, e o slider de carga da lente de voo começa em zero. O desconto de ki é <code>1 / (1 + KiCostPowerReduction × poder + (PowerMultiplier − 1) × (maestria/100) × MasteryFormCostReduction)</code> e vale para os <b>três</b> custos de combate — socar, apanhar e bloquear —, embora só o soco esteja plotado aqui. Com o segundo termo em 0 a conta é a de antes de 2026-09-06. ⚠️ Em 1 o soco da forma maxada fica <b>exatamente</b> no custo de fora dela; apanhar e bloquear ficam <b>perto</b>, não em cima, porque são cobrados por ponto que a armadura de ki absorveu e a absorção não escala linear com o multiplicador.`,
     fly: `A velocidade lê só a parte linear do poder — o termo de fim de jogo não a toca, de propósito. Custo e autonomia leem os dois eixos: o power level (pelo <code>KiPowerReduction</code>, que morde só o termo de fim de jogo) e a skill de voo (pelo <code>KiSkillReduction</code> em curva). A autonomia é sempre com a barra cheia e no modo lento. A forma entra na velocidade <b>amortecida</b> desde 2026-08-21 — <code>1 + (PowerMultiplier − 1) × FormSpeedShare</code>, e não o multiplicador cru: com ele inteiro, voar transformado colava no <code>MaxSpeed</code> e SSJ e SSJ2 viravam a mesma linha. O peso desconta em curva desde 2026-09-06 — <code>1 − WeightPenalty × carga<sup>WeightCurve</sup></code>, e não a reta antiga: hiperbólica (a forma do desconto de ki) faria o contrário do pedido, desabando na primeira pedra e achatando no fim. O eixo <b>por carga</b> mostra a curva inteira; o slider de carga escolhe em que ponto dela o resto da página é lido. Desde <b>2026-09-20</b> a forma também paga no <b>custo</b>, e não só ganha velocidade: <code>1 + (PowerMultiplier − 1) × FormKiShare × (1 − maestria/100)</code>, com a <b>maestria da forma</b> quitando a conta — não a skill de voo, que já barateia o custo base e faria o desconto contar duas vezes. No mesmo dia a curva da skill foi de 2 para 1 e a base de 5 para 3,5, porque o back-load era o que tirava o jogador do jogo para grindar antes de voar: ⚠️ com o <code>K5</code> em zero o <code>KiPowerReduction</code> não faz nada, então a skill de voo é a única coisa que barateia o voo — é aqui que se vigia se ele virou o transporte padrão cedo demais.`,
@@ -2044,13 +2092,14 @@
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, cfk: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 2, r1: 2, lv1: 0, m2: 1, d2: 2, r2: 2, lv2: 0, m3: 1, d3: 2, r3: 2, lv3: 0,
+                    m4: 1, d4: 2, r4: 2, lv4: 0, cs1: 2, cs2: 2, cs3: 2, cs4: 2,
                     xpd: 4, xpt: 4, xpmax: 2, cxp: 2, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
                     rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2,
                     ktier: 0, kform: 0, klv: 0, kstr: 3, kstf: 2, rkk: 0,
                     kp1: 2, ks1: 0, kst1: 1, kh1: 2, kp2: 2, ks2: 0, kst2: 1, kh2: 2, kp3: 2, ks3: 0, kst3: 1, kh3: 2,
                     kp4: 2, ks4: 0, kst4: 1, kh4: 2, kp5: 2, ks5: 0, kst5: 1, kh5: 2,
-                    kfi1: 0, kfz1: 0, kfi2: 0, kfz2: 0, kfi3: 0, kfz3: 0 };
+                    kfi1: 0, kfz1: 0, kfi2: 0, kfz2: 0, kfi3: 0, kfz3: 0, kfi4: 0, kfz4: 0 };
 
   function setLens(id) {
     lens = id;
