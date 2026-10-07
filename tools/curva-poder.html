@@ -218,6 +218,9 @@
   .axis-name { fill: var(--ink-3); font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
   .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .end-label { font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .you-line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+  .you-label { fill: var(--ink-2); font-family: var(--f-mono); font-size: 10px; letter-spacing: .08em; }
+  .legend .val { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 
   .tip {
     position: absolute; pointer-events: none; opacity: 0;
@@ -319,6 +322,15 @@
   <div class="cols">
 
     <aside class="rail">
+
+      <details class="card group" id="g-you" data-lens="prog combat fly form rating" open>
+        <summary><span class="chev">▶</span>Seu personagem</summary>
+        <div class="group-body">
+          <div class="ctl is-hero"><div class="row"><label for="rlv">Nível de power level</label><output id="rlv-out"></output></div>
+            <input type="range" id="rlv" min="0" max="100" step="1" value="50"></div>
+          <p class="hint">Marca este nível no gráfico com uma linha vertical, e a legenda passa a mostrar o valor de cada linha nele. É o número para comparar com o jogo: as etiquetas na ponta direita das linhas são sempre o nível 100. Na aba <b>Poder de luta</b> ele também escolhe o nível dos cartões e da tabela de criaturas. Para bater com o jogo, ponha no HP do grupo Battle power a vida máxima menos 25.</p>
+        </div>
+      </details>
 
       <details class="card group" id="g-late" data-lens="prog combat fly" open>
         <summary><span class="chev">▶</span>Termo de fim de jogo</summary>
@@ -548,8 +560,6 @@
       <details class="card group" id="g-rating" data-lens="rating">
         <summary><span class="chev">▶</span>Poder de luta</summary>
         <div class="group-body">
-          <div class="ctl is-hero"><div class="row"><label for="rlv">Nível do jogador (cartões e tabela de criaturas)</label><output id="rlv-out"></output></div>
-            <input type="range" id="rlv" min="0" max="100" step="1" value="50"></div>
           <label class="check">
             <input type="checkbox" id="rhptrack" checked>
             HP extra acompanha o nível
@@ -1352,6 +1362,12 @@
   const mk = (t, a) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); return n; };
   let hot = null;
 
+  // O nivel do slider "Seu personagem", ou null onde ele nao cabe no eixo: na lente Kaioken o x e'
+  // a skill Kaioken, e no eixo por carga o nivel esta' fixo. As etiquetas de ponta mostram sempre
+  // o nivel 100, e eram lidas como o valor atual — este marcador existe para dar o numero que se
+  // compara com o jogo.
+  const youLevel = () => (lens === "kk" || axis === "load" ? null : v("rlv"));
+
   function niceMax(m) {
     if (m <= 0) return 1;
     const mag = Math.pow(10, Math.floor(Math.log10(m)));
@@ -1411,6 +1427,28 @@
       t.textContent = e.text;
       svg.appendChild(t);
     });
+
+    if (ends.length) {
+      const t = mk("text", { class: "you-label", x: M.l + PW + 8, y: M.t - 4 });
+      t.textContent = axis === "load" ? "carga 100%" : lens === "kk" ? "skill 100" : "nível 100";
+      svg.appendChild(t);
+    }
+
+    const you = youLevel();
+    if (you !== null) {
+      const x = xOf(you);
+      svg.appendChild(mk("line", { class: "you-line", x1: x, x2: x, y1: M.t, y2: M.t + PH }));
+      // Perto das bordas o rotulo encosta para dentro: no 100 centralizado ele cairia em cima do
+      // "nível 100" das etiquetas de ponta.
+      const anchor = you > 80 ? "end" : you < 15 ? "start" : "middle";
+      const t = mk("text", { class: "you-label", x: x + (anchor === "end" ? -4 : anchor === "start" ? 4 : 0), y: M.t - 4, "text-anchor": anchor });
+      t.textContent = `você · nível ${you}`;
+      svg.appendChild(t);
+      series.forEach(s => {
+        const y = yOf(s.vals[you]);
+        if (isFinite(y)) svg.appendChild(mk("circle", { cx: x, cy: y, r: 3.5, fill: s.color, stroke: "var(--panel)", "stroke-width": 1.5 }));
+      });
+    }
 
     const cross = mk("line", { class: "axis-line", y1: M.t, y2: M.t + PH, opacity: 0 });
     svg.appendChild(cross);
@@ -2115,7 +2153,7 @@
     document.querySelectorAll(".rail details.group").forEach(d => {
       const on = d.dataset.lens.split(" ").includes(id);
       d.style.display = on ? "" : "none";
-      if (on) d.open = L.open.includes(d.id);
+      if (on) d.open = L.open.includes(d.id) || d.id === "g-you";
     });
 
     document.getElementById("stat-seg").innerHTML =
@@ -2153,8 +2191,11 @@
     document.getElementById("cmp-today-wrap").style.display = mode === "formonly" || lens === "rating" || lens === "kk" ? "none" : "";
     document.getElementById("cmp-forms-wrap").style.display = mode === "forms" ? "" : "none";
 
+    // Com o marcador ligado a legenda carrega o valor de cada linha no nivel do personagem.
+    const you = youLevel(), spec = STATS[stat];
     document.getElementById("legend").innerHTML = seriesFor(k5).map(s =>
-      `<span class="item"><span class="swatch${s.dash ? " dash" : ""}" style="${s.dash ? "color" : "background"}: ${s.color}"></span>${s.label}</span>`
+      `<span class="item"><span class="swatch${s.dash ? " dash" : ""}" style="${s.dash ? "color" : "background"}: ${s.color}"></span>${s.label}` +
+      (you !== null ? ` <span class="val">${fmtc(s.of(you), spec.dec)}${spec.unit}</span>` : "") + `</span>`
     ).join("");
 
     document.querySelectorAll("#lenses button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lens === lens)));
