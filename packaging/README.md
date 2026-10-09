@@ -67,17 +67,17 @@ reads roughly the common creatures of its biome:
 | Scouter | Crafted from | At | Reads roughly |
 |---|---|---|---|
 | **Flint** | flint | Workbench | Meadows |
-| **Bronze** | bronze | Forge | Black Forest, except the Troll |
+| **Bronze** | bronze | Forge | Black Forest, except Brutes and the Troll |
 | **Iron** | iron | Forge | Swamp |
-| **Silver** | silver | Forge | Mountain, Troll included |
+| **Silver** | silver | Forge | Mountain, except Fenrings and Stone Golems |
 | **Black Metal** | black metal | Forge | Plains |
 | **Yggdrasil** | Yggdrasil wood | Black Forge | Mistlands |
 | **Flametal** | flametal | Black Forge | Ashlands |
 | **Bloodgold** | bloodgold | Black Forge | Deep North |
 
-The limit is about strength, not about biome, so the match is not exact: a Troll is stronger than
-anything in the Swamp, for instance. A biome's boss is always too strong for that biome's
-scouter.
+The limit is about strength, not about biome, so the match is not exact: a biome's common
+creatures are readable from its own scouter on, but its biggest ones (Trolls, Stone Golems, Lox,
+Morgen) need the next tier. A biome's boss is always too strong for that biome's scouter.
 
 - Every tier comes in **four lens colors**, picked by recipe: red (raspberries), green (greydwarf
   eyes), blue (blueberries) or purple (thistle).

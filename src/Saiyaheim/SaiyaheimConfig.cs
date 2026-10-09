@@ -189,18 +189,6 @@ namespace Saiyaheim
         private const string SecPower = "6 - Battle Power";
         private const string SecPowerSkill = "6.1 - Power Level";
 
-        /// <summary>
-        /// O scouter (etapa 15): as regras que valem para todos os tiers. Cada tier tem a seção dele,
-        /// logo depois (<see cref="ScouterTierSection"/>). Ver [[Scouter]].
-        /// </summary>
-        private const string SecScouter = "6.2 - Scouter";
-
-        /// <summary>
-        /// "6.2.0 - Scouter Flint", "6.2.1 - Scouter Bronze" e assim por diante — ordena logo depois
-        /// da 6.2. O número é o do tier: o Flint entrou depois como tier 0 (2026-10-09) e nenhuma
-        /// seção existente mudou de nome, então não há migração.
-        /// </summary>
-        private static string ScouterTierSection(int index, string metal) => $"6.2.{index} - Scouter {metal}";
         private const string SecHud = "7 - HUD";
 
         // As seções "8 - Effects" e "10 - Multiplayer" deixaram de existir em 2026-09-15: tudo o
@@ -1226,19 +1214,28 @@ namespace Saiyaheim
 
         // ---------- 6.2 - Scouter ----------
 
-        /// <summary>Quantas barras do metal do tier a receita de cada scouter pede.</summary>
-        public static ConfigEntry<int> ScouterMetalAmount { get; private set; }
+        // O scouter nao tem chave no .cfg desde 2026-10-09 (pedido do Henrique, antes da 0.9.0): a
+        // receita e os limites dos tiers foram testados no jogo e viraram constante. Os limites
+        // moram no ScouterRegistry.All.
 
-        /// <summary>Quanto do material de cor da lente a receita pede (Raspberry, Greydwarf eye...).</summary>
-        public static ConfigEntry<int> ScouterColorAmount { get; private set; }
+        /// <summary>
+        /// Quantas barras do metal do tier a receita de cada scouter pede. Testado no jogo em
+        /// 2026-10-09 (era 3).
+        /// </summary>
+        public const int ScouterMetalAmount = 5;
+
+        /// <summary>
+        /// Quanto do material de cor da lente a receita pede: Raspberry, Greydwarf eye, Blueberries
+        /// ou Thistle. O mesmo em todo tier, para qualquer lente sair no primeiro. Testado no jogo em
+        /// 2026-10-09 (era 5).
+        /// </summary>
+        public const int ScouterColorAmount = 3;
 
         /// <summary>
         /// Segundos entre uma troca e outra dos dígitos da interferência, quando o poder lido passa
         /// do limite do scouter. Aprovado na tela em 2026-10-09.
         /// </summary>
         public const float ScouterInterferenceInterval = 0.06f;
-
-        public static ScouterTierConfig[] ScouterTiers { get; private set; }
 
         /// <summary>
         /// Posição do scouter em relação ao ponto onde o jogo prende o capacete, em metros. Veio do
@@ -1271,21 +1268,6 @@ namespace Saiyaheim
         /// Henrique no jogo em 2026-10-09.
         /// </summary>
         public const float ScouterIconDistance = 0.8f;
-
-        /// <summary>
-        /// O limite de leitura de <b>um</b> tier de scouter, como uma criatura imaginária: o limite é
-        /// o poder de luta que uma criatura com esta vida e este dano por segundo teria, pela mesma
-        /// fórmula das criaturas. Por isso ele acompanha os pesos do poder de luta sozinho. Ver
-        /// [[Decisões Tomadas#O limite do scouter é uma criatura imaginária — 2026-10-08]].
-        /// </summary>
-        public class ScouterTierConfig
-        {
-            /// <summary>Vida da criatura imaginária que define o limite.</summary>
-            public ConfigEntry<float> LimitHealth { get; internal set; }
-
-            /// <summary>Dano por segundo da criatura imaginária que define o limite.</summary>
-            public ConfigEntry<float> LimitDps { get; internal set; }
-        }
 
         // Aqui morava o PowerCompressionExponent, removido no playtest da etapa 10: um expoente
         // sobre o valor vira o mesmo expoente sobre a razao, e ele achatava justamente as
@@ -3530,46 +3512,6 @@ namespace Saiyaheim
                     "trains its own vanilla skill.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(65)));
 
-            // --- Scouter (etapa 15) ---
-            // Receita: metal do tier + material da cor da lente, decidido em 2026-10-08. O material
-            // de cor e' fixo por cor e vem da Meadows/Black Forest, para qualquer lente sair no
-            // primeiro tier e o jogador manter a cor ao subir.
-            ScouterMetalAmount = config.Bind(SecScouter, "MetalAmount", 3,
-                new ConfigDescription(
-                    "Bars of the tier's metal each scouter recipe asks for (bronze, iron, silver, " +
-                    "black metal, flametal or bloodgold; flint for the Meadows tier, Yggdrasil wood " +
-                    "for the Mistlands tier). " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<int>(1, 50), AdminOnly(100)));
-
-            ScouterColorAmount = config.Bind(SecScouter, "ColorAmount", 5,
-                new ConfigDescription(
-                    "How much of the lens color ingredient each recipe asks for: raspberries for " +
-                    "red, greydwarf eyes for green, blueberries for blue, thistle for purple. The " +
-                    "same at every tier, so any lens can be made from the first one. " +
-                    "(Starting value. Not playtested yet.)",
-                    new AcceptableValueRange<int>(1, 50), AdminOnly(90)));
-
-            // Limites testados no jogo em 2026-10-09 (so' o Bloodgold mudou), pela tabela de
-            // Criaturas do vault (sem dano de construcao, DPS somando os ataques e veneno pelo tick):
-            // limite = 0,8 x vida + 10 x dps, nos pesos de 2026-09-06. Criterio: o comum de cada
-            // bioma so' e' lido a partir do tier do bioma dele. Flint le Greyling (41); Bronze, Greydwarf (114) e nao Draugr (220);
-            // Iron, o Swamp e nao Wolf (484); Silver, Wolf e nao Fuling (518); Black Metal, Fuling e
-            // nao Seeker (1.325); Yggdrasil, Seeker e nao Charred Warrior (2.017); Flametal, Charred
-            // e nao Krigen (2.295); Bloodgold, o Deep North. As criaturas grandes de cada bioma ficam
-            // para o tier seguinte.
-            ScouterTiers = new[]
-            {
-                BindScouterTier(config, 0, "Flint", limitHealth: 30f, limitDps: 2.4f),
-                BindScouterTier(config, 1, "Bronze", limitHealth: 120f, limitDps: 10.4f),
-                BindScouterTier(config, 2, "Iron", limitHealth: 250f, limitDps: 22f),
-                BindScouterTier(config, 3, "Silver", limitHealth: 300f, limitDps: 26f),
-                BindScouterTier(config, 4, "Black Metal", limitHealth: 500f, limitDps: 60f),
-                BindScouterTier(config, 5, "Yggdrasil", limitHealth: 950f, limitDps: 84f),
-                BindScouterTier(config, 6, "Flametal", limitHealth: 1250f, limitDps: 110f),
-                BindScouterTier(config, 7, "Bloodgold", limitHealth: 2000f, limitDps: 300f),
-            };
-
             // --- Debug ---
 
             VerboseLogging = config.Bind(SecDebug, "VerboseLogging", false,
@@ -3874,29 +3816,6 @@ namespace Saiyaheim
         /// Liga as chaves de um tier de Kaioken numa seção própria do <c>.cfg</c>. Mesmo papel do
         /// <see cref="BindTransformation"/>: o tier é uma chamada, não um bloco copiado.
         /// </summary>
-        private static ScouterTierConfig BindScouterTier(
-            ConfigFile config, int index, string metal, float limitHealth, float limitDps)
-        {
-            string section = ScouterTierSection(index, metal);
-
-            return new ScouterTierConfig
-            {
-                LimitHealth = config.Bind(section, "LimitHealth", limitHealth,
-                    new ConfigDescription(
-                        "The scouter reads battle power up to what a creature with this much health " +
-                        "and LimitDps would have, using the same formula as real creatures " +
-                        "(RatingHealthWeight x health + RatingDamageWeight x dps). So the limit moves " +
-                        "with the battle power weights on its own. Anything stronger shows as static.",
-                        new AcceptableValueRange<float>(0f, 100000f), AdminOnly(100))),
-
-                LimitDps = config.Bind(section, "LimitDps", limitDps,
-                    new ConfigDescription(
-                        "Damage per second of the imaginary creature that sets this scouter's " +
-                        "reading limit. See LimitHealth.",
-                        new AcceptableValueRange<float>(0f, 10000f), AdminOnly(90))),
-            };
-        }
-
         private static KaiokenTierConfig BindKaiokenTier(
             ConfigFile config, int index, string name, float powerMultiplier, float safeLevel,
             float staminaPerSecond, float healthPerLevel, float moveSpeed, float attackSpeed, float maxKi,

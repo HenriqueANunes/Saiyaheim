@@ -176,8 +176,8 @@ namespace Saiyaheim.Debugging
             {
                 float limit = scouter.GetLimitRaw();
                 Print($"Scouter: {scouter.Metal}, reads up to {PowerRating.ToDisplay(limit):0} " +
-                      $"(= {SaiyaheimConfig.RatingK1Health.Value:0.##} x {scouter.Config.LimitHealth.Value:0.#} hp" +
-                      $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x {scouter.Config.LimitDps.Value:0.#} dps)" +
+                      $"(= {SaiyaheimConfig.RatingK1Health.Value:0.##} x {scouter.LimitHealth:0.#} hp" +
+                      $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x {scouter.LimitDps:0.#} dps)" +
                       $"{(ratingRaw > limit ? " — your own number shows as static" : string.Empty)}");
             }
             // A vida efetiva e o HP cru saem juntos porque a diferenca entre eles E o termo que a

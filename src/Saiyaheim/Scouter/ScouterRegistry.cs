@@ -47,6 +47,18 @@ namespace Saiyaheim.Scouter
         /// <summary>
         /// Em ordem de progressão. O Bloodgold vai para a Black Forge porque a bancada do Deep North,
         /// a Frost Foundry, é forno de fundir e não aceita receita (conferido no prefab em 2026-10-08).
+        ///
+        /// <b>Limites</b> (vida e DPS da criatura imaginária, ver <see cref="ScouterTier"/>) testados
+        /// no jogo em 2026-10-09, pela tabela de Criaturas do vault (sem dano de construção, DPS
+        /// somando os ataques e veneno pelo tick). Saíram do <c>.cfg</c> no mesmo dia. Com os pesos
+        /// de 2026-09-06 o limite é <c>0,8 × vida + 10 × dps</c>.
+        ///
+        /// Critério: o comum de cada bioma só é lido a partir do tier do bioma dele. Flint lê o
+        /// Greyling (41), com folga até 90 a pedido do Henrique; Bronze, o Greydwarf (114) e não o Draugr (220); Iron, o Swamp e não o Wolf
+        /// (484); Silver, o Wolf e não o Fuling (518); Black Metal, o Fuling e não o Seeker (1.325);
+        /// Yggdrasil, o Seeker e não o Charred Warrior (2.017); Flametal, o Charred e não o Krigen
+        /// (2.295); Bloodgold, o Deep North. As criaturas grandes de cada bioma ficam para o tier
+        /// seguinte.
         /// </summary>
         internal static ScouterTier[] All
         {
@@ -54,22 +66,21 @@ namespace Saiyaheim.Scouter
             {
                 if (_all == null)
                 {
-                    var c = SaiyaheimConfig.ScouterTiers;
                     _all = new[]
                     {
                         // Meadows: não tem metal, então pederneira na workbench, a única bancada
                         // do bioma (2026-10-09). É o tier 0 para o Bronze continuar sendo o 1.
-                        new ScouterTier(0, "Flint", "Flint", ScouterTier.Workbench, c[0]),
-                        new ScouterTier(1, "Bronze", "Bronze", ScouterTier.Forge, c[1]),
-                        new ScouterTier(2, "Iron", "Iron", ScouterTier.Forge, c[2]),
-                        new ScouterTier(3, "Silver", "Silver", ScouterTier.Forge, c[3]),
-                        new ScouterTier(4, "Black Metal", "BlackMetal", ScouterTier.Forge, c[4]),
+                        new ScouterTier(0, "Flint", "Flint", ScouterTier.Workbench, 75f, 3f),
+                        new ScouterTier(1, "Bronze", "Bronze", ScouterTier.Forge, 120f, 10.4f),
+                        new ScouterTier(2, "Iron", "Iron", ScouterTier.Forge, 250f, 22f),
+                        new ScouterTier(3, "Silver", "Silver", ScouterTier.Forge, 300f, 26f),
+                        new ScouterTier(4, "Black Metal", "BlackMetal", ScouterTier.Forge, 500f, 60f),
                         // Mistlands: Yggdrasil Wood e não eitr refinado (2026-10-08). O material do
                         // eitr é liso com brilho próprio e no jogo saiu verde-claro; a madeira tem
                         // textura, como os metais.
-                        new ScouterTier(5, "Yggdrasil", "YggdrasilWood", ScouterTier.BlackForge, c[5]),
-                        new ScouterTier(6, "Flametal", "FlametalNew", ScouterTier.BlackForge, c[6]),
-                        new ScouterTier(7, "Bloodgold", "Gold", ScouterTier.BlackForge, c[7]),
+                        new ScouterTier(5, "Yggdrasil", "YggdrasilWood", ScouterTier.BlackForge, 950f, 84f),
+                        new ScouterTier(6, "Flametal", "FlametalNew", ScouterTier.BlackForge, 1250f, 110f),
+                        new ScouterTier(7, "Bloodgold", "Gold", ScouterTier.BlackForge, 2000f, 300f),
                     };
                 }
 
@@ -109,8 +120,7 @@ namespace Saiyaheim.Scouter
         }
 
         /// <summary>
-        /// Os registrados nesta sessão. Servem para reescrever as quantidades da receita quando o
-        /// config muda (inclusive o do servidor) e para a dica (<see cref="ScouterTooltip"/>).
+        /// Os registrados nesta sessão. Servem para a dica (<see cref="ScouterTooltip"/>).
         /// </summary>
         internal static readonly List<Entry> Entries = new List<Entry>();
 
@@ -125,8 +135,6 @@ namespace Saiyaheim.Scouter
             }
 
             PrefabManager.OnVanillaPrefabsAvailable += OnVanillaPrefabsAvailable;
-            SaiyaheimConfig.ScouterMetalAmount.SettingChanged += (_, __) => ApplyAmounts();
-            SaiyaheimConfig.ScouterColorAmount.SettingChanged += (_, __) => ApplyAmounts();
         }
 
         internal static string PrefabName(ScouterTier tier, Lens lens)
@@ -180,8 +188,8 @@ namespace Saiyaheim.Scouter
                 MinStationLevel = 1,
                 Requirements = new[]
                 {
-                    new RequirementConfig(tier.MetalPrefab, SaiyaheimConfig.ScouterMetalAmount.Value),
-                    new RequirementConfig(lens.ColorPrefab, SaiyaheimConfig.ScouterColorAmount.Value),
+                    new RequirementConfig(tier.MetalPrefab, SaiyaheimConfig.ScouterMetalAmount),
+                    new RequirementConfig(lens.ColorPrefab, SaiyaheimConfig.ScouterColorAmount),
                 },
             };
 
@@ -217,25 +225,6 @@ namespace Saiyaheim.Scouter
             var entry = new Entry { Item = item, Tier = tier, Shared = shared };
             Entries.Add(entry);
             EntryByPrefab[name] = entry;
-        }
-
-        /// <summary>
-        /// Reescreve as quantidades das receitas já registradas. O config <c>AdminOnly</c> do
-        /// servidor chega depois do registro, e sem isto a receita ficaria com o número local.
-        /// </summary>
-        private static void ApplyAmounts()
-        {
-            foreach (Entry entry in Entries)
-            {
-                Piece.Requirement[] resources = entry.Item.Recipe?.Recipe?.m_resources;
-                if (resources == null || resources.Length < 2)
-                {
-                    continue;
-                }
-
-                resources[0].m_amount = SaiyaheimConfig.ScouterMetalAmount.Value;
-                resources[1].m_amount = SaiyaheimConfig.ScouterColorAmount.Value;
-            }
         }
     }
 }
