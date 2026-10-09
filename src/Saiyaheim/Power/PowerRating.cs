@@ -276,15 +276,12 @@ namespace Saiyaheim.Power
         /// nunca devolve null — sem nada equipado ele entrega o <c>m_unarmedWeapon</c>, cujo dano
         /// é de unidade dígita, e é o valor certo: quem soca sem ki bate mesmo quase nada.
         ///
-        /// <b>Criatura:</b> a média das armas do inventário dela, cada uma dividida pelo
-        /// <b>próprio</b> intervalo. Bicho do Valheim guarda cada ataque como um item de arma
-        /// (<c>m_defaultItems</c> do prefab, que o <c>GiveDefaultItem</c> despeja no inventário),
-        /// e cada item traz a cadência dele no <c>m_aiAttackInterval</c> — então isto é
-        /// literalmente "o dano por segundo deste bicho", sem tabela escrita à mão.
-        ///
-        /// ⚠️ A divisão é por arma, e não do total pela média dos intervalos. São coisas
-        /// diferentes quando um bicho tem um golpe rápido e fraco e um lento e forte, que é o caso
-        /// comum — a média das taxas é a certa, a taxa das médias não.
+        /// <b>Criatura:</b> a soma das armas do inventário dela, cada uma dividida pelo
+        /// <b>próprio</b> intervalo, com teto de cadência. Bicho do Valheim guarda cada ataque como
+        /// um item de arma (<c>m_defaultItems</c> do prefab, que o <c>GiveDefaultItem</c> despeja
+        /// no inventário), e cada item traz a cadência dele no <c>m_aiAttackInterval</c> — então
+        /// isto é literalmente "o dano por segundo deste bicho", sem tabela escrita à mão. Ver
+        /// <see cref="GetCreatureDps"/>.
         /// </summary>
         private static float GetDamagePerSecond(Character character)
         {
@@ -329,7 +326,29 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// Média do dano por segundo das armas do inventário da criatura.
+        /// Dano por segundo da criatura: a <b>soma</b> de <c>dano ÷ intervalo</c> das armas do
+        /// inventário, com a taxa total de ataques limitada a
+        /// <see cref="SaiyaheimConfig.RatingCreatureMaxAttackRate"/>.
+        ///
+        /// <b>Soma, não média — decidido em 2026-10-09.</b> Até então era a média, como se o bicho
+        /// usasse um ataque só. Mas o cooldown é <b>por item</b>: o <c>Humanoid.EquipBestWeapon</c>
+        /// sorteia entre os itens cujo <c>m_lastAttackTime</c> já passou do próprio
+        /// <c>m_aiAttackInterval</c>, e a trava global (<c>MonsterAI.m_minAttackInterval</c>) é 0
+        /// nos prefabs conferidos. O Wolf tem três mordidas de 70 a cada 5 s cada uma e morde até
+        /// três vezes nesse tempo — 42 de DPS, não 14. A média achatava justamente quem tem muitos
+        /// ataques (Wolf, Seeker, Charred), e era isso que punha o Swamp acima da Mountain e as
+        /// Plains acima da Mistlands.
+        ///
+        /// <b>O teto existe porque a soma não enxerga a animação.</b> Ataques com intervalo de 1 s
+        /// somados (Krigen de duas armas) dariam vários golpes por segundo, que a animação não
+        /// comporta. Acima do teto, o DPS é a taxa do teto vezes o dano médio por golpe, ponderado
+        /// pela frequência de cada ataque.
+        ///
+        /// <b>O veneno sai à parte</b>, preso no tick do maior veneno da criatura, porque o jogo não
+        /// o acumula. Ver <see cref="GetPoisonTickDps"/>.
+        ///
+        /// ⚠️ A divisão continua sendo por arma, e não do total pela média dos intervalos: um
+        /// golpe rápido e fraco e um lento e forte não se resumem num intervalo médio.
         ///
         /// ⚠️ Devolve zero para bicho sem arma nenhuma no inventário, e isso é resposta legítima
         /// — não um erro a mascarar. Existe criatura passiva no jogo (cervo, corvo) que de fato
@@ -348,8 +367,10 @@ namespace Saiyaheim.Power
                 return 0f;
             }
 
-            float total = 0f;
-            int count = 0;
+            float directDps = 0f;
+            float poisonDps = 0f;
+            float poisonCap = 0f;
+            float attacksPerSecond = 0f;
 
             foreach (ItemDrop.ItemData item in inventory.GetAllItems())
             {
@@ -361,12 +382,62 @@ namespace Saiyaheim.Power
                 // O piso existe porque intervalo zero é divisão por zero, e o campo é dado de
                 // asset: nada garante que todo prefab do jogo o preencheu.
                 float interval = Mathf.Max(0.05f, item.m_shared.m_aiAttackInterval);
+                HitData.DamageTypes damage = item.GetDamage();
 
-                total += GetCombatDamage(item.GetDamage()) / interval;
-                count++;
+                directDps += (GetCombatDamage(damage) - damage.m_poison) / interval;
+                poisonDps += damage.m_poison / interval;
+                poisonCap = Mathf.Max(poisonCap, GetPoisonTickDps(damage.m_poison));
+                attacksPerSecond += 1f / interval;
             }
 
-            return count == 0 ? 0f : total / count;
+            float maxRate = SaiyaheimConfig.RatingCreatureMaxAttackRate.Value;
+            if (maxRate > 0f && attacksPerSecond > maxRate)
+            {
+                // Escalar a soma pela razão vira "teto × golpe médio", pesado pela frequência.
+                float scale = maxRate / attacksPerSecond;
+                directDps *= scale;
+                poisonDps *= scale;
+            }
+
+            return directDps + Mathf.Min(poisonDps, poisonCap);
+        }
+
+        /// <summary>
+        /// Dano por segundo de um veneno de <paramref name="damage"/> reaplicado sem parar: o teto
+        /// do que veneno consegue fazer, por mais rápido que a criatura ataque.
+        ///
+        /// <b>Veneno não acumula no Valheim.</b> O <c>SE_Poison.AddDamage</c> não soma o golpe novo
+        /// ao que ainda está correndo: se for maior que o restante, <b>substitui</b>; se for menor,
+        /// é descartado. O dano escorre em ticks de <c>m_damageInterval</c> durante
+        /// <c>m_baseTTL + (dano × m_TTLPerDamagePlayer) ^ m_TTLPower</c> segundos — no jogador,
+        /// 90 de veneno duram 22 s, ~4 por segundo. Contar o veneno como golpe direto punha o Blob
+        /// (90 de veneno a cada 2 s, 45 de DPS) acima do Wolf. Decidido em 2026-10-09.
+        ///
+        /// Fogo e espírito não têm esse problema: o <c>SE_Burning</c> soma (<c>+=</c>). Os
+        /// parâmetros saem do status effect do jogo, com os valores do <c>Poison.asset</c> de
+        /// fallback se ele não estiver carregado. Lê o lado do jogador porque o poder de luta da
+        /// criatura é "quanto ela machuca você".
+        /// </summary>
+        private static float GetPoisonTickDps(float damage)
+        {
+            if (damage <= 0f)
+            {
+                return 0f;
+            }
+
+            float baseTtl = 1f, ttlPerDamage = 5f, ttlPower = 0.5f, tick = 1f;
+            if (ObjectDB.instance?.GetStatusEffect(SEMan.s_statusEffectPoison) is SE_Poison poison)
+            {
+                baseTtl = poison.m_baseTTL;
+                ttlPerDamage = poison.m_TTLPerDamagePlayer;
+                ttlPower = poison.m_TTLPower;
+                tick = Mathf.Max(0.05f, poison.m_damageInterval);
+            }
+
+            float ttl = baseTtl + Mathf.Pow(damage * ttlPerDamage, ttlPower);
+            int ticks = Mathf.Max(1, (int)(ttl / tick));
+
+            return damage / ticks / tick;
         }
 
         /// <summary>

@@ -7,6 +7,7 @@
 - Added: SSJ God heals at least 1 health per second, even with no food (adjustable with HealthRegenMinimum).
 - Fixed: typing a map marker name no longer triggers the mod's keys. Reported by MisterMusashi.
 - Changed: battle power ignores damage that only hits trees, rocks and buildings, so Trolls, Stone Golems, Lox, Asksvin and Morgen show a lower number, and an axe or pickaxe no longer counts as a strong weapon.
+- Changed: creature battle power counts every attack a creature has and poison only for the damage it actually deals, so wolves, seekers and the charred read higher, blobs and leeches lower, and each biome's common creatures read stronger than the previous biome's.
 
 Scouter model: "Scouter - Dragon Ball Z" by Yanez Designs, CC BY 4.0, modified.
 

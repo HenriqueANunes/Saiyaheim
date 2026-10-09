@@ -1218,6 +1218,9 @@ namespace Saiyaheim
         /// <summary>Peso do dano por segundo no poder de luta. Vale para jogador e inimigo.</summary>
         public static ConfigEntry<float> RatingK2Damage { get; private set; }
 
+        /// <summary>Teto de ataques por segundo de uma criatura no poder de luta. 0 desliga.</summary>
+        public static ConfigEntry<float> RatingCreatureMaxAttackRate { get; private set; }
+
         /// <summary>Quanto do multiplicador da forma chega ao poder de luta do jogador.</summary>
         public static ConfigEntry<float> RatingFormShare { get; private set; }
 
@@ -3455,6 +3458,20 @@ namespace Saiyaheim
                     "this thing hurt me', not 'how long does it take to chew through it'.)",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
 
+            // Soma das taxas dos ataques da criatura, nao media: o cooldown do jogo e' por item.
+            // Decidido em 2026-10-09. Ver PowerRating.GetCreatureDps.
+            RatingCreatureMaxAttackRate = config.Bind(SecPower, "RatingCreatureMaxAttackRate", 1f,
+                new ConfigDescription(
+                    "Most attacks per second a creature is assumed to land in the power rating. " +
+                    "A creature's damage per second adds up all its attacks, each at its own " +
+                    "cooldown, because that is how the game's AI uses them: a wolf with three " +
+                    "bites on separate 5 second cooldowns bites three times in 5 seconds. Some " +
+                    "creatures have several 1 second attacks, which added up would mean more hits " +
+                    "per second than the animations allow; above this rate, the damage per second " +
+                    "becomes this rate times the creature's average hit. 0 disables the cap. " +
+                    "(Starting value. Not playtested yet.)",
+                    new AcceptableValueRange<float>(0f, 10f), AdminOnly(46)));
+
             // A forma entra no poder de luta como multiplicador sobre a conta da forma base, e nao
             // pela armadura e pelo soco de dentro dela. Decidido em 2026-09-17 na calculadora
             // (aba Poder de luta). Mesmo desenho do FormSpeedShare do voo.
@@ -3533,20 +3550,24 @@ namespace Saiyaheim
                     "(Starting value. Not playtested yet.)",
                     new AcceptableValueRange<int>(1, 50), AdminOnly(90)));
 
-            // Limites de partida pela tabela de Criaturas do vault (sem dano de construcao), com
-            // vida e dano repartindo meio a meio: limite = 0,8 x vida + 10 x dps, nos pesos de
-            // 2026-09-06. Flint le a Meadows (Greyling 41) e nao o Eikthyr; Bronze le a Black
-            // Forest menos o Troll; Bloodgold le o Deep North.
+            // Limites testados no jogo em 2026-10-09 (so' o Bloodgold mudou), pela tabela de
+            // Criaturas do vault (sem dano de construcao, DPS somando os ataques e veneno pelo tick):
+            // limite = 0,8 x vida + 10 x dps, nos pesos de 2026-09-06. Criterio: o comum de cada
+            // bioma so' e' lido a partir do tier do bioma dele. Flint le Greyling (41); Bronze, Greydwarf (114) e nao Draugr (220);
+            // Iron, o Swamp e nao Wolf (484); Silver, Wolf e nao Fuling (518); Black Metal, Fuling e
+            // nao Seeker (1.325); Yggdrasil, Seeker e nao Charred Warrior (2.017); Flametal, Charred
+            // e nao Krigen (2.295); Bloodgold, o Deep North. As criaturas grandes de cada bioma ficam
+            // para o tier seguinte.
             ScouterTiers = new[]
             {
                 BindScouterTier(config, 0, "Flint", limitHealth: 30f, limitDps: 2.4f),
-                BindScouterTier(config, 1, "Bronze", limitHealth: 200f, limitDps: 14f),
-                BindScouterTier(config, 2, "Iron", limitHealth: 350f, limitDps: 27f),
-                BindScouterTier(config, 3, "Silver", limitHealth: 500f, limitDps: 40f),
-                BindScouterTier(config, 4, "Black Metal", limitHealth: 750f, limitDps: 60f),
-                BindScouterTier(config, 5, "Yggdrasil", limitHealth: 950f, limitDps: 74f),
-                BindScouterTier(config, 6, "Flametal", limitHealth: 1250f, limitDps: 100f),
-                BindScouterTier(config, 7, "Bloodgold", limitHealth: 1900f, limitDps: 148f),
+                BindScouterTier(config, 1, "Bronze", limitHealth: 120f, limitDps: 10.4f),
+                BindScouterTier(config, 2, "Iron", limitHealth: 250f, limitDps: 22f),
+                BindScouterTier(config, 3, "Silver", limitHealth: 300f, limitDps: 26f),
+                BindScouterTier(config, 4, "Black Metal", limitHealth: 500f, limitDps: 60f),
+                BindScouterTier(config, 5, "Yggdrasil", limitHealth: 950f, limitDps: 84f),
+                BindScouterTier(config, 6, "Flametal", limitHealth: 1250f, limitDps: 110f),
+                BindScouterTier(config, 7, "Bloodgold", limitHealth: 2000f, limitDps: 300f),
             };
 
             // --- Debug ---
@@ -3865,15 +3886,13 @@ namespace Saiyaheim
                         "The scouter reads battle power up to what a creature with this much health " +
                         "and LimitDps would have, using the same formula as real creatures " +
                         "(RatingHealthWeight x health + RatingDamageWeight x dps). So the limit moves " +
-                        "with the battle power weights on its own. Anything stronger shows as static. " +
-                        "(Starting value. Not playtested yet.)",
+                        "with the battle power weights on its own. Anything stronger shows as static.",
                         new AcceptableValueRange<float>(0f, 100000f), AdminOnly(100))),
 
                 LimitDps = config.Bind(section, "LimitDps", limitDps,
                     new ConfigDescription(
                         "Damage per second of the imaginary creature that sets this scouter's " +
-                        "reading limit. See LimitHealth. " +
-                        "(Starting value. Not playtested yet.)",
+                        "reading limit. See LimitHealth.",
                         new AcceptableValueRange<float>(0f, 10000f), AdminOnly(90))),
             };
         }

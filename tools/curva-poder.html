@@ -579,6 +579,9 @@
           <p class="hint">Vida efetiva = <code>HP × (1 + armadura / isto)</code>. Em 0 a armadura sai da conta. Criatura tem armadura 0, então este slider só mexe no jogador.</p>
           <div class="ctl"><div class="row"><label for="rk2">RatingDamageWeight</label><output id="rk2-out"></output></div>
             <input type="range" id="rk2" min="0" max="30" step="0.5" value="10"></div>
+          <div class="ctl"><div class="row"><label for="rcap">RatingCreatureMaxAttackRate</label><output id="rcap-out"></output></div>
+            <input type="range" id="rcap" min="0" max="3" step="0.1" value="1"></div>
+          <p class="hint">Ataques por segundo que uma criatura consegue dar, no máximo. O DPS dela soma todos os ataques, cada um no próprio cooldown, porque é assim que a IA do jogo usa: o Wolf tem três mordidas de 5 s e morde três vezes em 5 s. Acima do teto, o DPS vira teto × golpe médio. Em 0 o teto sai.</p>
           <div class="ctl"><div class="row"><label for="rhi">PlayerHitInterval (constante no código)</label><output id="rhi-out"></output></div>
             <input type="range" id="rhi" min="0.5" max="10" step="0.5" value="5"></div>
           <p class="hint">Segundos entre dois socos que a conta supõe. Não é config: é <code>const</code> no <code>PowerRating.cs</code>.</p>
@@ -754,7 +757,7 @@
             <tbody id="creatures-tbody"></tbody>
           </table>
         </div>
-        <p class="table-note">Dano e HP lidos dos prefabs do jogo (jogo extraído em <code>~/Downloads/valheim-ripped</code>, <code>m_damages</code> e <code>m_aiAttackInterval</code> de cada item de ataque), sem estrelas. <b>Golpe</b> é o ataque mais frequente, sem o dano em estrutura. <b>DPS</b> espelha o <code>PowerRating.GetCreatureDps</code>: média de <code>dano ÷ intervalo</code> das armas do inventário. Quem sorteia arma ou conjunto (Draugr, Fuling, Troll, Stone Golem) entra com a média dos sorteios. <b>Você ÷ ela</b> é o seu poder de luta dividido pelo dela: acima de 1 você ganha.</p>
+        <p class="table-note">Dano e HP lidos dos prefabs do jogo (jogo extraído em <code>~/Downloads/valheim-ripped</code>, <code>m_damages</code> e <code>m_aiAttackInterval</code> de cada item de ataque), sem estrelas. <b>Golpe</b> é o ataque mais frequente, sem o dano em estrutura. <b>DPS</b> espelha o <code>PowerRating.GetCreatureDps</code>: soma de <code>dano ÷ intervalo</code> das armas do inventário, com a taxa total limitada pelo <code>RatingCreatureMaxAttackRate</code>. Veneno não acumula no jogo: entra só pelo tick do maior veneno da criatura. Quem sorteia arma ou conjunto (Draugr, Fuling, Troll, Stone Golem) entra com a média dos sorteios. <b>Você ÷ ela</b> é o seu poder de luta dividido pelo dela: acima de 1 você ganha.</p>
       </section>
 
       <section class="card cfg">
@@ -798,7 +801,7 @@
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
                "m4", "d4", "r4", "lv4", "cs1", "cs2", "cs3", "cs4",
                "xpd", "xpt", "xpmax", "cxp", "ppm", "bxp", "bxm", "boss", "fks",
-               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rhi", "rlv", "rfs",
+               "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rcap", "rhi", "rlv", "rfs",
                "ktier", "kform", "klv", "kstr", "kstf", "rkk",
                "kp1", "ks1", "kst1", "kh1", "kp2", "ks2", "kst2", "kh2", "kp3", "ks3", "kst3", "kh3",
                "kp4", "ks4", "kst4", "kh4", "kp5", "ks5", "kst5", "kh5",
@@ -1856,14 +1859,14 @@
     {"biome": "Meadows", "boss": "—", "name": "Neck", "prefab": "Neck", "common": false, "hp": 5.0, "fixed": [["Neck_BiteAttack", 6.0, 0, 4.0, "slash"]], "oneOf": [], "sets": []},
     {"biome": "Meadows", "boss": "—", "name": "Boar", "prefab": "Boar", "common": false, "hp": 10.0, "fixed": [["boar_base_attack", 10.0, 0, 5.0, "blunt"]], "oneOf": [], "sets": []},
     {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf", "prefab": "Greydwarf", "common": true, "hp": 40.0, "fixed": [["Greydwarf_attack", 14.0, 0, 2.0, "slash"], ["Greydwarf_throw", 10.0, 0, 8.0, "blunt"]], "oneOf": [], "sets": []},
-    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf Shaman", "prefab": "Greydwarf_Shaman", "common": false, "hp": 60.0, "fixed": [["Greydwarf_shaman_attack", 30.0, 0, 8.0, "poison"], ["Greydwarf_attack", 14.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
+    {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf Shaman", "prefab": "Greydwarf_Shaman", "common": false, "hp": 60.0, "fixed": [["Greydwarf_shaman_attack", 30.0, 0, 8.0, "poison", 30], ["Greydwarf_attack", 14.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
     {"biome": "Black Forest", "boss": "Eikthyr", "name": "Greydwarf Brute", "prefab": "Greydwarf_Elite", "common": false, "hp": 150.0, "fixed": [["Greydwarf_elite_attack", 30.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
     {"biome": "Black Forest", "boss": "Eikthyr", "name": "Skeleton", "prefab": "Skeleton", "common": false, "hp": 40.0, "fixed": [], "oneOf": [["skeleton_sword", 25.0, 0, 3.0, "slash"], ["skeleton_bow", 20.0, 0, 4.0, "pierce"]], "sets": []},
     {"biome": "Black Forest", "boss": "Eikthyr", "name": "Troll", "prefab": "Troll", "common": false, "hp": 600.0, "fixed": [], "oneOf": [], "sets": [[["troll_punch", 60.0, 140.0, 4.0, "blunt"], ["troll_groundslam", 70.0, 140.0, 20.0, "blunt"], ["troll_throw", 50.0, 100.0, 10.0, "blunt"]], [["troll_punch", 60.0, 140.0, 4.0, "blunt"], ["troll_groundslam", 70.0, 140.0, 20.0, "blunt"], ["troll_throw", 50.0, 100.0, 10.0, "blunt"]], [["troll_log_swing_v", 70.0, 140.0, 6.0, "blunt"], ["troll_log_swing_h", 60.0, 140.0, 6.0, "blunt"]]]},
     {"biome": "Swamp", "boss": "The Elder", "name": "Draugr", "prefab": "Draugr", "common": true, "hp": 100.0, "fixed": [], "oneOf": [["draugr_axe", 48.0, 15.0, 3.0, "slash"], ["draugr_bow", 48.0, 0, 4.0, "pierce"]], "sets": []},
     {"biome": "Swamp", "boss": "The Elder", "name": "Draugr Elite", "prefab": "Draugr_Elite", "common": false, "hp": 200.0, "fixed": [], "oneOf": [["draugr_sword", 58.0, 0, 4.0, "slash"]], "sets": []},
-    {"biome": "Swamp", "boss": "The Elder", "name": "Blob", "prefab": "Blob", "common": false, "hp": 50.0, "fixed": [["blob_attack_aoe", 90.0, 0, 2.0, "poison"]], "oneOf": [], "sets": []},
-    {"biome": "Swamp", "boss": "The Elder", "name": "Leech", "prefab": "Leech", "common": false, "hp": 60.0, "fixed": [["Leech_BiteAttack", 90.0, 0, 2.0, "pierce+poison"]], "oneOf": [], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Blob", "prefab": "Blob", "common": false, "hp": 50.0, "fixed": [["blob_attack_aoe", 90.0, 0, 2.0, "poison", 90]], "oneOf": [], "sets": []},
+    {"biome": "Swamp", "boss": "The Elder", "name": "Leech", "prefab": "Leech", "common": false, "hp": 60.0, "fixed": [["Leech_BiteAttack", 90.0, 0, 2.0, "pierce+poison", 70]], "oneOf": [], "sets": []},
     {"biome": "Swamp", "boss": "The Elder", "name": "Wraith", "prefab": "Wraith", "common": false, "hp": 100.0, "fixed": [["wraith_melee", 60.0, 0, 2.0, "slash"]], "oneOf": [], "sets": []},
     {"biome": "Swamp", "boss": "The Elder", "name": "Surtling", "prefab": "Surtling", "common": false, "hp": 20.0, "fixed": [["imp_fireball_attack", 50.0, 0, 3.0, "blunt+fire"]], "oneOf": [], "sets": []},
     {"biome": "Mountain", "boss": "Bonemass", "name": "Wolf", "prefab": "Wolf", "common": true, "hp": 80.0, "fixed": [["Wolf_Attack1", 70.0, 0, 5.0, "slash"], ["Wolf_Attack2", 70.0, 0, 5.0, "slash"], ["Wolf_Attack3", 70.0, 0, 5.0, "slash"]], "oneOf": [], "sets": []},
@@ -1891,10 +1894,10 @@
     {"biome": "Ashlands", "boss": "The Queen", "name": "Morgen", "prefab": "Morgen", "common": false, "hp": 1600.0, "fixed": [["Morgen_bite", 160.0, 200.0, 4.0, "pierce"], ["Morgen_roll_right", 50.0, 200.0, 20.0, "blunt"], ["Morgen_roll_left", 50.0, 200.0, 12.0, "blunt"], ["Morgen_swipe_1", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_2", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_3", 160.0, 200.0, 4.0, "pierce"], ["Morgen_swipe_4", 160.0, 200.0, 4.0, "pierce"], ["Morgen_bodyslam", 160.0, 0, 12.0, "blunt"]], "oneOf": [], "sets": []},
     {"biome": "Ashlands", "boss": "The Queen", "name": "Fallen Valkyrie", "prefab": "FallenValkyrie", "common": false, "hp": 1500.0, "fixed": [["fallenvalkyrie_claws", 160.0, 0, 3.0, "slash+pierce"], ["fallenvalkyrie_spin", 220.0, 200.0, 10.0, "blunt+pierce"], ["fallenvalkyrie_taunt", 40.0, 0, 30.0, "slash+pierce"]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Greydwarf congelado", "prefab": "Greydwarf_Frozen", "common": false, "hp": 100.0, "fixed": [["Greydwarf_attack_frozen", 96.0, 0, 2.0, "blunt+slash+frost"], ["Greydwarf_throw_frozen", 80.0, 0, 8.0, "blunt+frost"]], "oneOf": [], "sets": []},
-    {"biome": "Deep North", "boss": "Fader", "name": "Greydwarf Shaman congelado", "prefab": "Greydwarf_Shaman_Frozen", "common": false, "hp": 120.0, "fixed": [["Greydwarf_shaman_attack_frozen", 180.0, 0, 8.0, "poison"], ["Greydwarf_attack_frozen", 96.0, 0, 2.0, "blunt+slash+frost"]], "oneOf": [], "sets": []},
+    {"biome": "Deep North", "boss": "Fader", "name": "Greydwarf Shaman congelado", "prefab": "Greydwarf_Shaman_Frozen", "common": false, "hp": 120.0, "fixed": [["Greydwarf_shaman_attack_frozen", 180.0, 0, 8.0, "poison", 180], ["Greydwarf_attack_frozen", 96.0, 0, 2.0, "blunt+slash+frost"]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Skeleton do Deep North", "prefab": "Skeleton_DeepNorth", "common": false, "hp": 100.0, "fixed": [], "oneOf": [["skeleton_mace_DeepNorth", 105.0, 0, 3.0, "damage+blunt+frost"]], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Seal", "prefab": "Seal", "common": false, "hp": 400.0, "fixed": [], "oneOf": [], "sets": []},
-    {"biome": "Deep North", "boss": "Fader", "name": "Writhan", "prefab": "Writhan", "common": false, "hp": 400.0, "fixed": [["writhan_bite", 70.0, 0, 4.0, "pierce+poison"]], "oneOf": [], "sets": []},
+    {"biome": "Deep North", "boss": "Fader", "name": "Writhan", "prefab": "Writhan", "common": false, "hp": 400.0, "fixed": [["writhan_bite", 70.0, 0, 4.0, "pierce+poison", 30]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Frost Blob", "prefab": "BlobFrost", "common": false, "hp": 50.0, "fixed": [["blob_frost_attack_aoe", 100.0, 0, 2.0, "frost"]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Frysling", "prefab": "Frysling", "common": false, "hp": 100.0, "fixed": [["frysling_snowball_attack", 150.0, 0, 3.0, "blunt+frost"]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Captive Fuling", "prefab": "GoblinDeepNorth", "common": false, "hp": 250.0, "fixed": [], "oneOf": [["GoblinClubDeepNorth", 160.0, 0, 2.0, "blunt"], ["GoblinSpearDeepNorth", 150.0, 0, 4.0, "pierce"], ["GoblinSwordDeepNorth", 160.0, 0, 2.0, "slash"], ["GoblinTorchDeepNorth", 170.0, 0, 2.0, "blunt+fire"]], "sets": []},
@@ -1906,11 +1909,13 @@
     {"biome": "Deep North", "boss": "Fader", "name": "Krigen de duas armas", "prefab": "JotunWarriorDualWield", "common": false, "hp": 1300.0, "fixed": [], "oneOf": [], "sets": [[["JotunWarrior1HAxe_attack_dodger", 150.0, 20.0, 10.0, "slash"], ["JotunWarrior1HAxe_attack_slashdw", 150.0, 40.0, 1.0, "slash"], ["JotunWarrior1HAxe_attack_slash", 170.0, 40.0, 1.0, "slash"], ["JotunWarrior1HAxe_attack_dodge", 140.0, 20.0, 10.0, "slash"], ["JotunWarrior1HAxe_attack_cleave", 150.0, 60.0, 1.0, "slash"]]]},
     {"biome": "Deep North", "boss": "Fader", "name": "Barka", "prefab": "Barka", "common": false, "hp": 2200.0, "fixed": [["Barka_HeavySwing", 260.0, 90.0, 7.0, "blunt+frost"], ["Barka_SlamDrive", 280.0, 75.0, 7.0, "blunt+frost"], ["Barka_WhipFlurry", 200.0, 35.0, 7.0, "blunt+frost"], ["Barka_WhipSlam", 240.0, 80.0, 7.0, "blunt+pierce+frost"], ["Barka_Backslam", 270.0, 40.0, 3.0, "blunt+frost"]], "oneOf": [], "sets": []},
     {"biome": "Deep North", "boss": "Fader", "name": "Gammeltroll", "prefab": "TrollFrost", "common": false, "hp": 3000.0, "fixed": [["trollsnow_punch", 220.0, 140.0, 4.0, "blunt"], ["trollsnow_groundslam", 200.0, 140.0, 10.0, "blunt"], ["trollsnow_throw", 150.0, 180.0, 12.0, "blunt"], ["trollsnow_punch_r", 220.0, 140.0, 4.0, "blunt"], ["trollsnow_groundslam_r", 200.0, 140.0, 10.0, "blunt"]], "oneOf": [], "sets": []},
-    {"biome": "Ocean", "boss": "—", "name": "Serpent", "prefab": "Serpent", "common": true, "hp": 400.0, "fixed": [["Serpent_attack", 70.0, 0, 10.0, "slash"], ["Serpent_taunt", 45.0, 0, 120.0, "slash+poison"]], "oneOf": [], "sets": []},
+    {"biome": "Ocean", "boss": "—", "name": "Serpent", "prefab": "Serpent", "common": true, "hp": 400.0, "fixed": [["Serpent_attack", 70.0, 0, 10.0, "slash"], ["Serpent_taunt", 45.0, 0, 120.0, "slash+poison", 5]], "oneOf": [], "sets": []},
   ];
 
-  // Espelha PowerRating.GetCreatureDps: media, por arma, de dano / intervalo. O inventario real
-  // depende do sorteio, entao a tabela usa a media dos inventarios possiveis.
+  // Espelha PowerRating.GetCreatureDps: soma, por arma, de dano / intervalo, com a taxa total de
+  // ataques limitada pelo RatingCreatureMaxAttackRate (soma e nao media desde 2026-10-09: o cooldown
+  // do jogo e' por item). O inventario real depende do sorteio, entao a tabela usa a media dos
+  // inventarios possiveis.
   // Os inventarios que o sorteio pode dar: armas fixas + uma do m_randomWeapon + um conjunto.
   function pools(c) {
     const out = [];
@@ -1920,9 +1925,27 @@
     return out;
   }
 
+  // Espelha PowerRating.GetPoisonTickDps: veneno nao acumula no jogo (SE_Poison substitui), entao
+  // reaplicado sem parar ele rende so' o tick. Parametros do Poison.asset, lado do jogador.
+  function poisonTickDps(dmg) {
+    if (dmg <= 0) return 0;
+    const ttl = 1 + Math.pow(dmg * 5, 0.5);
+    return dmg / Math.max(1, Math.floor(ttl));
+  }
+
+  // Ataque: [item, dano de combate, dano em estrutura, intervalo, tipos, veneno (opcional)].
   function creatureDps(c) {
-    const hit = a => (a[1] + (rStruct.checked ? a[2] : 0)) / Math.max(0.05, a[3]);
-    const each = pools(c).map(inv => inv.length ? inv.reduce((t, a) => t + hit(a), 0) / inv.length : 0);
+    const iv = a => Math.max(0.05, a[3]);
+    const cap = v("rcap");
+    const each = pools(c).map(inv => {
+      if (!inv.length) return 0;
+      const rate = inv.reduce((t, a) => t + 1 / iv(a), 0);
+      const k = cap > 0 && rate > cap ? cap / rate : 1;
+      const direct = inv.reduce((t, a) => t + (a[1] - (a[5] || 0) + (rStruct.checked ? a[2] : 0)) / iv(a), 0);
+      const poison = inv.reduce((t, a) => t + (a[5] || 0) / iv(a), 0);
+      const poisonCap = Math.max(...inv.map(a => poisonTickDps(a[5] || 0)));
+      return direct * k + Math.min(poison * k, poisonCap);
+    });
     return each.reduce((t, x) => t + x, 0) / each.length;
   }
   const creatureRating = c => v("rk1") * c.hp + v("rk2") * creatureDps(c);
@@ -2100,7 +2123,8 @@
       kv("WeightPenalty", n("fwp", 2)), kv("WeightCurve", n("fwc", 2)),
       kv("MaxSpeed", n("fm", 0))]),
     rating: () => block("6 - Battle Power", [
-      kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)), kv("RatingDamageWeight", n("rk2", 1))]
+      kv("RatingHealthWeight", n("rk1", 2)), kv("RatingArmorScale", n("rc", 0)), kv("RatingDamageWeight", n("rk2", 1)),
+      kv("RatingCreatureMaxAttackRate", n("rcap", 1))]
       .concat([kv("RatingFormShare", n("rfs", 2))])),
     // O XP de maestria e' uma secao so' para a escada inteira desde 2026-09-28.
     transformations: () => block("3 - Transformations", [
@@ -2149,7 +2173,7 @@
                     m4: 1, d4: 2, r4: 2, lv4: 0, cs1: 2, cs2: 2, cs3: 2, cs4: 2,
                     xpd: 4, xpt: 4, xpmax: 2, cxp: 2, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
-                    rk1: 2, rc: 0, rk2: 1, rhi: 1, rlv: 0, rfs: 2,
+                    rk1: 2, rc: 0, rk2: 1, rcap: 1, rhi: 1, rlv: 0, rfs: 2,
                     ktier: 0, kform: 0, klv: 0, kstr: 3, kstf: 2, rkk: 0,
                     kp1: 2, ks1: 0, kst1: 1, kh1: 2, kp2: 2, ks2: 0, kst2: 1, kh2: 2, kp3: 2, ks3: 0, kst3: 1, kh3: 2,
                     kp4: 2, ks4: 0, kst4: 1, kh4: 2, kp5: 2, ks5: 0, kst5: 1, kh5: 2,
@@ -2255,7 +2279,7 @@
   });
   document.getElementById("reset").addEventListener("click", () => {
     ids.forEach(i => el[i].value = DEFAULTS[i]);
-    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = true; rHpTrack.checked = true;
+    flTrack.checked = true; mstTrack.checked = false; cmpForms.checked = true; rStruct.checked = false; rHpTrack.checked = true;
     kCmp.checked = false;
     setLens(lens);
   });

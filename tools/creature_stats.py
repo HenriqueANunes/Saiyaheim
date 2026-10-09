@@ -59,6 +59,7 @@ def read_attack(path):
     return {
         "item": os.path.basename(path)[:-7],
         "combat": sum(v for k, v in dmg.items() if k not in STRUCTURE),
+        "poison": dmg.get("poison", 0.0),
         "structure": sum(v for k, v in dmg.items() if k in STRUCTURE),
         "types": [k for k in dmg if k not in STRUCTURE],
         "interval": float(interval.group(1)) if interval else 0.0,
@@ -99,15 +100,42 @@ def read_creature(name, by_guid, by_name):
     }
 
 
-def creature_dps(c, structure=False):
-    """Espelha PowerRating.GetCreatureDps, com a média dos inventários que o sorteio pode dar."""
-    def hit(a):
-        return (a["combat"] + (a["structure"] if structure else 0)) / max(0.05, a["interval"])
+# Espelha o default de RatingCreatureMaxAttackRate no SaiyaheimConfig.cs.
+MAX_ATTACK_RATE = 1.0
+
+# GameElements/StatusEffects/Poison.asset: m_baseTTL, m_TTLPerDamagePlayer, m_TTLPower, m_damageInterval.
+POISON_BASE_TTL, POISON_TTL_PER_DAMAGE, POISON_TTL_POWER, POISON_TICK = 1.0, 5.0, 0.5, 1.0
+
+
+def poison_tick_dps(damage):
+    """Dano por segundo de um veneno reaplicado sem parar: o SE_Poison não acumula, substitui."""
+    ttl = POISON_BASE_TTL + (damage * POISON_TTL_PER_DAMAGE) ** POISON_TTL_POWER
+    return damage / max(1, int(ttl / POISON_TICK)) / POISON_TICK
+
+
+def creature_dps(c, structure=False, max_rate=MAX_ATTACK_RATE):
+    """Espelha PowerRating.GetCreatureDps, com a média dos inventários que o sorteio pode dar.
+
+    Soma das taxas dos ataques, não média (desde 2026-10-09): o cooldown do jogo é por item, e a
+    IA usa qualquer ataque que já esteja pronto. A taxa total de ataques é limitada a max_rate.
+    O veneno sai à parte, preso no tick do maior veneno da criatura (ver poison_tick_dps).
+    """
+    def direct(a):
+        return (a["combat"] - a["poison"] + (a["structure"] if structure else 0)) / max(0.05, a["interval"])
+
+    def inventory_dps(inv):
+        if not inv:
+            return 0.0
+        rate = sum(1 / max(0.05, a["interval"]) for a in inv)
+        k = max_rate / rate if max_rate > 0 and rate > max_rate else 1.0
+        poison = sum(a["poison"] / max(0.05, a["interval"]) for a in inv) * k
+        poison_cap = max(poison_tick_dps(a["poison"]) for a in inv)
+        return sum(direct(a) for a in inv) * k + min(poison, poison_cap)
 
     picks = [[a] for a in c["oneOf"]] or [[]]
     sets = c["sets"] or [[]]
     pools = [c["fixed"] + p + s for p in picks for s in sets]
-    each = [sum(hit(a) for a in inv) / len(inv) if inv else 0 for inv in pools]
+    each = [inventory_dps(inv) for inv in pools]
     return sum(each) / len(each)
 
 
