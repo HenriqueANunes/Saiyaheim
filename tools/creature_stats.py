@@ -13,8 +13,9 @@ Como o jogo guarda isso: cada ataque de criatura é um item de arma. O prefab da
 referencia esses itens em m_defaultItems (sempre recebe), m_randomWeapon (sorteia UM) e
 m_randomSets (sorteia UM conjunto). Cada item tem m_damages e m_aiAttackInterval.
 
-O dano "em estrutura" (chop + pickaxe) sai separado porque só acerta construção, mas o
-HitData.DamageTypes.GetTotalDamage() do jogo soma tudo — e é esse que o PowerRating.cs lê.
+O dano "em estrutura" (chop + pickaxe) sai separado porque só acerta construção. O
+HitData.DamageTypes.GetTotalDamage() do jogo soma tudo; desde 2026-10-08 o PowerRating.cs
+desconta os dois (PowerRating.GetCombatDamage), e a coluna "com estrutura" fica só de referência.
 """
 import argparse
 import json
@@ -71,7 +72,9 @@ def read_creature(name, by_guid, by_name):
         raise SystemExit(f"prefab não encontrado: {name}")
     text = open(path, errors="ignore").read()
     health = re.search(r"m_health: ([\d.]+)", text)
-    block = "m_defaultItems:" + re.search(r"m_defaultItems:(.*?)m_unarmedWeapon", text, re.S).group(1)
+    # Criatura que não é Humanoid (foca, peixe) não tem inventário: só vida, sem ataque.
+    inventory = re.search(r"m_defaultItems:(.*?)m_unarmedWeapon", text, re.S)
+    block = "m_defaultItems:" + inventory.group(1) if inventory else ""
 
     def section(field):
         m = re.search(field + r":(.*?)\n  m_(?!name|items)\w+:", block + "\n  m_end:", re.S)
@@ -86,7 +89,7 @@ def read_creature(name, by_guid, by_name):
         return out
 
     sets = [attacks(m.group(1)) for m in
-            re.finditer(r"- m_name: \S+\n    m_items:\n((?:    - \{.*\}\n)*)", section("m_randomSets") + "\n")]
+            re.finditer(r"- m_name: [^\n]*\n    m_items:\n((?:    - \{.*\}\n)*)", section("m_randomSets") + "\n")]
     return {
         "prefab": name,
         "hp": float(health.group(1)) if health else 0.0,
@@ -96,7 +99,7 @@ def read_creature(name, by_guid, by_name):
     }
 
 
-def creature_dps(c, structure=True):
+def creature_dps(c, structure=False):
     """Espelha PowerRating.GetCreatureDps, com a média dos inventários que o sorteio pode dar."""
     def hit(a):
         return (a["combat"] + (a["structure"] if structure else 0)) / max(0.05, a["interval"])
@@ -109,7 +112,7 @@ def creature_dps(c, structure=True):
 
 
 def markdown(creatures):
-    print("| Prefab | HP | Ataques (dano de combate, tipo, intervalo) | DPS no mod | DPS sem estrutura |")
+    print("| Prefab | HP | Ataques (dano de combate, tipo, intervalo) | DPS no mod | DPS com estrutura |")
     print("|---|---|---|---|---|")
     for c in creatures:
         seen, parts = set(), []
@@ -120,7 +123,7 @@ def markdown(creatures):
             extra = f" (+{a['structure']:g} estrutura)" if a["structure"] else ""
             parts.append(f"{a['combat']:g} {'+'.join(a['types'])}{extra} / {a['interval']:g} s")
         print(f"| `{c['prefab']}` | {c['hp']:g} | {'; '.join(parts)} | "
-              f"{creature_dps(c):.1f} | {creature_dps(c, structure=False):.1f} |")
+              f"{creature_dps(c):.1f} | {creature_dps(c, structure=True):.1f} |")
 
 
 def main():

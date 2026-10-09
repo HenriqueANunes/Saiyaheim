@@ -594,11 +594,14 @@ namespace Saiyaheim.Power
         /// <c>GetCurrentWeapon()</c> nunca devolve null — sem arma equipada ele entrega o
         /// <c>m_unarmedWeapon</c>, cujo dano é de unidade dígita. Isso é o comportamento certo
         /// aqui: quem luta desarmado sem ki tem, de fato, poder de arma quase zero.
+        ///
+        /// Sem o dano de construção, pela mesma regra do poder de luta: senão um machado ou uma
+        /// picareta equipados contavam como arma forte. Ver <see cref="PowerRating.GetCombatDamage"/>.
         /// </summary>
         private static float GetWeaponDamage(Player player)
         {
             ItemDrop.ItemData weapon = player.GetCurrentWeapon();
-            return weapon == null ? 0f : weapon.GetDamage().GetTotalDamage();
+            return weapon == null ? 0f : PowerRating.GetCombatDamage(weapon.GetDamage());
         }
     }
 }

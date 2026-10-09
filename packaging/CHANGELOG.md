@@ -4,6 +4,7 @@
 
 - Added: SSJ God heals at least 1 health per second, even with no food (adjustable with HealthRegenMinimum).
 - Fixed: typing a map marker name no longer triggers the mod's keys. Reported by MisterMusashi.
+- Changed: battle power ignores damage that only hits trees, rocks and buildings, so Trolls, Stone Golems, Lox, Asksvin and Morgen show a lower number, and an axe or pickaxe no longer counts as a strong weapon.
 
 ## 0.8.0
 

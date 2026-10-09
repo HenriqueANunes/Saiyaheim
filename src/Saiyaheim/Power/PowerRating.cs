@@ -317,7 +317,7 @@ namespace Saiyaheim.Power
             ItemDrop.ItemData weapon = Ki.KiManager.IsEnabled
                 ? player.m_unarmedWeapon?.m_itemData
                 : player.GetCurrentWeapon();
-            float damage = weapon == null ? 0f : weapon.GetDamage().GetTotalDamage();
+            float damage = weapon == null ? 0f : GetCombatDamage(weapon.GetDamage());
 
             // O bônus da forma base: a forma entra depois, inteira, pelo GetFormFactor.
             if (Ki.KiManager.IsEnabled)
@@ -362,11 +362,26 @@ namespace Saiyaheim.Power
                 // asset: nada garante que todo prefab do jogo o preencheu.
                 float interval = Mathf.Max(0.05f, item.m_shared.m_aiAttackInterval);
 
-                total += item.GetDamage().GetTotalDamage() / interval;
+                total += GetCombatDamage(item.GetDamage()) / interval;
                 count++;
             }
 
             return count == 0 ? 0f : total / count;
+        }
+
+        /// <summary>
+        /// Dano de um golpe <b>sem o dano de construção</b>: o <c>GetTotalDamage()</c> do jogo menos
+        /// <c>m_chop</c> e <c>m_pickaxe</c>.
+        ///
+        /// Os dois só acertam árvore, pedra e construção, e não machucam ninguém, mas o
+        /// <c>GetTotalDamage()</c> soma tudo. Com eles dentro, Troll, Stone Golem, Lox, Asksvin e
+        /// Morgen saíam inflados — o Troll de 568 para 762, o Morgen de 1.555 para 1.901. Decidido
+        /// em 2026-10-08, com o scouter: são justamente as criaturas que caem na fronteira entre
+        /// tiers. O jogo não tem um método que exclua só esses dois, por isso a conta aqui.
+        /// </summary>
+        internal static float GetCombatDamage(HitData.DamageTypes damage)
+        {
+            return damage.GetTotalDamage() - damage.m_chop - damage.m_pickaxe;
         }
 
         /// <summary>
