@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.8.1
+## 0.9.0
 
+- Added: scouters — headgear that reads battle power up to a limit, in eight tiers from flint to bloodgold and four lens colors; hovering one shows your punch damage, block armour and ki costs. Idea by NathanBakker and MisterMusashi.
+- Changed: **battle power is only shown while wearing a scouter** — for creatures, other players and your own number under the minimap.
 - Added: SSJ God heals at least 1 health per second, even with no food (adjustable with HealthRegenMinimum).
 - Fixed: typing a map marker name no longer triggers the mod's keys. Reported by MisterMusashi.
 - Changed: battle power ignores damage that only hits trees, rocks and buildings, so Trolls, Stone Golems, Lox, Asksvin and Morgen show a lower number, and an axe or pickaxe no longer counts as a strong weapon.
+
+Scouter model: "Scouter - Dragon Ball Z" by Yanez Designs, CC BY 4.0, modified.
 
 ## 0.8.0
 

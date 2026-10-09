@@ -79,6 +79,9 @@ namespace Saiyaheim
             // Cabelo de malha própria. Espera os prefabs do jogo por conta própria.
             CustomHair.Register();
 
+            // Os 28 scouters (etapa 15), pelo mesmo evento de prefabs do jogo.
+            Scouter.ScouterRegistry.Register();
+
             // Sete patches, todos mínimos e nenhum em física: Character.ApplyDamage para
             // contabilizar XP (ver DamageXpPatch), Character.CustomFixedUpdate para forçar a pose
             // em pé depois que o UpdateFlying escreve no animator (ver FlightPosePatch),
@@ -124,6 +127,10 @@ namespace Saiyaheim
             PublishNetState(Player.m_localPlayer);
             RemoteEffects.Update();
 
+            // Antes das HUDs: as duas perguntam ao leitor que scouter está na cabeça neste frame.
+            Scouter.ScouterReader.Update(Player.m_localPlayer);
+            Scouter.ScouterTooltip.Update(Player.m_localPlayer, dt);
+
             KiHud.Update();
             PowerHud.Update();
         }
@@ -158,7 +165,8 @@ namespace Saiyaheim
                 Kaioken.KaiokenRegistry.GetActive(player)?.Index ?? -1);
 
             // Publicado sempre, inclusive com o ki desligado: o alvo é sempre calculável, e quem
-            // decide se o número aparece é o ki de quem olha (etapa 10).
+            // decide se o número aparece é o scouter de quem olha (etapa 15; até 2026-10-08 era o
+            // ki, etapa 10).
             NetState.PublishRating(player, PowerRating.GetRaw(player));
         }
 

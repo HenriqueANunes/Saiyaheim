@@ -1,6 +1,6 @@
 [color=#ffffff][size=6][b]Saiyaheim[/b][/size][/color]
 
-A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and the Kaioken learned from the world's runestones, and Super Saiyan transformations gated behind the game's bosses.
+A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and the Kaioken learned from the world's runestones, Super Saiyan transformations gated behind the game's bosses, and scouters to read anyone's battle power.
 
 [quote][b]This is my first mod, and it is a work in progress.[/b] It is playable from start to finish of what it currently covers, but it is not finished — more transformations and more ki attacks are the whole point of the next versions. Feedback is very welcome, and so is patience.[/quote]
 
@@ -22,7 +22,7 @@ A resource of its own, with its own bar — [b]not[/b] Eitr, so it works from th
 
 [size=4][b]Ki toggle[/b][/size]
 
-One key switches the mod's mechanics on and off per player. With ki [b]off[/b], the mod behaves as if you had zero ki: vanilla damage, vanilla armor from equipment, no XP, and no power readings on the HUD. Useful for fair PvP, or for playing a normal Valheim session without uninstalling anything. Switching is instant and destroys nothing — your gear stays equipped and counts again the moment ki goes off.
+One key switches the mod's mechanics on and off per player. With ki [b]off[/b], the mod behaves as if you had zero ki: vanilla damage, vanilla armor from equipment and no XP. Useful for fair PvP, or for playing a normal Valheim session without uninstalling anything. Switching is instant and destroys nothing — your gear stays equipped and counts again the moment ki goes off.
 
 [size=4][b]Battle Power and the Power Level skill[/b][/size]
 
@@ -36,7 +36,32 @@ One key switches the mod's mechanics on and off per player. With ki [b]off[/b], 
 
 [b]Weighted training:[/b] all Power Level XP is multiplied by how full your inventory is, up to [b]double[/b] at maximum carry weight ([i]XpWeightBonus[/i] in the config). It is Goku's weighted clothing, and it limits itself — the weight slows you down, eats stamina and cuts your flight speed. Forms raise your carry limit, so the same load is worth a little less XP while transformed.
 
-Battle Power is shown on the HUD, and enemies show theirs under their health bar, on the same scale. Reading power is a ki ability: turn ki off and the numbers disappear for you too.
+Battle Power is shown on the HUD, and enemies show theirs under their health bar, on the same scale — as long as you are wearing a scouter (see below).
+
+[size=4][b]Scouters[/b][/size]
+
+Battle Power can only be read [b]through a scouter[/b], worn in the helmet slot. Without one, no number shows up at all — not for creatures, not for other players, not even your own.
+
+Each scouter reads up to a limit. Anything stronger shows as [b]static[/b]: digits flickering where the number should be. There is one tier per biome, crafted from that biome's metal, and each one reads roughly the common creatures of its biome:
+
+[list]
+[*][b]Flint[/b] — flint, at the Workbench. Reads roughly the Meadows.
+[*][b]Bronze[/b] — bronze, at the Forge. Reads roughly the Black Forest, except the Troll.
+[*][b]Iron[/b] — iron, at the Forge. Reads roughly the Swamp.
+[*][b]Silver[/b] — silver, at the Forge. Reads roughly the Mountain, Troll included.
+[*][b]Black Metal[/b] — black metal, at the Forge. Reads roughly the Plains.
+[*][b]Yggdrasil[/b] — Yggdrasil wood, at the Black Forge. Reads roughly the Mistlands.
+[*][b]Flametal[/b] — flametal, at the Black Forge. Reads roughly the Ashlands.
+[*][b]Bloodgold[/b] — bloodgold, at the Black Forge. Reads roughly the Deep North.
+[/list]
+
+The limit is about strength, not about biome, so the match is not exact: a Troll is stronger than anything in the Swamp, for instance. A biome's boss is always too strong for that biome's scouter.
+
+[list]
+[*]Every tier comes in [b]four lens colors[/b], picked by recipe: red (raspberries), green (greydwarf eyes), blue (blueberries) or purple (thistle).
+[*]Hovering a scouter in the inventory shows [b]your punch damage, block armour and ki costs[/b], so you can compare your fists with a weapon or a shield — as long as the scouter can read your own power.
+[*]It gives no armor and does not hide your hair. Scouters keep reading with ki off.
+[/list]
 
 [size=4][b]Unarmed combat[/b][/size]
 
@@ -219,7 +244,7 @@ The mod is far from done. What I want to add next, roughly in this order:
 [list]
 [*][b]More transformations[/b]
 [*][b]More ki attacks[/b]
-[*][b]New items[/b] — gear and consumables of its own, so ki progression has things to find and craft instead of only numbers to raise.
+[*][b]More items[/b] — the scouter is the first; more gear and consumables of its own, so ki progression has things to find and craft instead of only numbers to raise.
 [*][b]Polish[/b]: better visual effects, sounds, and eventually better hair.
 [/list]
 
@@ -240,5 +265,7 @@ Balance complaints are welcome too, and you do not have to wait for me: almost e
 [size=5][b]Credits and disclaimer[/b][/size]
 
 Built with [url=https://github.com/BepInEx/BepInEx]BepInEx[/url] and [url=https://github.com/Valheim-Modding/Jotunn]Jotunn[/url]. Visual effects reuse Valheim's own prefabs.
+
+The scouter model is [url=https://sketchfab.com/3d-models/scouter-dragon-ball-z-a1cd37f2a44d4b80968d988e360c76e0]"Scouter - Dragon Ball Z"[/url] by [b]Yanez Designs[/b], licensed under [url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url]. Modified: scale, materials, lens colors and transparency.
 
 Dragon Ball is the property of Akira Toriyama, Shueisha, Toei Animation and Bird Studio. This is a free, non-commercial fan project with no affiliation to any of them, made because I wanted to throw a Kamehameha at a troll.

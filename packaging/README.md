@@ -3,7 +3,8 @@
 # Saiyaheim
 
 A Dragon Ball mod for Valheim: ki, flight, unarmed combat, ki attacks and the Kaioken learned from
-the world's runestones, and Super Saiyan transformations gated behind the game's bosses.
+the world's runestones, Super Saiyan transformations gated behind the game's bosses, and scouters
+to read anyone's battle power.
 
 > **This is my first mod, and it is a work in progress.** It is playable from start to finish
 > of what it currently covers, but it is not finished — more transformations and more ki attacks
@@ -31,8 +32,7 @@ Meadows and not only after Mistlands.
 ### Ki toggle
 
 One key switches the mod's mechanics on and off per player. With ki **off**, the mod behaves as
-if you had zero ki: vanilla damage, vanilla armor from equipment, no XP, and no power readings
-on the HUD. Useful for fair PvP, or for playing a normal Valheim session without uninstalling
+if you had zero ki: vanilla damage, vanilla armor from equipment and no XP. Useful for fair PvP, or for playing a normal Valheim session without uninstalling
 anything. Switching is instant and destroys nothing — your gear stays equipped and counts again
 the moment ki goes off.
 
@@ -53,7 +53,38 @@ speed. Forms raise your carry limit, so the same load is worth a little less XP 
 transformed.
 
 Battle Power is shown on the HUD, and enemies show theirs under their health bar, on the same
-scale. Reading power is a ki ability: turn ki off and the numbers disappear for you too.
+scale — as long as you are wearing a scouter (see below).
+
+### Scouters
+
+Battle Power can only be read **through a scouter**, worn in the helmet slot. Without one, no
+number shows up at all — not for creatures, not for other players, not even your own.
+
+Each scouter reads up to a limit. Anything stronger shows as **static**: digits flickering where
+the number should be. There is one tier per biome, crafted from that biome's metal, and each one
+reads roughly the common creatures of its biome:
+
+| Scouter | Crafted from | At | Reads roughly |
+|---|---|---|---|
+| **Flint** | flint | Workbench | Meadows |
+| **Bronze** | bronze | Forge | Black Forest, except the Troll |
+| **Iron** | iron | Forge | Swamp |
+| **Silver** | silver | Forge | Mountain, Troll included |
+| **Black Metal** | black metal | Forge | Plains |
+| **Yggdrasil** | Yggdrasil wood | Black Forge | Mistlands |
+| **Flametal** | flametal | Black Forge | Ashlands |
+| **Bloodgold** | bloodgold | Black Forge | Deep North |
+
+The limit is about strength, not about biome, so the match is not exact: a Troll is stronger than
+anything in the Swamp, for instance. A biome's boss is always too strong for that biome's
+scouter.
+
+- Every tier comes in **four lens colors**, picked by recipe: red (raspberries), green (greydwarf
+  eyes), blue (blueberries) or purple (thistle).
+- Hovering a scouter in the inventory shows **your punch damage, block armour and ki costs**,
+  so you can compare your fists with a weapon or a shield — as long as the scouter can read your
+  own power.
+- It gives no armor and does not hide your hair. Scouters keep reading with ki off.
 
 ### Unarmed combat
 
@@ -299,8 +330,8 @@ The mod is far from done. What I want to add next, roughly in this order:
 - **More transformations** — the ladder is designed to grow, and each new step is mostly
   configuration.
 - **More ki attacks** — the radial menu is already there to pick them from.
-- **New items** — gear and consumables of its own, so ki progression has things to find and
-  craft instead of only numbers to raise.
+- **More items** — the scouter is the first; more gear and consumables of its own, so ki
+  progression has things to find and craft instead of only numbers to raise.
 - **Polish**: better visual effects, sounds, and eventually better hair.
 
 ---
@@ -332,6 +363,10 @@ better.
 
 Built with [BepInEx](https://github.com/BepInEx/BepInEx) and
 [Jotunn](https://github.com/Valheim-Modding/Jotunn). Visual effects reuse Valheim's own prefabs.
+
+The scouter model is ["Scouter - Dragon Ball Z"](https://sketchfab.com/3d-models/scouter-dragon-ball-z-a1cd37f2a44d4b80968d988e360c76e0)
+by **Yanez Designs**, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Modified: scale, materials, lens colors and transparency.
 
 Dragon Ball is the property of Akira Toriyama, Shueisha, Toei Animation and Bird Studio. This is a
 free, non-commercial fan project with no affiliation to any of them, made because I wanted to

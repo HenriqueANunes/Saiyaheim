@@ -235,20 +235,20 @@ namespace Saiyaheim.Power
                 }
 
                 // enabled do texto, e não SetActive no objeto: um objeto desativado não roda
-                // LateUpdate, então ele nunca voltaria sozinho quando o ki fosse religado com o
-                // jogo aberto.
+                // LateUpdate, então ele nunca voltaria sozinho quando o scouter fosse equipado com
+                // o jogo aberto.
                 //
-                // O ki entra na condição porque ler o poder do inimigo É uma capacidade do ki, e
-                // não um enfeite de tela: com o toggle desligado o jogador está jogando Valheim,
-                // e Valheim não conta quanto vale um Greydwarf. Mesma regra que a barra de ki já
-                // segue (ver KiHud.ShouldBeVisible), e é a leitura local que vale — quem
-                // "escaneia" é quem está na frente da tela, não o bicho.
-                //
-                // O ki que conta é só o de quem olha. O do alvo não entra: o poder de luta é sempre
-                // calculável, e um amigo de ki desligado mostra o número vanilla dele — o que já
-                // é informação (ele não vai puxar forma nem ataque agora).
+                // Quem decide é o scouter na cabeça de quem olha (etapa 15). Até 2026-10-08 era o
+                // ki: ler o poder era capacidade do ki. Agora é do aparelho, e com ele o número
+                // aparece de ki desligado também. É a leitura local que vale — quem "escaneia" é
+                // quem está na frente da tela, não o bicho. O ki do alvo continua não entrando: um
+                // amigo de ki desligado mostra o número vanilla dele.
                 float display = 0f;
-                bool show = Ki.KiManager.IsEnabled && PowerRating.TryGetDisplay(_character, out display);
+                bool show = PowerRating.TryGetDisplay(_character, out display);
+                Scouter.ScouterReader.Result reading = show
+                    ? Scouter.ScouterReader.Read(display)
+                    : Scouter.ScouterReader.Result.Hidden;
+                show = reading != Scouter.ScouterReader.Result.Hidden;
                 _text.enabled = show;
                 if (!show)
                 {
@@ -276,6 +276,24 @@ namespace Saiyaheim.Power
                 }
 
                 int value = Mathf.RoundToInt(display);
+
+                // Acima do limite do scouter, interferência. Mesmo truque de cache do PowerHud:
+                // quadro negativo, que nunca colide com um valor real. A semente é o id da
+                // instância, para dois bichos na tela não piscarem o mesmo número.
+                if (reading == Scouter.ScouterReader.Result.Static)
+                {
+                    int frame = Scouter.ScouterReader.StaticFrame();
+                    if (-1 - frame == _lastValue)
+                    {
+                        return;
+                    }
+
+                    _lastValue = -1 - frame;
+                    _text.text = Util.HudText.Prefix(SaiyaheimConfig.EnemyPowerLabel) +
+                                 Scouter.ScouterReader.StaticDigits(value, frame, GetInstanceID());
+                    return;
+                }
+
                 if (value == _lastValue)
                 {
                     return;

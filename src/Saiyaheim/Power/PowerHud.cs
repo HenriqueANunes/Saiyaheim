@@ -103,21 +103,20 @@ namespace Saiyaheim.Power
         }
 
         /// <summary>
-        /// Some junto com o minimapa pequeno — e junto com o ki.
+        /// Some junto com o minimapa pequeno — e sem scouter na cabeça.
         ///
         /// <b>Seguir o minimapa e não a config</b> resolve dois casos de uma vez sem código
         /// próprio: o mapa grande aberto (que cobre a tela inteira, e um texto por cima dele seria
         /// lixo visual) e o jogador que desligou o minimapa nas opções do jogo — nesse segundo
         /// caso o número ficaria flutuando sozinho num canto vazio, ancorado em nada.
         ///
-        /// <b>E some com o ki desligado</b>, pela mesma regra do <see cref="EnemyPowerHud"/> e da
-        /// barra de ki: com o toggle desligado o mod sai da frente e o que sobra é Valheim, que
-        /// não tem poder de luta. Sem isto o número continuaria na tela sozinho, sem o do inimigo
-        /// para comparar — que é a única coisa que ele existe para fazer.
+        /// <b>E some sem scouter</b> (etapa 15): até o próprio número só se lê com um. Até
+        /// 2026-10-08 quem decidia era o ki ligado; agora o ki não entra, e com o scouter na cabeça
+        /// o número aparece de ki desligado também. Ver <see cref="Scouter.ScouterReader"/>.
         /// </summary>
         private static bool ShouldBeVisible(Minimap map)
         {
-            return Ki.KiManager.IsEnabled
+            return Scouter.ScouterReader.Equipped != null
                    && map.m_smallRoot != null
                    && map.m_smallRoot.activeSelf;
         }
@@ -198,6 +197,23 @@ namespace Saiyaheim.Power
             }
 
             int value = Mathf.RoundToInt(display);
+
+            // Acima do limite do scouter, interferência no lugar do número. O cache passa a ser o
+            // quadro da interferência (negativo, para nunca colidir com um valor real).
+            if (Scouter.ScouterReader.Read(display) == Scouter.ScouterReader.Result.Static)
+            {
+                int frame = Scouter.ScouterReader.StaticFrame();
+                if (-1 - frame == _lastValue)
+                {
+                    return;
+                }
+
+                _lastValue = -1 - frame;
+                _text.text = Util.HudText.Prefix(SaiyaheimConfig.PowerHudLabel) +
+                             Scouter.ScouterReader.StaticDigits(value, frame, 0);
+                return;
+            }
+
             if (value == _lastValue)
             {
                 return;

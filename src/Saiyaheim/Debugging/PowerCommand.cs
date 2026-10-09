@@ -164,6 +164,22 @@ namespace Saiyaheim.Debugging
             // troll nao contam a mesma historia que a luta conta, os pesos estao errados.
             float ratingRaw = PowerRating.GetRaw(player);
             Print($"Power rating (scannable): {PowerRating.ToDisplay(ratingRaw):0}  (raw {ratingRaw:0.#})");
+
+            // O scouter decide se esse numero aparece na tela (etapa 15). O limite sai da criatura
+            // imaginaria do tier, entao a linha mostra a conta para conferir contra o scan.
+            Scouter.ScouterTier scouter = Scouter.ScouterReader.Equipped;
+            if (scouter == null)
+            {
+                Print("Scouter: none equipped — no battle power is shown on screen");
+            }
+            else
+            {
+                float limit = scouter.GetLimitRaw();
+                Print($"Scouter: {scouter.Metal}, reads up to {PowerRating.ToDisplay(limit):0} " +
+                      $"(= {SaiyaheimConfig.RatingK1Health.Value:0.##} x {scouter.Config.LimitHealth.Value:0.#} hp" +
+                      $" + {SaiyaheimConfig.RatingK2Damage.Value:0.##} x {scouter.Config.LimitDps.Value:0.#} dps)" +
+                      $"{(ratingRaw > limit ? " — your own number shows as static" : string.Empty)}");
+            }
             // A vida efetiva e o HP cru saem juntos porque a diferenca entre eles E o termo que a
             // transformacao move do lado defensivo — sem os dois, a linha esconde o que ela existe
             // para mostrar.
