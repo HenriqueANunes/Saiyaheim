@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.1
+
+- Changed: Kaioken key is now Q (Shift+Q turns it off) instead of Y; existing configs still on Y move to Q, a key you remapped is kept.
+
 ## 0.9.0
 
 - Added: scouters — headgear that reads battle power up to a limit, in eight tiers from flint to bloodgold and four lens colors; hovering one shows your punch damage, block armour and ki costs. Idea by NathanBakker and MisterMusashi.

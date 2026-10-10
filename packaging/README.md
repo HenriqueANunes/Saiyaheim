@@ -238,8 +238,8 @@ All of them are configurable.
 | `Shift+Z` | Step down one form |
 | `V` | Fire the selected ki attack |
 | `Shift+V` | Cycle ki attacks |
-| `Y` | Turn Kaioken on / step up a tier |
-| `Shift+Y` | Turn Kaioken off |
+| `Q` | Turn Kaioken on / step up a tier |
+| `Shift+Q` | Turn Kaioken off |
 | `G` (vanilla) | Open the radial menu, where the Forms, Kaioken and Ki attacks groups are |
 
 ### Keys the base game already uses

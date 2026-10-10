@@ -1607,12 +1607,12 @@ namespace Saiyaheim
                     "leaving the ladder entirely. From the first form it returns to base.",
                     null, ClientSide(81)));
 
-            // Y e Shift+Y pelo desenho de T/Z: a acao comum num toque, a outra no Shift. Toque liga no
-            // x2 e cada toque seguinte sobe um tier; Shift desliga. Y porque esta' livre no Valheim e
-            // longe de T e Z, que sao as teclas das formas — as duas coisas se combinam, mas trocar
-            // uma pela outra com pressa seria engano caro. Desligar era segurar o Y ate' 2026-10-05.
+            // Q e Shift+Q pelo desenho de T/Z: a acao comum num toque, a outra no Shift. Toque liga no
+            // x2 e cada toque seguinte sobe um tier; Shift desliga. Q porque esta' livre no Valheim e
+            // e' a tecla que o Henrique ja' usava no playtest (o padrao era Y ate' 2026-10-10).
+            // Desligar era segurar a tecla ate' 2026-10-05.
             KaiokenKey = config.Bind(SecGeral, "KaiokenKey",
-                new KeyboardShortcut(KeyCode.Y),
+                new KeyboardShortcut(KeyCode.Q),
                 new ConfigDescription(
                     "Kaioken key. Press to turn it on at x2, and press again to go up one tier, " +
                     "up to the highest you have learned. Works on top of any form, base form " +
@@ -1620,7 +1620,7 @@ namespace Saiyaheim
                     null, ClientSide(80)));
 
             KaiokenOffKey = config.Bind(SecGeral, "KaiokenOffKey",
-                new KeyboardShortcut(KeyCode.Y, KeyCode.LeftShift),
+                new KeyboardShortcut(KeyCode.Q, KeyCode.LeftShift),
                 new ConfigDescription(
                     "Key that turns Kaioken off, from any tier.",
                     null, ClientSide(79)));

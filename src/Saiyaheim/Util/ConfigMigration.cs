@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 8;
+        internal const int CurrentVersion = 9;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -441,6 +441,15 @@ namespace Saiyaheim.Util
             // alertado ainda compensava. Sem Force pelo mesmo motivo: ajuste isolado, e quem
             // escolheu outro valor fica com ele.
             yield return new Change(7, SaiyaheimConfig.FlightCombatHoverMultiplier, 2f, false);
+
+            // ---------- 9 (2026-10-10) — Kaioken sai do Y e vai para o Q ----------
+            //
+            // Q era a tecla que o Henrique ja' usava no playtest. Sem Force pelo mesmo motivo do
+            // power down na migracao 1: tecla e' preferencia, e quem escolheu a dele fica com ela.
+            yield return new Change(9, SaiyaheimConfig.KaiokenKey,
+                new KeyboardShortcut(KeyCode.Y), false);
+            yield return new Change(9, SaiyaheimConfig.KaiokenOffKey,
+                new KeyboardShortcut(KeyCode.Y, KeyCode.LeftShift), false);
         }
     }
 }
