@@ -150,8 +150,9 @@ progress of the step you already use.
 A short, expensive burst you switch on **on top of any form**, base form included. Forms are the
 state you hold; Kaioken is what you light up for a few seconds when the fight asks for it.
 
-Five tiers — **x2, x3, x4, x10 and x20** — each taught by the runestones of its own biome, and in
-order: a runestone only offers a tier once you know the one before it.
+Five tiers, each taught by the runestones of its own biome: **x2** in the Meadows, **x3** in the
+Black Forest, **x4** in the Swamp, **x10** in the Plains and **x20** in the Ashlands. They are
+learned in that order: a runestone only offers a tier once you know the one before it.
 
 - Each tier multiplies your Battle Power on top of the form, and makes you much faster, on the
   ground and in the air (flight still has its top speed).
