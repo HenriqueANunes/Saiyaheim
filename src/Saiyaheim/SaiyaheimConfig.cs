@@ -196,6 +196,13 @@ namespace Saiyaheim
         private const string SecKienzan = "4.3 - Kienzan";
 
         private const string SecFlight = "5 - Flight";
+
+        /// <summary>
+        /// O Instant Transmission (etapa 16): onde se aprende e quanto custa. Fica sob o voo porque
+        /// é o outro jeito de atravessar o mapa, e não ataque. A tecla mora na seção 1, com as
+        /// outras. Ver <c>Transmission.InstantTransmission</c>.
+        /// </summary>
+        private const string SecTransmission = "5.1 - Instant Transmission";
         private const string SecPower = "6 - Battle Power";
         private const string SecPowerSkill = "6.1 - Power Level";
 
@@ -239,6 +246,15 @@ namespace Saiyaheim
 
         /// <summary>Tecla que desliga o Kaioken, de qualquer tier.</summary>
         public static ConfigEntry<KeyboardShortcut> KaiokenOffKey { get; private set; }
+
+        /// <summary>
+        /// Tecla segurada enquanto se clica no mapa grande para o Instant Transmission. Sem ela o
+        /// clique é o da vanilla.
+        /// </summary>
+        public static ConfigEntry<KeyboardShortcut> TransmissionMapKey { get; private set; }
+
+        /// <summary>Tecla do Instant Transmission curto, para onde a cruz mira.</summary>
+        public static ConfigEntry<KeyboardShortcut> TransmissionBlinkKey { get; private set; }
 
         /// <summary>Tecla que dispara o ataque de ki selecionado.</summary>
         public static ConfigEntry<KeyboardShortcut> FireKiAttackKey { get; private set; }
@@ -1200,6 +1216,50 @@ namespace Saiyaheim
         // <c>FlightPosePatch</c>. São decisão de arte fechada, não balanceamento — não há motivo
         // para outro jogador querer diferente.
 
+        // ---------- 5.1 - Instant Transmission ----------
+
+        /// <summary>Bioma cujas runestones ensinam o Instant Transmission.</summary>
+        public static ConfigEntry<Heightmap.Biome> TransmissionLearnBiome { get; private set; }
+
+        /// <summary>Peso no sorteio da runestone, contra o que o mesmo bioma ainda ensina.</summary>
+        public static ConfigEntry<float> TransmissionLearnWeight { get; private set; }
+
+        /// <summary>Ki fixo de cada teleporte, antes da distância.</summary>
+        public static ConfigEntry<float> TransmissionKiCost { get; private set; }
+
+        /// <summary>Ki por 100 m de distância no Power Level 0.</summary>
+        public static ConfigEntry<float> TransmissionKiPer100mAtLevel0 { get; private set; }
+
+        /// <summary>Ki por 100 m de distância no Power Level 100. Entre os dois, uma reta.</summary>
+        public static ConfigEntry<float> TransmissionKiPer100mAtLevel100 { get; private set; }
+
+        /// <summary>Alcance do teleporte curto, em metros.</summary>
+        public static ConfigEntry<float> TransmissionBlinkMaxDistance { get; private set; }
+
+        /// <summary>Ki fixo do teleporte curto, antes da distância.</summary>
+        public static ConfigEntry<float> TransmissionBlinkKiCost { get; private set; }
+
+        /// <summary>Segundos entre dois teleportes curtos.</summary>
+        public static ConfigEntry<float> TransmissionBlinkCooldown { get; private set; }
+
+        /// <summary>
+        /// Segundos entre o clique no mapa e a ida que os <b>outros</b> ouvem. Quem teleporta ouve
+        /// no clique. Chute, em aberto.
+        /// </summary>
+        public static ConfigEntry<float> TransmissionSoundDelay { get; private set; }
+
+        /// <summary>
+        /// Segundos entre o clique no mapa e o som da chegada, que só os outros ouvem. Chute, em
+        /// aberto.
+        /// </summary>
+        public static ConfigEntry<float> TransmissionArrivalSoundDelay { get; private set; }
+
+        /// <summary>Metros em que o som chega a zero, na ida e na chegada.</summary>
+        public static ConfigEntry<float> TransmissionSoundRange { get; private set; }
+
+        /// <summary>Volume do som, de 0 a 1, antes do volume de efeitos das opções.</summary>
+        public static ConfigEntry<float> TransmissionSoundVolume { get; private set; }
+
         // ---------- 6 - Battle Power ----------
 
         public static ConfigEntry<float> PowerK1Health { get; private set; }
@@ -1666,6 +1726,27 @@ namespace Saiyaheim
                 new ConfigDescription(
                     "Key that turns Kaioken off, from any tier.",
                     null, ClientSide(79)));
+
+            // Segurada e nao tocada: o gesto e' o clique no mapa. Alt porque Alt+clique esquerdo
+            // nao faz nada na vanilla. Era Ctrl ate' 2026-10-15: Ctrl e' agachar, e o personagem
+            // chegava agachado do teleporte (playtest do Henrique).
+            TransmissionMapKey = config.Bind(SecGeral, "InstantTransmissionMapKey",
+                new KeyboardShortcut(KeyCode.LeftAlt),
+                new ConfigDescription(
+                    "Hold this key and left-click a spot on the large map to teleport there with " +
+                    "Instant Transmission, once a mountain runestone has taught it. Only places " +
+                    "you have explored yourself count, and the ki cost grows with distance.",
+                    null, ClientSide(78)));
+
+            // B: livre na vanilla e vizinha do V dos ataques de ki, onde a mao ja' esta' no combate
+            // (escolha do Henrique, 2026-10-15).
+            TransmissionBlinkKey = config.Bind(SecGeral, "InstantTransmissionKey",
+                new KeyboardShortcut(KeyCode.B),
+                new ConfigDescription(
+                    "Short Instant Transmission: teleports you to where you are aiming, up to " +
+                    "BlinkMaxDistance away, at once and with no loading screen. Stops short of " +
+                    "walls and trees. Taught by the same mountain runestone as the map version.",
+                    null, ClientSide(77)));
 
             // V e Shift+V pelo mesmo desenho de T/Z: a acao comum num toque, a troca no Shift. Nao
             // sao Z nem vizinha dele porque Z ja e' o power down — e disparar e destransformar sao
@@ -3463,6 +3544,101 @@ namespace Saiyaheim
                     "0 ignores them and flight escapes a trap. Turning is always slowed, as in " +
                     "vanilla. Speed buffs are never applied to flight.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(44)));
+
+            // --- 5.1 - Instant Transmission (etapa 16) ---
+            // Montanha por decisao do Henrique (2026-10-15). Custo por Power Level e nao por
+            // battle power: o BP muda com comida, forma e Kaioken, e teleportar viraria o ritual
+            // de comer e transformar antes. Os tres numeros de custo sao chute: com o teto de ki
+            // padrao (50 + 3 por nivel), o nivel 40 vai ~2,9 km com a barra cheia e o nivel 100,
+            // ~17 km.
+            TransmissionLearnBiome = config.Bind(SecTransmission, "LearnBiome", Heightmap.Biome.Mountain,
+                new ConfigDescription(
+                    "Biome whose lore runestones can teach Instant Transmission, in the same draw " +
+                    "as the ki attacks and the Kaioken tiers. None takes it out of the runestones, " +
+                    "and then only the console can teach it.",
+                    null, AdminOnly(100)));
+
+            TransmissionLearnWeight = config.Bind(SecTransmission, "LearnWeight", 1f,
+                new ConfigDescription(
+                    "Weight of Instant Transmission in the runestone draw, against whatever else " +
+                    "the same biome still has to teach. 0 means runestones never teach it.",
+                    new AcceptableValueRange<float>(0f, 10f), AdminOnly(95)));
+
+            TransmissionKiCost = config.Bind(SecTransmission, "KiCost", 10f,
+                new ConfigDescription(
+                    "Flat ki paid on every teleport, however short. The distance cost comes on top.",
+                    new AcceptableValueRange<float>(0f, 1000f), AdminOnly(90)));
+
+            TransmissionKiPer100mAtLevel0 = config.Bind(SecTransmission, "KiPer100mAtLevel0", 8f,
+                new ConfigDescription(
+                    "Ki per 100 m of map distance at Power Level 0. Only the distance on the map " +
+                    "counts, not height. The cost per meter falls in a straight line from this " +
+                    "to KiPer100mAtLevel100, and the ki cap grows with Power Level too, so the " +
+                    "range of a full bar grows from both sides.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(85)));
+
+            TransmissionKiPer100mAtLevel100 = config.Bind(SecTransmission, "KiPer100mAtLevel100", 2f,
+                new ConfigDescription(
+                    "Ki per 100 m of map distance at Power Level 100. See KiPer100mAtLevel0.",
+                    new AcceptableValueRange<float>(0f, 100f), AdminOnly(80)));
+
+            // O teleporte curto (2026-10-15). O ki por metro e' o mesmo do mapa, entao a 30 m quase
+            // todo o custo e' o fixo. Fixo 5 -> 8 -> 10 no playtest do mesmo dia (o Henrique achou
+            // barato): a 30 m, no nivel 40, ~12 ki. Alcance e cooldown seguem chute.
+            TransmissionBlinkMaxDistance = config.Bind(SecTransmission, "BlinkMaxDistance", 30f,
+                new ConfigDescription(
+                    "How far the short Instant Transmission (InstantTransmissionKey) can take you, " +
+                    "in meters, toward where you are aiming. Walls, trees and the ground stop it " +
+                    "short.",
+                    new AcceptableValueRange<float>(2f, 200f), AdminOnly(78)));
+
+            TransmissionBlinkKiCost = config.Bind(SecTransmission, "BlinkKiCost", 10f,
+                new ConfigDescription(
+                    "Flat ki paid on every short Instant Transmission. The distance costs the same " +
+                    "per meter as the map version (KiPer100mAtLevel0 / KiPer100mAtLevel100).",
+                    new AcceptableValueRange<float>(0f, 1000f), AdminOnly(77)));
+
+            TransmissionBlinkCooldown = config.Bind(SecTransmission, "BlinkCooldown", 1f,
+                new ConfigDescription(
+                    "Seconds before the short Instant Transmission can be used again.",
+                    new AcceptableValueRange<float>(0f, 60f), AdminOnly(76)));
+
+            // O som (2026-10-15). A vanilla move o jogador 2 s depois do clique, e o pico do clip
+            // vem ~0,2 s depois do comeco dele: 1,7 poe o "shun" em cima do sumico. Chute de
+            // ouvido, a calibrar no jogo; vira const quando fechar.
+            // So' para os outros desde 2026-10-15: quem teleporta ouve no clique, quando a tela dele
+            // comeca a escurecer.
+            TransmissionSoundDelay = config.Bind(SecTransmission, "SoundDelay", 1.7f,
+                new ConfigDescription(
+                    "Seconds between the click on the map and the departure sound heard by the " +
+                    "players around you. The game moves you 2 seconds after the click. You hear " +
+                    "it yourself right at the click, as your screen starts to fade.",
+                    new AcceptableValueRange<float>(0f, 3f), ClientSide(70)));
+
+            // A chegada (2026-10-15), so' para os outros: quem teleporta ja' ouve o fim da ida no
+            // destino. 2 e' o instante em que a vanilla move o jogador, entao o som comeca quando
+            // ele aparece.
+            TransmissionArrivalSoundDelay = config.Bind(SecTransmission, "ArrivalSoundDelay", 2f,
+                new ConfigDescription(
+                    "Seconds between the click on the map and the arrival sound, played where you " +
+                    "land for the players around it. You do not hear it yourself: the departure " +
+                    "sound follows you there.",
+                    new AcceptableValueRange<float>(0f, 5f), ClientSide(68)));
+
+            // Chute: alcance de um grito, nao de um passo. Quem teleporta perto mas fora de vista
+            // precisa ser ouvido (pedido do Henrique, 2026-10-15).
+            TransmissionSoundRange = config.Bind(SecTransmission, "SoundRange", 50f,
+                new ConfigDescription(
+                    "Meters at which the teleport sound fades to silence, for the departure and " +
+                    "the arrival alike. It does not need you to be looking: anyone within range " +
+                    "hears it.",
+                    new AcceptableValueRange<float>(5f, 200f), ClientSide(66)));
+
+            TransmissionSoundVolume = config.Bind(SecTransmission, "SoundVolume", 1f,
+                new ConfigDescription(
+                    "Volume of the teleport sound, 0 to 1, on top of the game's sound effects " +
+                    "volume. 0 silences it.",
+                    new AcceptableValueRange<float>(0f, 1f), ClientSide(65)));
 
             // --- Battle Power ---
             // Sao DUAS formulas, porque os dois caminhos de progressao sao disjuntos:

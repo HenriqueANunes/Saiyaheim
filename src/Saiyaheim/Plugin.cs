@@ -104,6 +104,7 @@ namespace Saiyaheim
             CommandManager.Instance.AddConsoleCommand(new AttackCommand());
             CommandManager.Instance.AddConsoleCommand(new NetCommand());
             CommandManager.Instance.AddConsoleCommand(new KaiokenCommand());
+            CommandManager.Instance.AddConsoleCommand(new TransmissionCommand());
 
             Log.LogInfo($"{PluginName} v{PluginVersion} loaded.");
         }
@@ -121,11 +122,13 @@ namespace Saiyaheim
             FlightManager.Update(Player.m_localPlayer);
             TransformationManager.Update(Player.m_localPlayer);
             Kaioken.KaiokenManager.Update(Player.m_localPlayer);
+            Transmission.TransmissionBlink.Update(Player.m_localPlayer);
             KiAttackManager.Update(Player.m_localPlayer, dt);
 
             // Publicar antes de aplicar: o que os efeitos leem neste frame é o estado deste frame.
             PublishNetState(Player.m_localPlayer);
             RemoteEffects.Update();
+            Transmission.TransmissionSound.Update();
 
             // Antes das HUDs: as duas perguntam ao leitor que scouter está na cabeça neste frame.
             Scouter.ScouterReader.Update(Player.m_localPlayer);

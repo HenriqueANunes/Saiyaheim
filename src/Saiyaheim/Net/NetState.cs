@@ -55,6 +55,19 @@ namespace Saiyaheim.Net
 
         private static readonly int BlastHash = "saiyaheim.blast".GetStableHashCode();
 
+        // Contador de Instant Transmission (etapa 16), no desenho do de disparo: o dono soma um a
+        // cada teleporte, e quem vê o número subir toca o som preso ao jogador.
+        private static readonly int TransmissionHash = "saiyaheim.transmission".GetStableHashCode();
+
+        // O instante do último teleporte, em milissegundos de mundo. É o que deixa quem está no
+        // DESTINO saber que o jogador que acabou de surgir chegou por Instant Transmission: para
+        // aquela máquina ele é jogador novo, e o contador não diz nada a quem não viu o anterior.
+        private static readonly int TransmissionTimeHash = "saiyaheim.transmission.time".GetStableHashCode();
+
+        // O teleporte curto, pela mira. Contador próprio porque o som dele é outro caso: um só,
+        // onde o jogador aparece, sem ida e chegada separadas.
+        private static readonly int BlinkHash = "saiyaheim.blink".GetStableHashCode();
+
         private static readonly int RatingHash = "saiyaheim.rating".GetStableHashCode();
 
         // ---------- O leiaute do inteiro ----------
@@ -243,6 +256,61 @@ namespace Saiyaheim.Net
             }
 
             zdo.Set(BlastHash, zdo.GetInt(BlastHash) + 1);
+        }
+
+        internal static void PublishTransmission(Player player)
+        {
+            ZDO zdo = GetZdo(player);
+            if (zdo == null || !zdo.IsOwner())
+            {
+                return;
+            }
+
+            zdo.Set(TransmissionHash, zdo.GetInt(TransmissionHash) + 1);
+
+            if (ZNet.instance != null)
+            {
+                zdo.Set(TransmissionTimeHash, (long)(ZNet.instance.GetTimeSeconds() * 1000.0));
+            }
+        }
+
+        internal static void PublishBlink(Player player)
+        {
+            ZDO zdo = GetZdo(player);
+            if (zdo == null || !zdo.IsOwner())
+            {
+                return;
+            }
+
+            zdo.Set(BlinkHash, zdo.GetInt(BlinkHash) + 1);
+        }
+
+        /// <summary>Quantos teleportes curtos este jogador já anunciou nesta sessão.</summary>
+        internal static int GetBlinkCount(Player player)
+        {
+            ZDO zdo = GetZdo(player);
+
+            return zdo == null ? 0 : zdo.GetInt(BlinkHash);
+        }
+
+        /// <summary>
+        /// Instante, em segundos de mundo, do último teleporte que este jogador anunciou. Negativo
+        /// se nunca anunciou nesta sessão.
+        /// </summary>
+        internal static double GetTransmissionTime(Player player)
+        {
+            ZDO zdo = GetZdo(player);
+            long ms = zdo == null ? 0L : zdo.GetLong(TransmissionTimeHash);
+
+            return ms <= 0L ? -1.0 : ms / 1000.0;
+        }
+
+        /// <summary>Quantos teleportes este jogador já anunciou nesta sessão.</summary>
+        internal static int GetTransmissionCount(Player player)
+        {
+            ZDO zdo = GetZdo(player);
+
+            return zdo == null ? 0 : zdo.GetInt(TransmissionHash);
         }
 
         /// <summary>Quantos disparos este jogador já anunciou nesta sessão.</summary>

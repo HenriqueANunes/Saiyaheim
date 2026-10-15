@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -398,6 +399,122 @@ namespace Saiyaheim.Util
             {
                 SaiyaheimPlugin.Log.LogWarning($"Failed to read the armor instances: {ex.Message}");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// <c>Minimap.ScreenToWorldPoint</c> é private. É a conversão do cursor no mapa grande
+        /// para o mundo, a mesma que a vanilla usa para pin e ping (etapa 16, Instant
+        /// Transmission).
+        /// </summary>
+        private static readonly Func<Minimap, Vector3, Vector3> MapScreenToWorldPoint =
+            CreateMethod<Func<Minimap, Vector3, Vector3>>(typeof(Minimap), "ScreenToWorldPoint");
+
+        internal static bool TryMapScreenToWorld(Minimap map, Vector3 screenPoint, out Vector3 world)
+        {
+            world = Vector3.zero;
+            if (MapScreenToWorldPoint == null || map == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                world = MapScreenToWorldPoint(map, screenPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to call Minimap.ScreenToWorldPoint: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// <c>Minimap.m_explored</c> é private: a névoa que o <b>próprio</b> personagem tirou. O
+        /// <c>IsExplored</c> da vanilla também é private e ainda soma o <c>m_exploredOthers</c>, a
+        /// névoa que veio pela mesa de cartografia — e o Instant Transmission só vale para onde o
+        /// personagem esteve.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Minimap, BitArray> MapExploredRef =
+            CreateFieldRef<Minimap, BitArray>("m_explored");
+
+        /// <summary>
+        /// O pixel do mapa sob <paramref name="world"/> foi revelado por este personagem? Mesma
+        /// conta do <c>Minimap.WorldToPixel</c>, que é private. Falhando a reflexão responde
+        /// false: a regra é do jogo, e liberar o mapa inteiro em silêncio seria pior que a
+        /// técnica parar.
+        /// </summary>
+        internal static bool IsExploredBySelf(Minimap map, Vector3 world)
+        {
+            if (MapExploredRef == null || map == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                BitArray explored = MapExploredRef(map);
+                int size = map.m_textureSize;
+                int half = size / 2;
+                int px = Utils.RoundToInt(world.x / map.m_pixelSize + half);
+                int py = Utils.RoundToInt(world.z / map.m_pixelSize + half);
+
+                if (explored == null || px < 0 || px >= size || py < 0 || py >= size)
+                {
+                    return false;
+                }
+
+                return explored[py * size + px];
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to read Minimap.m_explored: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// <c>Character.m_maxAirAltitude</c> é protected: o ponto mais alto desde que saiu do chão,
+        /// de onde o dano de queda é medido. O teleporte curto move o jogador sem passar pelo
+        /// <c>TeleportTo</c>, que é quem zera isto na vanilla.
+        /// </summary>
+        private static readonly AccessTools.FieldRef<Character, float> MaxAirAltitudeRef =
+            CreateFieldRef<Character, float>("m_maxAirAltitude");
+
+        internal static void SetMaxAirAltitude(Character character, float altitude)
+        {
+            if (MaxAirAltitudeRef == null || character == null)
+            {
+                return;
+            }
+
+            try
+            {
+                MaxAirAltitudeRef(character) = altitude;
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning($"Failed to write m_maxAirAltitude: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Delegate aberto para um método não-público. Mesmo contrato do
+        /// <see cref="CreateFieldRef{TObject,TField}"/>: null se o método sumir numa atualização.
+        /// </summary>
+        private static TDelegate CreateMethod<TDelegate>(Type type, string methodName) where TDelegate : Delegate
+        {
+            try
+            {
+                return AccessTools.MethodDelegate<TDelegate>(AccessTools.Method(type, methodName));
+            }
+            catch (Exception ex)
+            {
+                SaiyaheimPlugin.Log.LogWarning(
+                    $"Method '{type.Name}.{methodName}' not found ({ex.GetType().Name}). " +
+                    "The game may have been updated.");
+                return null;
             }
         }
 

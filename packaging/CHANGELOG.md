@@ -4,6 +4,7 @@
 
 - Added: SSJ4, unlocked by Moder — ×4.5 power, long black hair, red fur on the body and a swaying tail. Requested by maxpohg and MisterMusashi.
 - Changed: SSJ God is now unlocked by Yagluth, at ×4 power instead of ×3.5; existing configs move to the new values.
+- Added: Instant Transmission, taught by Mountain runestones — Alt+click the map to teleport anywhere you have explored, or press B to teleport up to 30 m where you aim; costs ki by distance, less as Power Level grows. Idea by NathanBakker and MisterMusashi.
 
 ## 0.9.1
 

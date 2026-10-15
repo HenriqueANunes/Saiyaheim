@@ -78,6 +78,43 @@ namespace Saiyaheim.Util
             return prefab;
         }
 
+        private static readonly Dictionary<string, AudioClip> ClipCache =
+            new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// O som com esse nome de arquivo (sem extensão), ou null. Mesma busca e mesmo cache de
+        /// ausência do <see cref="GetPrefab"/>. É clip solto, sem prefab: quem toca é um clone de
+        /// <c>sfx_</c> do jogo, para herdar o mixer e a atenuação da vanilla (etapa 16).
+        /// </summary>
+        internal static AudioClip GetAudioClip(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return null;
+            }
+
+            if (ClipCache.TryGetValue(name, out AudioClip cached))
+            {
+                return cached;
+            }
+
+            AssetBundle bundle = Bundle();
+            if (bundle == null)
+            {
+                return null;
+            }
+
+            string assetName = bundle.GetAllAssetNames()
+                                     .FirstOrDefault(n => string.Equals(
+                                         Path.GetFileNameWithoutExtension(n), name,
+                                         StringComparison.OrdinalIgnoreCase));
+
+            AudioClip clip = assetName == null ? null : bundle.LoadAsset<AudioClip>(assetName);
+
+            ClipCache[name] = clip;
+            return clip;
+        }
+
         private static AssetBundle Bundle()
         {
             if (_bundle == null && !_loadFailed)

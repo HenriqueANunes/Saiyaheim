@@ -45,6 +45,15 @@ namespace Saiyaheim.Runes
             }
 
             player.Message(MessageHud.MessageType.Center, $"You learned {taught.DisplayName}!");
+
+            // Ataque e Kaioken têm tecla própria, que o jogador já conhece; o Instant Transmission
+            // é um gesto no mapa, e sem a dica ninguém acharia.
+            if (taught is Transmission.InstantTransmission)
+            {
+                player.Message(MessageHud.MessageType.TopLeft,
+                    $"Hold {SaiyaheimConfig.TransmissionMapKey.Value} and click the map to teleport, " +
+                    $"or press {SaiyaheimConfig.TransmissionBlinkKey.Value} to teleport where you aim.");
+            }
         }
     }
 }

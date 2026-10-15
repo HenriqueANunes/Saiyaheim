@@ -192,6 +192,24 @@ runestones (see below):
 
 One key fires the selected attack, Shift plus that key cycles through the ones you have unlocked.
 
+### Instant Transmission
+
+Taught by the runestones of the **Mountains**. Hold `Alt` and click a spot on the large map to
+teleport there.
+
+- Only places **you have explored yourself** count. Map areas shared through a cartography table
+  do not.
+- It costs ki for the distance on the map, paid at once. The higher your **Power Level**, the less
+  ki each meter costs, and your ki bar grows with it too, so you reach further as you train.
+- It follows the world's portal rules: ores in your inventory block it, unless the world lets
+  ores through portals.
+- Your form and your flight survive the trip.
+
+Press `B` for a **short** Instant Transmission instead: it takes you up to 30 m toward where you are
+aiming, at once and with no loading screen. Walls, trees and the ground stop it short, and if you
+aim at the sky you arrive in the air. It costs a little ki for the distance, and ores do not block
+it.
+
 ### Radial menu
 
 Forms, Kaioken and ki attacks are also on **Valheim's own radial menu**, the wheel you already open
@@ -213,7 +231,8 @@ attacks** — so it costs you no extra key, and the hotkeys above keep working f
 ### Runestones
 
 The lore runestones scattered around the world can **teach you new abilities** — for now, the ki
-attacks and the Kaioken tiers. Read one and you may learn something; if you do not, keep exploring:
+attacks, the Kaioken tiers and Instant Transmission. Read one and you may learn something; if you
+do not, keep exploring:
 
 - Each biome has its own things to teach.
 - Every runestone that teaches nothing makes the next one in the same biome likelier, so bad luck
@@ -247,6 +266,8 @@ All of them are configurable.
 | `Shift+V` | Cycle ki attacks |
 | `Q` | Turn Kaioken on / step up a tier |
 | `Shift+Q` | Turn Kaioken off |
+| `Alt` + click on the map | Instant Transmission |
+| `B` | Short Instant Transmission, toward where you aim |
 | `G` (vanilla) | Open the radial menu, where the Forms, Kaioken and Ki attacks groups are |
 
 ### Keys the base game already uses

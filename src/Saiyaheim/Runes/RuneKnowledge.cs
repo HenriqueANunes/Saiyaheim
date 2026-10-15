@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using Saiyaheim.Attacks;
 using Saiyaheim.Kaioken;
+using Saiyaheim.Transmission;
 using UnityEngine;
 
 namespace Saiyaheim.Runes
@@ -210,6 +211,8 @@ namespace Saiyaheim.Runes
             {
                 yield return tier;
             }
+
+            yield return InstantTransmission.Lesson;
         }
 
         /// <summary>A chance da próxima pedra deste bioma, dado quantas vazias vieram antes.</summary>
