@@ -124,6 +124,9 @@ namespace Saiyaheim.Transformations
         /// <see cref="FormGlow"/> são chamados em todo frame e fora do desvio de "mudou de forma".
         /// Ver a cabeça daquelas classes para por que os dois podem durar onde a aura não podia —
         /// um porque é intermitente por natureza, o outro porque não tem partícula para acumular.
+        /// O pelo do SSJ4 (<see cref="FormBodyFur"/>) entra na mesma regra desde 2026-10-15: ele é
+        /// como a forma se parece, e o jogo reescreve o peitoral a cada troca de armadura. O rabo
+        /// (<see cref="FormTail"/>) também, porque o balanço é animação de todo frame.
         /// </summary>
         internal static void Observe(Player player)
         {
@@ -158,6 +161,8 @@ namespace Saiyaheim.Transformations
                 Kaioken.KaiokenTier tier = Kaioken.KaiokenTier.At(NetState.GetKaiokenIndex(player));
 
                 FormLightning.Tick(player, form);
+                FormBodyFur.Tick(player, form);
+                FormTail.Tick(player, form);
                 FormGlow.Form.Tick(player, form == null ? 0f : form.GetGlowIntensity(), form?.GetGlowColor());
                 FormGlow.Kaioken.Tick(player, tier == null ? 0f : tier.GetGlowIntensity(), tier?.GetAuraColor());
                 Kaioken.KaiokenArmorTint.Tick(player, tier);
@@ -194,6 +199,8 @@ namespace Saiyaheim.Transformations
             LastSeenForm.Remove(player);
             LastSeenKaioken.Remove(player);
             FormLightning.Forget(player);
+            FormBodyFur.Forget(player);
+            FormTail.Forget(player);
             FormGlow.Form.Forget(player);
             FormGlow.Kaioken.Forget(player);
             Kaioken.KaiokenArmorTint.Forget(player);
@@ -280,6 +287,8 @@ namespace Saiyaheim.Transformations
             LastSeenForm.Clear();
             LastSeenKaioken.Clear();
             FormLightning.Reset();
+            FormBodyFur.Reset();
+            FormTail.Reset();
             FormGlow.Form.Reset();
             FormGlow.Kaioken.Reset();
             Kaioken.KaiokenArmorTint.Reset();

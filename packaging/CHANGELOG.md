@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+
+- Added: SSJ4, unlocked by Moder — ×4.5 power, long black hair, red fur on the body and a swaying tail. Requested by maxpohg and MisterMusashi.
+- Changed: SSJ God is now unlocked by Yagluth, at ×4 power instead of ×3.5; existing configs move to the new values.
+
 ## 0.9.1
 
 - Changed: Kaioken key is now Q (Shift+Q turns it off) instead of Y; existing configs still on Y move to Q, a key you remapped is kept.

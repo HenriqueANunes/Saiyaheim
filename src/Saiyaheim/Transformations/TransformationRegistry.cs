@@ -18,20 +18,26 @@ namespace Saiyaheim.Transformations
         /// teclas de degrau percorrem, e é ela que define qual é o "mais alto destravado" que a
         /// tecla de transformar direto procura.
         ///
-        /// Quatro degraus. Cada um é uma linha aqui e uma chamada de <c>BindTransformation</c> na
+        /// Cinco degraus. Cada um é uma linha aqui e uma chamada de <c>BindTransformation</c> na
         /// config — a promessa de "forma é dado, não código" foi cobrada quando o SSJ2 entrou, e
         /// de novo quando o SSJ3 entrou, e o preço foi exatamente esse das duas vezes. O SSJ3
         /// custou uma coisa a mais, mas fora daqui: o penteado da forma, que é a primeira mudança
-        /// de silhueta da escada. Ver <c>TransformationEffects.SetHairStyle</c>.
+        /// de silhueta da escada. Ver <c>TransformationEffects.SetHairStyle</c>. O SSJ4 custou o
+        /// corpo: é a primeira forma que pinta pelo, ver <see cref="FormBodyFur"/>.
         ///
-        /// A qual boss cada forma acima do SSJ2 se amarra continua aberto, e depende de decidir
-        /// quais formas existirão — ver [[Progressão por Bosses]] e [[Em Aberto]].
+        /// ⚠️ <b>O SSJ4 entrou no meio</b> (2026-10-15), e o SSJ God passou da posição 3 para a 4.
+        /// A posição atravessa a rede (<see cref="At"/>), então os jogadores de uma mesma sessão
+        /// precisam estar todos na mesma versão do mod, que já é a regra.
+        ///
+        /// Um boss por degrau: Eikthyr, Elder, Bonemass, Moder, Yagluth. Ver
+        /// [[Progressão por Bosses]].
         /// </summary>
         internal static readonly Transformation[] All =
         {
             new Transformation("ssj", "SSJ", SaiyaheimConfig.Ssj),
             new Transformation("ssj2", "SSJ2", SaiyaheimConfig.Ssj2),
             new Transformation("ssj3", "SSJ3", SaiyaheimConfig.Ssj3),
+            new Transformation("ssj4", "SSJ4", SaiyaheimConfig.Ssj4),
             new Transformation("ssjgod", "SSJ God", SaiyaheimConfig.SsjGod)
         };
 

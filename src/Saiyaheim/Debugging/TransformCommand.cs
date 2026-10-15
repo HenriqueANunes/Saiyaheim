@@ -29,6 +29,7 @@ namespace Saiyaheim.Debugging
     /// saiya_form hair spiked      experimenta a versão espetada do penteado do personagem
     /// saiya_form hair off         devolve o penteado do personagem
     /// saiya_form hair inspect     lista o que está na cabeça agora, com a malha de cada renderer
+    /// saiya_form tail             o estado do rabo do SSJ4: ossos, malha e rotação de cada osso
     /// </code>
     ///
     /// <b>Por que o <c>hair</c> mora aqui.</b> A chave <c>HairItem</c> de cada forma pede o nome
@@ -53,7 +54,7 @@ namespace Saiyaheim.Debugging
         public override string Help =>
             "Inspects transformations. " +
             "Usage: saiya_form [<form>] [gate | unlock | lock | skill <level> | xp <amount> | " +
-            "hair [<name> | spiked | off | inspect]]";
+            "hair [<name> | spiked | off | inspect] | tail]";
 
         /// <summary>
         /// Os nomes das formas entram no autocomplete junto dos subcomandos. É a escada que muda
@@ -62,7 +63,7 @@ namespace Saiyaheim.Debugging
         /// </summary>
         public override List<string> CommandOptionList()
         {
-            List<string> options = new List<string> { "gate", "unlock", "lock", "skill", "xp", "hair" };
+            List<string> options = new List<string> { "gate", "unlock", "lock", "skill", "xp", "hair", "tail" };
 
             foreach (Transformation form in TransformationRegistry.All)
             {
@@ -127,6 +128,15 @@ namespace Saiyaheim.Debugging
 
                 case "hair":
                     HandleHair(player, args, actionAt + 1);
+                    return;
+
+                case "tail":
+                    // Leitura só, sem devcommands, como o gate.
+                    foreach (string line in FormTail.Describe(player))
+                    {
+                        Print(line);
+                    }
+
                     return;
 
                 case "unlock":
@@ -790,6 +800,7 @@ namespace Saiyaheim.Debugging
                 case "skill":
                 case "xp":
                 case "hair":
+                case "tail":
                     return true;
                 default:
                     return false;

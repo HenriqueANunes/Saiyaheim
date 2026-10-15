@@ -344,6 +344,12 @@ namespace Saiyaheim.Transformations
             // original aparecer nos espetos também. Malha com esqueleto (filho `attach_skin`),
             // uma peça só, 9 cascas soltas. Deitada como o Hair4/Hair30.
             new HairEntry("SaiyaHair37", "Hair37", new HairPart(null, "hair37")),
+            // Cabelo do SSJ4: não é a versão espetada de um penteado, é um cabelo da forma. Clona
+            // o Hair3 e veste o casquete denso dele com juba até o meio das costas e o topo mais
+            // cheio (`tools/ssj4_hair.py` no projeto Unity). Fica DEPOIS do SaiyaHair3 de
+            // propósito: o GetSpikedVariant pega a primeira entrada com o molde, e o Hair3
+            // espetado continua sendo o SaiyaHair3.
+            new HairEntry("SaiyaHairSSJ4", "Hair3", new HairPart(null, "ssj4_hair")),
         };
 
         /// <summary>

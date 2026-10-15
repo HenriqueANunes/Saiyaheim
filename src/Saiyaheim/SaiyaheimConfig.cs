@@ -134,24 +134,34 @@ namespace Saiyaheim
         private const string SecSsj3 = "3.3 - SSJ3";
 
         /// <summary>
-        /// O quarto degrau. Seção própria pelo mesmo motivo dos anteriores. Ver
-        /// <see cref="SecSsj"/>.
+        /// O quarto degrau, atrás do Moder desde 2026-10-15. Seção própria pelo mesmo motivo dos
+        /// anteriores. Ver <see cref="SecSsj"/>.
+        ///
+        /// ⚠️ <b>O número da seção é a posição na escada</b>, e o SSJ4 entrou no meio dela: o SSJ
+        /// God foi de 3.4 para 3.5 e o Kaioken de 3.5 para 3.6. Quem já tinha o <c>.cfg</c> recebe
+        /// os valores das seções velhas pela migração 10 (<c>ConfigMigration.SectionMoves</c>).
         /// </summary>
-        private const string SecSsjGod = "3.4 - SSJ God";
+        private const string SecSsj4 = "3.4 - SSJ4";
+
+        /// <summary>
+        /// O quinto degrau, atrás do Yagluth desde 2026-10-15 (era o quarto, atrás do Moder). Ver
+        /// <see cref="SecSsj4"/>.
+        /// </summary>
+        private const string SecSsjGod = "3.5 - SSJ God";
 
         /// <summary>
         /// O Kaioken (etapa 14): as regras que valem para todos os tiers — o corte de stamina pela
         /// margem, o piso de vida, a Exaustão e o XP da skill. O que é de um tier mora na seção
         /// dele (<see cref="KaiokenTierSection"/>), e a penalidade que cada forma soma mora na
-        /// seção da forma. Ver [[Kaioken]].
+        /// seção da forma. Ver [[Kaioken]]. Era a 3.5 até 2026-10-15; ver <see cref="SecSsj4"/>.
         /// </summary>
-        private const string SecKaioken = "3.5 - Kaioken";
+        private const string SecKaioken = "3.6 - Kaioken";
 
         /// <summary>
         /// Uma seção por tier, pelo mesmo motivo das formas: nenhum número é compartilhado entre
-        /// tiers. "3.5.1 - Kaioken x2" e assim por diante — ordena logo depois da 3.5.
+        /// tiers. "3.6.1 - Kaioken x2" e assim por diante — ordena logo depois da 3.6.
         /// </summary>
-        private static string KaiokenTierSection(int index, string name) => $"3.5.{index + 1} - Kaioken {name}";
+        private static string KaiokenTierSection(int index, string name) => $"3.6.{index + 1} - Kaioken {name}";
 
         // A seção "4 - Ki Attacks", que valia para todos os ataques, ficou vazia em 2026-09-13:
         // o piso entre disparos e as três chaves de mira eram tudo o que ela tinha, e nenhuma era
@@ -504,6 +514,20 @@ namespace Saiyaheim
             public string AuraColor { get; internal set; }
 
             /// <summary>
+            /// Pelo no corpo enquanto a forma está ativa: nome do par de texturas embutido em
+            /// <c>Assets/body/</c>. Vazio não mexe no corpo. Ver
+            /// <c>Transformations.FormBodyFur</c>.
+            /// </summary>
+            public string BodyFur { get; internal set; }
+
+            /// <summary>
+            /// Rabo enquanto a forma está ativa: nome do arquivo embutido em <c>Assets/body/</c>
+            /// (<c>&lt;nome&gt;.txt</c>, gerado pelo <c>tools/ssj4_rabo.py</c>). Vazio, sem rabo.
+            /// Ver <c>Transformations.FormTail</c>.
+            /// </summary>
+            public string Tail { get; internal set; }
+
+            /// <summary>
             /// Se esta forma estala raios em volta do corpo enquanto está ativa. É a única chave
             /// que decide <b>quais</b> formas crepitam; a regulagem do efeito é compartilhada, na
             /// seção 8 (<c>FormLightning*</c>).
@@ -575,9 +599,27 @@ namespace Saiyaheim
         public static TransformationConfig Ssj3 { get; private set; }
 
         /// <summary>O quarto degrau. Ver <see cref="Ssj"/>.</summary>
+        public static TransformationConfig Ssj4 { get; private set; }
+
+        /// <summary>O quinto degrau. Ver <see cref="Ssj"/>.</summary>
         public static TransformationConfig SsjGod { get; private set; }
 
-        // ---------- 3.5 - Kaioken ----------
+        /// <summary>Quanto cada osso do rabo balança parado, em graus. Ver <c>Transformations.FormTail</c>.</summary>
+        public static ConfigEntry<float> TailSwayDegrees { get; private set; }
+
+        /// <summary>Quantos balanços por segundo o rabo faz parado.</summary>
+        public static ConfigEntry<float> TailSwaySpeed { get; private set; }
+
+        /// <summary>Quanto o rabo dobra para trás do movimento, em graus por metro por segundo.</summary>
+        public static ConfigEntry<float> TailMotionBend { get; private set; }
+
+        /// <summary>A dobra máxima pelo movimento, em graus, somada na cadeia inteira.</summary>
+        public static ConfigEntry<float> TailMotionMaxBend { get; private set; }
+
+        /// <summary>Quão rápido o rabo alcança a dobra do movimento, por segundo.</summary>
+        public static ConfigEntry<float> TailResponsiveness { get; private set; }
+
+        // ---------- 3.6 - Kaioken ----------
 
         /// <summary>
         /// Fração do dreno de stamina cortada por nível de margem acima do seguro:
@@ -2530,17 +2572,106 @@ namespace Saiyaheim
                 // dentro do nivel 100 da skill com a maestria em 65.
                 kaiokenPenalty: 70f, kaiokenPenaltyZeroAt: 90f);
 
-            // O SSJ God atras do Moder — o quarto boss, mantendo o ritmo de um degrau por boss.
-            // Decidido em 2026-09-21: ver [[Decisoes Tomadas]], "O degrau do Moder e' o SSJ God"
-            // e "O SSJ God e' a forma do controle, nao da forca bruta".
+            // O SSJ4 atras do Moder — o quarto boss, mantendo o ritmo de um degrau por boss. Entrou
+            // em 2026-10-15, a pedido do Henrique, e empurrou o SSJ God um boss para frente (ver
+            // [[Decisoes Tomadas]], "O SSJ4 fica com o Moder, e o SSJ God passa para o Yagluth").
+            //
+            // A forma da forca bruta, que e' o contrario do God: onde o God troca forca por folego,
+            // o SSJ4 e' o passo seguinte do SSJ3 na mesma direcao. Todos os numeros sao CHUTE,
+            // ainda sem playtest:
+            //   PowerMultiplier 4,5 = um oitavo a mais que o SSJ3 (4). Nasceu 5, um quarto a mais;
+            //     o Henrique desceu para 4,5 no mesmo dia em que a forma entrou (2026-10-15). O passo encolhe a cada degrau (1,5x, 1,33x, 1,125x): o SSJ2 ja'
+            //     ensinou que forma forte demais trivializa o conteudo.
+            //   KiDrainPerSecond 4 = um a mais que o SSJ3, o mesmo passo de 1 por degrau da escada
+            //     desde 2026-09-20. O dreno sobe 1,33x contra 1,125x de poder: continua subindo mais
+            //     rapido que o poder, que e' o que impede o topo de tornar os degraus de baixo
+            //     letra morta.
+            //   Soco SO' contusao, sem corte nem raio. O tipo de dano e' o sabor do degrau, e este
+            //     e' o unico da escada que nao converte nada: o soco do macaco, inteiro. Sem raio
+            //     tambem pela regra do God — sem raio no corpo, sem raio no golpe.
+            //   CarryWeightBonus 400 = o passo de 100 do SSJ3 para ca'. O God, que vem depois, fica
+            //     com 350, abaixo deste, pelo mesmo motivo do multiplicador dele.
+            //   Kaioken 80, zerando na maestria 100: a penalidade mais alta da escada, porque somar
+            //     Kaioken a forma mais bruta e' o mais dificil de controlar. Com 80 o x20 so' cabe
+            //     no nivel 100 da skill com a maestria em 75, contra 65 no SSJ3.
+            //
+            // Visual: o pelo vermelho no corpo (textura, ver Transformations.FormBodyFur), o
+            // cabelo preto comprido do SaiyaHairSSJ4 e a aura laranja-avermelhada — mais quente
+            // que o vermelho do God, para os dois degraus se separarem de longe. Sem raio. O
+            // brilho segue o passo de 0,5 por degrau.
+            Ssj4 = BindTransformation(config, SecSsj4,
+                powerMultiplier: 4.5f,
+                kiDrainPerSecond: 4f,
+                punchSlashFraction: 0f,
+                punchLightningFraction: 0f,
+                carryWeightBonus: 400f,
+                // O cabelo do SSJ4 e' preto. A cor passa pelo HairColorIntensity (1,6) como as
+                // outras, e preto multiplicado continua escuro.
+                hairColor: "#1E1A1A",
+                auraColor: "#FF5A1F",
+                requiredGlobalKey: "defeated_dragon",
+                lightning: false,
+                glowIntensity: 2.5f,
+                hairItem: "SaiyaHairSSJ4",
+                bodyFur: "ssj4_pelo",
+                tail: "ssj4_rabo",
+                kaiokenPenalty: 80f, kaiokenPenaltyZeroAt: 100f);
+
+            // O balanco do rabo do SSJ4 (2026-10-15). Visual e chute, entao fica no .cfg e e'
+            // client-side: cada um ve o rabo dos amigos com a propria regulagem, e quem itera e' o
+            // Henrique, na tela. Vira const quando fechar. Ver Transformations.FormTail.
+            // 4 -> 10 no mesmo dia, antes do primeiro playtest valer: em 4 o Henrique nao viu
+            // balanco nenhum. A onda atrasa de osso para osso, entao a ponta nao soma os oito.
+            TailSwayDegrees = config.Bind(SecSsj4, "TailSwayDegrees", 10f,
+                new ConfigDescription(
+                    "How far each of the tail's 8 bones swings while standing still, in degrees. " +
+                    "The swing travels from the root to the tip, so the tail undulates instead " +
+                    "of swinging as one piece. 0 stops the idle sway. Applies live.",
+                    new AcceptableValueRange<float>(0f, 30f), ClientSide(40)));
+
+            TailSwaySpeed = config.Bind(SecSsj4, "TailSwaySpeed", 0.5f,
+                new ConfigDescription(
+                    "Idle tail swings per second. Applies live.",
+                    new AcceptableValueRange<float>(0.05f, 3f), ClientSide(39)));
+
+            TailMotionBend = config.Bind(SecSsj4, "TailMotionBend", 6f,
+                new ConfigDescription(
+                    "How much the tail bends away from where you are moving, in degrees per metre " +
+                    "per second, over the whole tail. Running forward lifts it behind you, " +
+                    "strafing swings it to the other side, falling lifts it. 0 keeps it still " +
+                    "while moving. Applies live.",
+                    new AcceptableValueRange<float>(0f, 30f), ClientSide(38)));
+
+            TailMotionMaxBend = config.Bind(SecSsj4, "TailMotionMaxBend", 70f,
+                new ConfigDescription(
+                    "Upper limit of the movement bend above, in degrees over the whole tail, so " +
+                    "fast flight does not fold the tail into the body. Applies live.",
+                    new AcceptableValueRange<float>(0f, 180f), ClientSide(37)));
+
+            TailResponsiveness = config.Bind(SecSsj4, "TailResponsiveness", 5f,
+                new ConfigDescription(
+                    "How fast the tail catches up with the movement bend, per second. Low is a " +
+                    "heavy, lazy tail; high snaps to it. Applies live.",
+                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(36)));
+
+            // O SSJ God atras do Yagluth — o quinto boss. Ate' 2026-10-15 ficava com o Moder, e
+            // passou um boss para frente quando o SSJ4 entrou (ver o bloco acima). Decidido em
+            // 2026-09-21: ver [[Decisoes Tomadas]], "O degrau do Moder e' o SSJ God" (o boss
+            // mudou, o resto continua) e "O SSJ God e' a forma do controle, nao da forca bruta".
+            //
+            // Os numeros abaixo foram calibrados com o God no quarto degrau, logo depois do SSJ3.
+            // Agora ele vem depois do SSJ4 e bate menos que ele (4 contra 4,5): e' a leitura da
+            // forma do controle levada adiante, mas ainda nao foi vista no jogo nessa posicao.
             //
             // Este degrau NAO sobe o teto como os anteriores. O SSJ2 ja' ensinou que o problema de
             // uma forma forte demais e' absoluto — ela trivializa o conteudo —, e repetir o passo
             // de sempre so' repetiria o problema. O que o God compra e' folego:
-            //   PowerMultiplier 3,5 = ABAIXO do SSJ3 (4), entre ele e o SSJ2. Saiu em 4,5 — pouco
-            //     acima do SSJ3, seguindo a escada — e o playtest de 2026-09-22 inverteu o sinal:
-            //     o God troca forca por folego, e nao "um pouco mais de tudo". E' o primeiro
-            //     degrau da escada que bate menos que o anterior. Ver [[Transformacoes]].
+            //   PowerMultiplier 4 = o do SSJ3, abaixo do SSJ4 (4,5). Saiu em 4,5 — pouco acima do
+            //     SSJ3, seguindo a escada —, o playtest de 2026-09-22 desceu para 3,5, abaixo do
+            //     SSJ3: o God troca forca por folego, e nao "um pouco mais de tudo". Em 2026-10-15,
+            //     com o God passando para o Yagluth, depois do SSJ4, o Henrique subiu para 4 (Force
+            //     na migracao 10). Continua batendo menos que o degrau de baixo. Ver
+            //     [[Transformacoes]].
             //   KiDrainPerSecond 2 = MENOS que o SSJ3 (3), no nivel do SSJ2. E' o primeiro degrau
             //     em que o dreno desce, de proposito: a forma do controle nao devora o dono.
             //   CombatKiCostScale 0,5 = metade da sobretaxa de combate. Com o CombatFormKiShare em
@@ -2564,14 +2695,16 @@ namespace Saiyaheim
             // ao espetado do proprio personagem, como no SSJ — o cabelo curto e' como o genero
             // desenha o God, e sem malha nova. O brilho segue o passo de 0,5 por degrau.
             SsjGod = BindTransformation(config, SecSsjGod,
-                powerMultiplier: 3.5f,
+                powerMultiplier: 4f,
                 kiDrainPerSecond: 2f,
                 // Calibrados no playtest de 2026-09-22, o primeiro do SSJ God.
                 punchSlashFraction: 0.5f,
                 punchLightningFraction: 0f,
                 carryWeightBonus: 350f,
                 hairColor: "#E8303A",
-                requiredGlobalKey: "defeated_dragon",
+                // defeated_dragon (Moder) -> defeated_goblinking (Yagluth) em 2026-10-15, com
+                // Force na migracao 10: a escada nova so' funciona inteira.
+                requiredGlobalKey: "defeated_goblinking",
                 lightning: false,
                 glowIntensity: 2.5f,
                 hairItem: "Spiked",
@@ -2589,7 +2722,7 @@ namespace Saiyaheim
                 // efeito liquido fica perto do 30/40 pensado, abaixo do SSJ2.
                 kaiokenPenalty: 40f, kaiokenPenaltyZeroAt: 50f);
 
-            // ---------- 3.5 - Kaioken (etapa 14) ----------
+            // ---------- 3.6 - Kaioken (etapa 14) ----------
             //
             // Tudo sai de uma variavel so', a margem = skill Kaioken - (seguro do tier + penalidade
             // da forma). Stamina cobra sempre e cai com a margem positiva ate o piso; vida so'
@@ -3539,7 +3672,8 @@ namespace Saiyaheim
             float masteryDrainReduction = 1f, float glowIntensity = 1f, string glowColor = "",
             string hairItem = "", float? healthRegenSpeed = null, bool? healthRegenIgnoresBlockers = null,
             float? healthRegenMinimum = null, float combatKiCostScale = 1f, HitData.DamageModifier? bluntResistance = null,
-            float kaiokenPenalty = 0f, float kaiokenPenaltyZeroAt = 1f)
+            float kaiokenPenalty = 0f, float kaiokenPenaltyZeroAt = 1f, string auraColor = "",
+            string bodyFur = "", string tail = "")
         {
             return new TransformationConfig
             {
@@ -3787,7 +3921,19 @@ namespace Saiyaheim
                 // forma, e nao uma global: a escada quer degraus distinguiveis de longe, e a cor
                 // da aura e' o unico sinal que sobrevive a distancia. O prefab e' compartilhado;
                 // a cor e' a identidade.
-                AuraColor = hairColor,
+                //
+                // A excecao e' o SSJ4 (2026-10-15): cabelo preto e aura preta nao leriam como
+                // aura nenhuma, entao ali a aura tem cor propria. Vazio segue o cabelo.
+                AuraColor = string.IsNullOrEmpty(auraColor) ? hairColor : auraColor,
+
+                // Pelo pintado no corpo enquanto a forma esta' ativa: o nome de um par de PNGs
+                // embutidos em Assets/body/ (<nome>.png e <nome>_n.png). Vazio nao mexe no corpo,
+                // que e' o caso de toda forma menos o SSJ4. Ver Transformations.FormBodyFur.
+                BodyFur = bodyFur,
+
+                // O rabo do SSJ4 (2026-10-15): malha e cadeia de ossos num .txt embutido, montados
+                // no osso Hips do jogador. Vazio, sem rabo.
+                Tail = tail,
 
                 // Um booleano, e nao um prefab por forma: o que separa um degrau do outro e'
                 // crepitar ou nao, e a regulagem de um estalo (FormLightning*) e' a mesma em

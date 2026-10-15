@@ -111,16 +111,17 @@ by construction.
 
 ### Transformations
 
-Four steps today, each gated behind a boss:
+Five steps today, each gated behind a boss:
 
 | Form | Unlocked by | Power | What sets it apart |
 |---|---|---|---|
 | **SSJ** | Eikthyr | ×2 | Yellow spiked version of your own hair, golden aura, slash damage |
 | **SSJ2** | The Elder | ×3 | Brighter hair, blue lightning, heavier ki drain |
 | **SSJ3** | Bonemass | ×4 | Long spiked hair (changes your silhouette), white lightning, strongest glow |
-| **SSJ God** | Moder | ×3.5 | Red hair and aura, cheaper to fight in, and passive healing that ticks three times as often and keeps going through Wet, Cold and Freezing |
+| **SSJ4** | Moder | ×4.5 | Long black hair, red fur and a swaying tail, red-orange aura, pure blunt punches |
+| **SSJ God** | Yagluth | ×4 | Red hair and aura, cheaper to fight in, and passive healing that ticks three times as often and keeps going through Wet, Cold and Freezing |
 
-SSJ God is the odd one: it hits softer than SSJ3 on purpose. It is the control form, and what it
+SSJ God is the odd one: it hits softer than SSJ4 on purpose, no harder than SSJ3. It is the control form, and what it
 buys is staying power rather than a bigger punch.
 
 There is no activation cost, so stepping up and down is free. What a form costs is a small

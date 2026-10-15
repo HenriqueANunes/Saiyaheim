@@ -41,6 +41,13 @@
     <!-- Ícones das skills (Power Level, Flight, maestrias). Arte final, versionada direto —
          diferente do bundle de cabelo, não é saída de pipeline gerada fora do repo. -->
     <EmbeddedResource Include="Assets\icons\*.png" />
+
+    <!-- Texturas pintadas no corpo por uma forma (o pelo do SSJ4): <nome>.png na camada _ChestTex
+         e <nome>_n.png na _ChestBumpMap. PNG solto e não bundle, como os ícones: textura não tem
+         shader, e o LoadImage dispensa um terceiro bundle. A fonte é gerada no projeto Unity
+         (Modelos/ssj4_pelo/), mas a cópia daqui é a que vale e fica versionada. -->
+    <EmbeddedResource Include="Assets\body\*.png" />
+    <EmbeddedResource Include="Assets\body\*.txt" />
   </ItemGroup>
 
   <ItemGroup>

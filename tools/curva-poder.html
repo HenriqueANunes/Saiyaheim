@@ -27,6 +27,10 @@
     --ssj3: #A31E68;
     /* O SSJ God leva o vermelho do cabelo dele. Carmim frio, para nao encostar no tijolo do --warn. */
     --ssjgod: #C2183B;
+    /* O SSJ4 (2026-10-15) fica com azul, e nao com o vermelho do pelo: os vermelhos e laranjas que
+       restavam batiam no carmim do God, no tijolo do --warn ou no laranja de "hoje" no validador.
+       Azul mais frio que o do ki, e foi o unico tom que passou contra todas as outras linhas. */
+    --ssj4: #3A6FD0;
     /* A serie "outro eixo": skill de voo no 100. Verde porque ela nunca e' uma forma. */
     --alt: #2c7a5c;
     --ki-wash: rgba(4, 129, 179, 0.12);
@@ -47,7 +51,7 @@
       --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
       --line: #3A342B; --line-soft: #2F2A22;
       --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --alt: #4fb98a;
+      --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --ssj4: #5A8CF0; --alt: #4fb98a;
       --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
       --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
     }
@@ -57,7 +61,7 @@
     --ground: #16130F; --panel: #1F1B16; --panel-2: #2A251E;
     --line: #3A342B; --line-soft: #2F2A22;
     --ink: #DED7C8; --ink-2: #A69C89; --ink-3: #7A7161;
-    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --alt: #4fb98a;
+    --ki: #06a0dd; --today: #d37e01; --ssj: #E0A93A; --ssj2: #9b6ef3; --ssj3: #F27BC0; --ssjgod: #FF5C70; --ssj4: #5A8CF0; --alt: #4fb98a;
     --ki-wash: rgba(6, 160, 221, 0.14); --warn: #E0714F; --kk1: #06a0dd; --kk2: #d37e01; --kk3: #3fa87a; --kk4: #9b6ef3; --kk5: #E0609F;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
   }
@@ -117,6 +121,7 @@
   .stat .v.ssj2 { color: var(--ssj2); }
   .stat .v.ssj3 { color: var(--ssj3); }
   .stat .v.ssjgod { color: var(--ssjgod); }
+  .stat .v.ssj4 { color: var(--ssj4); }
 
   .verdict { border-left: 2px solid var(--ki); padding: 2px 0 2px 16px; max-width: 78ch; color: var(--ink-2); font-size: 15px; }
   .verdict strong { color: var(--ink); font-weight: 600; }
@@ -153,6 +158,7 @@
   summary .tag.ssj2 { color: var(--ssj2); }
   summary .tag.ssj3 { color: var(--ssj3); }
   summary .tag.ssjgod { color: var(--ssjgod); }
+  summary .tag.ssj4 { color: var(--ssj4); }
   .group-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 11px; }
 
   .ctl { display: flex; flex-direction: column; gap: 5px; }
@@ -181,7 +187,9 @@
   .g-ssj3 input[type="range"]::-webkit-slider-thumb { background: var(--ssj3); }
   .g-ssj3 input[type="range"]::-moz-range-thumb { background: var(--ssj3); }
   .g-ssjgod input[type="range"]::-webkit-slider-thumb { background: var(--ssjgod); }
+  .g-ssj4 input[type="range"]::-webkit-slider-thumb { background: var(--ssj4); }
   .g-ssjgod input[type="range"]::-moz-range-thumb { background: var(--ssjgod); }
+  .g-ssj4 input[type="range"]::-moz-range-thumb { background: var(--ssj4); }
 
   .presets { display: flex; gap: 6px; flex-wrap: wrap; }
   button {
@@ -248,6 +256,7 @@
   thead tr.groups th.ssj2 { color: var(--ssj2); }
   thead tr.groups th.ssj3 { color: var(--ssj3); }
   thead tr.groups th.ssjgod { color: var(--ssjgod); }
+  thead tr.groups th.ssj4 { color: var(--ssj4); }
   thead tr.groups th.kk1 { color: var(--kk1); }
   thead tr.groups th.kk2 { color: var(--kk2); }
   thead tr.groups th.kk3 { color: var(--kk3); }
@@ -492,21 +501,38 @@
         </div>
       </details>
 
-      <details class="card group g-ssjgod" id="g-ssjgod" data-lens="combat form rating kk" open>
-        <summary><span class="chev">▶</span>SSJ God<span class="tag ssjgod">3.4</span></summary>
+      <details class="card group g-ssj4" id="g-ssj4" data-lens="combat form rating kk" open>
+        <summary><span class="chev">▶</span>SSJ4<span class="tag ssj4">3.4</span></summary>
         <div class="group-body">
-          <p class="hint">A forma do controle: bate <b>menos</b> que o SSJ3 e compra fôlego. Daqui a calculadora modela o multiplicador, o dreno, a maestria e o <code>CombatKiCostScale</code>; a cura passiva 3× mais rápida (<code>HealthRegenSpeed</code>, que atravessa Molhado, Frio e Congelando) e a resistência a contusão não entram em conta nenhuma da página.</p>
+          <p class="hint">A forma da força bruta, atrás do Moder desde 2026-10-15. Os números são chute: ainda não teve playtest.</p>
           <div class="ctl"><div class="row"><label for="m4">PowerMultiplier</label><output id="m4-out"></output></div>
-            <input type="range" id="m4" min="1" max="10" step="0.1" value="3.5"></div>
+            <input type="range" id="m4" min="1" max="10" step="0.1" value="4.5"></div>
           <div class="ctl"><div class="row"><label for="d4">KiDrainPerSecond</label><output id="d4-out"></output></div>
-            <input type="range" id="d4" min="0" max="20" step="0.25" value="2"></div>
+            <input type="range" id="d4" min="0" max="20" step="0.25" value="4"></div>
           <div class="ctl"><div class="row"><label for="r4">MasteryDrainReduction</label><output id="r4-out"></output></div>
             <input type="range" id="r4" min="0" max="1" step="0.05" value="1"></div>
           <div class="ctl"><div class="row"><label for="cs4">CombatKiCostScale</label><output id="cs4-out"></output></div>
-            <input type="range" id="cs4" min="0" max="3" step="0.05" value="0.5"></div>
-          <p class="hint">Fração da sobretaxa de combate que esta forma cobra: <code>1 + (mult − 1) × CombatFormKiShare × isto × (1 − MasteryFormCostReduction × maestria/100)</code>. Em 0,5 o God cobra metade do que um degrau comum com o mesmo multiplicador cobraria. Não toca no voo.</p>
-          <div class="ctl"><div class="row"><label for="lv4">Maestria de SSJ God</label><output id="lv4-out"></output></div>
+            <input type="range" id="cs4" min="0" max="3" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="lv4">Maestria de SSJ4</label><output id="lv4-out"></output></div>
             <input type="range" id="lv4" min="0" max="100" step="1" value="0"></div>
+        </div>
+      </details>
+
+      <details class="card group g-ssjgod" id="g-ssjgod" data-lens="combat form rating kk" open>
+        <summary><span class="chev">▶</span>SSJ God<span class="tag ssjgod">3.5</span></summary>
+        <div class="group-body">
+          <p class="hint">A forma do controle: bate o mesmo que o SSJ3 e <b>menos</b> que o SSJ4, e compra fôlego. Daqui a calculadora modela o multiplicador, o dreno, a maestria e o <code>CombatKiCostScale</code>; a cura passiva 3× mais rápida (<code>HealthRegenSpeed</code>, que atravessa Molhado, Frio e Congelando) e a resistência a contusão não entram em conta nenhuma da página.</p>
+          <div class="ctl"><div class="row"><label for="m5">PowerMultiplier</label><output id="m5-out"></output></div>
+            <input type="range" id="m5" min="1" max="10" step="0.1" value="4"></div>
+          <div class="ctl"><div class="row"><label for="d5">KiDrainPerSecond</label><output id="d5-out"></output></div>
+            <input type="range" id="d5" min="0" max="20" step="0.25" value="2"></div>
+          <div class="ctl"><div class="row"><label for="r5">MasteryDrainReduction</label><output id="r5-out"></output></div>
+            <input type="range" id="r5" min="0" max="1" step="0.05" value="1"></div>
+          <div class="ctl"><div class="row"><label for="cs5">CombatKiCostScale</label><output id="cs5-out"></output></div>
+            <input type="range" id="cs5" min="0" max="3" step="0.05" value="0.5"></div>
+          <p class="hint">Fração da sobretaxa de combate que esta forma cobra: <code>1 + (mult − 1) × CombatFormKiShare × isto × (1 − MasteryFormCostReduction × maestria/100)</code>. Em 0,5 o God cobra metade do que um degrau comum com o mesmo multiplicador cobraria. Não toca no voo.</p>
+          <div class="ctl"><div class="row"><label for="lv5">Maestria de SSJ God</label><output id="lv5-out"></output></div>
+            <input type="range" id="lv5" min="0" max="100" step="1" value="0"></div>
         </div>
       </details>
 
@@ -538,7 +564,7 @@
             <input type="range" id="bxm" min="1" max="10" step="0.25" value="7"></div>
           <div class="ctl"><div class="row"><label for="boss">bosses derrotados no mundo</label><output id="boss-out"></output></div>
             <input type="range" id="boss" min="0" max="5" step="1" value="1"></div>
-          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2, o SSJ3 o degrau 3 e o SSJ God o degrau 4, então nos defaults (bônus 3, teto 7), com três bosses no chão, o SSJ paga x7, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Com quatro bosses, sem o teto o SSJ pagaria x10. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
+          <p class="hint">O XP de cada forma é multiplicado por <code>min(teto, 1 + bônus × (bosses derrotados − degrau da forma))</code>, com piso em 1. O SSJ é o degrau 1, o SSJ2 o degrau 2, o SSJ3 o degrau 3, o SSJ4 o degrau 4 e o SSJ God o degrau 5, então nos defaults (bônus 3, teto 7), com três bosses no chão, o SSJ paga x7, o SSJ2 x4 e o SSJ3 — destravado por esse terceiro boss — x1. Com quatro bosses, sem o teto o SSJ pagaria x10. Multiplica por cima da compensação de curva. Regula a <b>diferença entre degraus</b>, não a velocidade da escada — é o slider acima que faz isso, e foi de propósito que a correção do playtest de 06/09 veio toda por aqui: o degrau recém-destravado tem que continuar subindo devagar.</p>
         </div>
       </details>
 
@@ -597,7 +623,7 @@
         <summary><span class="chev">▶</span>Kaioken — o que mostrar</summary>
         <div class="group-body">
           <div class="ctl is-hero"><div class="row"><label for="kform">Forma por baixo</label><output id="kform-out"></output></div>
-            <input type="range" id="kform" min="0" max="4" step="1" value="0"></div>
+            <input type="range" id="kform" min="0" max="5" step="1" value="0"></div>
           <p class="hint">A forma soma a penalidade dela ao nível seguro de todo tier, então as curvas andam para a direita. A maestria lida é a dos grupos SSJ.</p>
           <label class="check">
             <input type="checkbox" id="kcmp">
@@ -605,7 +631,7 @@
           </label>
           <div class="ctl"><div class="row"><label for="ktier">Tier (comparação e cartões)</label><output id="ktier-out"></output></div>
             <input type="range" id="ktier" min="1" max="5" step="1" value="1"></div>
-          <p class="hint">Marcado, o gráfico troca as cinco linhas de tier por uma linha por forma (base, SSJ, SSJ2, SSJ3, SSJ God), todas no tier escolhido aqui.</p>
+          <p class="hint">Marcado, o gráfico troca as cinco linhas de tier por uma linha por forma (base, SSJ, SSJ2, SSJ3, SSJ4, SSJ God), todas no tier escolhido aqui.</p>
           <div class="ctl"><div class="row"><label for="klv">Nível da skill Kaioken (cartões)</label><output id="klv-out"></output></div>
             <input type="range" id="klv" min="0" max="100" step="1" value="30"></div>
         </div>
@@ -693,11 +719,16 @@
             <input type="range" id="kfi3" min="0" max="100" step="1" value="70"></div>
           <div class="ctl"><div class="row"><label for="kfz3">Maestria em que zera</label><output id="kfz3-out"></output></div>
             <input type="range" id="kfz3" min="1" max="100" step="1" value="90"></div>
-          <div class="subhead">SSJ God</div>
+          <div class="subhead">SSJ4</div>
           <div class="ctl"><div class="row"><label for="kfi4">Penalidade inicial</label><output id="kfi4-out"></output></div>
-            <input type="range" id="kfi4" min="0" max="100" step="1" value="40"></div>
+            <input type="range" id="kfi4" min="0" max="100" step="1" value="80"></div>
           <div class="ctl"><div class="row"><label for="kfz4">Maestria em que zera</label><output id="kfz4-out"></output></div>
-            <input type="range" id="kfz4" min="1" max="100" step="1" value="50"></div>
+            <input type="range" id="kfz4" min="1" max="100" step="1" value="100"></div>
+          <div class="subhead">SSJ God</div>
+          <div class="ctl"><div class="row"><label for="kfi5">Penalidade inicial</label><output id="kfi5-out"></output></div>
+            <input type="range" id="kfi5" min="0" max="100" step="1" value="40"></div>
+          <div class="ctl"><div class="row"><label for="kfz5">Maestria em que zera</label><output id="kfz5-out"></output></div>
+            <input type="range" id="kfz5" min="1" max="100" step="1" value="50"></div>
         </div>
       </details>
 
@@ -799,13 +830,13 @@
   const ids = ["k5", "p", "hp", "k1", "k4", "hit", "dmg", "pkc", "pkr", "mkr", "cfk", "armb", "armp", "blkb", "blkp",
                "fkp", "fki", "fkr", "fkc", "fdr", "fb", "fp", "fs", "fss", "fwp", "fwc", "fm", "fl", "fw",
                "m1", "d1", "r1", "lv1", "m2", "d2", "r2", "lv2", "m3", "d3", "r3", "lv3",
-               "m4", "d4", "r4", "lv4", "cs1", "cs2", "cs3", "cs4",
+               "m4", "d4", "r4", "lv4", "m5", "d5", "r5", "lv5", "cs1", "cs2", "cs3", "cs4", "cs5",
                "xpd", "xpt", "xpmax", "cxp", "ppm", "bxp", "bxm", "boss", "fks",
                "kmax", "kper", "creg", "cfp", "rk1", "rc", "rk2", "rcap", "rhi", "rlv", "rfs",
                "ktier", "kform", "klv", "kstr", "kstf", "rkk",
                "kp1", "ks1", "kst1", "kh1", "kp2", "ks2", "kst2", "kh2", "kp3", "ks3", "kst3", "kh3",
                "kp4", "ks4", "kst4", "kh4", "kp5", "ks5", "kst5", "kh5",
-               "kfi1", "kfz1", "kfi2", "kfz2", "kfi3", "kfz3", "kfi4", "kfz4"];
+               "kfi1", "kfz1", "kfi2", "kfz2", "kfi3", "kfz3", "kfi4", "kfz4", "kfi5", "kfz5"];
   const el = {};
   ids.forEach(i => { el[i] = document.getElementById(i); el[i + "_out"] = document.getElementById(i + "-out"); });
   const flTrack = document.getElementById("fl-track");
@@ -840,9 +871,11 @@
     { id: "ssj", name: "SSJ", sec: "3.1 - SSJ", color: "var(--ssj)", cls: "ssj", m: "m1", d: "d1", r: "r1", lv: "lv1", cs: "cs1", rung: 0 },
     { id: "ssj2", name: "SSJ2", sec: "3.2 - SSJ2", color: "var(--ssj2)", cls: "ssj2", m: "m2", d: "d2", r: "r2", lv: "lv2", cs: "cs2", rung: 1 },
     { id: "ssj3", name: "SSJ3", sec: "3.3 - SSJ3", color: "var(--ssj3)", cls: "ssj3", m: "m3", d: "d3", r: "r3", lv: "lv3", cs: "cs3", rung: 2 },
+    // O SSJ4 entrou no meio em 2026-10-15, atras do Moder, e empurrou o God para o Yagluth.
+    { id: "ssj4", name: "SSJ4", sec: "3.4 - SSJ4", color: "var(--ssj4)", cls: "ssj4", m: "m4", d: "d4", r: "r4", lv: "lv4", cs: "cs4", rung: 3 },
     // O primeiro degrau que bate MENOS que o de baixo (2026-09-22): o God compra folego, e nao
     // golpe. Por isso o "topo" da escada deixou de ser o ultimo degrau — ver peak().
-    { id: "ssjgod", name: "SSJ God", sec: "3.4 - SSJ God", color: "var(--ssjgod)", cls: "ssjgod", m: "m4", d: "d4", r: "r4", lv: "lv4", cs: "cs4", rung: 3 },
+    { id: "ssjgod", name: "SSJ God", sec: "3.5 - SSJ God", color: "var(--ssjgod)", cls: "ssjgod", m: "m5", d: "d5", r: "r5", lv: "lv5", cs: "cs5", rung: 4 },
   ];
   // O primeiro e o ULTIMO degrau, e nao SSJ/SSJ2 nomeados: os cartoes e os alertas que falam de
   // "a forma" querem o topo da escada, que muda quando ela cresce. Os que comparam dois degraus
@@ -2138,12 +2171,12 @@
       kv("MaxKi", n("kmax", 0)), kv("MaxKiPerPowerLevel", n("kper", 1)),
       kv("ChargeKiPerSecond", n("creg", 1)), kv("ChargeKiFromPower", n("cfp", 3))]),
   };
-  // Espelha o SaiyaheimConfig.cs desde a etapa 14 (2026-10-04): secao 3.5, uma 3.5.N por tier, e a
+  // Espelha o SaiyaheimConfig.cs desde a etapa 14 (2026-10-04): secao 3.6 (3.5 ate 2026-10-15), uma 3.6.N por tier, e a
   // penalidade na secao de cada forma. As chaves de velocidade, ki, piso de vida, Exaustao e XP
   // existem no mod mas nao aqui — a calculadora nao as modela.
-  CFG.kk = () => [block("3.5 - Kaioken", [
+  CFG.kk = () => [block("3.6 - Kaioken", [
       kv("StaminaCutPerLevel", n("kstr", 3)), kv("StaminaFloor", n("kstf", 2))])].concat(
-    TIERS.map(tr => block(`3.5.${tr.t} - Kaioken ${tr.name}`, [
+    TIERS.map(tr => block(`3.6.${tr.t} - Kaioken ${tr.name}`, [
       kv("PowerMultiplier", n("kp" + tr.t, 2)), kv("SafeLevel", n("ks" + tr.t, 0)),
       kv("StaminaPerSecond", n("kst" + tr.t, 1)), kv("HealthPerSecondPerLevel", n("kh" + tr.t, 2))])),
     FORMS.map((f, i) => block(f.sec, [
@@ -2170,14 +2203,14 @@
   const OUT_DEC = { k5: 1, p: 1, hp: 0, k1: 2, k4: 1, hit: 0, dmg: 3, pkc: 1, pkr: 4, mkr: 2, cfk: 2, armb: 0, armp: 3, blkb: 0,
                     blkp: 3, fkp: 4, fki: 1, fkr: 2, fkc: 2, fdr: 2, fb: 1, fp: 3, fs: 2, fss: 2, fwp: 2, fwc: 2, fm: 0, fl: 0, fw: 0,
                     m1: 1, d1: 2, r1: 2, lv1: 0, m2: 1, d2: 2, r2: 2, lv2: 0, m3: 1, d3: 2, r3: 2, lv3: 0,
-                    m4: 1, d4: 2, r4: 2, lv4: 0, cs1: 2, cs2: 2, cs3: 2, cs4: 2,
+                    m4: 1, d4: 2, r4: 2, lv4: 0, m5: 1, d5: 2, r5: 2, lv5: 0, cs1: 2, cs2: 2, cs3: 2, cs4: 2, cs5: 2,
                     xpd: 4, xpt: 4, xpmax: 2, cxp: 2, ppm: 0, bxp: 2, bxm: 2, boss: 0, fks: 2,
                     kmax: 0, kper: 1, creg: 1, cfp: 3,
                     rk1: 2, rc: 0, rk2: 1, rcap: 1, rhi: 1, rlv: 0, rfs: 2,
                     ktier: 0, kform: 0, klv: 0, kstr: 3, kstf: 2, rkk: 0,
                     kp1: 2, ks1: 0, kst1: 1, kh1: 2, kp2: 2, ks2: 0, kst2: 1, kh2: 2, kp3: 2, ks3: 0, kst3: 1, kh3: 2,
                     kp4: 2, ks4: 0, kst4: 1, kh4: 2, kp5: 2, ks5: 0, kst5: 1, kh5: 2,
-                    kfi1: 0, kfz1: 0, kfi2: 0, kfz2: 0, kfi3: 0, kfz3: 0, kfi4: 0, kfz4: 0 };
+                    kfi1: 0, kfz1: 0, kfi2: 0, kfz2: 0, kfi3: 0, kfz3: 0, kfi4: 0, kfz4: 0, kfi5: 0, kfz5: 0 };
 
   function setLens(id) {
     lens = id;

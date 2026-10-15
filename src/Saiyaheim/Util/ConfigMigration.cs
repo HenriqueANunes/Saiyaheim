@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 9;
+        internal const int CurrentVersion = 10;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -93,6 +93,18 @@ namespace Saiyaheim.Util
                 return;
             }
 
+            // As secoes renomeadas vem primeiro: as linhas de Changes() apontam para a secao nova,
+            // e so' acham o valor do jogador depois que ele foi trazido da velha.
+            int moved = 0;
+
+            foreach (SectionMove move in SectionMoves())
+            {
+                if (move.Version > from)
+                {
+                    moved += Move(config, move);
+                }
+            }
+
             int applied = 0;
             int kept = 0;
 
@@ -131,8 +143,99 @@ namespace Saiyaheim.Util
             // Instalação limpa cai aqui com applied 0: o arquivo nasceu com os defaults novos e
             // nada casou com um default antigo. É o caso normal e não merece alarde.
             SaiyaheimPlugin.Log.LogInfo(
-                $"Config migrated from version {from} to {CurrentVersion}: " +
-                $"{applied} key(s) updated, {kept} customized key(s) kept, {removed} obsolete key(s) removed.");
+                $"Config migrated from version {from} to {CurrentVersion}: {moved} key(s) moved to a " +
+                $"renamed section, {applied} key(s) updated, {kept} customized key(s) kept, " +
+                $"{removed} obsolete key(s) removed.");
+        }
+
+        /// <summary>Uma seção que mudou de nome. As chaves dentro dela continuam as mesmas.</summary>
+        private readonly struct SectionMove
+        {
+            internal SectionMove(int version, string from, string to)
+            {
+                Version = version;
+                From = from;
+                To = to;
+            }
+
+            internal int Version { get; }
+            internal string From { get; }
+            internal string To { get; }
+        }
+
+        /// <summary>
+        /// Traz para a seção nova o valor que o jogador tinha na velha, chave por chave, e apaga a
+        /// velha. Devolve quantas chaves vieram.
+        ///
+        /// O caminho é o mesmo do <see cref="Remove"/>: um <c>Bind</c> na definição velha tira a
+        /// linha das órfãs, o valor passa como texto (<c>SetSerializedValue</c>, que serve para
+        /// qualquer tipo de chave) e o <c>Remove</c> apaga a velha. Só as chaves que a seção nova
+        /// registra são procuradas: uma órfã que não tem par na seção nova fica onde está, e quem
+        /// a apaga, se for o caso, é uma linha de <see cref="Removals"/>.
+        /// </summary>
+        private static int Move(ConfigFile config, SectionMove move)
+        {
+            const string Absent = "<saiyaheim: absent>";
+
+            List<ConfigEntryBase> targets = new List<ConfigEntryBase>();
+            foreach (ConfigDefinition definition in config.Keys)
+            {
+                if (definition.Section == move.To)
+                {
+                    targets.Add(config[definition]);
+                }
+            }
+
+            bool saveOnSet = config.SaveOnConfigSet;
+            config.SaveOnConfigSet = false;
+
+            int moved = 0;
+
+            foreach (ConfigEntryBase target in targets)
+            {
+                var old = new ConfigDefinition(move.From, target.Definition.Key);
+                ConfigEntry<string> entry = config.Bind(old, Absent);
+                string value = entry.Value;
+                config.Remove(old);
+
+                if (value == Absent)
+                {
+                    continue;
+                }
+
+                target.SetSerializedValue(value);
+                moved++;
+            }
+
+            config.SaveOnConfigSet = saveOnSet;
+
+            if (moved > 0)
+            {
+                SaiyaheimPlugin.Log.LogInfo($"[{move.From}] -> [{move.To}]: {moved} key(s) moved.");
+            }
+
+            return moved;
+        }
+
+        /// <summary>
+        /// As seções que mudaram de nome. Como as outras tabelas, linha antiga nunca sai.
+        /// </summary>
+        private static IEnumerable<SectionMove> SectionMoves()
+        {
+            // ---------- 10 (2026-10-15) — o SSJ4 entra na escada, atras do Moder ----------
+            //
+            // O numero da secao e' a posicao na escada. O SSJ4 ocupa a 3.4, o SSJ God vai para a
+            // 3.5 e o Kaioken, que vinha logo depois, para a 3.6 — com os cinco tiers juntos. Os
+            // nomes dos tiers estao escritos aqui por extenso de proposito: esta tabela e'
+            // historia, e nao deve mudar se a lista de tiers mudar um dia.
+            yield return new SectionMove(10, "3.4 - SSJ God", "3.5 - SSJ God");
+            yield return new SectionMove(10, "3.5 - Kaioken", "3.6 - Kaioken");
+
+            string[] tiers = { "x2", "x3", "x4", "x10", "x20" };
+            for (int i = 0; i < tiers.Length; i++)
+            {
+                yield return new SectionMove(10, $"3.5.{i + 1} - Kaioken {tiers[i]}", $"3.6.{i + 1} - Kaioken {tiers[i]}");
+            }
         }
 
         /// <summary>Uma chave que saiu do mod e deve sumir do <c>.cfg</c> de quem já a tinha.</summary>
@@ -222,6 +325,14 @@ namespace Saiyaheim.Util
                 yield return new Removal(8, section, "MasteryXpBossMultiplierMax");
                 yield return new Removal(8, section, "MasteryXpPerSecond");
             }
+
+            // ---------- 10 (2026-10-15) — a ultima orfa da secao velha do SSJ God ----------
+            //
+            // O HealthRegenMultiplier saiu do mod em 2026-09-22 e nenhuma migracao o apagou. A
+            // mudanca de secao desta mesma migracao (SectionMoves) leva tudo o que a "3.5 - SSJ God"
+            // registra e deixaria so' ele na "3.4 - SSJ God", parecendo uma secao do SSJ4 com uma
+            // chave errada.
+            yield return new Removal(10, "3.4 - SSJ God", "HealthRegenMultiplier");
         }
 
         /// <summary>O que a migração fez com uma chave. Separa "preservei o teu valor" de "não havia nada a fazer".</summary>
@@ -450,6 +561,20 @@ namespace Saiyaheim.Util
                 new KeyboardShortcut(KeyCode.Y), false);
             yield return new Change(9, SaiyaheimConfig.KaiokenOffKey,
                 new KeyboardShortcut(KeyCode.Y, KeyCode.LeftShift), false);
+
+            // ---------- 10 (2026-10-15) — o SSJ God sai do Moder e vai para o Yagluth ----------
+            //
+            // O Moder passou a destravar o SSJ4. Force, a pedido do Henrique: um .cfg que ficasse
+            // com o God no Moder destravaria as duas formas no mesmo boss e deixaria o Yagluth sem
+            // nada — exatamente o "boss sem recompensa" que a regra de um degrau por boss existe
+            // para evitar. Quem tinha outro valor recebe o aviso no log com o valor velho.
+            yield return new Change(10, SaiyaheimConfig.SsjGod.RequiredGlobalKey, "defeated_dragon", true);
+
+            // O God tambem sobe de 3,5 para 4, ajustado pelo Henrique no mesmo dia, para ficar no
+            // nivel do SSJ3 e abaixo do SSJ4 (4,5). Force pelo mesmo motivo da chave acima: o
+            // numero e' a distancia entre os dois degraus de cima, e faz parte da mesma escada nova.
+            // O SSJ4 nao tem linha: a secao dele nasce nesta migracao, com o default de hoje.
+            yield return new Change(10, SaiyaheimConfig.SsjGod.PowerMultiplier, 3.5f, true);
         }
     }
 }
