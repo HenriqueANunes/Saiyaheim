@@ -1785,12 +1785,13 @@ namespace Saiyaheim
                     new AcceptableValueRange<float>(0.05f, 1f), ClientSide(75)));
 
             // --- Ki ---
+            // Valor de playtest de 2026-07-31.
             MaxKi = config.Bind(SecKi, "MaxKi", 50f,
                 new ConfigDescription(
                     "Maximum ki at level 0 of the Power Level skill. The cap grows from here — " +
-                    "see MaxKiPerPowerLevel. With a fixed cap the bar would be the same size from " +
-                    "the first boss to the last and progression would never show up on the HUD. " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "see MaxKiPerPowerLevel. With a fixed cap the bar would be the same size " +
+                    "from the first boss to the last and progression would never show up on the " +
+                    "HUD.",
                     new AcceptableValueRange<float>(10f, 10000f), AdminOnly(100)));
 
             MaxKiPerPowerLevel = config.Bind(SecKi, "MaxKiPerPowerLevel", 3f,
@@ -1799,14 +1800,13 @@ namespace Saiyaheim
                     "quadruples the bar (100 base + 300).",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(95)));
 
+            // Playtest de 2026-08-13. Foi de 0,5 para 1 em 2026-08-01, quando levar dano passou a
+            // custar ki; de 1 para 2 quando o voo barateou e a espera entre voos virou o gargalo.
             KiRegenPerSecond = config.Bind(SecKi, "KiRegenPerSecond", 2f,
                 new ConfigDescription(
-                    "Ki regenerated per second while idle. Deliberately low: passive regeneration " +
-                    "is the safety net, not the normal way to get ki back. " +
-                    "If you want ki, you charge for it. " +
-                    "(Playtest value, 2026-08-13. Went 0.5 → 1 on 2026-08-01, when taking damage " +
-                    "started costing ki and the safety net had to hold more; 1 → 2 once flight " +
-                    "got cheaper and the downtime between flights was the thing being waited on.)",
+                    "Ki regenerated per second while idle. Deliberately low: passive " +
+                    "regeneration is the safety net, not the normal way to get ki back. If you " +
+                    "want ki, you charge for it.",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(90)));
 
             // Escala pelo battle power DERIVADO, nao pelo nivel da skill: e a mesma base do
@@ -1824,11 +1824,12 @@ namespace Saiyaheim
                     "Check it with saiya_ki, which prints seconds to fill.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(85)));
 
+            // Calibrado no playtest de 2026-07-28.
             KiRegenDelay = config.Bind(SecKi, "KiRegenDelay", 5f,
                 new ConfigDescription(
                     "Seconds without regenerating after spending ki. Deliberately long, together " +
                     "with a low KiRegenPerSecond: spending ki should hurt, and recovering it " +
-                    "should be an action. (Calibrated in the 2026-07-28 playtest.)",
+                    "should be an action.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
 
             // Rested e o unico loop do vanilla que recompensa montar base, e o mod meio que
@@ -1862,13 +1863,12 @@ namespace Saiyaheim
                     "1 disables it; 0 removes the pause entirely while rested.",
                     new AcceptableValueRange<float>(0f, 2f), AdminOnly(66)));
 
+            // Valor de playtest de 2026-07-31.
             ChargeKiPerSecond = config.Bind(SecKi, "ChargeKiPerSecond", 5f,
                 new ConfigDescription(
-                    "Ki per second while the charge key is held. " +
-                    "Should be much higher than KiRegenPerSecond — the point is that charging is a " +
-                    "deliberate action worth taking, not just waiting faster. " +
-                    "Deliberately ignores KiRegenDelay. " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "Ki per second while the charge key is held. Should be much higher than " +
+                    "KiRegenPerSecond — the point is that charging is a deliberate action worth " +
+                    "taking, not just waiting faster. Deliberately ignores KiRegenDelay.",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(60)));
 
             // Dez vezes o KiRegenFromPower, que e a mesma proporcao entre ChargeKiPerSecond e
@@ -1883,11 +1883,12 @@ namespace Saiyaheim
                     "seconds-to-fill — read it off saiya_ki at a low and a high skill level.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(55)));
 
+            // Os dois modos testados no playtest de 2026-07-28; parado venceu.
             ChargeRequiresStandingStill = config.Bind(SecKi, "ChargeRequiresStandingStill", true,
                 new ConfigDescription(
                     "If true, moving interrupts charging. Charging while standing still is the " +
                     "classic Dragon Ball gesture and creates a real choice: stopping to charge " +
-                    "leaves you exposed. (Both tested in the 2026-07-28 playtest; standing still won.)",
+                    "leaves you exposed.",
                     null, AdminOnly(50)));
 
             // Recompensa de luta boa, e nao so de ficar parado recarregando.
@@ -1936,6 +1937,9 @@ namespace Saiyaheim
             // custo migrou para a ACAO. Estar transformado deixa de ser imposto por segundo e
             // passa a ser caro quando se luta, que e' quando a forma esta' entregando alguma
             // coisa. Ver Melhorias, "Ki deixa de ser imposto de existir".
+            // Playtest de 2026-08-01: começou em 1, igual ao DamageTakenKiCost, e o soco saía quase
+            // de graça; 3 deixou o custo legível. Subiu para 7 em 2026-09-20, quando o custo da
+            // forma passou de por segundo para por soco.
             PunchKiCostPerDamage = config.Bind(SecCombat, "PunchKiCostPerDamage", 7f,
                 new ConfigDescription(
                     "Ki consumed per point of damage the battle power ADDED to the punch — the " +
@@ -1945,12 +1949,8 @@ namespace Saiyaheim
                     "PunchDamageFromPower * battle power * this, and the vanilla unarmed base " +
                     "damage is free — ki did not provide it. Insufficient ki does NOT cancel the " +
                     "hit: the punch lands with raw vanilla damage, without the bonus. Missing " +
-                    "costs nothing (the charge happens on the hit, not on the swing). Set to zero " +
-                    "to disable the cost. " +
-                    "(Playtest value, 2026-08-01: started at 1 to match DamageTakenKiCost and the " +
-                    "punch was nearly free — the bar barely moved in a fight. 3 is what made the " +
-                    "cost readable. Raised to 7 on 2026-09-20, when the ki cost of a form moved " +
-                    "from per second held to per punch thrown.)",
+                    "costs nothing (the charge happens on the hit, not on the swing). Set to " +
+                    "zero to disable the cost.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             // O conserto da assimetria que o playtest de 2026-08-04 expos: os TRES custos de
@@ -1965,20 +1965,20 @@ namespace Saiyaheim
             //
             // Hiperbolico e nao linear, pela mesma razao do voo: a entrada nao tem teto, e um
             // `1 - r * poder` atravessaria o zero e viraria golpe que DEVOLVE ki.
+            // O número do SSJ3 foi medido no playtest de 2026-09-20.
             DefenseKiCostPowerReduction = config.Bind(SecCombat, "DefenseKiCostPowerReduction", 0f,
                 new ConfigDescription(
                     "Same hyperbolic discount as KiCostPowerReduction, but for the two DEFENSIVE " +
                     "ki costs: BlockKiCost and DamageTakenKiCost. 0 (the default) means no " +
-                    "discount at all. " +
-                    "Why it is separate and why it is zero: those two costs are charged per point " +
-                    "of the ENEMY's hit that ki stopped, and an enemy's hit does not grow with " +
-                    "your power — so there is no runaway growth here for a discount to correct. " +
-                    "Sharing the punch's discount made defending cheaper exactly as it got " +
-                    "stronger, and transforming multiplied the effect, because the form " +
-                    "multiplies the power that buys the discount. Playtested 2026-09-20: in SSJ3 " +
-                    "a block stopped 3.4x more damage for the same ki. " +
-                    "Raise it only if late-game biomes hit hard enough to make defending " +
-                    "unpayable — that is the one question this key is here to answer.",
+                    "discount at all. Why it is separate and why it is zero: those two costs are " +
+                    "charged per point of the ENEMY's hit that ki stopped, and an enemy's hit " +
+                    "does not grow with your power — so there is no runaway growth here for a " +
+                    "discount to correct. Sharing the punch's discount made defending cheaper " +
+                    "exactly as it got stronger, and transforming multiplied the effect, because " +
+                    "the form multiplies the power that buys the discount. In SSJ3 a block " +
+                    "stopped 3.4x more damage for the same ki. Raise it only if late-game biomes " +
+                    "hit hard enough to make defending unpayable — that is the one question this " +
+                    "key is here to answer.",
                     new AcceptableValueRange<float>(0f, 0.02f), AdminOnly(59)));
 
             // 1 -> 0,5 -> 0,2 nos playtests de 2026-09-20 e 21: lutar transformado estava caro
@@ -1988,55 +1988,52 @@ namespace Saiyaheim
             // 0, entao ela ja' nasce entregando 2,5x mais dano por ki que a base — o que antes so'
             // acontecia com maestria. A maestria continua zerando a sobretaxa no nivel 100, e o
             // que ela paga agora e' bem menor, porque o que sobrou para devolver e' menor.
+            // Playtest de 2026-09-21: saiu em 1 e lutar transformado secava a barra; 0,5 ainda
+            // apertava, e 0,2 fez a forma parecer prêmio e não conta. As taxas base de combate não
+            // mudaram. Antes de 2026-09-20 a forma não cobrava nada (equivale a 0).
             CombatFormKiShare = config.Bind(SecCombat, "CombatFormKiShare", 0.2f,
                 new ConfigDescription(
                     "How much of a transformation's power gain turns into EXTRA ki cost for the " +
-                    "three combat costs — punching, blocking and taking hits: " +
-                    "cost is multiplied by 1 + (PowerMultiplier - 1) * this * " +
-                    "(1 - MasteryFormCostReduction * mastery/100). " +
-                    "At 1 a form with x4 power costs 4x the ki per punch at mastery 0, which " +
-                    "means the SAME damage per ki as base form — what the form buys there is the " +
-                    "bigger hit, not efficiency. At the default 0.2 that same form costs 1.6x, so " +
-                    "it already lands 2.5x the damage per ki before any mastery. Either way the " +
-                    "surcharge is gone at mastery 100 (see MasteryFormCostReduction), where the " +
-                    "whole multiplier becomes profit: at first you barely hold the form, in the " +
-                    "end you wear it. " +
-                    "Lower it to make transforming cheaper from the start; 0 gives the form's " +
-                    "power away for free, which is how it behaved before 2026-09-20. " +
-                    "Mirrors FormKiShare in the flight section. " +
-                    "(Playtest value, 2026-09-21: shipped at 1 and fighting transformed drained " +
-                    "the bar too fast; 0.5 was still too tight, and 0.2 is what made fighting in " +
-                    "a form read as a reward instead of a bill. The base combat rates were not " +
-                    "touched.)",
+                    "three combat costs — punching, blocking and taking hits: cost is multiplied " +
+                    "by 1 + (PowerMultiplier - 1) * this * (1 - MasteryFormCostReduction * " +
+                    "mastery/100). At 1 a form with x4 power costs 4x the ki per punch at " +
+                    "mastery 0, which means the SAME damage per ki as base form — what the form " +
+                    "buys there is the bigger hit, not efficiency. At the default 0.2 that same " +
+                    "form costs 1.6x, so it already lands 2.5x the damage per ki before any " +
+                    "mastery. Either way the surcharge is gone at mastery 100 (see " +
+                    "MasteryFormCostReduction), where the whole multiplier becomes profit: at " +
+                    "first you barely hold the form, in the end you wear it. Lower it to make " +
+                    "transforming cheaper from the start; 0 gives the form's power away for " +
+                    "free. Mirrors FormKiShare in the flight section.",
                     new AcceptableValueRange<float>(0f, 3f), AdminOnly(57)));
 
+            // Playtest de 2026-08-04: começou em 0,002, ainda apertado a ponto de a luta
+            // transformada viver no limite da barra; 0,01 fez o combate ser combate e não gestão de
+            // barra. No começo do jogo o desconto é pequeno e os valores calibrados em 2026-08-01
+            // continuam valendo.
             KiCostPowerReduction = config.Bind(SecCombat, "KiCostPowerReduction", 0.01f,
                 new ConfigDescription(
                     "How much the combat battle power makes the three COMBAT ki costs cheaper — " +
-                    "punching (PunchKiCostPerDamage), taking hits (DamageTakenKiCost) and blocking " +
-                    "(BlockKiCost) — as 1 / (1 + this * combat power). 0 disables the discount and " +
-                    "the costs stay strictly proportional to what ki delivered. " +
-                    "Why it exists: all three costs come from the combat battle power, which has no " +
-                    "ceiling — the late-game term grows forever and a transformation multiplies it " +
-                    "— while the ki bar comes from the Power Level SKILL, which stops at " +
-                    "100. Without this, a punch eventually costs more than a full bar and lands " +
-                    "with raw vanilla damage, and blocking drains the bar in two hits. \n" +
+                    "punching (PunchKiCostPerDamage), taking hits (DamageTakenKiCost) and " +
+                    "blocking (BlockKiCost) — as 1 / (1 + this * combat power). 0 disables the " +
+                    "discount and the costs stay strictly proportional to what ki delivered. Why " +
+                    "it exists: all three costs come from the combat battle power, which has no " +
+                    "ceiling — the late-game term grows forever and a transformation multiplies " +
+                    "it — while the ki bar comes from the Power Level SKILL, which stops at 100. " +
+                    "Without this, a punch eventually costs more than a full bar and lands with " +
+                    "raw vanilla damage, and blocking drains the bar in two hits. \n" +
                     "The shape matters: each cost approaches its own rate divided by this and " +
                     "never passes it, so actions per bar settles instead of falling to zero. For " +
                     "the punch at 0.01 that ceiling is 15 ki, so a full bar always buys a long " +
                     "fight no matter how far the battle power runs. \n" +
-                    "It also fixes transformations without a key of its own: a form multiplies the " +
-                    "power, and it is the power that buys the discount, so the ratio of damage per " +
-                    "bar between transformed and not approaches the form's PowerMultiplier " +
-                    "instead of sitting at 1. \n" +
-                    "One key for all three deliberately: it is the same problem in all of them, and " +
-                    "splitting it would invite cheap punches next to expensive blocks with no " +
-                    "design question behind the difference. \n" +
-                    "Early game the power is small, so the discount is a few percent and the " +
-                    "values calibrated on 2026-08-01 still hold there. " +
-                    "(Playtest value, 2026-08-04. Started at 0.002, which was still tight enough " +
-                    "that the transformed fight lived on the edge of the bar; 0.01 is what made " +
-                    "the combat read as combat instead of bar management.)",
+                    "It also fixes transformations without a key of its own: a form multiplies " +
+                    "the power, and it is the power that buys the discount, so the ratio of " +
+                    "damage per bar between transformed and not approaches the form's " +
+                    "PowerMultiplier instead of sitting at 1. \n" +
+                    "One key for all three deliberately: it is the same problem in all of them, " +
+                    "and splitting it would invite cheap punches next to expensive blocks with " +
+                    "no design question behind the difference. \n" +
+                    "Early game the power is small, so the discount is only a few percent.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(95)));
 
             // A segunda moeda da maestria, e a resposta ao que a chave acima produziu: o desconto
@@ -2060,43 +2057,41 @@ namespace Saiyaheim
             // mesmo que "o degrau velho tem nicho": a 1, o SSJ2 recem-destravado ainda rende mais
             // dano por ki (2,58) que o SSJ maxado (2,17). O cruzamento fica perto de 2,5. Sao dois
             // alvos no mesmo dial e a escolha e' de playtest — por isso o teto da faixa e' 3.
+            // Reescrito em 2026-09-20: era um termo dentro do divisor do desconto de poder, que lia
+            // o poder já multiplicado pela forma, e a sobretaxa se anulava — no SSJ3 o soco dava 4x
+            // o dano por 1,28x o custo. Agora a sobretaxa é multiplicador explícito e o desconto lê
+            // o poder da forma base.
             MasteryFormCostReduction = config.Bind(SecCombat, "MasteryFormCostReduction", 1f,
                 new ConfigDescription(
                     "How much of the extra ki cost that a transformation charges is paid back by " +
-                    "that form's mastery. The form's surcharge is " +
-                    "1 + (PowerMultiplier - 1) * CombatFormKiShare * (1 - this * mastery/100), " +
-                    "and it multiplies all four ki costs of fighting: punching, blocking, taking " +
-                    "hits and ki attacks. 0 means mastery pays back nothing and the form charges " +
-                    "its full surcharge forever. \n" +
+                    "that form's mastery. The form's surcharge is 1 + (PowerMultiplier - 1) * " +
+                    "CombatFormKiShare * (1 - this * mastery/100), and it multiplies all four ki " +
+                    "costs of fighting: punching, blocking, taking hits and ki attacks. 0 means " +
+                    "mastery pays back nothing and the form charges its full surcharge forever. \n" +
                     "1 is the meaningful point: at mastery 100 the form costs EXACTLY what the " +
                     "base form costs for the same action, while still landing PowerMultiplier " +
-                    "times the damage. Mastering a form stops it from charging extra to fight in, " +
-                    "and that is when the multiplier becomes pure profit. \n" +
+                    "times the damage. Mastering a form stops it from charging extra to fight " +
+                    "in, and that is when the multiplier becomes pure profit. \n" +
                     "Why it is written against the multiplier and not as a flat rate per mastery " +
                     "level: the premium a form charges IS its multiplier, so the payback has to " +
                     "scale with it. A flat rate would need one number for a x2 form and another " +
                     "for a x3 one. This way every rung, including ones that do not exist yet, " +
                     "lands on its own base cost at mastery 100 with no retuning. \n" +
                     "It reads the mastery of the ACTIVE form, which starts at zero on every new " +
-                    "rung — so the rung you have mastered is cheaper to fight in than the one you " +
-                    "just unlocked, which is the whole point. \n" +
-                    "Note this gives mastery a SECOND payoff next to the drain reduction. It stays " +
-                    "on the economy axis, not the power axis, so a form still never hits harder " +
-                    "for being trained. \n" +
-                    "(Rewritten on 2026-09-20: it used to be a term added inside the power " +
-                    "discount's divisor, and that discount also read the form-multiplied power, " +
-                    "so the form's premium mostly cancelled itself out — in SSJ3 a punch landed " +
-                    "4x the damage for 1.28x the cost. The premium is now an explicit multiplier " +
-                    "and the power discount reads the BASE form's power.)",
+                    "rung — so the rung you have mastered is cheaper to fight in than the one " +
+                    "you just unlocked, which is the whole point. \n" +
+                    "Note this gives mastery a SECOND payoff next to the drain reduction. It " +
+                    "stays on the economy axis, not the power axis, so a form still never hits " +
+                    "harder for being trained.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(94)));
 
+            // Playtest de 2026-08-01: um terço do 0,15 de 2026-07-31, porque o soco crescia mais
+            // que os biomas.
             PunchDamageFromPower = config.Bind(SecCombat, "PunchDamageFromPower", 0.05f,
                 new ConfigDescription(
-                    "Fraction of the battle power ADDED to punch damage. Additive, not multiplicative: " +
-                    "enemy HP grows roughly linearly across biomes, and an additive stat scales " +
-                    "predictably against that. " +
-                    "(Playtest value, 2026-08-01. Cut to a third of the 0.15 used on 2026-07-31 — " +
-                    "the punch was outscaling the biomes.)",
+                    "Fraction of the battle power ADDED to punch damage. Additive, not " +
+                    "multiplicative: enemy HP grows roughly linearly across biomes, and an " +
+                    "additive stat scales predictably against that.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
             // --- 2.2 - Environment ---
@@ -2106,31 +2101,31 @@ namespace Saiyaheim
             // arvores quase nao cresce entre tiers (faia 80, carvalho 200, Yggdrasil 100), e o
             // poder cresce umas 4x no mesmo caminho. Pela razao, toda arvore recem-liberada custa
             // o mesmo numero de socos, em qualquer tier.
+            // Chute inicial de 2026-09-27, sem playtest.
             EnvironmentChopDamage = config.Bind(SecEnvironment, "ChopDamage", 8f,
                 new ConfigDescription(
                     "Chop damage a punch deals to a tree you have JUST become strong enough to " +
-                    "damage. Twice that strength deals twice this, so a newly unlocked tree always " +
-                    "takes the same number of punches, whatever the tier, and old ones fall fast. " +
-                    "Reference: a birch has 80 HP, an oak 200, the bronze axe deals 40. " +
-                    "Ki attacks use the same formula, weighted by how many punches one projectile " +
-                    "is worth against an enemy. The punch costs the same ki it costs against an " +
-                    "enemy, and with the bar empty it does nothing here. " +
-                    "(Starting value, 2026-09-27. Not playtested yet.)",
+                    "damage. Twice that strength deals twice this, so a newly unlocked tree " +
+                    "always takes the same number of punches, whatever the tier, and old ones " +
+                    "fall fast. Reference: a birch has 80 HP, an oak 200, the bronze axe deals " +
+                    "40. Ki attacks use the same formula, weighted by how many punches one " +
+                    "projectile is worth against an enemy. The punch costs the same ki it costs " +
+                    "against an enemy, and with the bar empty it does nothing here.",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(100)));
 
+            // Chute inicial de 2026-09-27, sem playtest.
             EnvironmentPickaxeDamage = config.Bind(SecEnvironment, "PickaxeDamage", 6f,
                 new ConfigDescription(
-                    "Same as ChopDamage, for rocks and ore veins. " +
-                    "Reference: a chunk of copper vein has 50 HP, the antler pickaxe deals 18. " +
-                    "(Starting value, 2026-09-27. Not playtested yet.)",
+                    "Same as ChopDamage, for rocks and ore veins. Reference: a chunk of copper " +
+                    "vein has 50 HP, the antler pickaxe deals 18.",
                     new AcceptableValueRange<float>(0f, 500f), AdminOnly(99)));
 
+            // Valor de playtest de 2026-07-31.
             ArmorBase = config.Bind(SecCombat, "ArmorBase", 1f,
                 new ConfigDescription(
-                    "Armor guaranteed while ki is on, before the share that comes from power. " +
-                    "It exists so the player does not end up MORE fragile by turning ki on early " +
-                    "in the game, when the skill is still at a low level. " +
-                    "(Playtest value, 2026-07-31. Still being tuned.)",
+                    "Armor guaranteed while ki is on, before the share that comes from power. It " +
+                    "exists so the player does not end up MORE fragile by turning ki on early in " +
+                    "the game, when the skill is still at a low level.",
                     new AcceptableValueRange<float>(0f, 200f), AdminOnly(80)));
 
             // Baixado de 0.15 para 0.06 no playtest de 2026-08-01, junto com a entrada do termo de
@@ -2145,15 +2140,15 @@ namespace Saiyaheim
             // armadura de ki no fim de jogo caiu junto — sem ninguem ter decidido isso. Se o
             // playtest disser que o personagem ficou de papel no late game, e' aqui, e nao no
             // bloqueio, que o numero precisa subir.
+            // Playtest de 2026-08-01: baixado de 0,15 quando o termo de fim de jogo dobrou o poder
+            // no nível 100 e a armadura subiu junto.
             ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.06f,
                 new ConfigDescription(
-                    "Fraction of the battle power converted into armor. While ki is on this armor " +
-                    "REPLACES equipment armor — worn pieces stop counting. Turning ki off gives " +
-                    "vanilla armor back immediately. " +
-                    "Reads the COMBAT battle power, so it grows with K5_LateGameBonus — that is why " +
-                    "this is much lower than it looks like it should be. " +
-                    "(Playtest value, 2026-08-01. Lowered from 0.15 when the late-game term " +
-                    "doubled power at level 100 and armor came along for the ride.)",
+                    "Fraction of the battle power converted into armor. While ki is on this " +
+                    "armor REPLACES equipment armor — worn pieces stop counting. Turning ki off " +
+                    "gives vanilla armor back immediately. Reads the COMBAT battle power, so it " +
+                    "grows with K5_LateGameBonus — that is why this is much lower than it looks " +
+                    "like it should be.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(70)));
 
             // Fracao e nao valor fixo de propósito: um piso fixo envelhece mal, como o ArmorBase
@@ -2186,20 +2181,17 @@ namespace Saiyaheim
             // valia entre 0,1 e 0,3 — as taxas de antes ja' vinham infladas para compensa-lo. Sem
             // ele a conta fica plana de ponta a ponta do jogo: o golpe do inimigo e a barra de ki
             // crescem juntos, entao apanhar custa uma fatia parecida da barra em todo bioma.
+            // Playtest de 2026-08-01: o 0,15 conservador do mesmo dia mal se notava. Subiu para 1,5
+            // em 2026-09-20, quando o custo da forma passou para por ação, e caiu para 0,6 no mesmo
+            // dia, quando os custos defensivos deixaram de ter o desconto de poder do soco.
             DamageTakenKiCost = config.Bind(SecCombat, "DamageTakenKiCost", 0.6f,
                 new ConfigDescription(
-                    "Ki consumed per point of damage the ki armor ABSORBED. Taking a hit costs ki " +
-                    "the same way landing one does — the ki armor is sustained, not free. " +
-                    "Damage that armor does not touch (poison, fall, drowning) absorbs nothing and " +
-                    "therefore costs nothing. Set to zero to disable. " +
-                    "Note the cost per hit is naturally capped near your armor value: armor can " +
-                    "never absorb more than it is worth, so a huge hit does not drain the bar. " +
-                    "(Playtest value, 2026-08-01. The conservative 0.15 it shipped with the same " +
-                    "day was barely noticeable; at 1 a blocked point of damage costs a point of ki. " +
-                    "Raised to 1.5 on 2026-09-20, when the cost of a form moved from per second " +
-                    "held to per action taken, and cut to 0.6 the same day, when the defensive " +
-                    "costs stopped taking the punch's power discount — see " +
-                    "DefenseKiCostPowerReduction.)",
+                    "Ki consumed per point of damage the ki armor ABSORBED. Taking a hit costs " +
+                    "ki the same way landing one does — the ki armor is sustained, not free. " +
+                    "Damage that armor does not touch (poison, fall, drowning) absorbs nothing " +
+                    "and therefore costs nothing. Set to zero to disable. Note the cost per hit " +
+                    "is naturally capped near your armor value: armor can never absorb more than " +
+                    "it is worth, so a huge hit does not drain the bar.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // O bloqueio desarmado era 2 de block power contra escudos de 18 a 156 — nao fraco,
@@ -2228,19 +2220,19 @@ namespace Saiyaheim
             // Consequencia aceita: o block power fica ABAIXO do ShieldWood (18.5), o pior escudo
             // do jogo, em toda a progressao. O punho ja ganha em nao quebrar, nao ocupar a mao e
             // escalar sozinho; nao precisa tambem ganhar no numero.
+            // Playtest de 2026-08-23: cortado do 0,22 de 2026-08-01, com o qual um bloqueio de fim
+            // de jogo absorvia ~86% do golpe por 2% da barra.
             BlockPowerFromPower = config.Bind(SecCombat, "BlockPowerFromPower", 0.04f,
                 new ConfigDescription(
-                    "Fraction of the battle power converted into block power. While ki is on this " +
-                    "REPLACES the blocker item's value — holding a shield changes nothing, exactly " +
-                    "like ArmorFromPower replaces equipment armor. Turning ki off gives the shield " +
-                    "back immediately. " +
-                    "Kept well BELOW the vanilla shield ladder — under the wood shield across the " +
-                    "whole progression. It has to be: a blocked hit runs through Valheim's " +
-                    "damage/(4*armor) curve TWICE, once against this and again against the ki " +
-                    "armor, so what looks like a modest number compounds into near-immunity. " +
-                    "Run 'saiya_block <damage>' to see what a given hit actually does. " +
-                    "(Playtest value, 2026-08-23. Cut from the 0.22 of 2026-08-01, which made an " +
-                    "endgame block absorb ~86% of a hit for 2% of the ki bar.)",
+                    "Fraction of the battle power converted into block power. While ki is on " +
+                    "this REPLACES the blocker item's value — holding a shield changes nothing, " +
+                    "exactly like ArmorFromPower replaces equipment armor. Turning ki off gives " +
+                    "the shield back immediately. Kept well BELOW the vanilla shield ladder — " +
+                    "under the wood shield across the whole progression. It has to be: a blocked " +
+                    "hit runs through Valheim's damage/(4*armor) curve TWICE, once against this " +
+                    "and again against the ki armor, so what looks like a modest number " +
+                    "compounds into near-immunity. Run 'saiya_block <damage>' to see what a " +
+                    "given hit actually does.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(56)));
 
             // Metade do DamageTakenKiCost, e nao o mesmo valor, porque um golpe bloqueado paga as
@@ -2253,21 +2245,21 @@ namespace Saiyaheim
             // Continua sendo METADE do DamageTakenKiCost (0,6) pela razao de sempre: um golpe
             // bloqueado paga as duas contas — o bloqueio barra primeiro, a armadura barra o resto —
             // e na mesma taxa segurar o botao dobraria o preco de apanhar.
+            // 0,5 em 2026-08-01. Subiu para 1,2 em 2026-09-20 com os outros custos de combate e
+            // caiu para 0,3 no mesmo dia: o primeiro playtest do rework achou o bloqueio quase de
+            // graça transformado, os custos defensivos perderam o desconto de poder do soco, e a
+            // taxa estava inflada para compensar.
             BlockKiCost = config.Bind(SecCombat, "BlockKiCost", 0.3f,
                 new ConfigDescription(
-                    "Ki consumed per point of damage the ki BLOCK stopped, measured (not estimated) " +
-                    "from the hit before and after Humanoid.BlockAttack. Same rule as the armor: if " +
-                    "it stopped damage, it costs ki. A failed block stops nothing and costs nothing. " +
-                    "Unlike the punch, an empty bar does not cancel anything — the block already " +
-                    "happened when the charge lands, so it drains what is there, like the armor does. " +
-                    "This is the most expensive thing in the mod by design: blocking stops far more " +
-                    "damage than armor absorbs, so it should be a beam, not a stance. Lower it if " +
-                    "holding block for two hits empties the bar. Set to zero to make blocking free. " +
-                    "(2026-08-01: 0.5. Raised to 1.2 on 2026-09-20 with the rest of the combat ki " +
-                    "costs, then cut to 0.3 the same day: the first playtest of the rework found " +
-                    "blocking nearly free while transformed, the defensive costs stopped taking " +
-                    "the punch's power discount, and the rate had been inflated to compensate for " +
-                    "it.)",
+                    "Ki consumed per point of damage the ki BLOCK stopped, measured (not " +
+                    "estimated) from the hit before and after Humanoid.BlockAttack. Same rule as " +
+                    "the armor: if it stopped damage, it costs ki. A failed block stops nothing " +
+                    "and costs nothing. Unlike the punch, an empty bar does not cancel anything " +
+                    "— the block already happened when the charge lands, so it drains what is " +
+                    "there, like the armor does. This is the most expensive thing in the mod by " +
+                    "design: blocking stops far more damage than armor absorbs, so it should be " +
+                    "a beam, not a stance. Lower it if holding block for two hits empties the " +
+                    "bar. Set to zero to make blocking free.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(54)));
 
             KiBarOffsetX = config.Bind(SecHud, "KiBarOffsetX", 0f,
@@ -2278,12 +2270,12 @@ namespace Saiyaheim
 
             // -50 nao e gosto pessoal: com -30 a barra de ki cai em cima da barra de stamina.
             // Qualquer valor acima disso precisa ser conferido na tela antes de virar default.
+            // Valor de playtest de 2026-07-31.
             KiBarOffsetY = config.Bind(SecHud, "KiBarOffsetY", -50f,
                 new ConfigDescription(
                     "Vertical offset of the ki bar, in pixels, relative to the position of the " +
-                    "native bars. Negative moves down. Applies live. " +
-                    "Do not raise this much: at -30 the ki bar lands on top of the stamina bar. " +
-                    "(Playtest value, 2026-07-31.)",
+                    "native bars. Negative moves down. Applies live. Do not raise this much: at " +
+                    "-30 the ki bar lands on top of the stamina bar.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(80)));
 
             // --- Poder de luta na HUD (etapa 10) ---
@@ -2298,22 +2290,23 @@ namespace Saiyaheim
                     "this key and the Y one below are what actually place it.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(48)));
 
+            // Playtest de 2026-09-05. O primeiro chute foi -28, uma linha abaixo do rótulo; o
+            // minimapa pede muito mais folga. O layout é dado de asset do Unity e não se lê do
+            // código, então o número só podia vir da tela.
             PowerHudOffsetY = config.Bind(SecHud, "PowerHudOffsetY", -200f,
                 new ConfigDescription(
-                    "Vertical offset of the text, in pixels, relative to the biome label. Negative " +
-                    "moves down. (Playtest value, 2026-09-05. The first guess was -28, one line " +
-                    "below the label; on screen the minimap needs a lot more clearance than that. " +
-                    "Its layout is Unity asset data and cannot be read from code, so the number " +
-                    "could only come from looking.)",
+                    "Vertical offset of the text, in pixels, relative to the biome label. " +
+                    "Negative moves down.",
                     new AcceptableValueRange<float>(-500f, 500f), ClientSide(46)));
 
+            // Valor de playtest de 2026-09-05.
             PowerHudFontSize = config.Bind(SecHud, "PowerHudFontSize", 20f,
                 new ConfigDescription(
                     "Font size, in canvas units — the same units the game's own UI uses, so it " +
-                    "already follows resolution and UI scale. The clone has TMP auto-sizing turned " +
-                    "off, which is what makes this key work at all: the biome label it is cloned " +
-                    "from recomputes its own size every layout pass and would overwrite this. " +
-                    "(Playtest value, 2026-09-05.)",
+                    "already follows resolution and UI scale. The clone has TMP auto-sizing " +
+                    "turned off, which is what makes this key work at all: the biome label it is " +
+                    "cloned from recomputes its own size every layout pass and would overwrite " +
+                    "this.",
                     new AcceptableValueRange<float>(4f, 60f), ClientSide(44)));
 
             // --- Poder de luta do inimigo (etapa 10) ---
@@ -2326,24 +2319,23 @@ namespace Saiyaheim
                     "label. Positive moves right. Zero keeps it centred like the name.",
                     new AcceptableValueRange<float>(-300f, 300f), ClientSide(39)));
 
+            // Playtest de 2026-09-06. O chute -34 ficava um pouco baixo; -30 encosta o número
+            // embaixo da barra. O layout da HUD é dado de asset, então só se acha na tela.
             EnemyPowerOffsetY = config.Bind(SecHud, "EnemyPowerOffsetY", -30f,
                 new ConfigDescription(
                     "Vertical offset of the text, in pixels, relative to the enemy's name label. " +
                     "Negative moves down. The name sits ABOVE the health bar, so this has to " +
-                    "clear the bar's height to land under it. " +
-                    "(Playtest value, 2026-09-06. The -34 first guess sat a touch low; -30 tucks " +
-                    "the number right under the bar. The hud's layout is Unity asset data and " +
-                    "cannot be read from code, so this had to be found on screen.)",
+                    "clear the bar's height to land under it.",
                     new AcceptableValueRange<float>(-300f, 300f), ClientSide(38)));
 
+            // Playtest de 2026-09-06: subiu de 14, ilegível na distância em que se escaneia um
+            // inimigo.
             EnemyPowerFontSize = config.Bind(SecHud, "EnemyPowerFontSize", 16f,
                 new ConfigDescription(
-                    "Font size, in canvas units. Smaller than the player's own number on purpose: " +
-                    "this one is drawn in the world, over the enemy, and several can be on screen " +
-                    "at once. TMP auto-sizing is turned off on the clone, which is what makes " +
-                    "this key work at all. " +
-                    "(Playtest value, 2026-09-06. Raised from 14: at that size the number was " +
-                    "unreadable at the distance you actually scan an enemy from.)",
+                    "Font size, in canvas units. Smaller than the player's own number on " +
+                    "purpose: this one is drawn in the world, over the enemy, and several can be " +
+                    "on screen at once. TMP auto-sizing is turned off on the clone, which is " +
+                    "what makes this key work at all.",
                     new AcceptableValueRange<float>(4f, 40f), ClientSide(37)));
 
             // --- XP de maestria, compartilhado pela escada inteira (desde 2026-09-28) ---
@@ -2378,20 +2370,19 @@ namespace Saiyaheim
             // subiu a compensacao para 0,8 e manteve a taxa, entao o nivel 5 ficou ~2x mais
             // rapido que antes de 2026-09-28 — escolha do playtest, nao acidente. Mexer numa sem
             // a outra desloca o comeco.
+            // 0,0125 até 2026-09-28, cortado para 0,0045 quando entrou a compensação da curva, para
+            // os primeiros níveis custarem o mesmo.
             MasteryXpPerDamageDealt = config.Bind(SecTransformations, "MasteryXpPerDamageDealt", 0.0045f,
                 new ConfigDescription(
                     "Mastery XP per point of damage DEALT while wearing a form. Every form uses " +
                     "the same rate. Fighting inside the form is the only way to train it: " +
-                    "holding it while standing still, flying or exploring pays nothing. " +
-                    "The damage counted is what the target actually lost, so overkill on a " +
-                    "weak creature does not pay, and weapon hits pay by XpWeaponFactor like " +
-                    "Power Level does — the form trains the mod's way of fighting. " +
-                    "A single hit pays every form up to the active one, each at its own level. " +
-                    "This rate and MasteryXpCurveCompensation go together: raising the curve " +
-                    "compensation also speeds up the first levels, so the rate has to come " +
-                    "down with it. " +
-                    "(0.0125 until 2026-09-28, cut to 0.0045 when the curve compensation " +
-                    "arrived, so the first levels cost the same as before.)",
+                    "holding it while standing still, flying or exploring pays nothing. The " +
+                    "damage counted is what the target actually lost, so overkill on a weak " +
+                    "creature does not pay, and weapon hits pay by XpWeaponFactor like Power " +
+                    "Level does — the form trains the mod's way of fighting. A single hit pays " +
+                    "every form up to the active one, each at its own level. This rate and " +
+                    "MasteryXpCurveCompensation go together: raising the curve compensation also " +
+                    "speeds up the first levels, so the rate has to come down with it.",
                     new AcceptableValueRange<float>(0f, 20f), AdminOnly(70)));
 
             // Mesma taxa do dano causado, e nao metade dela: apanhar transformado e' treino
@@ -2414,14 +2405,14 @@ namespace Saiyaheim
             // SkillXpMaxPerEvent do Power Level, que corta por ultimo. Os dois existem para
             // corrigir alguma coisa (o fim da curva, o degrau velho), e deixar o grampo comer a
             // correcao a anularia justamente onde ela e' necessaria.
+            // Cortado de 50 para 25, 2,5, 1,25 e 0,45, sempre junto com a taxa, para continuar
+            // mordendo no mesmo dano.
             MasteryXpMaxPerEvent = config.Bind(SecTransformations, "MasteryXpMaxPerEvent", 0.45f,
                 new ConfigDescription(
                     "Safety clamp: the most mastery XP a single hit can pay, dealt or taken, " +
-                    "before the curve compensation and the boss multiplier. Stops one " +
-                    "boss-sized hit from jumping several levels at once. At the default rate " +
-                    "it only bites above 100 damage in one hit. (Cut from 50 to 25 to 2.5 to " +
-                    "1.25 to 0.45, each time together with the rate, so it still bites at the " +
-                    "same damage.)",
+                    "before the curve compensation and the boss multiplier. Stops one boss-sized " +
+                    "hit from jumping several levels at once. At the default rate it only bites " +
+                    "above 100 damage in one hit.",
                     new AcceptableValueRange<float>(0.01f, 1000f), AdminOnly(68)));
 
             // O fim da curva, que os cortes da taxa afundaram (Melhorias, "Maestria das formas
@@ -2440,18 +2431,18 @@ namespace Saiyaheim
             // Sem nivel de referencia de proposito: uma chave a menos no .cfg vale mais que
             // isolar o comeco. O preco e' que mexer nesta chave mexe no comeco tambem, e por isso
             // cada ajuste dela vem com o da taxa acima.
+            // Criado em 2026-09-28: a maestria ia bem no começo e se arrastava do meio em diante.
+            // 0,5 no papel, 0,8 depois do primeiro playtest, 0,7 em 2026-09-30.
             MasteryXpCurveCompensation = config.Bind(SecTransformations, "MasteryXpCurveCompensation", 0.7f,
                 new ConfigDescription(
-                    "How much of Valheim's rising XP curve mastery gives back. Each hit's XP " +
-                    "is multiplied by (XP the form's next level costs) ^ this, so higher levels " +
-                    "pay more per hit. 0 turns it off: every level costs Valheim's full curve " +
-                    "(level 99 about 60 times the hits of level 5). 1 makes every level cost " +
-                    "the same number of hits. The default 0.7 leans toward flat: level 99 " +
-                    "costs about three times the hits of level 5. " +
-                    "Changing this also changes how fast the FIRST levels go, so adjust " +
-                    "MasteryXpPerDamageDealt and MasteryXpPerDamageTaken with it. " +
-                    "(Added 2026-09-28: mastery was fine early and crawled from the middle on. " +
-                    "0.5 on paper, 0.8 after the first playtest, 0.7 on 2026-09-30.)",
+                    "How much of Valheim's rising XP curve mastery gives back. Each hit's XP is " +
+                    "multiplied by (XP the form's next level costs) ^ this, so higher levels pay " +
+                    "more per hit. 0 turns it off: every level costs Valheim's full curve (level " +
+                    "99 about 60 times the hits of level 5). 1 makes every level cost the same " +
+                    "number of hits. The default 0.7 leans toward flat: level 99 costs about " +
+                    "three times the hits of level 5. Changing this also changes how fast the " +
+                    "FIRST levels go, so adjust MasteryXpPerDamageDealt and " +
+                    "MasteryXpPerDamageTaken with it.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(67)));
 
             // A resposta ao sintoma "o degrau velho fica para tras": o XP dele sobe a cada boss
@@ -2467,27 +2458,27 @@ namespace Saiyaheim
             //
             // 2 -> 3 no playtest de 2026-09-28, junto com o teto 4 -> 6: com a curva compensada,
             // o degrau velho precisava de uma vantagem maior para ainda se destacar.
+            // Subiu de 2 em 2026-09-28, com o teto indo de 4 para 6.
             MasteryXpPerBossBonus = config.Bind(SecTransformations, "MasteryXpPerBossBonus", 3f,
                 new ConfigDescription(
-                    "How much a form's mastery XP speeds up for each boss defeated AFTER " +
-                    "the one that unlocked it. The multiplier is 1 + this * (bosses defeated " +
-                    "- the form's rung), floored at 1 and capped by " +
-                    "MasteryXpBossMultiplierMax. 0 disables it. \n" +
-                    "With the defaults a form pays x1 while its own boss is the newest kill, " +
-                    "x4 after the next boss falls and x7 from the one after that. \n" +
-                    "What it is for: the form unlocked first is always the one furthest up " +
-                    "the expensive end of the XP curve, and it crawls exactly when a stronger " +
-                    "form has just made it look useless. This makes the older rung train " +
-                    "faster the further the world has moved past it, which is also the " +
-                    "reading that makes sense in fiction: the form is trivial to you now. " +
-                    "It multiplies on top of MasteryXpCurveCompensation. \n" +
-                    "It reads the world's global keys, so a server syncs it for free and " +
-                    "someone joining late arrives with whatever the group has already killed " +
-                    "— the same rule the unlock gate itself follows. \n" +
+                    "How much a form's mastery XP speeds up for each boss defeated AFTER the one " +
+                    "that unlocked it. The multiplier is 1 + this * (bosses defeated - the " +
+                    "form's rung), floored at 1 and capped by MasteryXpBossMultiplierMax. 0 " +
+                    "disables it. \n" +
+                    "With the defaults a form pays x1 while its own boss is the newest kill, x4 " +
+                    "after the next boss falls and x7 from the one after that. \n" +
+                    "What it is for: the form unlocked first is always the one furthest up the " +
+                    "expensive end of the XP curve, and it crawls exactly when a stronger form " +
+                    "has just made it look useless. This makes the older rung train faster the " +
+                    "further the world has moved past it, which is also the reading that makes " +
+                    "sense in fiction: the form is trivial to you now. It multiplies on top of " +
+                    "MasteryXpCurveCompensation. \n" +
+                    "It reads the world's global keys, so a server syncs it for free and someone " +
+                    "joining late arrives with whatever the group has already killed — the same " +
+                    "rule the unlock gate itself follows. \n" +
                     "Only the five classic bosses count. A form tied to a key this build does " +
-                    "not know, which today means the Queen and the Fader, gets no bonus at " +
-                    "all rather than a wrong one. \n" +
-                    "(Raised from 2 on 2026-09-28, with the cap going from 4 to 6.)",
+                    "not know, which today means the Queen and the Fader, gets no bonus at all " +
+                    "rather than a wrong one.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(66)));
 
             // Teto do multiplicador acima. Sem ele o degrau velho acelera sem limite conforme o
@@ -2504,15 +2495,14 @@ namespace Saiyaheim
             //
             // 6 -> 7 no playtest de 2026-09-30. Com o passo 3, 7 e' exatamente 1 + 3 x 2: o teto
             // continua chegando dois bosses depois, so' que sem cortar o ultimo degrau.
+            // Subiu de 2 em 2026-09-21, junto com o corte do XP de maestria: a um vigésimo da taxa
+            // antiga, teto 2 parava a forma antiga de alcançar logo que o bônus começava. 6 em
+            // 2026-09-28, com o passo de 2 para 3, e 7 em 2026-09-30.
             MasteryXpBossMultiplierMax = config.Bind(SecTransformations, "MasteryXpBossMultiplierMax", 7f,
                 new ConfigDescription(
                     "Ceiling for the boss XP multiplier from MasteryXpPerBossBonus. The final " +
-                    "multiplier is min(this, 1 + bonus * (bosses defeated - the form's " +
-                    "rung)), floored at 1. 1 disables the boss bonus entirely. " +
-                    "(Raised from 2 on 2026-09-21, together with the mastery XP cut: at a " +
-                    "twentieth of the old rate a ceiling of 2 stopped the older form from " +
-                    "catching up almost as soon as the bonus started paying. Raised again to " +
-                    "6 on 2026-09-28, with the step going from 2 to 3, and to 7 on 2026-09-30.)",
+                    "multiplier is min(this, 1 + bonus * (bosses defeated - the form's rung)), " +
+                    "floored at 1. 1 disables the boss bonus entirely.",
                     new AcceptableValueRange<float>(1f, 20f), AdminOnly(65)));
 
             // --- Transformacoes ---
@@ -2923,30 +2913,30 @@ namespace Saiyaheim
             // Chutes de 2026-09-30, sem playtest: 0,25 + 0,25 por pedra vazia garante a quarta
             // seguida. Os dois andam juntos com o cooldown, que e' a segunda rede contra azar —
             // com ele, o passo pode ser mais suave do que seria sozinho. Ver [[Runestones]].
+            // Chute inicial, sem playtest.
             RuneFindChance = config.Bind(SecRunestones, "RuneFindChance", 0.25f,
                 new ConfigDescription(
                     "Chance that reading a lore runestone teaches a ki attack, when that biome " +
                     "still has one you do not know. Runestones that teach nothing make the next " +
-                    "one in the same biome likelier — see RuneFindChanceStep. " +
-                    "(Starting value. Not playtested yet.)",
+                    "one in the same biome likelier — see RuneFindChanceStep.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(100)));
 
+            // Chute inicial, sem playtest.
             RuneFindChanceStep = config.Bind(SecRunestones, "RuneFindChanceStep", 0.25f,
                 new ConfigDescription(
                     "Added to RuneFindChance for every runestone in the same biome that taught " +
                     "nothing, so bad luck cannot last forever: at 0.25 + 0.25, the fourth empty " +
                     "stone in a row always teaches. Resets when the biome teaches something. " +
-                    "Counted per character and per biome. " +
-                    "(Starting value. Not playtested yet.)",
+                    "Counted per character and per biome.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(90)));
 
+            // Chute inicial, sem playtest.
             RuneCooldownDays = config.Bind(SecRunestones, "RuneCooldownDays", 3f,
                 new ConfigDescription(
                     "In-game days before the same runestone can teach the same character again " +
                     "(one day is 20 real minutes; sleeping skips ahead). Until then, reading it " +
                     "only shows the vanilla text. Long on purpose: short would mean camping next " +
-                    "to the stone at your base, and runestones are there to make you explore. " +
-                    "(Starting value. Not playtested yet.)",
+                    "to the stone at your base, and runestones are there to make you explore.",
                     new AcceptableValueRange<float>(0f, 30f), AdminOnly(80)));
 
             KiBlast = BindKiAttack(config, SecKiBlast,
@@ -3192,22 +3182,23 @@ namespace Saiyaheim
             // Com um projetil so', a carga nao escalava nada alem do visual, e soltar na carga minima
             // dava o dano cheio por uma fracao do ki (2026-09-30). Piso de 30% pedido pelo Henrique:
             // o disco curto ainda corta, mas pagar a carga inteira volta a valer a pena.
+            // Criado em 2026-09-30.
             Kienzan.ChargeMinDamage = config.Bind(SecKienzan, "ChargeMinDamage", 0.3f,
                 new ConfigDescription(
-                    "Fraction of the full damage the disc deals when thrown at the smallest charge " +
-                    "that still fires (MinChargeRatio). It rises in a straight line to full damage " +
-                    "at a full charge. 1 makes the charge not matter for damage. " +
-                    "(Added 2026-09-30: the ki is paid while charging, and a short charge used to " +
-                    "throw a full-damage disc for a fraction of the cost.)",
+                    "Fraction of the full damage the disc deals when thrown at the smallest " +
+                    "charge that still fires (MinChargeRatio). It rises in a straight line to " +
+                    "full damage at a full charge. 1 makes the charge not matter for damage. " +
+                    "Without it, since the ki is paid while charging, a short charge would throw " +
+                    "a full-damage disc for a fraction of the cost.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(78)));
 
+            // Subiu de 0,4 em 2026-09-30, depois de playtest.
             Kienzan.HitRadius = config.Bind(SecKienzan, "HitRadius", 1f,
                 new ConfigDescription(
-                    "Radius in metres of the sphere the disc uses to find what it cuts, at a full " +
-                    "charge. It grows with the disc, so a shorter charge hits a smaller area. Wider hits " +
-                    "more of a crowd, but it also clips the ground sooner when thrown low — and " +
-                    "the ground is the only thing that stops the disc. " +
-                    "(Raised from 0.4 on 2026-09-30, after playtest.)",
+                    "Radius in metres of the sphere the disc uses to find what it cuts, at a " +
+                    "full charge. It grows with the disc, so a shorter charge hits a smaller " +
+                    "area. Wider hits more of a crowd, but it also clips the ground sooner when " +
+                    "thrown low — and the ground is the only thing that stops the disc.",
                     new AcceptableValueRange<float>(0.05f, 3f), AdminOnly(77)));
 
             Kienzan.Disc = KienzanDisc;
@@ -3219,26 +3210,24 @@ namespace Saiyaheim
             // jogadores acharam sozinhos foi parar de jogar para farmar. Baixar a base e' metade do
             // conserto; a outra metade e' a KiSkillCurve, que adiantava o alivio para depois do
             // nivel 75. Ver Melhorias, "Voo: XP por distancia, e a forma paga o que acelera".
+            // Playtest de 2026-08-13. De 4 para 15 em 2026-07-31 (em 4 voar virava o jeito padrão
+            // de viajar), 15 para 10 na etapa dos ataques de ki, 10 para 5 com BaseSpeed em 2. De 5
+            // para 3,5 em 2026-09-20: em 5 a barra do nível 0 comprava dez segundos de voo e os
+            // jogadores farmavam a skill em vez de jogar.
             FlightKiPerSecond = config.Bind(SecFlight, "KiPerSecond", 3.5f,
                 new ConfigDescription(
                     "Ki per second while flying. Flight should be a tool, not the default way to " +
                     "get around — otherwise the game's hostile terrain turns into scenery. " +
-                    "Running out of ki in the air drops you. " +
-                    "(Playtest value, 2026-08-13. Went 4 → 15 on 2026-07-31, because at 4 flight " +
-                    "was cheap enough to become the default way to travel, then 15 → 10 while " +
-                    "playing the ki attack stage, then 10 → 5: with BaseSpeed at 2 the early-game " +
-                    "flight is slow enough to hold itself back without the ki cost doing it too. " +
-                    "5 → 3.5 on 2026-09-20: at 5 the level-0 bar bought ten seconds of flight, and " +
-                    "players answered that by grinding the skill instead of playing.)",
+                    "Running out of ki in the air drops you.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
+            // Playtest de 2026-08-13. Era 2,5, acima do FastSpeedMultiplier de propósito.
             FlightFastKiMultiplier = config.Bind(SecFlight, "FastKiMultiplier", 2f,
                 new ConfigDescription(
-                    "Ki cost multiplier while the Run button is held. " +
-                    "(Playtest value, 2026-08-13. Was 2.5, above FastSpeedMultiplier on purpose " +
-                    "so fast flight cost more per travelled metre; now equal to it, which makes " +
-                    "the metre cost the same fast or slow and turns the Run button into a pure " +
-                    "time-saver. Raise it above FastSpeedMultiplier to get the penalty back.)",
+                    "Ki cost multiplier while the Run button is held. Equal to " +
+                    "FastSpeedMultiplier, a metre costs the same fast or slow and the Run button " +
+                    "is a pure time-saver. Raise it above FastSpeedMultiplier to make fast " +
+                    "flight cost more per metre.",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(95)));
 
             // 15 era o valor da primeira versão e fazia o modo rápido bater o MaxSpeed (15 x 2 = 30)
@@ -3254,14 +3243,15 @@ namespace Saiyaheim
             // relatam, e o mod estava pagando metade do preco por ela. Quem precisa parar no ar
             // fora de combate paga o preco cheio, que nao e' punicao; quem para no ar EM COMBATE
             // paga a sobretaxa abaixo, que e'.
+            // Ficou abaixo de 1 até 2026-09-20.
             FlightHoverKiMultiplier = config.Bind(SecFlight, "HoverKiMultiplier", 1f,
                 new ConfigDescription(
                     "Ki cost multiplier while hovering — airborne with no movement input at all, " +
                     "not even rising or descending. Below 1 holding position is cheaper than " +
-                    "travelling, which is how this shipped until 2026-09-20; it was raised to 1 " +
-                    "because hovering is exactly the posture used to cheese bosses from out of " +
-                    "reach, and the discount was paying for it. See CombatHoverMultiplier for " +
-                    "the part that only charges when something is actually fighting you.",
+                    "travelling. The default is 1 because hovering is exactly the posture used " +
+                    "to cheese bosses from out of reach, and a discount would pay for it. See " +
+                    "CombatHoverMultiplier for the part that only charges when something is " +
+                    "actually fighting you.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(94)));
 
             // O recorte que separa o cheese do uso legitimo. Altitude nao serve para isso: a faixa
@@ -3292,15 +3282,15 @@ namespace Saiyaheim
                     "reach. Tamed creatures and other players never count.",
                     new AcceptableValueRange<float>(5f, 100f), AdminOnly(92)));
 
+            // Playtest de 2026-07-31: começou em 15, foi para 10, ficou em 2.
             FlightBaseSpeed = config.Bind(SecFlight, "BaseSpeed", 2f,
                 new ConfigDescription(
-                    "Flight speed floor: skill 0, battle power 0, carrying nothing. " +
-                    "Everything else is added or multiplied on top of this. " +
-                    "CAREFUL: the flight skill bonus MULTIPLIES this floor, so lowering it also " +
-                    "shrinks what levelling the skill is worth — at 2, a hundred levels of Flight " +
-                    "buy +1 m/s on a fresh character. That is intended here: almost all of the " +
-                    "speed is meant to come from SpeedFromPower. " +
-                    "(Playtest value, 2026-07-31. Started at 15, went to 10, landed on 2.)",
+                    "Flight speed floor: skill 0, battle power 0, carrying nothing. Everything " +
+                    "else is added or multiplied on top of this. CAREFUL: the flight skill bonus " +
+                    "MULTIPLIES this floor, so lowering it also shrinks what levelling the skill " +
+                    "is worth — at 2, a hundred levels of Flight buy +1 m/s on a fresh " +
+                    "character. That is intended here: almost all of the speed is meant to come " +
+                    "from SpeedFromPower.",
                     new AcceptableValueRange<float>(1f, 100f), AdminOnly(90)));
 
             FlightSpeedFromPower = config.Bind(SecFlight, "SpeedFromPower", 0.015f,
@@ -3313,44 +3303,42 @@ namespace Saiyaheim
                     "Run saiya_fly to see how much this is contributing right now.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(88)));
 
+            // Playtest de 2026-08-21: voar transformado parecia rápido demais, e a forma base
+            // estava certa. Antes, a velocidade da forma era o PowerMultiplier inteiro.
             FlightFormSpeedShare = config.Bind(SecFlight, "FormSpeedShare", 0.3f,
                 new ConfigDescription(
                     "How much of a transformation's power gain turns into flight speed: the form " +
-                    "multiplies speed by 1 + (PowerMultiplier - 1) * this. At 0.3, SSJ's x2 power " +
-                    "is x1.3 speed and SSJ2's x3 is x1.6. " +
-                    "Transformations are meant to be felt in combat first; letting the raw " +
-                    "PowerMultiplier through sent flight straight into MaxSpeed, where extra " +
-                    "power buys no actual velocity and SSJ and SSJ2 stop being distinguishable " +
-                    "in the air. " +
-                    "1 restores the old behaviour (form speed = PowerMultiplier), 0 makes forms " +
-                    "not affect flight speed at all. " +
-                    "(Playtest value, 2026-08-21: flying transformed felt too fast while base " +
-                    "form felt right.)",
+                    "multiplies speed by 1 + (PowerMultiplier - 1) * this. At 0.3, SSJ's x2 " +
+                    "power is x1.3 speed and SSJ2's x3 is x1.6. Transformations are meant to be " +
+                    "felt in combat first; letting the raw PowerMultiplier through sent flight " +
+                    "straight into MaxSpeed, where extra power buys no actual velocity and SSJ " +
+                    "and SSJ2 stop being distinguishable in the air. 1 makes form speed equal to " +
+                    "PowerMultiplier, 0 makes forms not affect flight speed at all.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(86)));
 
+            // Playtest de 2026-08-13: subiu de 1,8.
             FlightFastSpeedMultiplier = config.Bind(SecFlight, "FastSpeedMultiplier", 2f,
                 new ConfigDescription(
                     "Speed multiplier while the Run button is held. Vanilla already reads that " +
-                    "button inside its own flight code, so fast flight costs no extra keybind. " +
-                    "(Playtest value, 2026-08-13. Raised from 1.8.)",
+                    "button inside its own flight code, so fast flight costs no extra keybind.",
                     new AcceptableValueRange<float>(1f, 10f), AdminOnly(85)));
 
+            // Playtest de 2026-08-13. De 0,75 para 0,5 em 2026-07-31, subir parecia rápido; volta
+            // para 1 depois que BaseSpeed caiu para 2, porque com a horizontal tão baixa metade
+            // dela fazia ganhar altitude se arrastar.
             FlightVerticalSpeedFactor = config.Bind(SecFlight, "VerticalSpeedFactor", 1f,
                 new ConfigDescription(
-                    "Climb and dive speed, as a fraction of the horizontal speed. " +
-                    "1.0 goes up as fast as forward, so altitude costs no more than distance. " +
-                    "(Playtest value, 2026-08-13. Went 0.75 → 0.5 on 2026-07-31, when climbing " +
-                    "felt too quick; back to 1 after BaseSpeed dropped to 2 — with the horizontal " +
-                    "speed that low, half of it made gaining altitude a crawl.)",
+                    "Climb and dive speed, as a fraction of the horizontal speed. 1.0 goes up as " +
+                    "fast as forward, so altitude costs no more than distance.",
                     new AcceptableValueRange<float>(0f, 2f), AdminOnly(80)));
 
+            // O playtest de 2026-07-31 reclamou exatamente disso.
             FlightTurnSpeed = config.Bind(SecFlight, "TurnSpeed", 200f,
                 new ConfigDescription(
                     "Turn speed in the air, in degrees per second. Goes straight into " +
                     "m_flyTurnSpeed. The vanilla value is 12, which is a flying-creature number: " +
-                    "at 12 a 180-degree turn takes fifteen seconds, and the 2026-07-31 playtest " +
-                    "reported exactly that. 200 turns around in about a second. Lower feels " +
-                    "heavier and makes high speed harder to steer.",
+                    "at 12 a 180-degree turn takes fifteen seconds. 200 turns around in about a " +
+                    "second. Lower feels heavier and makes high speed harder to steer.",
                     new AcceptableValueRange<float>(1f, 720f), AdminOnly(75)));
 
             // Chute de 2026-09-23, ainda sem playtest: visual e em aberto, por isso no .cfg.
@@ -3461,30 +3449,30 @@ namespace Saiyaheim
             // voando voltaria pela porta dos fundos — o jogador farmaria voo para baratear voar
             // transformado. A consequencia aceita e' que voar transformado nao treina nada que
             // barateie voar transformado: treina-se lutando dentro da forma.
+            // Chute inicial, sem playtest. Antes de 2026-09-20 funcionava como 0.
             FlightFormKiShare = config.Bind(SecFlight, "FormKiShare", 0.3f,
                 new ConfigDescription(
                     "How much a transformation makes flying cost, as a fraction of the power it " +
-                    "adds: cost is multiplied by 1 + (PowerMultiplier - 1) * this * (1 - mastery). " +
-                    "At 0.3, SSJ (x2 power) makes flight 30% more expensive and SSJ3 (x4) 90%, " +
-                    "and both fade to nothing at level 100 of THAT form's mastery. " +
-                    "It mirrors FormSpeedShare deliberately: the form pays for the speed it gives. " +
-                    "Note the payer is the form's mastery, which trains by FIGHTING transformed — " +
-                    "flying transformed does not make flying transformed any cheaper. " +
-                    "0 gives the form's flight speed away for free, which is what happened before " +
-                    "2026-09-20. " +
-                    "(Starting value. Not playtested yet.)",
+                    "adds: cost is multiplied by 1 + (PowerMultiplier - 1) * this * (1 - " +
+                    "mastery). At 0.3, SSJ (x2 power) makes flight 30% more expensive and SSJ3 " +
+                    "(x4) 90%, and both fade to nothing at level 100 of THAT form's mastery. It " +
+                    "mirrors FormSpeedShare deliberately: the form pays for the speed it gives. " +
+                    "Note the payer is the form's mastery, which trains by FIGHTING transformed " +
+                    "— flying transformed does not make flying transformed any cheaper. 0 gives " +
+                    "the form's flight speed away for free.",
                     new AcceptableValueRange<float>(0f, 2f), AdminOnly(62)));
 
+            // Substituiu o XpPerSecond em 2026-09-20 (0,15/m valia o mesmo que 0,5/s na velocidade
+            // base) e caiu para 0,075 no mesmo dia: o primeiro playtest do rework upava rápido
+            // demais.
             FlightXpPerMeter = config.Bind(SecFlight, "XpPerMeter", 0.075f,
                 new ConfigDescription(
                     "Flight skill XP per METER flown. Flying is its own training — there is no " +
                     "other way to raise it — but hovering in place pays nothing, because nothing " +
                     "moves. Distance here is the path travelled, not the distance from where you " +
                     "took off: flying out and back pays for both legs, since both cost ki. " +
-                    "Valheim's own diminishing curve up to 100 applies. " +
-                    "(Replaced XpPerSecond on 2026-09-20 — 0.15/m is what 0.5/s was worth at base " +
-                    "speed. The old key stays behind in existing config files, inert. Halved to " +
-                    "0.075 on 2026-09-20: the first playtest of the rework levelled far too fast.)",
+                    "Valheim's own diminishing curve up to 100 applies. An XpPerSecond key left " +
+                    "in older config files does nothing.",
                     new AcceptableValueRange<float>(0f, 5f), AdminOnly(60)));
 
             // 0.8 veio do playtest de 2026-09-17 (comecou em 0.75, escolha do Henrique antes de
@@ -3501,12 +3489,12 @@ namespace Saiyaheim
                     "0 disables it, 1 makes level 100 immune.",
                     new AcceptableValueRange<float>(0f, 1f), AdminOnly(58)));
 
+            // Playtest de 2026-08-11: subiu de 0,5, carregar inventário cheio voando tem que custar
+            // algo que se sinta.
             FlightWeightPenalty = config.Bind(SecFlight, "WeightPenalty", 0.6f,
                 new ConfigDescription(
-                    "Fraction of the speed lost with the inventory at maximum weight. " +
-                    "0.5 = flying fully loaded you go at half speed. " +
-                    "(Playtest value, 2026-08-11. Raised from 0.5: hauling a full inventory by air " +
-                    "should cost something the player can feel.)",
+                    "Fraction of the speed lost with the inventory at maximum weight. 0.5 = " +
+                    "flying fully loaded you go at half speed.",
                     new AcceptableValueRange<float>(0f, 0.95f), AdminOnly(55)));
 
             // Expoente e nao hiperbolico. O 1/(1 + r*x) do custo de ki tem a forma OPOSTA a esta:
@@ -3515,16 +3503,15 @@ namespace Saiyaheim
             // Em 5, com a penalidade em 0.6: 50% de carga -> -2%, 75% -> -14%, 90% -> -35%,
             // 100% -> -60%. Praticamente so' o inventario cheio pesa, que e' o pedido: recolher
             // coisa no caminho nao pode virar pedagio de voo.
+            // Playtest de 2026-09-06: foi direto ao topo da faixa; em 3 a penalidade ainda se
+            // notava com meia carga, e a ideia é só o inventário cheio pesar.
             FlightWeightCurve = config.Bind(SecFlight, "WeightCurve", 5f,
                 new ConfigDescription(
                     "Shape of the weight penalty: speed loss = WeightPenalty * " +
                     "(carried/max)^this. 1 is a straight line, so half loaded costs half the " +
                     "penalty. Above 1 the penalty is back-loaded — light and medium loads barely " +
                     "register and the speed falls off sharply as the inventory fills, which is " +
-                    "what keeps casual looting from feeling taxed. Below 1 front-loads it. " +
-                    "(Playtest value, 2026-09-06. Went straight to the top of the range: at 3 the " +
-                    "penalty was still noticeable at half load, and the whole point of the curve " +
-                    "was that only a full inventory should slow you down.)",
+                    "what keeps casual looting from feeling taxed. Below 1 front-loads it.",
                     new AcceptableValueRange<float>(0.25f, 5f), AdminOnly(54)));
 
             FlightMaxSpeed = config.Bind(SecFlight, "MaxSpeed", 30f,
@@ -3646,12 +3633,13 @@ namespace Saiyaheim
             //   ki ligado:    poder = k1*HP + k4*nivel_power_level
             // Arma e armadura nao sobrevivem ao modo ki: arma da zero (o jogador soca) e
             // armadura vira laco de realimentacao, porque ela passou a ser DERIVADA do poder.
+            // Corrigido no playtest de 2026-07-30.
             PowerK1Health = config.Bind(SecPower, "K1_Health", 1f,
                 new ConfigDescription(
-                    "Weight of HP in the battle power. Applies to both formulas. Only HP ABOVE the " +
-                    "game's minimum (25) counts: those 25 are handed to any new character for free, " +
-                    "and counting them would give everyone a floor of power nobody earned. " +
-                    "(Fixed in the 2026-07-30 playtest.)",
+                    "Weight of HP in the battle power. Applies to both formulas. Only HP ABOVE " +
+                    "the game's minimum (25) counts: those 25 are handed to any new character " +
+                    "for free, and counting them would give everyone a floor of power nobody " +
+                    "earned.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(100)));
 
             PowerK2WeaponDamage = config.Bind(SecPower, "K2_WeaponDamage", 2f,
@@ -3684,19 +3672,19 @@ namespace Saiyaheim
             // nao esta' ligada enquanto nao houver uma calibragem que segure os tres consumidores
             // juntos. Ver ArmorFromPower e Flight.KiPowerReduction, que foram dimensionados com
             // ele ligado.
+            // Default 0 desde o playtest de 2026-08-23.
             PowerK5LateGame = config.Bind(SecPower, "K5_LateGameBonus", 0f,
                 new ConfigDescription(
                     "Power delivered by the late-game term AT LEVEL 100, on top of K4. It exists " +
-                    "because levelling gets brutally more expensive but the reward did not: going " +
-                    "from 99 to 100 costs a THOUSAND times what 0 to 1 costs (Valheim's curve is " +
-                    "(level+1)^1.5), yet power rose a flat K4 every level. This term makes each " +
-                    "level worth more than the one before it. " +
-                    "AFFECTS COMBAT ONLY: punch damage, armor, block power and the displayed " +
-                    "number. Flight speed and the ki cap deliberately ignore it — see " +
-                    "Flight.KiPowerReduction for what late game buys in the air. " +
-                    "0 turns the term off and restores the original linear formula exactly — " +
-                    "which is the default since the 2026-08-23 playtest, where doubling combat " +
-                    "power at level 100 dragged punch damage, armor and block power up together.",
+                    "because levelling gets brutally more expensive but the reward did not: " +
+                    "going from 99 to 100 costs a THOUSAND times what 0 to 1 costs (Valheim's " +
+                    "curve is (level+1)^1.5), yet power rose a flat K4 every level. This term " +
+                    "makes each level worth more than the one before it. AFFECTS COMBAT ONLY: " +
+                    "punch damage, armor, block power and the displayed number. Flight speed and " +
+                    "the ki cap deliberately ignore it — see Flight.KiPowerReduction for what " +
+                    "late game buys in the air. 0 turns the term off and leaves the linear " +
+                    "formula — which is the default, because doubling combat power at level 100 " +
+                    "dragged punch damage, armor and block power up together.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(65)));
 
             PowerLateGameExponent = config.Bind(SecPower, "LateGameExponent", 5f,
@@ -3713,54 +3701,55 @@ namespace Saiyaheim
             // comum. Defesa ficou de fora de propósito: Character.GetBodyArmor() devolve 0 para
             // todo inimigo do jogo, então um termo de armadura só pesaria de um lado da
             // comparação — e a comparação é a razão de o número existir. Ver PowerRating.
+            // Playtest de 2026-09-06: baixado de 1 junto com o RatingDamageWeight subindo. Lado a
+            // lado, volume afogava ofensiva, e um boss só com muita vida escaneava como um que
+            // mata.
             RatingK1Health = config.Bind(SecPower, "RatingHealthWeight", 0.8f,
                 new ConfigDescription(
-                    "Weight of EFFECTIVE health — max health stretched by armor — in the scannable " +
-                    "power rating. Applies to players and creatures alike; that shared scale is the " +
-                    "whole point of the number, so this is deliberately NOT a per-side knob. Star " +
-                    "variants come included for free: the game already multiplies max health by the " +
-                    "creature level. " +
-                    "(Playtest value, 2026-09-06. Lowered from 1 together with RatingDamageWeight " +
-                    "going up: read side by side, bulk was drowning out offence, and a boss that " +
-                    "only had a big health pool scanned like a boss that could actually kill you.)",
+                    "Weight of EFFECTIVE health — max health stretched by armor — in the " +
+                    "scannable power rating. Applies to players and creatures alike; that shared " +
+                    "scale is the whole point of the number, so this is deliberately NOT a " +
+                    "per-side knob. Star variants come included for free: the game already " +
+                    "multiplies max health by the creature level.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(48)));
 
+            // Playtest de 2026-09-06: baixado de 50 para as formas aparecerem mais no lado
+            // defensivo, o único que elas tocam.
             RatingArmorScale = config.Bind(SecPower, "RatingArmorScale", 40f,
                 new ConfigDescription(
-                    "How much armor DOUBLES effective health: at 50, an armor of 50 makes you count " +
-                    "as twice your max health. Transformations do not show up through this term: the " +
-                    "rating uses your base-form armor and RatingFormShare applies the form on top. " +
-                    "Creatures have zero armor in " +
-                    "Valheim (only Player overrides GetBodyArmor), so their factor is exactly 1 and " +
-                    "this key does not touch them. Lower makes armor count for more. " +
-                    "(Playtest value, 2026-09-06. Lowered from 50 so the forms show up harder on " +
-                    "the defensive side, which is the only side they touch.)",
+                    "How much armor DOUBLES effective health: at 50, an armor of 50 makes you " +
+                    "count as twice your max health. Transformations do not show up through this " +
+                    "term: the rating uses your base-form armor and RatingFormShare applies the " +
+                    "form on top. Creatures have zero armor in Valheim (only Player overrides " +
+                    "GetBodyArmor), so their factor is exactly 1 and this key does not touch " +
+                    "them. Lower makes armor count for more.",
                     new AcceptableValueRange<float>(0f, 1000f), AdminOnly(47)));
 
+            // Playtest de 2026-09-06: subiu de 1. Em paridade com o peso da vida o número era quase
+            // só volume, e ele tem que responder "isso me machuca".
             RatingK2Damage = config.Bind(SecPower, "RatingDamageWeight", 10f,
                 new ConfigDescription(
                     "Weight of damage PER SECOND in the scannable power rating. Same scale for " +
-                    "players and creatures. Per second, not per hit: a troll hits for 70 every ~4 " +
-                    "seconds and you punch about once a second, so per-hit made the troll look " +
-                    "stronger than a fully maxed player, which the actual fight denies. This is " +
-                    "the knob that decides whether the number reads as offence or as bulk. " +
-                    "(Playtest value, 2026-09-06. Raised from 1: at parity with the health weight " +
-                    "the rating was almost pure bulk, and the number is supposed to answer 'can " +
-                    "this thing hurt me', not 'how long does it take to chew through it'.)",
+                    "players and creatures. Per second, not per hit: a troll hits for 70 every " +
+                    "~4 seconds and you punch about once a second, so per-hit made the troll " +
+                    "look stronger than a fully maxed player, which the actual fight denies. " +
+                    "This is the knob that decides whether the number reads as offence or as " +
+                    "bulk.",
                     new AcceptableValueRange<float>(0f, 100f), AdminOnly(46)));
 
             // Soma das taxas dos ataques da criatura, nao media: o cooldown do jogo e' por item.
             // Decidido em 2026-10-09. Ver PowerRating.GetCreatureDps.
+            // Chute inicial, sem playtest.
             RatingCreatureMaxAttackRate = config.Bind(SecPower, "RatingCreatureMaxAttackRate", 1f,
                 new ConfigDescription(
                     "Most attacks per second a creature is assumed to land in the power rating. " +
                     "A creature's damage per second adds up all its attacks, each at its own " +
                     "cooldown, because that is how the game's AI uses them: a wolf with three " +
                     "bites on separate 5 second cooldowns bites three times in 5 seconds. Some " +
-                    "creatures have several 1 second attacks, which added up would mean more hits " +
-                    "per second than the animations allow; above this rate, the damage per second " +
-                    "becomes this rate times the creature's average hit. 0 disables the cap. " +
-                    "(Starting value. Not playtested yet.)",
+                    "creatures have several 1 second attacks, which added up would mean more " +
+                    "hits per second than the animations allow; above this rate, the damage per " +
+                    "second becomes this rate times the creature's average hit. 0 disables the " +
+                    "cap.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(46)));
 
             // A forma entra no poder de luta como multiplicador sobre a conta da forma base, e nao
@@ -3781,21 +3770,22 @@ namespace Saiyaheim
             // --- Power Level ---
             // XP proporcional ao dano que passa pela luta, dos dois lados. Escala com o inimigo
             // sem tabela nenhuma: um Boar tem 10 de HP, um troll 600.
+            // Playtest de 2026-08-11. De 0,05 para 0,1 em 2026-08-01, os primeiros níveis se
+            // arrastavam; 0,07 é o meio, depois que 0,1 subia rápido demais.
             SkillXpPerDamageDealt = config.Bind(SecPowerSkill, "XpPerDamageDealt", 0.07f,
                 new ConfigDescription(
-                    "XP per point of damage dealt, CAPPED at the target's remaining HP. That cap is " +
-                    "what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts as 10. " +
-                    "(Playtest value, 2026-08-11. Went 0.05 → 0.1 on 2026-08-01, when the early " +
-                    "levels crawled; 0.07 is the settled middle, after 0.1 made them climb too fast.)",
+                    "XP per point of damage dealt, CAPPED at the target's remaining HP. That cap " +
+                    "is what kills weak-mob farming: a 5000 damage punch on a 10 HP boar counts " +
+                    "as 10.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(100)));
 
+            // Playtest de 2026-08-11.
             SkillXpPerDamageTaken = config.Bind(SecPowerSkill, "XpPerDamageTaken", 0.07f,
                 new ConfigDescription(
-                    "XP per point of damage taken, measured AFTER armor. Measuring it after armor is " +
-                    "what kills the exploit of taking hits on purpose from a weak enemy: taking " +
-                    "little damage pays little. " +
-                    "(Playtest value, 2026-08-11: kept equal to XpPerDamageDealt on purpose — the " +
-                    "two sides of the fight should pay the same.)",
+                    "XP per point of damage taken, measured AFTER armor. Measuring it after " +
+                    "armor is what kills the exploit of taking hits on purpose from a weak " +
+                    "enemy: taking little damage pays little. Kept equal to XpPerDamageDealt on " +
+                    "purpose: both sides of the fight should pay the same.",
                     new AcceptableValueRange<float>(0f, 10f), AdminOnly(90)));
 
             SkillXpWeightBonus = config.Bind(SecPowerSkill, "XpWeightBonus", 1f,
@@ -3882,22 +3872,19 @@ namespace Saiyaheim
                         "so this one value is the whole strength of the form. Flight speed is " +
                         "multiplied too. The ki cap, ki regeneration and charging deliberately " +
                         "are NOT: a bar that grows on transforming would jump on screen, and " +
-                        "scaled regeneration would pay for part of the form's own drain. " +
-                        "Note the ki costs of punching and blocking scale WITH it automatically, " +
-                        "since both are charged per point of damage dealt or absorbed. " +
-                        "(Starting value. Not playtested yet.)",
+                        "scaled regeneration would pay for part of the form's own drain. Note " +
+                        "the ki costs of punching and blocking scale WITH it automatically, " +
+                        "since both are charged per point of damage dealt or absorbed.",
                         new AcceptableValueRange<float>(1f, 50f), AdminOnly(100))),
 
                 KiDrainPerSecond = config.Bind(section, "KiDrainPerSecond", kiDrainPerSecond,
                     new ConfigDescription(
                         "Base ki drained per second while transformed, before the mastery " +
                         "reduction. This is the ONLY cost of the form: there is no activation " +
-                        "cost. Hitting zero ki powers you down. " +
-                        "Flat per second and not a fraction of the bar, because the bar already " +
-                        "grows with Power Level (MaxKiPerPowerLevel) — so the form lasts longer " +
-                        "as the character grows even before mastery, which is the intended " +
-                        "reading of getting stronger. " +
-                        "(Starting value. Not playtested yet.)",
+                        "cost. Hitting zero ki powers you down. Flat per second and not a " +
+                        "fraction of the bar, because the bar already grows with Power Level " +
+                        "(MaxKiPerPowerLevel) — so the form lasts longer as the character grows " +
+                        "even before mastery, which is the intended reading of getting stronger.",
                         new AcceptableValueRange<float>(0f, 100f), AdminOnly(90))),
 
                 // O sabor da forma no golpe. Converter e nao somar e' o ponto: um tipo de dano novo
@@ -3906,16 +3893,15 @@ namespace Saiyaheim
                 // forma" que a descricao dele promete.
                 PunchSlashFraction = config.Bind(section, "PunchSlashFraction", punchSlashFraction,
                     new ConfigDescription(
-                        "Fraction of the punch's BLUNT damage turned into SLASH while this form is " +
-                        "active. 0.5 = half and half. The total damage of the hit does not change: " +
-                        "this moves damage between types, it does not add any. " +
-                        "It applies to the whole punch — vanilla unarmed damage plus the Power Level " +
-                        "bonus — and only to unarmed attacks. " +
-                        "What it is for: armor is per damage type in Valheim, so a form that hits " +
-                        "with two types is less punished by an enemy that resists one of them. " +
-                        "Blunt and slash both count toward stagger, so the split does not change " +
-                        "how fast a target staggers. " +
-                        "(Starting value. Not playtested yet.)",
+                        "Fraction of the punch's BLUNT damage turned into SLASH while this form " +
+                        "is active. 0.5 = half and half. The total damage of the hit does not " +
+                        "change: this moves damage between types, it does not add any. It " +
+                        "applies to the whole punch — vanilla unarmed damage plus the Power " +
+                        "Level bonus — and only to unarmed attacks. What it is for: armor is per " +
+                        "damage type in Valheim, so a form that hits with two types is less " +
+                        "punished by an enemy that resists one of them. Blunt and slash both " +
+                        "count toward stagger, so the split does not change how fast a target " +
+                        "staggers.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(85))),
 
                 // Um segundo tipo ao lado do corte, e nao no lugar dele: a repartição é a regra da
@@ -3928,12 +3914,11 @@ namespace Saiyaheim
                         "between types and adds none, so the total of the hit does not change. " +
                         "The two fractions split the same total. If they add up to more than 1 " +
                         "they are scaled down to fit, rather than eating into the blunt that is " +
-                        "not there. " +
-                        "Why it matters: lightning is resisted by very few things in Valheim, and " +
-                        "the Swamp and Mountains are full of enemies weak to it — but frost caves " +
-                        "and Fenring resist it, so it is not a free upgrade over slash. " +
-                        "Lightning also counts toward stagger like the other physical types. " +
-                        "(Starting value. Not playtested yet.)",
+                        "not there. Why it matters: lightning is resisted by very few things in " +
+                        "Valheim, and the Swamp and Mountains are full of enemies weak to it — " +
+                        "but frost caves and Fenring resist it, so it is not a free upgrade over " +
+                        "slash. Lightning also counts toward stagger like the other physical " +
+                        "types.",
                         new AcceptableValueRange<float>(0f, 1f), AdminOnly(84))),
 
                 // O peso e' o unico numero da forma que NAO passa pelo PowerMultiplier, e de
@@ -3944,18 +3929,17 @@ namespace Saiyaheim
                 // Somado e nao multiplicado pelo mesmo motivo do bonus de soco: soma convive com o
                 // Megingjord (+150) em vez de brigar com ele, e o numero no .cfg e' lido direto na
                 // tela do inventario, sem depender do limite base.
+                // Playtest de 2026-08-16: começou em 300 e desceu para 100.
                 CarryWeightBonus = config.Bind(section, "CarryWeightBonus", carryWeightBonus,
                     new ConfigDescription(
                         "Extra carry weight while this form is active. Added on top of the " +
-                        "character's own limit (300 in vanilla) and on top of Megingjord, so " +
-                        "300 here would mean double the backpack while transformed. " +
-                        "Falls off the moment the form does, and anything you were carrying over " +
-                        "the plain limit makes you encumbered again — powering down mid-haul is " +
-                        "the cost of using the form as a cart. " +
-                        "Side effect worth knowing: carry load is a fraction of the LIMIT, so a " +
-                        "bigger limit means the same cargo slows flight less and pays less " +
-                        "Power Level XP (XpWeightBonus). " +
-                        "Playtested 2026-08-16: started at 300 and came down to 100.",
+                        "character's own limit (300 in vanilla) and on top of Megingjord, so 300 " +
+                        "here would mean double the backpack while transformed. Falls off the " +
+                        "moment the form does, and anything you were carrying over the plain " +
+                        "limit makes you encumbered again — powering down mid-haul is the cost " +
+                        "of using the form as a cart. Side effect worth knowing: carry load is a " +
+                        "fraction of the LIMIT, so a bigger limit means the same cargo slows " +
+                        "flight less and pays less Power Level XP (XpWeightBonus).",
                         new AcceptableValueRange<float>(0f, 2000f), AdminOnly(83))),
 
                 // O sabor do SSJ God (2026-09-21): a forma do controle compra folego, e nao golpe.
@@ -3975,9 +3959,7 @@ namespace Saiyaheim
                         "often the tick comes, which is what makes the healing readable during a " +
                         "fight instead of arriving in one lump. Total healing per second is " +
                         "(food regen x this) / 10, times whatever the weather and Rested do to " +
-                        "the shared regen multiplier. " +
-                        "1 leaves the vanilla clock alone. " +
-                        "(Starting value. Not playtested yet.)",
+                        "the shared regen multiplier. 1 leaves the vanilla clock alone.",
                         new AcceptableValueRange<float>(1f, 10f), AdminOnly(80))),
 
                 // A terceira chave da cura, e a que muda o sinal da mecanica em vez do numero: o
@@ -3986,15 +3968,15 @@ namespace Saiyaheim
                 // exatamente onde folego importa, que e' a Montanha.
                 HealthRegenIgnoresBlockers = healthRegenIgnoresBlockers == null ? null : config.Bind(section, "HealthRegenIgnoresBlockers", healthRegenIgnoresBlockers.Value,
                     new ConfigDescription(
-                        "Whether this form's healing ignores everything that cuts or stops health " +
-                        "regeneration — Wet, Cold and Freezing. Valheim's regen multiplier is " +
-                        "SHARED: every status effect edits the same number, and Freezing sets it " +
-                        "to zero, which no multiplier can survive. With this on, the normal food " +
-                        "rate becomes a FLOOR: the weather can raise the healing (Rested still " +
-                        "adds) but not lower it below the rate you get in good weather. " +
-                        "Only affects the passive healing from food; the Freezing DAMAGE keeps " +
-                        "coming, so the mountain still hurts, it just stops being a wall. " +
-                        "(Starting value. Not playtested yet.)",
+                        "Whether this form's healing ignores everything that cuts or stops " +
+                        "health regeneration — Wet, Cold and Freezing. Valheim's regen " +
+                        "multiplier is SHARED: every status effect edits the same number, and " +
+                        "Freezing sets it to zero, which no multiplier can survive. With this " +
+                        "on, the normal food rate becomes a FLOOR: the weather can raise the " +
+                        "healing (Rested still adds) but not lower it below the rate you get in " +
+                        "good weather. Only affects the passive healing from food; the Freezing " +
+                        "DAMAGE keeps coming, so the mountain still hurts, it just stops being a " +
+                        "wall.",
                         null, AdminOnly(79))),
 
                 // O piso da cura do God: a forma multiplica a cura da comida, e sem comida nao sobra
@@ -4003,11 +3985,10 @@ namespace Saiyaheim
                 HealthRegenMinimum = healthRegenMinimum == null ? null : config.Bind(section, "HealthRegenMinimum", healthRegenMinimum.Value,
                     new ConfigDescription(
                         "Minimum passive healing, in health per second, while this form is " +
-                        "active — even with no food at all. It is a FLOOR, not a bonus: when your " +
-                        "food already heals faster than this (counting this form's faster clock " +
-                        "and the weather), it does nothing. Heals once per second. " +
-                        "0 turns it off. " +
-                        "(Starting value. Not playtested yet.)",
+                        "active — even with no food at all. It is a FLOOR, not a bonus: when " +
+                        "your food already heals faster than this (counting this form's faster " +
+                        "clock and the weather), it does nothing. Heals once per second. 0 turns " +
+                        "it off.",
                         new AcceptableValueRange<float>(0f, 10f), AdminOnly(76))),
 
                 // Mais uma chave do folego do God, e so' dele pela mesma regra das duas acima.
@@ -4015,16 +3996,16 @@ namespace Saiyaheim
                 // resistencias por degrau e fica com a melhor (DamageModifiers.ApplyIfBetter), entao
                 // a da forma convive com a de armadura e mead em vez de empilhar — um Resistant do
                 // equipamento continua valendo mais que o SlightlyResistant daqui.
+                // Calibrado no playtest de 2026-09-29.
                 BluntResistance = bluntResistance == null ? null : config.Bind(section, "BluntResistance", bluntResistance.Value,
                     new ConfigDescription(
-                        "Resistance to BLUNT damage (clubs, maces, trolls, golems, falling rocks) " +
-                        "while this form is active. Uses Valheim's own tiers: SlightlyResistant " +
-                        "takes 75% of the damage, Resistant 50%, VeryResistant 25%, Normal turns " +
-                        "it off. Any other value is treated as Normal. " +
-                        "It does not stack with armor or meads that resist blunt: the game keeps " +
-                        "the best tier among all sources, so it only matters when nothing better " +
-                        "is on you. Applied before body armor, like every vanilla resistance. " +
-                        "(Calibrated in the 2026-09-29 playtest.)",
+                        "Resistance to BLUNT damage (clubs, maces, trolls, golems, falling " +
+                        "rocks) while this form is active. Uses Valheim's own tiers: " +
+                        "SlightlyResistant takes 75% of the damage, Resistant 50%, VeryResistant " +
+                        "25%, Normal turns it off. Any other value is treated as Normal. It does " +
+                        "not stack with armor or meads that resist blunt: the game keeps the " +
+                        "best tier among all sources, so it only matters when nothing better is " +
+                        "on you. Applied before body armor, like every vanilla resistance.",
                         null, AdminOnly(78))),
 
                 // A outra metade do sabor do God: o custo de lutar dentro dele. A sobretaxa em si
@@ -4033,12 +4014,11 @@ namespace Saiyaheim
                 // dial global so' — este so' desloca um degrau em relacao aos outros.
                 CombatKiCostScale = config.Bind(section, "CombatKiCostScale", combatKiCostScale,
                     new ConfigDescription(
-                        "How much of the shared combat surcharge (CombatFormKiShare in the Combat " +
-                        "section) THIS form charges on punching, blocking, taking hits and ki " +
-                        "attacks. 1 = the full surcharge; 0.5 = half of it; 0 = fighting in this " +
-                        "form costs the same ki as base form from mastery 0. Mastery still pays " +
-                        "off whatever is left. " +
-                        "(Starting value. Not playtested yet.)",
+                        "How much of the shared combat surcharge (CombatFormKiShare in the " +
+                        "Combat section) THIS form charges on punching, blocking, taking hits " +
+                        "and ki attacks. 1 = the full surcharge; 0.5 = half of it; 0 = fighting " +
+                        "in this form costs the same ki as base form from mastery 0. Mastery " +
+                        "still pays off whatever is left.",
                         new AcceptableValueRange<float>(0f, 3f), AdminOnly(81))),
 
                 MasteryDrainReduction = config.Bind(section, "MasteryDrainReduction", masteryDrainReduction,
@@ -4274,12 +4254,11 @@ namespace Saiyaheim
             {
                 DamageBase = config.Bind(section, "DamageBase", damageBase,
                     new ConfigDescription(
-                        "Damage of this attack at battle power zero, before the power share below. " +
-                        "It is the floor: a fresh character has almost no battle power, and an " +
-                        "attack that did nothing at all until the bar filled would read as broken " +
-                        "on the very first shot. All of it is one damage type: SLASH for the ki blast " +
-                        "and the Kamehameha, PIERCE for the Kienzan. " +
-                        "(Starting value. Not playtested yet.)",
+                        "Damage of this attack at battle power zero, before the power share " +
+                        "below. It is the floor: a fresh character has almost no battle power, " +
+                        "and an attack that did nothing at all until the bar filled would read " +
+                        "as broken on the very first shot. All of it is one damage type: SLASH " +
+                        "for the ki blast and the Kamehameha, PIERCE for the Kienzan.",
                         new AcceptableValueRange<float>(0f, 1000f), AdminOnly(100))),
 
                 // Le o poder de COMBATE, o mesmo do soco — nao o linear. Duas coisas saem de graca:
@@ -4288,13 +4267,12 @@ namespace Saiyaheim
                 // sem uma linha de codigo a mais).
                 DamageFromPower = config.Bind(section, "DamageFromPower", damageFromPower,
                     new ConfigDescription(
-                        "Share of the COMBAT battle power added to this attack's damage. " +
-                        "Same number the punch reads, so the attack keeps up with the fists " +
-                        "instead of falling behind, transforming makes it stronger for free, and " +
-                        "the late-game term applies to it as well. " +
-                        "Careful: this is a RANGED hit with no wind-up, so it should sit below " +
-                        "PunchDamageFromPower or there is no reason to ever close distance. " +
-                        "(Starting value. Not playtested yet.)",
+                        "Share of the COMBAT battle power added to this attack's damage. Same " +
+                        "number the punch reads, so the attack keeps up with the fists instead " +
+                        "of falling behind, transforming makes it stronger for free, and the " +
+                        "late-game term applies to it as well. Careful: this is a RANGED hit " +
+                        "with no wind-up, so it should sit below PunchDamageFromPower or there " +
+                        "is no reason to ever close distance.",
                         new AcceptableValueRange<float>(0f, 10f), AdminOnly(95))),
 
                 // Fixo, e a decisao esta' registrada como provisoria em [[Ataques de Ki]]: o soco
@@ -4387,16 +4365,16 @@ namespace Saiyaheim
                     new ConfigDescription(
                         "Battle power multiplier this attack uses against trees, rocks and ore. " +
                         "It raises ONLY the tier the attack reaches (at 1.2, a character at 1000 " +
-                        "power breaks what needs 1200). Damage there uses your real power, through " +
-                        "the same formula as the punch (ChopDamage and PickaxeDamage in the " +
-                        "Environment section, times your power over the target's tier threshold), " +
-                        "so a tier reached only thanks to this is chipped slowly. That damage is then " +
-                        "weighted by how many punches one projectile is worth against an enemy, " +
-                        "so a beam of weak projectiles stays weak on trees too. It does NOT touch " +
-                        "damage against enemies. Applies per projectile: a beam hits once per " +
-                        "projectile, and every tree inside the explosion radius takes the hit. " +
-                        "0 turns off damage to trees, rocks and ore. " +
-                        "(Starting value, 2026-09-27. Not playtested yet.)",
+                        "power breaks what needs 1200). Damage there uses your real power, " +
+                        "through the same formula as the punch (ChopDamage and PickaxeDamage in " +
+                        "the Environment section, times your power over the target's tier " +
+                        "threshold), so a tier reached only thanks to this is chipped slowly. " +
+                        "That damage is then weighted by how many punches one projectile is " +
+                        "worth against an enemy, so a beam of weak projectiles stays weak on " +
+                        "trees too. It does NOT touch damage against enemies. Applies per " +
+                        "projectile: a beam hits once per projectile, and every tree inside the " +
+                        "explosion radius takes the hit. 0 turns off damage to trees, rocks and " +
+                        "ore.",
                         new AcceptableValueRange<float>(0f, 10f), AdminOnly(78))),
 
                 // O carregamento e' o que separa o Kamehameha do ki blast: nao a cor nem o prefab,
