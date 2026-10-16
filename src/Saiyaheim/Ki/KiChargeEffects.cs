@@ -77,37 +77,41 @@ namespace Saiyaheim.Ki
         private static readonly Dictionary<Player, Active> Live = new Dictionary<Player, Active>();
 
         /// <summary>
-        /// Aura acesa o tempo todo (2026-10-16), escolha do personagem no menu radial. Salva no
-        /// <c>m_customData</c>, como o modo do voo e o rabo, e publicada pela ZDO para os outros
-        /// verem. Ausente é só carregando.
+        /// Aura acesa o tempo todo (2026-10-16), escolha do jogador no menu radial, publicada pela
+        /// ZDO para os outros verem. <b>Vale só até fechar o jogo</b>, pedido do Henrique antes da
+        /// 0.10.0: cada sessão começa com a aura só ao carregar. Por isso fica num campo, e não no
+        /// <c>m_customData</c> como o rabo e o modo do voo.
         /// </summary>
-        private const string KeyAlwaysOn = "saiyaheim.auraAlwaysOn";
+        private static bool _alwaysOn;
+
+        /// <summary>
+        /// Onde a escolha ficava salva no personagem durante o desenvolvimento. Lida só para ser
+        /// apagada, para quem testou a versão que salvava não carregar o "1" no save para sempre.
+        /// </summary>
+        private const string LegacyKeyAlwaysOn = "saiyaheim.auraAlwaysOn";
 
         private static bool _disabled;
 
-        /// <summary>O personagem escolheu a aura acesa o tempo todo.</summary>
+        /// <summary>O jogador local escolheu a aura acesa o tempo todo, nesta sessão.</summary>
         internal static bool IsAlwaysOn(Player player)
         {
-            return player != null && player.m_customData != null
-                   && player.m_customData.TryGetValue(KeyAlwaysOn, out string raw) && raw == "1";
+            if (player == null || player != Player.m_localPlayer)
+            {
+                return false;
+            }
+
+            if (player.m_customData != null && player.m_customData.ContainsKey(LegacyKeyAlwaysOn))
+            {
+                player.m_customData.Remove(LegacyKeyAlwaysOn);
+            }
+
+            return _alwaysOn;
         }
 
-        /// <summary>Liga ou desliga a aura permanente do personagem. Vale no próximo frame, pela ZDO.</summary>
+        /// <summary>Liga ou desliga a aura permanente até fechar o jogo. Vale no próximo frame, pela ZDO.</summary>
         internal static void SetAlwaysOn(Player player, bool on)
         {
-            if (player == null || player.m_customData == null)
-            {
-                return;
-            }
-
-            if (on)
-            {
-                player.m_customData[KeyAlwaysOn] = "1";
-            }
-            else
-            {
-                player.m_customData.Remove(KeyAlwaysOn);
-            }
+            _alwaysOn = on;
         }
 
         /// <param name="charging">Toca o som do carregamento.</param>

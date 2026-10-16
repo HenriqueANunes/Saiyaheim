@@ -229,9 +229,10 @@ attacks** and **Options** — so it costs you no extra key, and the hotkeys abov
 - Picking a Kaioken tier switches straight to it, up or down, from any form. Each tier shows its
   power multiplier and what it costs right now, in stamina and, past your limit, health. While it
   is on, a **Kaioken off** item turns it off.
-- **Options** holds what you switch on and off for your character: keeping the aura on all the
-  time while ki is on (not only while charging, and in flight too), going without a tail, and wrapping the tail around your waist or letting it hang. Each character keeps its own
-  choices, and other players see the same.
+- **Options** holds what you switch on and off for your character: going without a tail, wrapping
+  the tail around your waist or letting it hang, and keeping the aura on all the time while ki is
+  on (not only while charging, and in flight too). Each character keeps its tail choices; the aura
+  one lasts until you close the game. Other players see the same.
 - **Only what you have unlocked shows up.** A group whose items are all still locked does not
   appear on the wheel at all, so the menu grows as you progress.
 
