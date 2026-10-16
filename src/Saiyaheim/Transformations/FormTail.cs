@@ -51,7 +51,7 @@ namespace Saiyaheim.Transformations
     /// <b>O balanço</b> é por osso, somado ao longo da cadeia: uma onda lenta parado, e uma dobra
     /// para trás do movimento (correr levanta o rabo, andar de lado joga para o outro lado, cair
     /// levanta), com a velocidade do próprio rabo no mundo e suavizada para ter peso. Os números
-    /// estão no <c>.cfg</c>, client-side, na seção das transformações.
+    /// são constantes do <c>SaiyaheimConfig</c> (<c>Tail*</c>), calibradas na tela.
     ///
     /// <b>Roda para todo jogador carregado</b>, pelo <c>TransformationEffects.Observe</c> e a forma
     /// do <c>NetState</c>, como o pelo do corpo. Os ossos são nossos e o Animator não os conhece,
@@ -85,6 +85,12 @@ namespace Saiyaheim.Transformations
         /// (<c>FlightManager</c>): ausente é solto.
         /// </summary>
         private const string KeyWrapped = "saiyaheim.tailWrapped";
+
+        /// <summary>
+        /// Personagem sem rabo (2026-10-16): nem todo personagem é saiyajin. Salvo no personagem
+        /// como o enrolado, e vale também para o SSJ4. Ausente é com rabo.
+        /// </summary>
+        private const string KeyHidden = "saiyaheim.tailHidden";
 
         /// <summary>
         /// Brilho médio do <c>Hair_01_bw.png</c> do jogo, a textura cinza que a cor do cabelo
@@ -144,6 +150,11 @@ namespace Saiyaheim.Transformations
             if (!fur)
             {
                 name = SaiyaheimConfig.TailEnabled.Value ? DefaultTail : null;
+            }
+
+            if (NetState.IsTailHidden(player))
+            {
+                name = null;
             }
 
             // Quem não é o jogador local chega aqui pela ZDO; o local também, por regra do canal.
@@ -208,9 +219,35 @@ namespace Saiyaheim.Transformations
             }
         }
 
+        /// <summary>O personagem escolheu ficar sem rabo.</summary>
+        internal static bool IsHidden(Player player)
+        {
+            return player != null && player.m_customData != null
+                   && player.m_customData.TryGetValue(KeyHidden, out string raw) && raw == "1";
+        }
+
+        /// <summary>Esconde ou mostra o rabo do personagem. Troca no próximo tique, pela ZDO.</summary>
+        internal static void SetHidden(Player player, bool hidden)
+        {
+            if (player == null || player.m_customData == null)
+            {
+                return;
+            }
+
+            if (hidden)
+            {
+                player.m_customData[KeyHidden] = "1";
+            }
+            else
+            {
+                player.m_customData.Remove(KeyHidden);
+            }
+        }
+
         /// <summary>
-        /// Este jogador tem rabo agora: na forma com rabo próprio, ou em qualquer outra com o
-        /// <c>TailEnabled</c> ligado. O menu radial só oferece enrolar quando há o que enrolar.
+        /// Este jogador pode ter rabo agora, se não o escondeu: na forma com rabo próprio, ou em
+        /// qualquer outra com o <c>TailEnabled</c> ligado. O menu radial só oferece os toggles do
+        /// rabo quando há rabo para mostrar.
         /// </summary>
         internal static bool HasTail(Player player)
         {
@@ -392,7 +429,7 @@ namespace Saiyaheim.Transformations
                 Color color = source.GetColor(SkinColorId);
                 if (!inst.Fur)
                 {
-                    float brightness = SaiyaheimConfig.TailHairBrightness.Value;
+                    float brightness = SaiyaheimConfig.TailHairBrightness;
                     color = new Color(color.r * brightness, color.g * brightness, color.b * brightness, color.a);
                 }
 
@@ -400,14 +437,14 @@ namespace Saiyaheim.Transformations
             }
 
             int n = inst.Bones.Length;
-            float amp = SaiyaheimConfig.TailSwayDegrees.Value;
-            float wave = Time.time * 2f * Mathf.PI * SaiyaheimConfig.TailSwaySpeed.Value + inst.Phase;
+            float amp = SaiyaheimConfig.TailSwayDegrees;
+            float wave = Time.time * 2f * Mathf.PI * SaiyaheimConfig.TailSwaySpeed + inst.Phase;
 
             if (inst.Wrapped)
             {
                 // Deitado na cintura: sem dobra do movimento, e só a ponta mexe. Os ossos de antes
                 // dela ficam no repouso, que é a volta colada ao corpo.
-                float tip = SaiyaheimConfig.TailWrappedTipSway.Value;
+                float tip = SaiyaheimConfig.TailWrappedTipSway;
                 int first = Mathf.Max(0, n - WrappedSwayBones);
                 for (int k = 0; k < n; k++)
                 {
@@ -443,15 +480,15 @@ namespace Saiyaheim.Transformations
             // No espaço do Hips: X é o lado, Y é cima, Z é a frente (o bindpose do jogo leva o Z
             // da malha para Y e o -Y para Z). O rabo repousa para -Z e para baixo.
             Vector3 local = root.parent.InverseTransformDirection(velocity);
-            float gain = SaiyaheimConfig.TailMotionBend.Value;
-            float max = SaiyaheimConfig.TailMotionMaxBend.Value;
+            float gain = SaiyaheimConfig.TailMotionBend;
+            float max = SaiyaheimConfig.TailMotionMaxBend;
             // Girar em +Y leva o -Z para -X: andar para +X joga o rabo para -X. Girar em +X leva
             // o -Z para +Y: andar para a frente, ou cair, levanta o rabo.
             var target = new Vector2(
                 Mathf.Clamp(local.x * gain, -max, max),
                 Mathf.Clamp((local.z - local.y) * gain, -max, max));
             inst.Bend = Vector2.Lerp(inst.Bend, target,
-                1f - Mathf.Exp(-SaiyaheimConfig.TailResponsiveness.Value * dt));
+                1f - Mathf.Exp(-SaiyaheimConfig.TailResponsiveness * dt));
 
             for (int k = 0; k < n; k++)
             {
@@ -486,7 +523,7 @@ namespace Saiyaheim.Transformations
                       $"{mesh?.boneWeights.Length} weights; renderer bones {renderer?.bones?.Length}, " +
                       $"root bone {renderer?.rootBone?.name}.");
             lines.Add($"Motion bend (yaw, pitch): {inst.Bend.x:0.0}, {inst.Bend.y:0.0} degrees. " +
-                      $"Sway {SaiyaheimConfig.TailSwayDegrees.Value} deg at {SaiyaheimConfig.TailSwaySpeed.Value}/s.");
+                      $"Sway {SaiyaheimConfig.TailSwayDegrees} deg at {SaiyaheimConfig.TailSwaySpeed}/s.");
             for (int k = 0; k < inst.Bones.Length; k++)
             {
                 Vector3 e = inst.Bones[k].localEulerAngles;
@@ -508,7 +545,7 @@ namespace Saiyaheim.Transformations
         /// nome não estiver lá. O solto vai no Hips; o enrolado no Spine, que é quem move a pele da
         /// cintura (ver o <c>CINTURA_BONE</c> do <c>tools/ssj4_rabo.py</c>).
         /// </summary>
-        private static Transform FindBone(SkinnedMeshRenderer body, string name)
+        internal static Transform FindBone(SkinnedMeshRenderer body, string name)
         {
             if (body == null || body.bones == null || body.bones.Length == 0)
             {

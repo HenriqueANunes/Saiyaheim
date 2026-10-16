@@ -56,10 +56,14 @@ namespace Saiyaheim.Net
 
                 Known.Add(player);
 
-                // A aura acende junto com a carga, por enquanto. O toggle de aura previsto entra no
-                // segundo argumento, sem mexer no KiChargeEffects.
+                // A aura acende junto com a carga, e o tempo todo para quem escolheu isso no menu
+                // radial (2026-10-16), com o ki ligado, que é quando o personagem "está" com ki.
+                // Voando também, a pedido do Henrique, para ver como fica: a aura de partícula não
+                // deita com o corpo no voo rápido e fica de pé atravessada (ver [[Malhas Custom]],
+                // "Aura no voo rápido"). Carregando, ela aparece de qualquer jeito, como sempre.
                 bool charging = NetState.IsCharging(player);
-                KiChargeEffects.Update(player, charging, charging);
+                bool aura = charging || (NetState.IsAuraAlwaysOn(player) && NetState.IsKiEnabled(player));
+                KiChargeEffects.Update(player, charging, aura);
 
                 // A carga do Kamehameha. O ratio só é verdade para o jogador local — a ZDO leva a
                 // bandeira, não o relógio da carga —, então nos outros a bola nasce cheia. Ver

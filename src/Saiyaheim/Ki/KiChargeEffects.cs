@@ -52,6 +52,11 @@ namespace Saiyaheim.Ki
             internal GameObject Vfx;
             internal string Color;
             internal float Scale;
+
+            /// <summary>
+            /// A chama grande em cartão, só com o corpo deitado no voo. Ver <see cref="Lean"/>.
+            /// </summary>
+            internal GameObject Card;
         }
 
         /// <summary>
@@ -71,7 +76,39 @@ namespace Saiyaheim.Ki
 
         private static readonly Dictionary<Player, Active> Live = new Dictionary<Player, Active>();
 
+        /// <summary>
+        /// Aura acesa o tempo todo (2026-10-16), escolha do personagem no menu radial. Salva no
+        /// <c>m_customData</c>, como o modo do voo e o rabo, e publicada pela ZDO para os outros
+        /// verem. Ausente é só carregando.
+        /// </summary>
+        private const string KeyAlwaysOn = "saiyaheim.auraAlwaysOn";
+
         private static bool _disabled;
+
+        /// <summary>O personagem escolheu a aura acesa o tempo todo.</summary>
+        internal static bool IsAlwaysOn(Player player)
+        {
+            return player != null && player.m_customData != null
+                   && player.m_customData.TryGetValue(KeyAlwaysOn, out string raw) && raw == "1";
+        }
+
+        /// <summary>Liga ou desliga a aura permanente do personagem. Vale no próximo frame, pela ZDO.</summary>
+        internal static void SetAlwaysOn(Player player, bool on)
+        {
+            if (player == null || player.m_customData == null)
+            {
+                return;
+            }
+
+            if (on)
+            {
+                player.m_customData[KeyAlwaysOn] = "1";
+            }
+            else
+            {
+                player.m_customData.Remove(KeyAlwaysOn);
+            }
+        }
 
         /// <param name="charging">Toca o som do carregamento.</param>
         /// <param name="auraOn">Acende a aura, com a camada do Kaioken se houver.</param>
@@ -179,6 +216,7 @@ namespace Saiyaheim.Ki
             // Na base o Kaioken toma o lugar da azul, no tamanho normal; transformado, a da forma
             // fica e o Kaioken vai para a camada de fora.
             string auraColor = form == null && tier != null ? tier.GetAuraColor() : ResolveColor(form);
+
             Set(player, active.Aura, auraColor, scale);
 
             if (form != null && tier != null)
@@ -190,6 +228,132 @@ namespace Saiyaheim.Ki
             {
                 Clear(active.Kaioken);
             }
+
+            Lean(player, active.Aura);
+            Lean(player, active.Kaioken);
+        }
+
+        /// <summary>
+        /// Inclina a aura junto com o corpo no voo (2026-10-16). O <c>FlightPose</c> deita o corpo
+        /// para a frente, e a aura, presa ao transform do jogador, ficava de pé atravessada nele.
+        ///
+        /// <b>Girar o efeito inteiro basta</b>, como o Henrique apontou: as partículas da "Aura base"
+        /// simulam no espaço local do efeito (<c>moveWithTransform: 0</c> no prefab), então elas e a
+        /// direção em que esticam giram junto com a raiz. A raiz do prefab fica a 1 m dos pés, na
+        /// altura do quadril, e o giro é em volta dela — o mesmo ponto em volta do qual o corpo
+        /// deita. Mesmo eixo e sinal do <c>FlightPose.PitchForward</c>: positivo é barriga para baixo.
+        ///
+        /// A inclinação vem do frame anterior (o pose roda depois deste Update). Ela muda suave, e
+        /// isso não pisca como ler osso no Update piscava na tentativa de 2026-09-26.
+        ///
+        /// <b>A chama grande não deita com o giro.</b> Ela é praticamente uma partícula só, enorme,
+        /// em <i>Stretched Billboard</i> com <i>Freeform Stretching</i>, desenhada sempre de pé na tela:
+        /// sonda no Unity em 2026-10-16 (<c>Editor/AuraLeanProbe.cs</c> no projeto Unity) — girar a
+        /// raiz, mudar a velocidade, girar a partícula e trocar o alinhamento não a inclinam.
+        ///
+        /// <b>Então, deitado, ela vira um cartão</b> (opção C, aprovada pelo Henrique nos renders da
+        /// sonda): uma cópia do sistema da chama, sem os filhos, desenhada como <i>Billboard</i> em
+        /// alinhamento local, com a base da chama para os pés e a ponta para a cabeça, girando em
+        /// volta do eixo do corpo para ficar de frente para a câmera de quem olha. Três
+        /// cartões cruzados também deitavam, mas mostravam duas ou três chamas sobrepostas; desligar
+        /// o freeform desenhava a chama de lado e na altura da cabeça. A chama original some
+        /// enquanto o cartão existe e volta fora do voo rápido, onde é a aprovada.
+        ///
+        /// No primeiro teste no jogo (2026-10-16) o cartão contornou o corpo certo; o Henrique pediu
+        /// a troca só no voo rápido e o cartão mais largo, porque a aura de pé é mais arredondada.
+        /// </summary>
+        private static void Lean(Player player, Layer layer)
+        {
+            if (layer.Vfx == null)
+            {
+                return;
+            }
+
+            float pitch = Flight.FlightPose.GetPitch(player);
+            Transform root = layer.Vfx.transform;
+            root.localRotation = Quaternion.AngleAxis(pitch, Vector3.right);
+
+            // Só no voo rápido (pedido do Henrique no primeiro teste: pela inclinação, descer devagar
+            // trocava a chama e a troca brusca ficava estranha). Com folga na saída, para não piscar
+            // perto do limite.
+            ParticleSystemRenderer flame = layer.Vfx.GetComponent<ParticleSystemRenderer>();
+            float enter = SaiyaheimConfig.AuraFlightCardSpeed;
+            float fast = Flight.FlightPose.GetFast(player);
+            bool card = flame != null && enter < 1f && fast >= (layer.Card != null ? enter - 0.2f : enter);
+
+            if (!card)
+            {
+                if (layer.Card != null)
+                {
+                    UnityEngine.Object.Destroy(layer.Card);
+                    layer.Card = null;
+                }
+
+                if (flame != null && !flame.enabled)
+                {
+                    flame.enabled = true;
+                }
+
+                return;
+            }
+
+            if (layer.Card == null)
+            {
+                layer.Card = MakeCard(layer.Vfx);
+                flame.enabled = false;
+            }
+
+            // De frente para a câmera de quem olha, girando só em volta do eixo do corpo.
+            Transform cardTransform = layer.Card.transform;
+            cardTransform.localPosition = root.localPosition;
+            Vector3 axis = root.up;
+            Vector3 eye = GameCamera.instance != null
+                ? GameCamera.instance.transform.position
+                : cardTransform.position - root.forward;
+            Vector3 toEye = Vector3.ProjectOnPlane(eye - cardTransform.position, axis);
+            if (toEye.sqrMagnitude < 1e-6f)
+            {
+                toEye = Vector3.ProjectOnPlane(-root.forward, axis);
+            }
+
+            cardTransform.rotation = Quaternion.LookRotation(-toEye.normalized, axis);
+        }
+
+        /// <summary>
+        /// A cópia da chama grande em cartão: o sistema da raiz da aura, sem os filhos (faíscas,
+        /// clarões e onda continuam na aura, deitando com ela). Números da sonda no Unity.
+        /// </summary>
+        private static GameObject MakeCard(GameObject vfx)
+        {
+            GameObject card = UnityEngine.Object.Instantiate(vfx, vfx.transform.parent);
+            card.name = vfx.name + " (card)";
+            foreach (Transform child in card.transform)
+            {
+                UnityEngine.Object.Destroy(child.gameObject);
+            }
+
+            card.transform.localScale = vfx.transform.localScale;
+
+            ParticleSystem system = card.GetComponent<ParticleSystem>();
+            ParticleSystemRenderer renderer = card.GetComponent<ParticleSystemRenderer>();
+            ParticleSystem.MainModule main = system.main;
+            // Sem giro de textura: de pé, o cartão assim é a chama original (base larga embaixo,
+            // ponta em cima), conferido na sonda. O giro de 90° da primeira versão deitava a chama de
+            // lado no cartão, e a "largura" crescia para o lado da ponta (visto pelo Henrique).
+            float size = main.startSize.constant * SaiyaheimConfig.AuraFlightCardSize;
+            main.startSize3D = true;
+            main.startSizeX = size * SaiyaheimConfig.AuraFlightCardWidth;   // em volta do corpo
+            main.startSizeY = size * SaiyaheimConfig.AuraFlightCardLength;  // ao longo do corpo
+            main.startSizeZ = size;
+
+            renderer.enabled = true;
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.alignment = ParticleSystemRenderSpace.Local;
+            renderer.pivot = Vector3.zero;
+
+            system.Clear(true);
+            system.Play(true);
+            return card;
         }
 
         private static void Set(Player player, Layer layer, string color, float scale)
@@ -212,7 +376,13 @@ namespace Saiyaheim.Ki
                 UnityEngine.Object.Destroy(layer.Vfx);
             }
 
+            if (layer.Card != null)
+            {
+                UnityEngine.Object.Destroy(layer.Card);
+            }
+
             layer.Vfx = null;
+            layer.Card = null;
             layer.Color = null;
         }
 

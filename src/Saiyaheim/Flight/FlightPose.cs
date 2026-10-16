@@ -147,6 +147,18 @@ namespace Saiyaheim.Flight
             /// Ver <see cref="ActionTarget"/>.
             /// </summary>
             internal float ActionWeight = 1f;
+
+            /// <summary>
+            /// A inclinação aplicada ao corpo no último frame, em graus, já com os pesos. A aura
+            /// (<c>Ki.KiChargeEffects</c>) lê daqui para deitar junto com o corpo.
+            /// </summary>
+            internal float Pitch;
+
+            /// <summary>
+            /// 0 a 1: quanto do caminho entre o voo lento e o rápido a velocidade já andou, com o
+            /// peso da pose. A chama da aura deita em cartão só no voo rápido (<c>Ki.KiChargeEffects</c>).
+            /// </summary>
+            internal float Fast;
         }
 
         private static readonly Dictionary<Character, PoseState> States =
@@ -181,6 +193,18 @@ namespace Saiyaheim.Flight
             }
 
             return state.Weight;
+        }
+
+        /// <summary>Quão perto do voo rápido este jogador está, de 0 a 1 (0 fora do voo).</summary>
+        internal static float GetFast(Player player)
+        {
+            return player != null && States.TryGetValue(player, out PoseState state) ? state.Fast : 0f;
+        }
+
+        /// <summary>Inclinação do corpo deste jogador no voo, em graus (0 em pé ou fora do voo).</summary>
+        internal static float GetPitch(Player player)
+        {
+            return player != null && States.TryGetValue(player, out PoseState state) ? state.Pitch : 0f;
         }
 
         public void Apply(Player player, ref HumanPose pose)
@@ -218,6 +242,9 @@ namespace Saiyaheim.Flight
             float weight = state.Weight;
             float action = weight * state.ActionWeight;
             float legs = weight * Mathf.Lerp(state.ActionWeight, 1f, ActionLegHold);
+
+            state.Pitch = 0f;
+            state.Fast = 0f;
 
             if (weight > 0f)
             {
@@ -264,7 +291,8 @@ namespace Saiyaheim.Flight
                 // Guinada e inclinação são orientação do quadril: saem junto com o resto do corpo,
                 // senão volta a torção do primeiro playtest.
                 SquareToHeading(ref pose, muscles, action);
-                PitchForward(ref pose, speed01, fast01, vertical01, dive01, action);
+                state.Pitch = PitchForward(ref pose, speed01, fast01, vertical01, dive01, action);
+                state.Fast = fast01 * weight;
                 ApplyMuscles(muscles, speed01, fast01, action, legs);
             }
         }
@@ -343,7 +371,7 @@ namespace Saiyaheim.Flight
         /// uma. O <see cref="SquareToHeading"/> nunca sofreu disso porque cancelar guinada já é
         /// idempotente por construção — zerar duas vezes é zerar.
         /// </summary>
-        private static void PitchForward(
+        private static float PitchForward(
             ref HumanPose pose, float speed01, float fast01, float vertical01, float dive01,
             float weight)
         {
@@ -377,12 +405,12 @@ namespace Saiyaheim.Flight
             float current = Mathf.Atan2(-forward.y, forward.z) * Mathf.Rad2Deg;
 
             float delta = target - current;
-            if (Mathf.Abs(delta) < 0.01f)
+            if (Mathf.Abs(delta) >= 0.01f)
             {
-                return;
+                pose.bodyRotation = Quaternion.AngleAxis(delta, Vector3.right) * pose.bodyRotation;
             }
 
-            pose.bodyRotation = Quaternion.AngleAxis(delta, Vector3.right) * pose.bodyRotation;
+            return target;
         }
 
         /// <param name="weight">Tronco e braços. Cai a zero durante ataque, defesa e emote.</param>

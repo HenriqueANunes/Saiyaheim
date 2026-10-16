@@ -348,7 +348,6 @@ namespace Saiyaheim
         /// <summary>Dano em pedra e minério com o battle power exatamente no limiar do tier dela.</summary>
         public static ConfigEntry<float> EnvironmentPickaxeDamage { get; private set; }
 
-
         /// <summary>Armadura garantida com o ki ligado, antes da parcela vinda do poder.</summary>
         public static ConfigEntry<float> ArmorBase { get; private set; }
 
@@ -624,26 +623,47 @@ namespace Saiyaheim
         /// <summary>Se todo personagem tem rabo fora do SSJ4, na cor do cabelo. Ver <c>Transformations.FormTail</c>.</summary>
         public static ConfigEntry<bool> TailEnabled { get; private set; }
 
-        /// <summary>Multiplicador do brilho do rabo da cor do cabelo, para casar com o cabelo.</summary>
-        public static ConfigEntry<float> TailHairBrightness { get; private set; }
+        // ---------- Rabo e aura deitada: visual calibrado (2026-10-16) ----------
+        //
+        // Ficaram no .cfg enquanto eram chute, para o Henrique calibrar na tela, e viraram const
+        // quando o rabo (solto e enrolado) e a aura do voo rapido foram aprovados no jogo. Ver
+        // Transformations.FormTail e Ki.KiChargeEffects.Lean.
 
-        /// <summary>Quanto cada osso do rabo balança parado, em graus. Ver <c>Transformations.FormTail</c>.</summary>
-        public static ConfigEntry<float> TailSwayDegrees { get; private set; }
+        /// <summary>Quanto cada um dos 8 ossos do rabo balança parado, em graus. A onda anda da raiz para a ponta.</summary>
+        public const float TailSwayDegrees = 10f;
 
-        /// <summary>Quantos balanços por segundo o rabo faz parado.</summary>
-        public static ConfigEntry<float> TailSwaySpeed { get; private set; }
+        /// <summary>Balanços por segundo do rabo parado.</summary>
+        public const float TailSwaySpeed = 0.5f;
 
-        /// <summary>Quanto o rabo dobra para trás do movimento, em graus por metro por segundo.</summary>
-        public static ConfigEntry<float> TailMotionBend { get; private set; }
+        /// <summary>Quanto o rabo dobra para trás do movimento, em graus por metro por segundo, na cadeia inteira.</summary>
+        public const float TailMotionBend = 6f;
 
-        /// <summary>A dobra máxima pelo movimento, em graus, somada na cadeia inteira.</summary>
-        public static ConfigEntry<float> TailMotionMaxBend { get; private set; }
+        /// <summary>A dobra máxima pelo movimento, em graus, para o voo rápido não dobrar o rabo no corpo.</summary>
+        public const float TailMotionMaxBend = 70f;
 
-        /// <summary>Quão rápido o rabo alcança a dobra do movimento, por segundo.</summary>
-        public static ConfigEntry<float> TailResponsiveness { get; private set; }
+        /// <summary>Quão rápido o rabo alcança a dobra do movimento, por segundo. Baixo é pesado.</summary>
+        public const float TailResponsiveness = 5f;
 
-        /// <summary>Quanto a ponta do rabo enrolado balança, em graus por osso.</summary>
-        public static ConfigEntry<float> TailWrappedTipSway { get; private set; }
+        /// <summary>Quanto a ponta do rabo enrolado balança, em graus por osso, nos dois últimos ossos.</summary>
+        public const float TailWrappedTipSway = 4f;
+
+        /// <summary>Brilho do rabo da cor do cabelo, multiplicando a cor do cabelo. 1 casou com o cabelo.</summary>
+        public const float TailHairBrightness = 1f;
+
+        /// <summary>
+        /// Fração do caminho entre o voo lento e o rápido a partir da qual a chama grande da aura
+        /// deita em cartão. Volta a ficar de pé 0,2 abaixo. Descer devagar e pairar ficam de pé.
+        /// </summary>
+        public const float AuraFlightCardSpeed = 0.6f;
+
+        /// <summary>Tamanho geral da chama deitada, em fração da de pé. 1 no jogo (0,85 na sonda do Unity).</summary>
+        public const float AuraFlightCardSize = 1f;
+
+        /// <summary>Largura da chama deitada em volta do corpo, multiplicando o tamanho geral.</summary>
+        public const float AuraFlightCardWidth = 1f;
+
+        /// <summary>Comprimento da chama deitada ao longo do corpo, multiplicando o tamanho geral.</summary>
+        public const float AuraFlightCardLength = 1f;
 
         // ---------- 3.6 - Kaioken ----------
 
@@ -2527,60 +2547,6 @@ namespace Saiyaheim
                     "transformed. Off removes it everywhere except SSJ4, where the red-furred " +
                     "tail is part of the form.",
                     null, AdminOnly(42)));
-
-            // Visual e chute, como o balanco abaixo: client-side, vira const quando fechar.
-            TailHairBrightness = config.Bind(SecTransformations, "TailHairBrightness", 1f,
-                new ConfigDescription(
-                    "Brightness of the hair-colored tail next to the hair. Raise it if the tail " +
-                    "looks darker than the hair, lower it if brighter. Does not affect the SSJ4 " +
-                    "tail. Applies live.",
-                    new AcceptableValueRange<float>(0.2f, 3f), ClientSide(41)));
-
-            // O balanco do rabo (2026-10-15, na secao do SSJ4 ate' 2026-10-16, quando o rabo foi
-            // para todas as formas). Visual e chute, entao fica no .cfg e e' client-side: cada um
-            // ve o rabo dos amigos com a propria regulagem, e quem itera e' o Henrique, na tela.
-            // Vira const quando fechar. Ver Transformations.FormTail.
-            // 4 -> 10 no mesmo dia, antes do primeiro playtest valer: em 4 o Henrique nao viu
-            // balanco nenhum. A onda atrasa de osso para osso, entao a ponta nao soma os oito.
-            TailSwayDegrees = config.Bind(SecTransformations, "TailSwayDegrees", 10f,
-                new ConfigDescription(
-                    "How far each of the tail's 8 bones swings while standing still, in degrees. " +
-                    "The swing travels from the root to the tip, so the tail undulates instead " +
-                    "of swinging as one piece. 0 stops the idle sway. Applies live.",
-                    new AcceptableValueRange<float>(0f, 30f), ClientSide(40)));
-
-            TailSwaySpeed = config.Bind(SecTransformations, "TailSwaySpeed", 0.5f,
-                new ConfigDescription(
-                    "Idle tail swings per second. Applies live.",
-                    new AcceptableValueRange<float>(0.05f, 3f), ClientSide(39)));
-
-            TailMotionBend = config.Bind(SecTransformations, "TailMotionBend", 6f,
-                new ConfigDescription(
-                    "How much the tail bends away from where you are moving, in degrees per metre " +
-                    "per second, over the whole tail. Running forward lifts it behind you, " +
-                    "strafing swings it to the other side, falling lifts it. 0 keeps it still " +
-                    "while moving. Applies live.",
-                    new AcceptableValueRange<float>(0f, 30f), ClientSide(38)));
-
-            TailMotionMaxBend = config.Bind(SecTransformations, "TailMotionMaxBend", 70f,
-                new ConfigDescription(
-                    "Upper limit of the movement bend above, in degrees over the whole tail, so " +
-                    "fast flight does not fold the tail into the body. Applies live.",
-                    new AcceptableValueRange<float>(0f, 180f), ClientSide(37)));
-
-            TailResponsiveness = config.Bind(SecTransformations, "TailResponsiveness", 5f,
-                new ConfigDescription(
-                    "How fast the tail catches up with the movement bend, per second. Low is a " +
-                    "heavy, lazy tail; high snaps to it. Applies live.",
-                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(36)));
-
-            // O rabo enrolado na cintura (2026-10-16): so' a ponta balanca. Chute, como os de cima.
-            TailWrappedTipSway = config.Bind(SecTransformations, "TailWrappedTipSway", 4f,
-                new ConfigDescription(
-                    "How far the tip of a tail wrapped around the waist swings, in degrees per " +
-                    "bone over its last two bones. The rest of the wrap stays still against the " +
-                    "body. 0 keeps the wrapped tail completely still. Applies live.",
-                    new AcceptableValueRange<float>(0f, 20f), ClientSide(35)));
 
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir

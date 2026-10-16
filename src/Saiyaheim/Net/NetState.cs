@@ -113,9 +113,12 @@ namespace Saiyaheim.Net
         /// </summary>
         private const int FlagTailWrapped = 1 << 6;
 
+        /// <summary>Personagem sem rabo (2026-10-16), escolha do jogador no menu radial.</summary>
+        private const int FlagTailHidden = 1 << 7;
+
         /// <summary>
-        /// Onde começa o índice da forma. Os oito bits baixos ficam para as bandeiras — hoje
-        /// sobra uma.
+        /// Onde começa o índice da forma. Os oito bits baixos ficam para as bandeiras — cheios desde
+        /// 2026-10-16. Bandeira nova vai para os bits 28-30, acima do Kaioken.
         /// </summary>
         private const int FormShift = 8;
 
@@ -141,6 +144,13 @@ namespace Saiyaheim.Net
         private const int KaiokenMask = 0x0F;
 
         /// <summary>
+        /// Aura acesa o tempo todo, e não só carregando (2026-10-16), escolha do jogador no menu
+        /// radial. Primeira bandeira acima do Kaioken: os oito bits baixos encheram. Sobram o 29 e o
+        /// 30; o 31 fica de fora pelo sinal.
+        /// </summary>
+        private const int FlagAuraAlwaysOn = 1 << 28;
+
+        /// <summary>
         /// Publica o estado do jogador local. Chamado uma vez por frame, do <c>Update</c> do
         /// plugin, <b>depois</b> dos managers — o valor publicado é o do frame que acabou de ser
         /// decidido, não o do anterior.
@@ -150,8 +160,8 @@ namespace Saiyaheim.Net
         /// </summary>
         internal static void Publish(
             Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
-            bool beamCharged, bool flightSteersByAim, bool tailWrapped, int formIndex,
-            int chargeAttackIndex, int kaiokenIndex)
+            bool beamCharged, bool flightSteersByAim, bool tailWrapped, bool tailHidden,
+            bool auraAlwaysOn, int formIndex, int chargeAttackIndex, int kaiokenIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -194,6 +204,16 @@ namespace Saiyaheim.Net
             if (tailWrapped)
             {
                 value |= FlagTailWrapped;
+            }
+
+            if (tailHidden)
+            {
+                value |= FlagTailHidden;
+            }
+
+            if (auraAlwaysOn)
+            {
+                value |= FlagAuraAlwaysOn;
             }
 
             // +1 porque zero precisa significar "forma base": um jogador sem o mod, ou que ainda
@@ -239,6 +259,12 @@ namespace Saiyaheim.Net
 
         /// <summary>Rabo enrolado na cintura. Ver <see cref="FlagTailWrapped"/>.</summary>
         internal static bool IsTailWrapped(Player player) => HasFlag(player, FlagTailWrapped);
+
+        /// <summary>Personagem sem rabo. Ver <see cref="FlagTailHidden"/>.</summary>
+        internal static bool IsTailHidden(Player player) => HasFlag(player, FlagTailHidden);
+
+        /// <summary>Aura acesa o tempo todo. Ver <see cref="FlagAuraAlwaysOn"/>.</summary>
+        internal static bool IsAuraAlwaysOn(Player player) => HasFlag(player, FlagAuraAlwaysOn);
 
         /// <summary>Índice da forma ativa na escada do <c>TransformationRegistry</c>, ou -1 na base.</summary>
         internal static int GetFormIndex(Player player)
