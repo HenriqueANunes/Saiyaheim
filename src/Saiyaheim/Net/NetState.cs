@@ -107,8 +107,15 @@ namespace Saiyaheim.Net
         private const int FlagFlightSteersByAim = 1 << 5;
 
         /// <summary>
+        /// Rabo enrolado na cintura em vez de solto (2026-10-16). Escolha do jogador, pelo menu
+        /// radial; os outros precisam ver a mesma pose, então ela passa por aqui. Ver
+        /// <c>Transformations.FormTail</c>.
+        /// </summary>
+        private const int FlagTailWrapped = 1 << 6;
+
+        /// <summary>
         /// Onde começa o índice da forma. Os oito bits baixos ficam para as bandeiras — hoje
-        /// sobram duas, o que dá folga para a etapa 11 sem mexer no leiaute.
+        /// sobra uma.
         /// </summary>
         private const int FormShift = 8;
 
@@ -143,8 +150,8 @@ namespace Saiyaheim.Net
         /// </summary>
         internal static void Publish(
             Player player, bool kiEnabled, bool flying, bool charging, bool beamCharging,
-            bool beamCharged, bool flightSteersByAim, int formIndex, int chargeAttackIndex,
-            int kaiokenIndex)
+            bool beamCharged, bool flightSteersByAim, bool tailWrapped, int formIndex,
+            int chargeAttackIndex, int kaiokenIndex)
         {
             ZDO zdo = GetZdo(player);
             if (zdo == null || !zdo.IsOwner())
@@ -182,6 +189,11 @@ namespace Saiyaheim.Net
             if (flightSteersByAim)
             {
                 value |= FlagFlightSteersByAim;
+            }
+
+            if (tailWrapped)
+            {
+                value |= FlagTailWrapped;
             }
 
             // +1 porque zero precisa significar "forma base": um jogador sem o mod, ou que ainda
@@ -224,6 +236,9 @@ namespace Saiyaheim.Net
         /// <summary>Voo no modo guiado pela mira. Ver <see cref="FlagFlightSteersByAim"/>.</summary>
         internal static bool FlightSteersByAim(Player player) =>
             HasFlag(player, FlagFlightSteersByAim);
+
+        /// <summary>Rabo enrolado na cintura. Ver <see cref="FlagTailWrapped"/>.</summary>
+        internal static bool IsTailWrapped(Player player) => HasFlag(player, FlagTailWrapped);
 
         /// <summary>Índice da forma ativa na escada do <c>TransformationRegistry</c>, ou -1 na base.</summary>
         internal static int GetFormIndex(Player player)

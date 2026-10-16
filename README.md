@@ -129,6 +129,11 @@ Five steps today, each gated behind a boss:
 SSJ God is the odd one: it hits softer than SSJ4 on purpose, no harder than SSJ3. It is the control form, and what it
 buys is staying power rather than a bigger punch.
 
+Every character also has a Saiyan tail that sways as you move, in the color of your hair: your
+own in base form, the form's while transformed. SSJ4 keeps its red fur. Wrap it around your waist
+or let it hang from the **Options** group on the radial menu. A server can turn tails off with
+TailEnabled.
+
 There is no activation cost, so stepping up and down is free. What a form costs is a small
 continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and
 firing ki attacks all cost more while transformed, though the surcharge is far smaller than the
@@ -213,8 +218,8 @@ it.
 ### Radial menu
 
 Forms, Kaioken and ki attacks are also on **Valheim's own radial menu**, the wheel you already open
-to switch weapons, eat or emote. The mod adds three groups to it — **Forms**, **Kaioken** and **Ki
-attacks** — so it costs you no extra key, and the hotkeys above keep working for anyone who prefers them.
+to switch weapons, eat or emote. The mod adds four groups to it — **Forms**, **Kaioken**, **Ki
+attacks** and **Options** — so it costs you no extra key, and the hotkeys above keep working for anyone who prefers them.
 
 - Every item shows what you need to know before you click it: a form shows its ki drain per
   second, an attack shows its ki cost and which one is currently selected.
@@ -225,6 +230,8 @@ attacks** — so it costs you no extra key, and the hotkeys above keep working f
 - Picking a Kaioken tier switches straight to it, up or down, from any form. Each tier shows its
   power multiplier and what it costs right now, in stamina and, past your limit, health. While it
   is on, a **Kaioken off** item turns it off.
+- **Options** holds what you switch on and off for your character: for now, wrapping the tail
+  around your waist or letting it hang. Other players see the same.
 - **Only what you have unlocked shows up.** A group whose items are all still locked does not
   appear on the wheel at all, so the menu grows as you progress.
 

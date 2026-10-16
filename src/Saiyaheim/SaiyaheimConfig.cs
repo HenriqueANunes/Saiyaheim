@@ -537,8 +537,9 @@ namespace Saiyaheim
             public string BodyFur { get; internal set; }
 
             /// <summary>
-            /// Rabo enquanto a forma está ativa: nome do arquivo embutido em <c>Assets/body/</c>
-            /// (<c>&lt;nome&gt;.txt</c>, gerado pelo <c>tools/ssj4_rabo.py</c>). Vazio, sem rabo.
+            /// Rabo próprio da forma, com o pelo do SSJ4: nome do arquivo embutido em
+            /// <c>Assets/body/</c> (<c>&lt;nome&gt;.txt</c>, gerado pelo <c>tools/ssj4_rabo.py</c>).
+            /// Vazio, a forma usa o rabo da cor do cabelo (<c>TailEnabled</c>).
             /// Ver <c>Transformations.FormTail</c>.
             /// </summary>
             public string Tail { get; internal set; }
@@ -620,6 +621,12 @@ namespace Saiyaheim
         /// <summary>O quinto degrau. Ver <see cref="Ssj"/>.</summary>
         public static TransformationConfig SsjGod { get; private set; }
 
+        /// <summary>Se todo personagem tem rabo fora do SSJ4, na cor do cabelo. Ver <c>Transformations.FormTail</c>.</summary>
+        public static ConfigEntry<bool> TailEnabled { get; private set; }
+
+        /// <summary>Multiplicador do brilho do rabo da cor do cabelo, para casar com o cabelo.</summary>
+        public static ConfigEntry<float> TailHairBrightness { get; private set; }
+
         /// <summary>Quanto cada osso do rabo balança parado, em graus. Ver <c>Transformations.FormTail</c>.</summary>
         public static ConfigEntry<float> TailSwayDegrees { get; private set; }
 
@@ -634,6 +641,9 @@ namespace Saiyaheim
 
         /// <summary>Quão rápido o rabo alcança a dobra do movimento, por segundo.</summary>
         public static ConfigEntry<float> TailResponsiveness { get; private set; }
+
+        /// <summary>Quanto a ponta do rabo enrolado balança, em graus por osso.</summary>
+        public static ConfigEntry<float> TailWrappedTipSway { get; private set; }
 
         // ---------- 3.6 - Kaioken ----------
 
@@ -2505,6 +2515,73 @@ namespace Saiyaheim
                     "floored at 1. 1 disables the boss bonus entirely.",
                     new AcceptableValueRange<float>(1f, 20f), AdminOnly(65)));
 
+            // --- Rabo ---
+            // Em todas as formas desde 2026-10-16, pedido do Henrique, na cor do cabelo; o SSJ4
+            // fica com o pelo vermelho. AdminOnly: liga ou desliga para o servidor inteiro, e
+            // todo mundo ve o mesmo. Escolha por personagem pediria a ZDO. Ver
+            // Transformations.FormTail e [[Melhorias]], "Rabo na forma base e em todas as formas".
+            TailEnabled = config.Bind(SecTransformations, "TailEnabled", true,
+                new ConfigDescription(
+                    "Gives every character a tail, in base form and in every transformation, in " +
+                    "the color of the hair: the character's own in base form, the form's while " +
+                    "transformed. Off removes it everywhere except SSJ4, where the red-furred " +
+                    "tail is part of the form.",
+                    null, AdminOnly(42)));
+
+            // Visual e chute, como o balanco abaixo: client-side, vira const quando fechar.
+            TailHairBrightness = config.Bind(SecTransformations, "TailHairBrightness", 1f,
+                new ConfigDescription(
+                    "Brightness of the hair-colored tail next to the hair. Raise it if the tail " +
+                    "looks darker than the hair, lower it if brighter. Does not affect the SSJ4 " +
+                    "tail. Applies live.",
+                    new AcceptableValueRange<float>(0.2f, 3f), ClientSide(41)));
+
+            // O balanco do rabo (2026-10-15, na secao do SSJ4 ate' 2026-10-16, quando o rabo foi
+            // para todas as formas). Visual e chute, entao fica no .cfg e e' client-side: cada um
+            // ve o rabo dos amigos com a propria regulagem, e quem itera e' o Henrique, na tela.
+            // Vira const quando fechar. Ver Transformations.FormTail.
+            // 4 -> 10 no mesmo dia, antes do primeiro playtest valer: em 4 o Henrique nao viu
+            // balanco nenhum. A onda atrasa de osso para osso, entao a ponta nao soma os oito.
+            TailSwayDegrees = config.Bind(SecTransformations, "TailSwayDegrees", 10f,
+                new ConfigDescription(
+                    "How far each of the tail's 8 bones swings while standing still, in degrees. " +
+                    "The swing travels from the root to the tip, so the tail undulates instead " +
+                    "of swinging as one piece. 0 stops the idle sway. Applies live.",
+                    new AcceptableValueRange<float>(0f, 30f), ClientSide(40)));
+
+            TailSwaySpeed = config.Bind(SecTransformations, "TailSwaySpeed", 0.5f,
+                new ConfigDescription(
+                    "Idle tail swings per second. Applies live.",
+                    new AcceptableValueRange<float>(0.05f, 3f), ClientSide(39)));
+
+            TailMotionBend = config.Bind(SecTransformations, "TailMotionBend", 6f,
+                new ConfigDescription(
+                    "How much the tail bends away from where you are moving, in degrees per metre " +
+                    "per second, over the whole tail. Running forward lifts it behind you, " +
+                    "strafing swings it to the other side, falling lifts it. 0 keeps it still " +
+                    "while moving. Applies live.",
+                    new AcceptableValueRange<float>(0f, 30f), ClientSide(38)));
+
+            TailMotionMaxBend = config.Bind(SecTransformations, "TailMotionMaxBend", 70f,
+                new ConfigDescription(
+                    "Upper limit of the movement bend above, in degrees over the whole tail, so " +
+                    "fast flight does not fold the tail into the body. Applies live.",
+                    new AcceptableValueRange<float>(0f, 180f), ClientSide(37)));
+
+            TailResponsiveness = config.Bind(SecTransformations, "TailResponsiveness", 5f,
+                new ConfigDescription(
+                    "How fast the tail catches up with the movement bend, per second. Low is a " +
+                    "heavy, lazy tail; high snaps to it. Applies live.",
+                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(36)));
+
+            // O rabo enrolado na cintura (2026-10-16): so' a ponta balanca. Chute, como os de cima.
+            TailWrappedTipSway = config.Bind(SecTransformations, "TailWrappedTipSway", 4f,
+                new ConfigDescription(
+                    "How far the tip of a tail wrapped around the waist swings, in degrees per " +
+                    "bone over its last two bones. The rest of the wrap stays still against the " +
+                    "body. 0 keeps the wrapped tail completely still. Applies live.",
+                    new AcceptableValueRange<float>(0f, 20f), ClientSide(35)));
+
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir
             // esta linha com outra secao, outros numeros e a global key do boss dele.
@@ -2687,43 +2764,6 @@ namespace Saiyaheim
                 bodyFur: "ssj4_pelo",
                 tail: "ssj4_rabo",
                 kaiokenPenalty: 80f, kaiokenPenaltyZeroAt: 100f);
-
-            // O balanco do rabo do SSJ4 (2026-10-15). Visual e chute, entao fica no .cfg e e'
-            // client-side: cada um ve o rabo dos amigos com a propria regulagem, e quem itera e' o
-            // Henrique, na tela. Vira const quando fechar. Ver Transformations.FormTail.
-            // 4 -> 10 no mesmo dia, antes do primeiro playtest valer: em 4 o Henrique nao viu
-            // balanco nenhum. A onda atrasa de osso para osso, entao a ponta nao soma os oito.
-            TailSwayDegrees = config.Bind(SecSsj4, "TailSwayDegrees", 10f,
-                new ConfigDescription(
-                    "How far each of the tail's 8 bones swings while standing still, in degrees. " +
-                    "The swing travels from the root to the tip, so the tail undulates instead " +
-                    "of swinging as one piece. 0 stops the idle sway. Applies live.",
-                    new AcceptableValueRange<float>(0f, 30f), ClientSide(40)));
-
-            TailSwaySpeed = config.Bind(SecSsj4, "TailSwaySpeed", 0.5f,
-                new ConfigDescription(
-                    "Idle tail swings per second. Applies live.",
-                    new AcceptableValueRange<float>(0.05f, 3f), ClientSide(39)));
-
-            TailMotionBend = config.Bind(SecSsj4, "TailMotionBend", 6f,
-                new ConfigDescription(
-                    "How much the tail bends away from where you are moving, in degrees per metre " +
-                    "per second, over the whole tail. Running forward lifts it behind you, " +
-                    "strafing swings it to the other side, falling lifts it. 0 keeps it still " +
-                    "while moving. Applies live.",
-                    new AcceptableValueRange<float>(0f, 30f), ClientSide(38)));
-
-            TailMotionMaxBend = config.Bind(SecSsj4, "TailMotionMaxBend", 70f,
-                new ConfigDescription(
-                    "Upper limit of the movement bend above, in degrees over the whole tail, so " +
-                    "fast flight does not fold the tail into the body. Applies live.",
-                    new AcceptableValueRange<float>(0f, 180f), ClientSide(37)));
-
-            TailResponsiveness = config.Bind(SecSsj4, "TailResponsiveness", 5f,
-                new ConfigDescription(
-                    "How fast the tail catches up with the movement bend, per second. Low is a " +
-                    "heavy, lazy tail; high snaps to it. Applies live.",
-                    new AcceptableValueRange<float>(0.5f, 30f), ClientSide(36)));
 
             // O SSJ God atras do Yagluth — o quinto boss. Ate' 2026-10-15 ficava com o Moder, e
             // passou um boss para frente quando o SSJ4 entrou (ver o bloco acima). Decidido em

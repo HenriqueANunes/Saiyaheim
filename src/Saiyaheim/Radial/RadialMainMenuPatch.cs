@@ -5,7 +5,7 @@ using Valheim.UI;
 namespace Saiyaheim.Radial
 {
     /// <summary>
-    /// Os três grupos do mod — formas, Kaioken e ataques de ki — entram no <b>anel principal da vanilla</b>,
+    /// Os grupos do mod — formas, Kaioken, ataques de ki e opções — entram no <b>anel principal da vanilla</b>,
     /// o que abre na tecla do jogo, ao lado de consumíveis, armas, emotes e companhia.
     ///
     /// <b>Dentro do anel do jogo e não num anel próprio</b>, decidido em 2026-09-18 depois de
@@ -20,10 +20,11 @@ namespace Saiyaheim.Radial
     /// reimplementar o anel principal inteiro.
     ///
     /// <b>Cabe sem ajuste.</b> O <c>MaxElementsRange</c> do jogo é <c>[8, 12]</c>: a vanilla
-    /// entrega 8 e enche a camada; com os três do mod são 11, o <c>SetElementsPerLayer</c> passa
+    /// entrega 8 e enche a camada; com os quatro do mod são 12, o <c>SetElementsPerLayer</c> passa
     /// para 12 por camada, e continua sendo uma camada só — sem paginação e sem item cortado. O
-    /// pior caso é o teto, e o mod só tira itens daí para baixo. Um quarto grupo ainda cabe; um
-    /// quinto passaria de 12.
+    /// pior caso é o teto, e o mod só tira itens daí para baixo. O quarto grupo (opções, desde
+    /// 2026-10-16) encheu a camada: um quinto passaria de 12, então toggle novo entra dentro do
+    /// anel de opções, não como grupo.
     ///
     /// É o <b>único</b> patch Harmony do menu radial; todo o resto é API pública.
     /// Ver [[Menu Radial]].
@@ -105,6 +106,11 @@ namespace Saiyaheim.Radial
             if (KiAttacksRadialConfig.HasContent(Player.m_localPlayer))
             {
                 elements.Add(SaiyaRadial.Group(__instance, new KiAttacksRadialConfig(), __instance.CurrentConfig));
+            }
+
+            if (OptionsRadialConfig.HasContent(Player.m_localPlayer))
+            {
+                elements.Add(SaiyaRadial.Group(__instance, new OptionsRadialConfig(), __instance.CurrentConfig));
             }
         }
     }

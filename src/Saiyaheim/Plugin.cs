@@ -163,6 +163,7 @@ namespace Saiyaheim
                 KiBeamCharge.IsCharging(player),
                 KiBeamCharge.IsFull(player),
                 FlightManager.SteersByAim(player),
+                FormTail.IsWrapped(player),
                 TransformationRegistry.IndexOf(TransformationRegistry.GetActive(player)),
                 KiAttackRegistry.IndexOf(KiBeamCharge.Current),
                 Kaioken.KaiokenRegistry.GetActive(player)?.Index ?? -1);

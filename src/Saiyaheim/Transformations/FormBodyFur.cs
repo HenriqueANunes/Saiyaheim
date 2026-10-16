@@ -257,7 +257,13 @@ namespace Saiyaheim.Transformations
             Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule")
                 ?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]), typeof(bool) });
 
-        private static Texture2D LoadTexture(string name, bool linear)
+        /// <summary>
+        /// A textura de cor do pelo com a cópia na RAM, para quem precisa ler pixel: o rabo fora
+        /// do SSJ4 (<see cref="FormTail"/>) tira dela a versão cinza. Quem pede destrói.
+        /// </summary>
+        internal static Texture2D LoadReadableTexture(string name) => LoadTexture(name, linear: false, readable: true);
+
+        private static Texture2D LoadTexture(string name, bool linear, bool readable = false)
         {
             Assembly assembly = typeof(FormBodyFur).Assembly;
             string suffix = $"body.{name}.png";
@@ -289,8 +295,8 @@ namespace Saiyaheim.Transformations
                 wrapMode = TextureWrapMode.Clamp,
             };
 
-            // markNonReadable: a cópia na RAM só serviria para ler pixel, e ninguém lê.
-            if (!(bool)LoadImageMethod.Invoke(null, new object[] { texture, data, true }))
+            // markNonReadable: a cópia na RAM só serve para ler pixel, e só quem pede lê.
+            if (!(bool)LoadImageMethod.Invoke(null, new object[] { texture, data, !readable }))
             {
                 SaiyaheimPlugin.Log.LogError($"'{resource}' did not decode as an image.");
                 UnityEngine.Object.Destroy(texture);

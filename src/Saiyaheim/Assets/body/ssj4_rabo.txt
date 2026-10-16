@@ -1,5 +1,6 @@
-# rabo do SSJ4 — gerado por tools/ssj4_rabo.py; espaço local do osso Hips
+# rabo — gerado por tools/ssj4_rabo.py; espaço local do osso Hips
 # 8 ossos, raio 0.045, 24 anéis x 8 lados
+p Hips
 b 0.000000 0.001420 -0.001430
 b -0.000046 0.000679 -0.002473
 b -0.000425 -0.000669 -0.003450
