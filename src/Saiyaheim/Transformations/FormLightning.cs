@@ -28,6 +28,13 @@ namespace Saiyaheim.Transformations
     ///
     /// Nada aqui é objeto de rede: cada máquina instancia os próprios estalos, como todo efeito do
     /// mod. Ver <c>AttachedEffect</c>.
+    ///
+    /// <b>O som só nos primeiros segundos</b> (2026-10-16, pedido do MisterMusashi no Nexus): o
+    /// estalo constante incomodava. Cada estalo do <c>fx_Lightning</c> traz um filho com
+    /// <c>ZSFX</c>, que só toca no <c>Start</c>, um frame depois de instanciado; passada a janela
+    /// (<c>FormLightningSoundSeconds</c>) o filho é desligado logo depois do <c>Instantiate</c>, e o
+    /// raio continua sem som. A janela recomeça a cada troca de forma, então subir de SSJ2 para
+    /// SSJ3 estala de novo.
     /// </summary>
     internal static class FormLightning
     {
@@ -40,6 +47,10 @@ namespace Saiyaheim.Transformations
         /// crepitando", e é ela que agenda o primeiro estalo.
         /// </summary>
         private static readonly Dictionary<Player, float> NextSpark = new Dictionary<Player, float>();
+
+        /// <summary>Em que forma cada jogador começou a crepitar, e quando: é o relógio do som.</summary>
+        private static readonly Dictionary<Player, KeyValuePair<Transformation, float>> Started =
+            new Dictionary<Player, KeyValuePair<Transformation, float>>();
 
         /// <summary>
         /// Um passo do efeito neste jogador. Chamado todo frame, para todo jogador carregado.
@@ -61,7 +72,14 @@ namespace Saiyaheim.Transformations
             if (form == null || !form.HasLightning || string.IsNullOrEmpty(prefab))
             {
                 NextSpark.Remove(player);
+                Started.Remove(player);
                 return;
+            }
+
+            if (!Started.TryGetValue(player, out KeyValuePair<Transformation, float> started) || started.Key != form)
+            {
+                started = new KeyValuePair<Transformation, float>(form, Time.time);
+                Started[player] = started;
             }
 
             if (!NextSpark.TryGetValue(player, out float next))
@@ -80,10 +98,11 @@ namespace Saiyaheim.Transformations
 
             NextSpark[player] = Time.time + DrawInterval();
 
+            bool sound = Time.time - started.Value < SaiyaheimConfig.FormLightningSoundSeconds;
             int count = Mathf.Max(1, SaiyaheimConfig.FormLightningCount);
             for (int i = 0; i < count; i++)
             {
-                SpawnBolt(player, form, prefab);
+                SpawnBolt(player, form, prefab, sound);
             }
         }
 
@@ -91,11 +110,13 @@ namespace Saiyaheim.Transformations
         internal static void Forget(Player player)
         {
             NextSpark.Remove(player);
+            Started.Remove(player);
         }
 
         internal static void Reset()
         {
             NextSpark.Clear();
+            Started.Clear();
         }
 
         /// <summary>
@@ -125,7 +146,7 @@ namespace Saiyaheim.Transformations
         /// mesma direção do personagem — dez estalos idênticos empilhados no mesmo eixo lêem como
         /// uma textura piscando, não como raios diferentes.
         /// </summary>
-        private static void SpawnBolt(Player player, Transformation form, string prefab)
+        private static void SpawnBolt(Player player, Transformation form, string prefab, bool sound)
         {
             Vector2 disc = Random.insideUnitCircle * SaiyaheimConfig.FormLightningRadius;
 
@@ -143,9 +164,20 @@ namespace Saiyaheim.Transformations
                 burstDuration: SaiyaheimConfig.FormLightningDuration,
                 localOffset: new Vector3(disc.x, height, disc.y));
 
-            if (bolt != null)
+            if (bolt == null)
             {
-                bolt.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                return;
+            }
+
+            bolt.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+
+            if (!sound)
+            {
+                // Antes do Start do ZSFX, que é onde ele tocaria.
+                foreach (ZSFX sfx in bolt.GetComponentsInChildren<ZSFX>(true))
+                {
+                    sfx.gameObject.SetActive(false);
+                }
             }
         }
     }

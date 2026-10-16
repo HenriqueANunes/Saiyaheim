@@ -1564,6 +1564,13 @@ namespace Saiyaheim
         public const float FormLightningDuration = 0.35f;
 
         /// <summary>
+        /// Segundos em que o raio do SSJ2/SSJ3 estala com som depois de transformar; depois ele
+        /// continua calado. Recomeça a cada troca de forma. 5 s no playtest de 2026-10-16 (saiu com 3);
+        /// pedido do MisterMusashi no Nexus. Ver <see cref="Transformations.FormLightning"/>.
+        /// </summary>
+        public const float FormLightningSoundSeconds = 5f;
+
+        /// <summary>
         /// Multiplicador da luz dinâmica de cada estalo. <b>0 de propósito</b>: a luz do
         /// <c>fx_Lightning</c> ilumina o terreno, e piscando a cada meio segundo vira
         /// estroboscópio para quem joga à noite. As partículas têm brilho próprio.
