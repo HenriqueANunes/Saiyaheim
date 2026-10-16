@@ -44,33 +44,30 @@ namespace Saiyaheim.Radial
                     return true;
                 }));
 
-            if (FormTail.HasTail(player))
+            bool hidden = FormTail.IsHidden(player);
+            elements.Add(SaiyaRadial.Leaf(
+                hidden ? "Show tail" : "Hide tail",
+                hidden ? "Give your character a tail again" : "Your character goes without a tail, SSJ4 included",
+                IconLoader.LoadOptional(hidden ? "tail" : "tail_hidden"),
+                () =>
+                {
+                    FormTail.SetHidden(Player.m_localPlayer, !hidden);
+                    return true;
+                }));
+
+            // Enrolar um rabo escondido não teria o que mostrar.
+            if (!hidden)
             {
-                bool hidden = FormTail.IsHidden(player);
+                bool wrapped = FormTail.IsWrapped(player);
                 elements.Add(SaiyaRadial.Leaf(
-                    hidden ? "Show tail" : "Hide tail",
-                    hidden ? "Give your character a tail again" : "Your character goes without a tail, SSJ4 included",
-                    IconLoader.LoadOptional(hidden ? "tail" : "tail_hidden"),
+                    wrapped ? "Loose tail" : "Wrap tail",
+                    wrapped ? "Let the tail hang free" : "Wrap the tail around your waist",
+                    IconLoader.LoadOptional(wrapped ? "tail" : "tail_wrapped"),
                     () =>
                     {
-                        FormTail.SetHidden(Player.m_localPlayer, !hidden);
+                        FormTail.SetWrapped(Player.m_localPlayer, !wrapped);
                         return true;
                     }));
-
-                // Enrolar um rabo escondido não teria o que mostrar.
-                if (!hidden)
-                {
-                    bool wrapped = FormTail.IsWrapped(player);
-                    elements.Add(SaiyaRadial.Leaf(
-                        wrapped ? "Loose tail" : "Wrap tail",
-                        wrapped ? "Let the tail hang free" : "Wrap the tail around your waist",
-                        IconLoader.LoadOptional(wrapped ? "tail" : "tail_wrapped"),
-                        () =>
-                        {
-                            FormTail.SetWrapped(Player.m_localPlayer, !wrapped);
-                            return true;
-                        }));
-                }
             }
 
             radial.ConstructRadial(elements);

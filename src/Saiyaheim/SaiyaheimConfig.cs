@@ -538,7 +538,7 @@ namespace Saiyaheim
             /// <summary>
             /// Rabo próprio da forma, com o pelo do SSJ4: nome do arquivo embutido em
             /// <c>Assets/body/</c> (<c>&lt;nome&gt;.txt</c>, gerado pelo <c>tools/ssj4_rabo.py</c>).
-            /// Vazio, a forma usa o rabo da cor do cabelo (<c>TailEnabled</c>).
+            /// Vazio, a forma usa o rabo da cor do cabelo.
             /// Ver <c>Transformations.FormTail</c>.
             /// </summary>
             public string Tail { get; internal set; }
@@ -619,9 +619,6 @@ namespace Saiyaheim
 
         /// <summary>O quinto degrau. Ver <see cref="Ssj"/>.</summary>
         public static TransformationConfig SsjGod { get; private set; }
-
-        /// <summary>Se todo personagem tem rabo fora do SSJ4, na cor do cabelo. Ver <c>Transformations.FormTail</c>.</summary>
-        public static ConfigEntry<bool> TailEnabled { get; private set; }
 
         // ---------- Rabo e aura deitada: visual calibrado (2026-10-16) ----------
         //
@@ -2541,19 +2538,6 @@ namespace Saiyaheim
                     "multiplier is min(this, 1 + bonus * (bosses defeated - the form's rung)), " +
                     "floored at 1. 1 disables the boss bonus entirely.",
                     new AcceptableValueRange<float>(1f, 20f), AdminOnly(65)));
-
-            // --- Rabo ---
-            // Em todas as formas desde 2026-10-16, pedido do Henrique, na cor do cabelo; o SSJ4
-            // fica com o pelo vermelho. AdminOnly: liga ou desliga para o servidor inteiro, e
-            // todo mundo ve o mesmo. Escolha por personagem pediria a ZDO. Ver
-            // Transformations.FormTail e [[Melhorias]], "Rabo na forma base e em todas as formas".
-            TailEnabled = config.Bind(SecTransformations, "TailEnabled", true,
-                new ConfigDescription(
-                    "Gives every character a tail, in base form and in every transformation, in " +
-                    "the color of the hair: the character's own in base form, the form's while " +
-                    "transformed. Off removes it everywhere except SSJ4, where the red-furred " +
-                    "tail is part of the form.",
-                    null, AdminOnly(42)));
 
             // --- Transformacoes ---
             // Uma chamada por forma, na ordem da escada. Adicionar o degrau seguinte e' repetir

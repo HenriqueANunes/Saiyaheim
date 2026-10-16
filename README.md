@@ -131,8 +131,7 @@ buys is staying power rather than a bigger punch.
 
 Every character also has a Saiyan tail that sways as you move, in the color of your hair: your
 own in base form, the form's while transformed. SSJ4 keeps its red fur. Wrap it around your waist
-or let it hang from the **Options** group on the radial menu. A server can turn tails off with
-TailEnabled.
+or let it hang, or go without one, from the **Options** group on the radial menu.
 
 There is no activation cost, so stepping up and down is free. What a form costs is a small
 continuous drain plus a surcharge on everything you do in it — punching, blocking, taking hits and

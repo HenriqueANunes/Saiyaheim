@@ -15,9 +15,10 @@ namespace Saiyaheim.Transformations
     ///
     /// <b>Dois modos, a mesma malha.</b> A forma com rabo próprio (<c>Tail</c> no
     /// <c>BindTransformation</c>, hoje só o SSJ4) leva o pelo vermelho, descrito abaixo. Fora dela,
-    /// com o <c>TailEnabled</c> ligado, o rabo tem a <b>cor do cabelo</b>: na forma base a do
-    /// personagem, transformado a da forma. Pedido do Henrique: o rabo acompanha o cabelo, e só o
-    /// SSJ4 é exceção.
+    /// o rabo tem a <b>cor do cabelo</b>: na forma base a do personagem, transformado a da forma.
+    /// Pedido do Henrique: o rabo acompanha o cabelo, e só o SSJ4 é exceção. Quem não quer rabo
+    /// esconde pelo menu radial (<c>KeyHidden</c>); a chave de servidor <c>TailEnabled</c> saiu
+    /// em 2026-10-16 por isso.
     ///
     /// <b>Como o rabo pega a cor do cabelo.</b> Cabelo e corpo usam o mesmo shader do jogo
     /// (<c>Custom/Player</c>), e a cor do cabelo é só a <c>_SkinColor</c> multiplicando uma
@@ -144,12 +145,12 @@ namespace Saiyaheim.Transformations
                 return;
             }
 
-            // A forma com rabo próprio manda; sem ela, o rabo da cor do cabelo, se ligado.
+            // A forma com rabo próprio manda; sem ela, o rabo da cor do cabelo.
             string name = form == null ? null : form.Config.Tail;
             bool fur = !string.IsNullOrEmpty(name);
             if (!fur)
             {
-                name = SaiyaheimConfig.TailEnabled.Value ? DefaultTail : null;
+                name = DefaultTail;
             }
 
             if (NetState.IsTailHidden(player))
@@ -242,22 +243,6 @@ namespace Saiyaheim.Transformations
             {
                 player.m_customData.Remove(KeyHidden);
             }
-        }
-
-        /// <summary>
-        /// Este jogador pode ter rabo agora, se não o escondeu: na forma com rabo próprio, ou em
-        /// qualquer outra com o <c>TailEnabled</c> ligado. O menu radial só oferece os toggles do
-        /// rabo quando há rabo para mostrar.
-        /// </summary>
-        internal static bool HasTail(Player player)
-        {
-            if (player == null)
-            {
-                return false;
-            }
-
-            Transformation form = TransformationRegistry.GetActive(player);
-            return SaiyaheimConfig.TailEnabled.Value || (form != null && !string.IsNullOrEmpty(form.Config.Tail));
         }
 
         /// <summary>Este jogador deixou de existir: o rabo morreu junto, falta a malha e o material.</summary>
@@ -510,7 +495,7 @@ namespace Saiyaheim.Transformations
             var lines = new List<string>();
             if (player == null || !Live.TryGetValue(player, out Instance inst) || inst.Root == null)
             {
-                lines.Add("No tail on this player. Outside SSJ4 it only exists with TailEnabled on.");
+                lines.Add("No tail on this player: hidden from the Options group of the radial menu.");
                 return lines;
             }
 

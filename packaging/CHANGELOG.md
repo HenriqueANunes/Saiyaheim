@@ -3,7 +3,7 @@
 ## 0.10.0
 
 - Added: SSJ4, unlocked by Moder — ×4.5 power, long black hair, red fur on the body and a swaying tail. Requested by maxpohg and MisterMusashi.
-- Added: every character has a tail, in base form and in every transformation, in the color of the hair; SSJ4 keeps its red fur. TailEnabled turns it off.
+- Added: every character has a tail, in base form and in every transformation, in the color of the hair; SSJ4 keeps its red fur.
 - Added: an Options group on the radial menu, per character and seen by other players — keep the aura on all the time while ki is on, go without a tail, or wrap the tail around the waist.
 - Changed: SSJ God is now unlocked by Yagluth, at ×4 power instead of ×3.5; existing configs move to the new values.
 - Changed: the lightning of SSJ2 and SSJ3 only crackles with sound for the first seconds after transforming, then keeps flashing silently. Requested by MisterMusashi.
