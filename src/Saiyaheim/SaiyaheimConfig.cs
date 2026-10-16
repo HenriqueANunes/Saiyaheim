@@ -2175,8 +2175,9 @@ namespace Saiyaheim
             // playtest disser que o personagem ficou de papel no late game, e' aqui, e nao no
             // bloqueio, que o numero precisa subir.
             // Playtest de 2026-08-01: baixado de 0,15 quando o termo de fim de jogo dobrou o poder
-            // no nível 100 e a armadura subiu junto.
-            ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.06f,
+            // no nível 100 e a armadura subiu junto. 0,06 -> 0,07 em 2026-10-16, ajuste de
+            // balanceamento do Henrique (ele jogava com 0,08); migração 11, sem force.
+            ArmorFromPower = config.Bind(SecCombat, "ArmorFromPower", 0.07f,
                 new ConfigDescription(
                     "Fraction of the battle power converted into armor. While ki is on this " +
                     "armor REPLACES equipment armor — worn pieces stop counting. Turning ki off " +

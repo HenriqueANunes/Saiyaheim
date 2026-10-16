@@ -38,7 +38,7 @@ namespace Saiyaheim.Util
         /// nova entra — não acompanha a versão do plugin, que sobe a cada release por qualquer
         /// motivo.
         /// </summary>
-        internal const int CurrentVersion = 10;
+        internal const int CurrentVersion = 11;
 
         /// <summary>Uma chave que mudou de default, e o que fazer com o valor que o jogador tem.</summary>
         private readonly struct Change
@@ -575,6 +575,13 @@ namespace Saiyaheim.Util
             // numero e' a distancia entre os dois degraus de cima, e faz parte da mesma escada nova.
             // O SSJ4 nao tem linha: a secao dele nasce nesta migracao, com o default de hoje.
             yield return new Change(10, SaiyaheimConfig.SsjGod.PowerMultiplier, 3.5f, true);
+
+            // ---------- 11 (2026-10-16) — a armadura de ki sobe um pouco ----------
+            //
+            // ArmorFromPower de 0,06 para 0,07, ajuste de balanceamento do Henrique. Sem force: é
+            // um degrau de ajuste fino, não um rework que só funciona inteiro, então quem calibrou
+            // o próprio valor fica com ele.
+            yield return new Change(11, SaiyaheimConfig.ArmorFromPower, 0.06f, false);
         }
     }
 }
